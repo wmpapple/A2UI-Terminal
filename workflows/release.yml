@@ -1,0 +1,57 @@
+name: Release A2UI App
+
+# 触发条件：当你推送以 v 开头的 tag（比如 v1.0.0）时，自动触发流水线
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: # 允许你在 GitHub 网页上手动点击运行
+
+jobs:
+  build-and-release:
+    permissions:
+      contents: write # 允许机器人创建 Release 页面
+    
+    # 🌟 跨平台矩阵：同时启动三台云服务器（苹果、Linux、Windows）并行打包！
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, ubuntu-22.04, windows-latest]
+    
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # Linux 系统需要安装特定的底层依赖才能编译 Tauri
+      - name: Install dependencies (Ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      # 🌟 核心打包步骤：调用 Tauri 官方 Action
+      - name: Build and Publish Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 关键：把我们在网页上配置的 Secret，注入到云端编译环境中，供 Rust 的 env! 宏抓取！
+          AI_API_KEY: ${{ secrets.AI_API_KEY }} 
+        with:
+          tagName: app-v__VERSION__ 
+          releaseName: 'A2UI 终端 v__VERSION__'
+          releaseBody: '欢迎下载 A2UI 生成式智能终端最新版本！'
+          releaseDraft: true # 打包完先设为草稿，你可以检查没问题后再发布
+          prerelease: false
