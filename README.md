@@ -1,16 +1,62 @@
-# React + Vite
+# SmartDoc 智能桌面
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+基于 React + Tauri 构建的桌面应用，提供智能文档编辑与 AI 对话功能。
 
-Currently, two official plugins are available:
+## 技术栈
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **前端框架**: React 19 + Vite 8
+- **桌面框架**: Tauri 1.6
+- **UI 组件**: Ant Design 6 + @ant-design/icons
+- **状态管理**: Zustand 5
+- **编辑器**: md-editor-rt (Markdown 编辑器)
+- **路由**: react-router-dom 6
+- **语言**: ESLint + JavaScript
 
-## React Compiler
+## 主要功能
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **ChatPanel**: AI 对话面板，支持多种内容插入模式（替换、追加、光标插入）
+- **Workspace**: Markdown 文档编辑工作区
+- **TitleBar**: 自定义标题栏
+- **UIFactory**: UI 组件工厂
 
-## Expanding the ESLint configuration
+## 开发命令
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+# 安装依赖
+npm install
+
+# 开发模式
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 预览构建结果
+npm run preview
+
+# Tauri 桌面应用开发
+npm run tauri
+```
+
+## 应用配置
+
+- 窗口标题: Artifacts 智能桌面
+- 默认尺寸: 800 x 600
+- 无边框窗口模式
+- 支持窗口拖拽
+
+## 项目结构
+
+```
+src/
+├── components/       # 公共组件
+│   ├── ChatPanel.jsx    # AI 对话面板
+│   ├── TitleBar.jsx     # 自定义标题栏
+│   ├── UIFactory.jsx    # UI 工厂组件
+│   └── Workspace.jsx    # 编辑器工作区
+├── page/
+│   ├── SmartDoc.jsx     # 主页面
+│   └── store.js          # 状态管理
+├── App.jsx           # 根组件
+└── main.jsx          # 入口文件
+```
