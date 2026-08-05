@@ -9,13 +9,10 @@ function SmartDoc() {
   // 🌟 桥接方法升级：支持接收 mode（'replace' | 'append' | 'insert'）
   const handleInsertContent = (rawText, mode = 'replace') => {
     if (workspaceRef.current) {
-
       // 终极排版清洗器
       let cleanText = rawText;
       if (typeof cleanText === 'string') {
-        cleanText = cleanText.replace(/\\\\n/g, '\n')
-          .replace(/\\n/g, '\n')
-          .replace(/\\"/g, '"');
+        cleanText = cleanText.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\"/g, '"');
       }
 
       // 🧠 智能分发逻辑
@@ -34,7 +31,17 @@ function SmartDoc() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <TitleBar />
-      <div style={{ flex: 1, display: 'flex', padding: '16px', gap: '16px', background: '#f0f2f5', boxSizing: 'border-box', overflow: 'hidden' }}>
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          padding: '16px',
+          gap: '16px',
+          background: '#f0f2f5',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+        }}
+      >
         <ChatPanel onInsertContent={handleInsertContent} />
         <Workspace ref={workspaceRef} />
       </div>

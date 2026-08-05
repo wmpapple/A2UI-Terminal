@@ -65,9 +65,7 @@ function ChatPanel({ onInsertContent }) {
       .replace(/\s+/g, ' ')
       .trim();
 
-    const compact = cleaned
-      .replace(/^(请|帮我|帮忙|给我|我想|我要|能不能|可以|麻烦你)/, '')
-      .trim();
+    const compact = cleaned.replace(/^(请|帮我|帮忙|给我|我想|我要|能不能|可以|麻烦你)/, '').trim();
 
     return (compact || cleaned || '新对话').slice(0, 18);
   };
@@ -267,14 +265,42 @@ function ChatPanel({ onInsertContent }) {
 
   const looksLikeDocument = (value) => {
     const text = value.trim();
-    return looksLikeHtml(text) || /^#{1,6}\s+/m.test(text) || /\n\s*[-*]\s+/.test(text) || text.length > 120;
+    return (
+      looksLikeHtml(text) ||
+      /^#{1,6}\s+/m.test(text) ||
+      /\n\s*[-*]\s+/.test(text) ||
+      text.length > 120
+    );
   };
 
   const renderWorkspaceActions = (content, key, title = '发现生成的文档内容') => (
-    <div key={key} style={{ padding: '12px 16px', background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 8, margin: '8px 0' }}>
+    <div
+      key={key}
+      style={{
+        padding: '12px 16px',
+        background: '#f6ffed',
+        border: '1px solid #b7eb8f',
+        borderRadius: 8,
+        margin: '8px 0',
+      }}
+    >
       <div style={{ color: '#52c41a', fontWeight: 'bold', marginBottom: 8 }}>{title}</div>
-      <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>内容不会自动执行，请选择是否同步到右侧编辑器：</div>
-      <pre style={{ maxHeight: 220, overflow: 'auto', textAlign: 'left', fontSize: 12, background: '#f5f5f5', padding: 8, borderRadius: 4, whiteSpace: 'pre-wrap', marginBottom: 12 }}>
+      <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>
+        内容不会自动执行，请选择是否同步到右侧编辑器：
+      </div>
+      <pre
+        style={{
+          maxHeight: 220,
+          overflow: 'auto',
+          textAlign: 'left',
+          fontSize: 12,
+          background: '#f5f5f5',
+          padding: 8,
+          borderRadius: 4,
+          whiteSpace: 'pre-wrap',
+          marginBottom: 12,
+        }}
+      >
         {content}
       </pre>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -293,10 +319,16 @@ function ChatPanel({ onInsertContent }) {
         >
           替换全文
         </Button>
-        <Button style={{ color: '#52c41a', borderColor: '#52c41a', flex: 1 }} onClick={() => onInsertContent?.(content, 'append')}>
+        <Button
+          style={{ color: '#52c41a', borderColor: '#52c41a', flex: 1 }}
+          onClick={() => onInsertContent?.(content, 'append')}
+        >
           追加到末尾
         </Button>
-        <Button style={{ color: '#fa8c16', borderColor: '#fa8c16', flex: '1 1 100%' }} onClick={() => onInsertContent?.(content, 'insert')}>
+        <Button
+          style={{ color: '#fa8c16', borderColor: '#fa8c16', flex: '1 1 100%' }}
+          onClick={() => onInsertContent?.(content, 'insert')}
+        >
           插入光标处
         </Button>
       </div>
@@ -304,9 +336,30 @@ function ChatPanel({ onInsertContent }) {
   );
 
   const renderStreamingDocumentPreview = (content, key) => (
-    <div key={key} style={{ padding: '12px 16px', background: '#f5f5f5', border: '1px solid #e5e5e5', borderRadius: 8, margin: '8px 0' }}>
+    <div
+      key={key}
+      style={{
+        padding: '12px 16px',
+        background: '#f5f5f5',
+        border: '1px solid #e5e5e5',
+        borderRadius: 8,
+        margin: '8px 0',
+      }}
+    >
       <div style={{ color: '#666', fontWeight: 'bold', marginBottom: 8 }}>正在生成文档内容...</div>
-      <pre style={{ maxHeight: 360, overflow: 'auto', textAlign: 'left', fontSize: 12, background: '#fff', padding: 8, borderRadius: 4, whiteSpace: 'pre-wrap', margin: 0 }}>
+      <pre
+        style={{
+          maxHeight: 360,
+          overflow: 'auto',
+          textAlign: 'left',
+          fontSize: 12,
+          background: '#fff',
+          padding: 8,
+          borderRadius: 4,
+          whiteSpace: 'pre-wrap',
+          margin: 0,
+        }}
+      >
         {content}
       </pre>
     </div>
@@ -392,7 +445,11 @@ function ChatPanel({ onInsertContent }) {
 
     if (!payload) {
       if (!isMessageGenerating && looksLikeDocument(text)) {
-        return renderWorkspaceActions(text.trim(), 'fallback-document', looksLikeHtml(text) ? '检测到 HTML 内容' : '检测到文档内容');
+        return renderWorkspaceActions(
+          text.trim(),
+          'fallback-document',
+          looksLikeHtml(text) ? '检测到 HTML 内容' : '检测到文档内容'
+        );
       }
       return text;
     }
@@ -412,7 +469,15 @@ function ChatPanel({ onInsertContent }) {
       return (
         <>
           {payload.rawBefore && <span>{payload.rawBefore}</span>}
-          <div style={{ padding: 12, background: '#f5f5f5', border: '1px solid #e5e5e5', borderRadius: 6, margin: '8px 0' }}>
+          <div
+            style={{
+              padding: 12,
+              background: '#f5f5f5',
+              border: '1px solid #e5e5e5',
+              borderRadius: 6,
+              margin: '8px 0',
+            }}
+          >
             A2UI 协议生成中...
           </div>
         </>
@@ -435,7 +500,15 @@ function ChatPanel({ onInsertContent }) {
         return (
           <>
             {payload.rawBefore && <span>{payload.rawBefore}</span>}
-            <div style={{ padding: 12, background: '#f5f5f5', border: '1px solid #e5e5e5', borderRadius: 6, margin: '8px 0' }}>
+            <div
+              style={{
+                padding: 12,
+                background: '#f5f5f5',
+                border: '1px solid #e5e5e5',
+                borderRadius: 6,
+                margin: '8px 0',
+              }}
+            >
               A2UI 协议生成中...
             </div>
           </>
@@ -447,17 +520,38 @@ function ChatPanel({ onInsertContent }) {
         return (
           <>
             {payload.rawBefore && <span>{payload.rawBefore}</span>}
-            {renderWorkspaceActions(fallbackContent, 'fallback-jsonish-document', looksLikeHtml(fallbackContent) ? '检测到 HTML 内容' : '检测到文档内容')}
+            {renderWorkspaceActions(
+              fallbackContent,
+              'fallback-jsonish-document',
+              looksLikeHtml(fallbackContent) ? '检测到 HTML 内容' : '检测到文档内容'
+            )}
             {payload.rawAfter && <span>{payload.rawAfter}</span>}
           </>
         );
       }
 
       return (
-        <div style={{ padding: 12, background: '#fff2f0', border: '1px solid #ffccc7', borderRadius: 6, margin: '8px 0' }}>
+        <div
+          style={{
+            padding: 12,
+            background: '#fff2f0',
+            border: '1px solid #ffccc7',
+            borderRadius: 6,
+            margin: '8px 0',
+          }}
+        >
           <div style={{ color: '#ff4d4f', fontWeight: 'bold', marginBottom: 4 }}>JSON 解析失败</div>
           <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>{error.message}</div>
-          <pre style={{ fontSize: 12, background: '#f5f5f5', padding: 8, overflowX: 'auto', borderRadius: 4, whiteSpace: 'pre-wrap' }}>
+          <pre
+            style={{
+              fontSize: 12,
+              background: '#f5f5f5',
+              padding: 8,
+              overflowX: 'auto',
+              borderRadius: 4,
+              whiteSpace: 'pre-wrap',
+            }}
+          >
             {payload.jsonString}
           </pre>
         </div>
@@ -466,10 +560,41 @@ function ChatPanel({ onInsertContent }) {
   };
 
   return (
-    <div style={{ width: isSessionListCollapsed ? 468 : 580, display: 'flex', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', flexShrink: 0, overflow: 'hidden' }}>
-      <div style={{ width: isSessionListCollapsed ? 56 : 176, flexShrink: 0, borderRight: '1px solid #f0f0f0', background: '#fbfbfb', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ height: 57, padding: 8, display: 'flex', alignItems: 'center', justifyContent: isSessionListCollapsed ? 'center' : 'space-between', borderBottom: '1px solid #f0f0f0', boxSizing: 'border-box' }}>
-          {!isSessionListCollapsed && <span style={{ fontWeight: 'bold', color: '#333' }}>对话</span>}
+    <div
+      style={{
+        width: isSessionListCollapsed ? 468 : 580,
+        display: 'flex',
+        background: '#fff',
+        borderRadius: 8,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        flexShrink: 0,
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          width: isSessionListCollapsed ? 56 : 176,
+          flexShrink: 0,
+          borderRight: '1px solid #f0f0f0',
+          background: '#fbfbfb',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div
+          style={{
+            height: 57,
+            padding: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isSessionListCollapsed ? 'center' : 'space-between',
+            borderBottom: '1px solid #f0f0f0',
+            boxSizing: 'border-box',
+          }}
+        >
+          {!isSessionListCollapsed && (
+            <span style={{ fontWeight: 'bold', color: '#333' }}>对话</span>
+          )}
           <Tooltip title={isSessionListCollapsed ? '展开对话列表' : '隐藏对话列表'}>
             <Button
               size="small"
@@ -480,14 +605,28 @@ function ChatPanel({ onInsertContent }) {
           </Tooltip>
         </div>
 
-        <div style={{ padding: isSessionListCollapsed ? 8 : '8px 10px', borderBottom: '1px solid #f0f0f0' }}>
+        <div
+          style={{
+            padding: isSessionListCollapsed ? 8 : '8px 10px',
+            borderBottom: '1px solid #f0f0f0',
+          }}
+        >
           <Tooltip title="新建对话">
             <Button
               block={!isSessionListCollapsed}
               shape={isSessionListCollapsed ? 'circle' : 'default'}
               icon={<PlusOutlined />}
               onClick={createSession}
-              style={!isSessionListCollapsed ? { border: 'none', boxShadow: 'none', justifyContent: 'flex-start', background: 'transparent' } : undefined}
+              style={
+                !isSessionListCollapsed
+                  ? {
+                      border: 'none',
+                      boxShadow: 'none',
+                      justifyContent: 'flex-start',
+                      background: 'transparent',
+                    }
+                  : undefined
+              }
             >
               {!isSessionListCollapsed && '新建对话'}
             </Button>
@@ -495,7 +634,16 @@ function ChatPanel({ onInsertContent }) {
         </div>
 
         {!isSessionListCollapsed && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '6px 6px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '6px 6px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+            }}
+          >
             {sessions.map((session) => {
               const isActive = session.id === activeSessionId;
 
@@ -517,7 +665,16 @@ function ChatPanel({ onInsertContent }) {
                     boxSizing: 'border-box',
                   }}
                 >
-                  <span style={{ flex: 1, minWidth: 0, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      display: 'block',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     {session.title}
                   </span>
                   {isActive && sessions.length > 1 && (
@@ -543,7 +700,18 @@ function ChatPanel({ onInsertContent }) {
       </div>
 
       <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ height: 57, padding: '0 16px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 8, boxSizing: 'border-box' }}>
+        <div
+          style={{
+            height: 57,
+            padding: '0 16px',
+            borderBottom: '1px solid #f0f0f0',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            boxSizing: 'border-box',
+          }}
+        >
           <RobotOutlined style={{ color: '#722ed1' }} />
           A2UI 生成式终端
         </div>
@@ -563,11 +731,45 @@ function ChatPanel({ onInsertContent }) {
             const displayContent = shouldUseTypewriter ? visibleContent || '' : msg.content;
 
             return (
-              <div key={`${msg.requestId || index}-${msg.role}`} style={{ marginBottom: 20, display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row' }}>
-                <Avatar icon={msg.role === 'user' ? <UserOutlined /> : <RobotOutlined />} style={{ backgroundColor: msg.role === 'user' ? '#1890ff' : '#722ed1', margin: msg.role === 'user' ? '0 0 0 12px' : '0 12px 0 0', flexShrink: 0 }} />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
-                  <div style={{ background: msg.role === 'user' ? '#e6f7ff' : '#fff', padding: 12, borderRadius: 8, border: '1px solid #f0f0f0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', width: '100%', textAlign: 'left' }}>
-                    {msg.role === 'assistant' ? renderMessageContent(displayContent, isActiveAssistant || isTyping) : msg.content}
+              <div
+                key={`${msg.requestId || index}-${msg.role}`}
+                style={{
+                  marginBottom: 20,
+                  display: 'flex',
+                  flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+                }}
+              >
+                <Avatar
+                  icon={msg.role === 'user' ? <UserOutlined /> : <RobotOutlined />}
+                  style={{
+                    backgroundColor: msg.role === 'user' ? '#1890ff' : '#722ed1',
+                    margin: msg.role === 'user' ? '0 0 0 12px' : '0 12px 0 0',
+                    flexShrink: 0,
+                  }}
+                />
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                    maxWidth: '85%',
+                  }}
+                >
+                  <div
+                    style={{
+                      background: msg.role === 'user' ? '#e6f7ff' : '#fff',
+                      padding: 12,
+                      borderRadius: 8,
+                      border: '1px solid #f0f0f0',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      width: '100%',
+                      textAlign: 'left',
+                    }}
+                  >
+                    {msg.role === 'assistant'
+                      ? renderMessageContent(displayContent, isActiveAssistant || isTyping)
+                      : msg.content}
                     {isGenerating && isActiveAssistant && !msg.content && '思考中...'}
                   </div>
                 </div>
@@ -597,7 +799,13 @@ function ChatPanel({ onInsertContent }) {
               停止生成
             </Button>
           ) : (
-            <Button type="primary" block icon={<SendOutlined />} style={{ background: '#722ed1' }} onClick={handleAskAI}>
+            <Button
+              type="primary"
+              block
+              icon={<SendOutlined />}
+              style={{ background: '#722ed1' }}
+              onClick={handleAskAI}
+            >
               发送指令
             </Button>
           )}

@@ -1,62 +1,81 @@
-# SmartDoc 智能桌面
+# A2UI Terminal
 
-基于 React + Tauri 构建的桌面应用，提供智能文档编辑与 AI 对话功能。
+A2UI Terminal 是一个面向科研人员、开发者和高级知识工作者的本地优先 AI 工作台。产品核心是让用户在明确选择上下文后，审阅 AI 生成的修改，再安全地写入真实项目文件。
 
-## 技术栈
+当前仓库处于从演示原型迁移到 V1.0 MVP 的阶段。现有版本保留了 React 对话、Markdown 编辑、流式响应和受限组件渲染原型；真实文件工作区、Diff、版本历史、Provider 配置和 A2UI Runtime 将按照 [实施计划](docs/IMPLEMENTATION_PLAN.md) 分阶段完成。
 
-- **前端框架**: React 19 + Vite 8
-- **桌面框架**: Tauri 1.6
-- **UI 组件**: Ant Design 6 + @ant-design/icons
-- **状态管理**: Zustand 5
-- **编辑器**: md-editor-rt (Markdown 编辑器)
-- **路由**: react-router-dom 6
-- **语言**: ESLint + JavaScript
+## 当前技术栈
 
-## 主要功能
+- React 19
+- Vite 8
+- Ant Design 6
+- Zustand 5
+- md-editor-rt
+- Tauri 1.6 / Rust（将在 M0-C 升级到 Tauri 2）
 
-- **ChatPanel**: AI 对话面板，支持多种内容插入模式（替换、追加、光标插入）
-- **Workspace**: Markdown 文档编辑工作区
-- **TitleBar**: 自定义标题栏
-- **UIFactory**: UI 组件工厂
+## 环境要求
 
-## 开发命令
+- Node.js 22 LTS
+- npm 10 或 11
+- Rust stable（桌面端开发需要）
+- Windows 10 22H2 或 Windows 11（主要目标平台）
+
+当前机器如果没有 Rust，可先运行 Web 原型；Tauri 构建需要先安装 Rust 工具链及 Windows C++ 构建工具。
+
+## 本地开发
 
 ```bash
-# 安装依赖
-npm install
-
-# 开发模式
+npm ci
 npm run dev
+```
 
-# 构建生产版本
+运行桌面端：
+
+```bash
+npm run tauri dev
+```
+
+执行质量检查：
+
+```bash
+npm run check
+```
+
+也可以分别运行：
+
+```bash
+npm run format:check
+npm run lint
+npm run typecheck
+npm run test
 npm run build
-
-# 预览构建结果
-npm run preview
-
-# Tauri 桌面应用开发
-npm run tauri
 ```
 
-## 应用配置
+## 安全说明
 
-- 窗口标题: Artifacts 智能桌面
-- 默认尺寸: 800 x 600
-- 无边框窗口模式
-- 支持窗口拖拽
+- 不要把 API Key、证书或签名私钥写入仓库。
+- `.env` 只允许作为本地临时开发手段；生产版本将使用 Windows Credential Manager。
+- `.env.example` 只能保存非敏感配置示例。
+- 当前历史中曾跟踪过 `.env`。如果其中使用过真实 Key，应立即轮换。是否重写远端 Git 历史需要单独评估和授权。
+- AI 生成的文件修改在 M1 完成后必须经过 Patch 校验和 Diff 审阅，禁止静默覆盖。
 
-## 项目结构
+## 项目状态
 
-```
-src/
-├── components/       # 公共组件
-│   ├── ChatPanel.jsx    # AI 对话面板
-│   ├── TitleBar.jsx     # 自定义标题栏
-│   ├── UIFactory.jsx    # UI 工厂组件
-│   └── Workspace.jsx    # 编辑器工作区
-├── page/
-│   ├── SmartDoc.jsx     # 主页面
-│   └── store.js          # 状态管理
-├── App.jsx           # 根组件
-└── main.jsx          # 入口文件
-```
+| 阶段 | 状态     | 目标                                           |
+| ---- | -------- | ---------------------------------------------- |
+| M0-A | 等待验收 | 仓库、安全与工具链治理                         |
+| M0-B | 未开始   | TypeScript、模块化与三栏 Web Mock              |
+| M0-C | 未开始   | Tauri 2、最小权限和 SQLite 骨架                |
+| M1   | 未开始   | 真实文件 → 上下文 → Patch → Diff → 应用 → 撤销 |
+
+每个阶段都需要独立验收，未确认前不进入下一阶段。
+
+## 相关文档
+
+- [实施计划](docs/IMPLEMENTATION_PLAN.md)
+- [安全响应说明](docs/SECURITY_RESPONSE.md)
+- [开发环境说明](docs/DEVELOPMENT.md)
+
+## 许可证
+
+当前仓库尚未指定开源许可证。在正式发布或开放源码前必须补充许可证决策。

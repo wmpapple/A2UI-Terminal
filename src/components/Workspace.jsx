@@ -16,7 +16,7 @@ const Workspace = forwardRef((props, ref) => {
     },
     // 2. 温柔追加到末尾
     appendContent: (newText) => {
-      setDocumentContent(prev => prev + '\n\n' + newText);
+      setDocumentContent((prev) => prev + '\n\n' + newText);
     },
     // 🌟 3. 精准操作：插入光标位置 / 替换鼠标选中的内容
     insertAtCursor: (newText) => {
@@ -26,14 +26,24 @@ const Workspace = forwardRef((props, ref) => {
           targetValue: newText,
           select: false, // 插入后不选中新文本，光标放在末尾
           deviationStart: 0,
-          deviationEnd: 0
+          deviationEnd: 0,
         };
       });
-    }
+    },
   }));
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+    <div
+      style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#fff',
+        borderRadius: '8px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        overflow: 'hidden',
+      }}
+    >
       <MdEditor
         ref={editorRef}
         value={documentContent}

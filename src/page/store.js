@@ -31,7 +31,10 @@ const initialSession = {
 
 const normalizeSession = (session) => ({
   ...session,
-  messages: Array.isArray(session.messages) && session.messages.length > 0 ? session.messages : [WELCOME_MESSAGE],
+  messages:
+    Array.isArray(session.messages) && session.messages.length > 0
+      ? session.messages
+      : [WELCOME_MESSAGE],
   isGenerating: false,
   activeRequestId: null,
 });
@@ -145,7 +148,11 @@ export const useChatStore = create(
       name: 'a2ui-storage',
       partialize: (state) => ({
         documentContent: state.documentContent,
-        sessions: state.sessions.map(({ isGenerating, activeRequestId, ...session }) => session),
+        sessions: state.sessions.map((session) => ({
+          id: session.id,
+          title: session.title,
+          messages: session.messages,
+        })),
         activeSessionId: state.activeSessionId,
       }),
       merge: (persistedState, currentState) => {
@@ -158,7 +165,8 @@ export const useChatStore = create(
             ...persistedState,
             sessions,
             activeSessionId:
-              persistedState.activeSessionId && sessions.some((session) => session.id === persistedState.activeSessionId)
+              persistedState.activeSessionId &&
+              sessions.some((session) => session.id === persistedState.activeSessionId)
                 ? persistedState.activeSessionId
                 : sessions[0]?.id || currentState.activeSessionId,
           };

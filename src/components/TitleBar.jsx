@@ -1,58 +1,52 @@
-import React from 'react';
 import { appWindow } from '@tauri-apps/api/window';
 
 function TitleBar() {
+  const isDesktop = Boolean(window.__TAURI_IPC__);
+
+  const runWindowAction = (action) => {
+    if (isDesktop) action();
+  };
+
   return (
-    <div
-      // 💡 最核心的魔法：加上这个属性，这块 div 就能像原生窗口一样被鼠标拖着走了！
+    <header
       data-tauri-drag-region
+      aria-label="Application title bar"
       style={{
-        height: '38px',
-        background: '#f0f2f5',
-        display: 'flex',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '0 16px',
-        userSelect: 'none',
-        borderBottom: '1px solid #e5e5e5'
+        background: '#fff',
+        borderBottom: '1px solid #e5e5e5',
+        boxSizing: 'border-box',
+        display: 'flex',
+        height: 40,
+        justifyContent: 'space-between',
+        padding: '0 12px',
       }}
     >
-      {/* 左侧：Logo 和 软件名 */}
-      <div
-        data-tauri-drag-region
-        style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}
-      >
-        ✨ Artifacts AI
+      <div data-tauri-drag-region style={{ color: '#333', fontSize: 14, fontWeight: 700 }}>
+        A2UI Terminal
       </div>
-
-      {/* 右侧：窗口控制按钮 */}
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <div
-          onClick={() => appWindow.minimize()}
-          style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: '4px' }}
-          onMouseOver={(e) => e.currentTarget.style.background = '#e0e0e0'}
-          onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-        >
-          —
-        </div>
-        <div
-          onClick={() => appWindow.toggleMaximize()}
-          style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: '4px' }}
-          onMouseOver={(e) => e.currentTarget.style.background = '#e0e0e0'}
-          onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-        >
-          □
-        </div>
-        <div
-          onClick={() => appWindow.close()}
-          style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', color: '#ff4d4f' }}
-          onMouseOver={(e) => { e.currentTarget.style.background = '#ff4d4f'; e.currentTarget.style.color = '#fff' }}
-          onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#ff4d4f' }}
-        >
-          ✕
-        </div>
-      </div>
-    </div>
+      {isDesktop && (
+        <nav aria-label="Window controls" style={{ display: 'flex', gap: 4 }}>
+          <button
+            type="button"
+            aria-label="Minimize"
+            onClick={() => runWindowAction(appWindow.minimize)}
+          >
+            −
+          </button>
+          <button
+            type="button"
+            aria-label="Maximize or restore"
+            onClick={() => runWindowAction(appWindow.toggleMaximize)}
+          >
+            □
+          </button>
+          <button type="button" aria-label="Close" onClick={() => runWindowAction(appWindow.close)}>
+            ×
+          </button>
+        </nav>
+      )}
+    </header>
   );
 }
 

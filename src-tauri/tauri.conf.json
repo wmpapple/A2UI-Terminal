@@ -7,7 +7,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "react-admin",
+    "productName": "A2UI Terminal",
     "version": "0.1.0"
   },
   "tauri": {
@@ -61,7 +61,7 @@
         "fullscreen": false,
         "height": 600,
         "resizable": true,
-        "title": "Artifacts 智能桌面",
+        "title": "A2UI Terminal",
         "width": 800,
         "decorations": false
       }
