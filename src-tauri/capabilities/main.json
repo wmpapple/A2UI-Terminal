@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-capability",
+  "description": "Minimum permissions for the A2UI Terminal main window",
+  "windows": ["main"],
+  "platforms": ["windows"],
+  "permissions": [
+    "allow-get-bootstrap-status",
+    "allow-set-provider-secret",
+    "allow-provider-secret-status",
+    "allow-delete-provider-secret",
+    "allow-clear-all-local-data"
+  ]
+}

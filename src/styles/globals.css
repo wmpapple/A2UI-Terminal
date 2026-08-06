@@ -1,0 +1,56 @@
+:root {
+  --accent: #635bff;
+  --accent-soft: #eeedff;
+  --border: #e7e8ec;
+  --canvas: #ffffff;
+  --danger-soft: #fff2f0;
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --panel: #fbfbfc;
+  --success: #22a06b;
+  --success-soft: #f0fff7;
+  --surface-hover: #f0f1f4;
+  --surface-subtle: #f6f7f9;
+  --text: #464b55;
+  --text-muted: #7d8490;
+  --text-strong: #17191d;
+  color: var(--text);
+  background: var(--canvas);
+  font-family: Inter, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+body {
+  min-width: 900px;
+  overflow: hidden;
+}
+button,
+input,
+textarea {
+  font: inherit;
+}
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

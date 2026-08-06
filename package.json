@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
-    "@tauri-apps/api": "^1.6.0",
+    "@tauri-apps/api": "^2.11.1",
     "antd": "^6.3.6",
     "md-editor-rt": "^6.4.2",
     "react": "^19.2.4",
@@ -31,17 +31,21 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
-    "@tauri-apps/cli": "^1.6.3",
+    "@tauri-apps/cli": "^2.11.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "jsdom": "^26.1.0",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
+    "typescript-eslint": "^8.44.1",
+    "vitest": "^4.1.10",
     "vite": "^8.0.4"
   }
 }

@@ -1,0 +1,119 @@
+.panel {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+.header strong {
+  display: block;
+  color: var(--text-strong);
+}
+.header span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.header i {
+  width: 6px;
+  height: 6px;
+  background: var(--success);
+  border-radius: 50%;
+}
+.sessionSelect {
+  margin: 10px 12px 0;
+}
+.messages {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.message {
+  max-width: 92%;
+  margin-bottom: 14px;
+}
+.message p {
+  margin: 3px 0 0;
+  padding: 10px 12px;
+  color: var(--text-strong);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 5px 12px 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.message.user {
+  margin-left: auto;
+}
+.message.user p {
+  color: white;
+  background: var(--accent);
+  border-color: var(--accent);
+  border-radius: 12px 5px 12px 12px;
+}
+.role {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.user .role {
+  text-align: right;
+}
+.cursor {
+  display: inline-block;
+  width: 5px;
+  height: 14px;
+  margin-left: 3px;
+  vertical-align: -2px;
+  background: var(--accent);
+  animation: blink 1s steps(2) infinite;
+}
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+.composer.dragging {
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel));
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
+}
+.composer > button {
+  align-self: flex-end;
+}
+.contextBar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+.dropHint {
+  margin-left: auto;
+  white-space: nowrap;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}

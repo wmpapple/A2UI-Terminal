@@ -1,0 +1,22 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 8px;
+}
+.options,
+.fileOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tokens {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-muted);
+}
+.tokens strong {
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+}

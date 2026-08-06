@@ -1,7 +1,7 @@
-name: Legacy desktop build
+name: Windows installer smoke build
 
-# This manual workflow only validates the current Tauri 1 prototype.
-# M0-C will replace it with the signed Tauri 2 release and updater workflow.
+# This workflow intentionally produces an unsigned internal test installer.
+# Production publication remains blocked until certificate and updater keys are configured.
 on:
   workflow_dispatch:
 
@@ -32,7 +32,10 @@ jobs:
       - name: Run frontend checks
         run: npm run check
 
-      - name: Build unsigned desktop test package
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --all-features
+
+      - name: Build unsigned NSIS and MSI test packages
         uses: tauri-apps/tauri-action@v0
 
       - name: Upload desktop artifacts

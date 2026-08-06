@@ -49,4 +49,17 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 ## 本地配置
 
-复制 `.env.example` 只能用于设置非敏感开发默认值。不要在 `.env` 中长期保存生产 API Key。M0-C 完成后，API Key 将从应用设置页写入 Windows Credential Manager。
+复制 `.env.example` 只能用于设置非敏感开发默认值。不要在 `.env` 中保存 API Key。API Key 只能通过桌面 IPC 写入 Windows Credential Manager；阶段 5 接入设置页，当前阶段仅提供受限的凭据服务边界。
+
+## 桌面端验证
+
+```bash
+npm run tauri dev
+cargo fmt --manifest-path src-tauri/Cargo.toml --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml --all-features
+```
+
+Windows 桌面编译还需要 Visual Studio Build Tools 的“使用 C++ 的桌面开发”工作负载和 Windows SDK。缺少 MSVC `link.exe` 时，rustfmt 仍可运行，但 Clippy、Rust 测试和 Tauri 构建会在链接阶段失败。
+
+Tauri 2 的 `Cargo.lock` 已由 Rust 1.97.1 重新生成，应随阶段 3 代码一并提交。
