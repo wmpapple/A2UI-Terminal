@@ -9,6 +9,12 @@ pub enum AppError {
     Database(#[from] rusqlite::Error),
     #[error("filesystem operation failed")]
     Io(#[from] std::io::Error),
+    #[error("selected file is not valid UTF-8 text")]
+    InvalidEncoding,
+    #[error("selected file exceeds the size limit")]
+    FileTooLarge,
+    #[error("file changed outside A2UI Terminal")]
+    FileConflict,
     #[error("invalid input: {0}")]
     InvalidInput(String),
     #[error("internal state is unavailable")]
@@ -21,6 +27,9 @@ impl AppError {
             Self::Credential(_) => "CREDENTIAL_STORE_ERROR",
             Self::Database(_) => "DATABASE_ERROR",
             Self::Io(_) => "FILESYSTEM_ERROR",
+            Self::InvalidEncoding => "INVALID_ENCODING",
+            Self::FileTooLarge => "FILE_TOO_LARGE",
+            Self::FileConflict => "FILE_CONFLICT",
             Self::InvalidInput(_) => "INVALID_INPUT",
             Self::StateUnavailable => "STATE_UNAVAILABLE",
         }

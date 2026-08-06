@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-context-file"
+description = "Enables the save_context_file command without any pre-configured scope."
+commands.allow = ["save_context_file"]
+
+[[permission]]
+identifier = "deny-save-context-file"
+description = "Denies the save_context_file command without any pre-configured scope."
+commands.deny = ["save_context_file"]

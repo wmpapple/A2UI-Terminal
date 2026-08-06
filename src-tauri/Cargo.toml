@@ -17,11 +17,18 @@ tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
 keyring = { version = "4.1.6", features = ["v1"] }
+pdf-extract = "0.10.0"
+quick-xml = "0.39.2"
 rusqlite = { version = "0.40.1", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sha2 = "0.11.0"
 tauri = { version = "2.11.5", features = [] }
+tauri-plugin-dialog = "2.7.2"
 thiserror = "2.0.19"
+uuid = { version = "1.24.0", features = ["v4"] }
+walkdir = "2.5.0"
+zip = { version = "6.0.0", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 tempfile = "3"

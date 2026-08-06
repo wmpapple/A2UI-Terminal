@@ -1,6 +1,6 @@
 # A2UI Terminal
 
-A2UI Terminal 是一个本地优先、修改可审阅的 AI 工作台。Web 版本提供严格 TypeScript 的三栏 Mock 工作台。桌面基础设施已迁移到 Tauri 2，并建立 SQLite、受控路径和 Windows Credential Manager 边界；真实文件与模型 Provider 主链路从 M1 开始接入。
+A2UI Terminal 是一个本地优先、修改可审阅的 AI 工作台。Web 版本提供严格 TypeScript 的三栏 Mock 工作台；桌面版本已经支持受控打开真实工作区、文本文件编辑、Hash 冲突保护和崩溃草稿恢复。模型 Provider 与显式上下文将在下一阶段接入。
 
 ## 当前技术栈
 
@@ -26,6 +26,12 @@ npm ci
 npm run dev
 ```
 
+桌面端（会优先使用工作区同级 `.tooling` 中的隔离 Rust）：
+
+```powershell
+npm run desktop:dev
+```
+
 质量检查：
 
 ```bash
@@ -43,12 +49,14 @@ npm run check
 
 ## 项目状态
 
-| 阶段 | 状态     | 目标                                           |
-| ---- | -------- | ---------------------------------------------- |
-| M0-A | 已通过   | 仓库、安全与工具链治理                         |
-| M0-B | 已通过   | TypeScript、模块化与三栏 Web Mock              |
-| M0-C | 等待验收 | Tauri 2、最小权限和 SQLite 骨架                |
-| M1   | 未开始   | 真实文件 → 上下文 → Patch → Diff → 应用 → 撤销 |
+| 阶段 | 状态     | 目标                                       |
+| ---- | -------- | ------------------------------------------ |
+| M0-A | 已通过   | 仓库、安全与工具链治理                     |
+| M0-B | 已通过   | TypeScript、模块化与三栏 Web Mock          |
+| M0-C | 已通过   | Tauri 2、最小权限和 SQLite 骨架            |
+| M1-A | 等待验收 | 真实工作区、文件树、多 Tab、保存与冲突保护 |
+| M1-B | 未开始   | Provider、会话与显式上下文                 |
+| M1-C | 未开始   | Patch → Diff → 应用 → 撤销                 |
 
 每个阶段都需要独立验收，未确认前不进入下一阶段。
 
@@ -58,6 +66,7 @@ npm run check
 - [前端架构](docs/ARCHITECTURE.md)
 - [桌面端架构与安全边界](docs/DESKTOP_ARCHITECTURE.md)
 - [Windows 构建、签名与更新](docs/RELEASE.md)
+- [阶段 4 验收记录](docs/PHASE_4_VALIDATION.md)
 - [安全响应说明](docs/SECURITY_RESPONSE.md)
 - [开发环境说明](docs/DEVELOPMENT.md)
 

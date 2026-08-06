@@ -2,7 +2,7 @@
 
 ## 当前阶段
 
-M0-B 将旧 JavaScript 原型迁移为严格 TypeScript，并建立可以在 Web 中验证的三栏工作台。Web 运行时只使用确定性 Mock 数据；真实文件系统、SQLite、系统凭据和 Provider 请求属于后续桌面阶段。
+前端保持同一套三栏工作台，但通过运行时边界分为两种数据源：Web 只使用确定性 Mock；Desktop 使用受控 Tauri IPC 访问真实工作区。Provider 请求仍未接入。
 
 ## 模块边界
 
@@ -22,7 +22,16 @@ src/
 
 ## 状态规则
 
-当前 Zustand Store 保存 Web Mock 的临时状态，用来演示文件、会话和 Diff 流程。M0-C 引入 SQLite 后，Zustand 只保留活动 Tab、当前视图和 Modal 等 UI 状态；工作区、文档、会话、消息、版本和审计进入 SQLite；API Key 只进入 Windows Credential Manager。
+Zustand 保存活动工作区摘要、文件树、已打开文档、多 Tab、基础 Hash、脏状态和恢复提示。工作区授权与草稿写入 SQLite；真实文件内容仍以磁盘为事实来源，不复制成长期数据库正文。会话、版本和审计继续由 SQLite 承担；API Key 只进入 Windows Credential Manager。
+
+## Desktop 工作区流程
+
+1. 前端调用 `select_workspace`，Rust 在后台打开系统目录选择器，前端不能提交任意绝对路径。
+2. Rust 规范化并保存授权根目录，返回不含绝对路径的工作区摘要。
+3. 文件树只列出白名单文本类型；依赖、构建、Git、虚拟环境和 secrets 目录被忽略。
+4. 打开文件时校验相对路径、最终规范路径、2 MB 上限及 UTF-8。
+5. 编辑后约 250 ms 保存崩溃草稿，约 1 秒携带基础 SHA-256 自动保存真实文件。
+6. 磁盘 Hash 不匹配时拒绝写入并显示冲突；用户必须显式选择恢复草稿或保留磁盘版本。
 
 ## Mock 审阅流程
 

@@ -29,6 +29,39 @@
 .openButton {
   flex: none;
 }
+.workspaceActions {
+  min-width: 0;
+}
+.primaryActions {
+  display: flex;
+  gap: 8px;
+}
+.primaryActions > * {
+  flex: 1;
+  min-width: 0;
+}
+.workspaceHistoryRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.workspaceSelect {
+  flex: 1;
+  min-width: 0;
+}
+.treeSpinner {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.treeSpinner > div,
+.treeSpinner :global(.ant-spin-container) {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
 .tree {
   display: flex;
   flex: 1;
@@ -58,6 +91,10 @@
 }
 .file:hover {
   background: var(--surface-hover);
+}
+.file:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 .file.active {
   color: var(--accent);

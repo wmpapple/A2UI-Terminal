@@ -189,16 +189,82 @@
           "markdownDescription": "Enables the delete_provider_secret command without any pre-configured scope."
         },
         {
+          "description": "Enables the discard_workspace_draft command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-discard-workspace-draft",
+          "markdownDescription": "Enables the discard_workspace_draft command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_bootstrap_status command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-bootstrap-status",
           "markdownDescription": "Enables the get_bootstrap_status command without any pre-configured scope."
         },
         {
+          "description": "Enables the list_recent_workspaces command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-recent-workspaces",
+          "markdownDescription": "Enables the list_recent_workspaces command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_workspace_files command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-workspace-files",
+          "markdownDescription": "Enables the list_workspace_files command without any pre-configured scope."
+        },
+        {
           "description": "Enables the provider_secret_status command without any pre-configured scope.",
           "type": "string",
           "const": "allow-provider-secret-status",
           "markdownDescription": "Enables the provider_secret_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the read_workspace_file command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-read-workspace-file",
+          "markdownDescription": "Enables the read_workspace_file command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the remove_workspace command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-remove-workspace",
+          "markdownDescription": "Enables the remove_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the restore_workspace command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-restore-workspace",
+          "markdownDescription": "Enables the restore_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_context_file command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-context-file",
+          "markdownDescription": "Enables the save_context_file command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_workspace_draft command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-workspace-draft",
+          "markdownDescription": "Enables the save_workspace_draft command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_workspace_file command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-workspace-file",
+          "markdownDescription": "Enables the save_workspace_file command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the select_context_files command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-select-context-files",
+          "markdownDescription": "Enables the select_context_files command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the select_workspace command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-select-workspace",
+          "markdownDescription": "Enables the select_workspace command without any pre-configured scope."
         },
         {
           "description": "Enables the set_provider_secret command without any pre-configured scope.",
@@ -219,16 +285,82 @@
           "markdownDescription": "Denies the delete_provider_secret command without any pre-configured scope."
         },
         {
+          "description": "Denies the discard_workspace_draft command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-discard-workspace-draft",
+          "markdownDescription": "Denies the discard_workspace_draft command without any pre-configured scope."
+        },
+        {
           "description": "Denies the get_bootstrap_status command without any pre-configured scope.",
           "type": "string",
           "const": "deny-get-bootstrap-status",
           "markdownDescription": "Denies the get_bootstrap_status command without any pre-configured scope."
         },
         {
+          "description": "Denies the list_recent_workspaces command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-recent-workspaces",
+          "markdownDescription": "Denies the list_recent_workspaces command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_workspace_files command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-workspace-files",
+          "markdownDescription": "Denies the list_workspace_files command without any pre-configured scope."
+        },
+        {
           "description": "Denies the provider_secret_status command without any pre-configured scope.",
           "type": "string",
           "const": "deny-provider-secret-status",
           "markdownDescription": "Denies the provider_secret_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the read_workspace_file command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-read-workspace-file",
+          "markdownDescription": "Denies the read_workspace_file command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the remove_workspace command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-remove-workspace",
+          "markdownDescription": "Denies the remove_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the restore_workspace command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-restore-workspace",
+          "markdownDescription": "Denies the restore_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_context_file command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-context-file",
+          "markdownDescription": "Denies the save_context_file command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_workspace_draft command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-workspace-draft",
+          "markdownDescription": "Denies the save_workspace_draft command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_workspace_file command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-workspace-file",
+          "markdownDescription": "Denies the save_workspace_file command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the select_context_files command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-select-context-files",
+          "markdownDescription": "Denies the select_context_files command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the select_workspace command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-select-workspace",
+          "markdownDescription": "Denies the select_workspace command without any pre-configured scope."
         },
         {
           "description": "Denies the set_provider_secret command without any pre-configured scope.",
@@ -2251,6 +2383,72 @@
           "type": "string",
           "const": "core:window:deny-unminimize",
           "markdownDescription": "Denies the unminimize command without any pre-configured scope."
+        },
+        {
+          "description": "This permission set configures the types of dialogs\navailable from the dialog plugin.\n\n#### Granted Permissions\n\nAll dialog types are enabled.\n\n\n\n#### This default permission set includes:\n\n- `allow-message`\n- `allow-save`\n- `allow-open`",
+          "type": "string",
+          "const": "dialog:default",
+          "markdownDescription": "This permission set configures the types of dialogs\navailable from the dialog plugin.\n\n#### Granted Permissions\n\nAll dialog types are enabled.\n\n\n\n#### This default permission set includes:\n\n- `allow-message`\n- `allow-save`\n- `allow-open`"
+        },
+        {
+          "description": "Enables the ask command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `allow-message` and will be removed in v3)",
+          "type": "string",
+          "const": "dialog:allow-ask",
+          "markdownDescription": "Enables the ask command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `allow-message` and will be removed in v3)"
+        },
+        {
+          "description": "Enables the confirm command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `allow-message` and will be removed in v3)",
+          "type": "string",
+          "const": "dialog:allow-confirm",
+          "markdownDescription": "Enables the confirm command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `allow-message` and will be removed in v3)"
+        },
+        {
+          "description": "Enables the message command without any pre-configured scope.",
+          "type": "string",
+          "const": "dialog:allow-message",
+          "markdownDescription": "Enables the message command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the open command without any pre-configured scope.",
+          "type": "string",
+          "const": "dialog:allow-open",
+          "markdownDescription": "Enables the open command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save command without any pre-configured scope.",
+          "type": "string",
+          "const": "dialog:allow-save",
+          "markdownDescription": "Enables the save command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the ask command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `deny-message` and will be removed in v3)",
+          "type": "string",
+          "const": "dialog:deny-ask",
+          "markdownDescription": "Denies the ask command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `deny-message` and will be removed in v3)"
+        },
+        {
+          "description": "Denies the confirm command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `deny-message` and will be removed in v3)",
+          "type": "string",
+          "const": "dialog:deny-confirm",
+          "markdownDescription": "Denies the confirm command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `deny-message` and will be removed in v3)"
+        },
+        {
+          "description": "Denies the message command without any pre-configured scope.",
+          "type": "string",
+          "const": "dialog:deny-message",
+          "markdownDescription": "Denies the message command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the open command without any pre-configured scope.",
+          "type": "string",
+          "const": "dialog:deny-open",
+          "markdownDescription": "Denies the open command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save command without any pre-configured scope.",
+          "type": "string",
+          "const": "dialog:deny-save",
+          "markdownDescription": "Denies the save command without any pre-configured scope."
         }
       ]
     },

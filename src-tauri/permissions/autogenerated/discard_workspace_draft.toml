@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-discard-workspace-draft"
+description = "Enables the discard_workspace_draft command without any pre-configured scope."
+commands.allow = ["discard_workspace_draft"]
+
+[[permission]]
+identifier = "deny-discard-workspace-draft"
+description = "Denies the discard_workspace_draft command without any pre-configured scope."
+commands.deny = ["discard_workspace_draft"]

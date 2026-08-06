@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { getRuntimeMode } from './runtime';
+import type { WorkspaceDocument, WorkspaceFileEntry, WorkspaceSummary } from '../types/domain';
 
 export interface BootstrapStatus {
   runtime: 'desktop';
@@ -11,6 +12,12 @@ export interface BootstrapStatus {
 export interface SecretStatus {
   providerId: string;
   configured: boolean;
+}
+
+export interface SaveWorkspaceFileResult {
+  path: string;
+  contentHash: string;
+  sizeBytes: number;
 }
 
 const requireDesktop = (): void => {
@@ -43,5 +50,92 @@ export const desktopApi = {
   async clearAllLocalData(confirmation: string): Promise<{ cleared: boolean }> {
     requireDesktop();
     return invoke<{ cleared: boolean }>('clear_all_local_data', { confirmation });
+  },
+
+  async selectWorkspace(): Promise<WorkspaceSummary | null> {
+    requireDesktop();
+    return invoke<WorkspaceSummary | null>('select_workspace');
+  },
+
+  async listRecentWorkspaces(): Promise<WorkspaceSummary[]> {
+    requireDesktop();
+    return invoke<WorkspaceSummary[]>('list_recent_workspaces');
+  },
+
+  async restoreWorkspace(workspaceId: string): Promise<WorkspaceSummary> {
+    requireDesktop();
+    return invoke<WorkspaceSummary>('restore_workspace', { workspaceId });
+  },
+
+  async listWorkspaceFiles(workspaceId: string): Promise<WorkspaceFileEntry[]> {
+    requireDesktop();
+    return invoke<WorkspaceFileEntry[]>('list_workspace_files', { workspaceId });
+  },
+
+  async readWorkspaceFile(workspaceId: string, relativePath: string): Promise<WorkspaceDocument> {
+    requireDesktop();
+    return invoke<WorkspaceDocument>('read_workspace_file', { workspaceId, relativePath });
+  },
+
+  async saveWorkspaceFile(
+    workspaceId: string,
+    relativePath: string,
+    content: string,
+    baseHash: string
+  ): Promise<SaveWorkspaceFileResult> {
+    requireDesktop();
+    return invoke<SaveWorkspaceFileResult>('save_workspace_file', {
+      workspaceId,
+      relativePath,
+      content,
+      baseHash,
+    });
+  },
+
+  async saveWorkspaceDraft(
+    workspaceId: string,
+    relativePath: string,
+    content: string,
+    baseHash: string
+  ): Promise<void> {
+    requireDesktop();
+    return invoke<void>('save_workspace_draft', {
+      workspaceId,
+      relativePath,
+      content,
+      baseHash,
+    });
+  },
+
+  async discardWorkspaceDraft(workspaceId: string, relativePath: string): Promise<void> {
+    requireDesktop();
+    return invoke<void>('discard_workspace_draft', { workspaceId, relativePath });
+  },
+
+  async removeWorkspace(
+    workspaceId: string
+  ): Promise<{ removed: boolean; projectFilesDeleted: false }> {
+    requireDesktop();
+    return invoke<{ removed: boolean; projectFilesDeleted: false }>('remove_workspace', {
+      workspaceId,
+    });
+  },
+
+  async selectContextFiles(): Promise<WorkspaceDocument[]> {
+    requireDesktop();
+    return invoke<WorkspaceDocument[]>('select_context_files');
+  },
+
+  async saveContextFile(
+    sourceId: string,
+    content: string,
+    baseHash: string
+  ): Promise<SaveWorkspaceFileResult> {
+    requireDesktop();
+    return invoke<SaveWorkspaceFileResult>('save_context_file', {
+      sourceId,
+      content,
+      baseHash,
+    });
   },
 };

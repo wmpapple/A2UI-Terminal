@@ -4,6 +4,17 @@ import { useAppStore } from './useAppStore';
 
 beforeEach(() => {
   useAppStore.setState({
+    runtimeMode: 'web-mock',
+    workspace: null,
+    workspaceEntries: mockFiles.map((file) => ({
+      path: file.path,
+      name: file.name,
+      language: file.language,
+      sizeBytes: file.content.length,
+      readable: true,
+      editable: true,
+      extracted: false,
+    })),
     files: mockFiles,
     openPaths: ['README.md'],
     activePath: 'README.md',

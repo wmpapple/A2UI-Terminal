@@ -34,6 +34,7 @@ function LanguageSwitcher() {
 
 describe('EditorPane modes', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     togglePreviewMock.mockClear();
     useAppStore.setState({
       files: mockFiles,
@@ -42,6 +43,55 @@ describe('EditorPane modes', () => {
       dirtyPaths: [],
       centerView: 'editor',
     });
+  });
+
+  it('auto-saves each dirty file on its own one-second schedule', () => {
+    vi.useFakeTimers();
+    const persistDraft = vi.fn().mockResolvedValue(undefined);
+    const saveFileToDisk = vi.fn().mockResolvedValue(undefined);
+    useAppStore.setState({
+      runtimeMode: 'desktop',
+      files: [
+        {
+          path: 'first.ts',
+          name: 'first.ts',
+          language: 'typescript',
+          content: 'first',
+          contentHash: 'first-hash',
+          editable: true,
+        },
+        {
+          path: 'second.ts',
+          name: 'second.ts',
+          language: 'typescript',
+          content: 'second',
+          contentHash: 'second-hash',
+          editable: true,
+        },
+      ],
+      openPaths: ['first.ts', 'second.ts'],
+      activePath: 'first.ts',
+      dirtyPaths: ['first.ts', 'second.ts'],
+      persistDraft,
+      saveFileToDisk,
+    });
+
+    render(
+      <I18nProvider>
+        <EditorPane />
+      </I18nProvider>
+    );
+
+    act(() => vi.advanceTimersByTime(500));
+    act(() => useAppStore.getState().updateFile('second.ts', 'second changed'));
+    act(() => vi.advanceTimersByTime(500));
+
+    expect(saveFileToDisk).toHaveBeenCalledWith('first.ts');
+    expect(saveFileToDisk).not.toHaveBeenCalledWith('second.ts');
+
+    act(() => vi.advanceTimersByTime(500));
+    expect(saveFileToDisk).toHaveBeenCalledWith('second.ts');
+    vi.useRealTimers();
   });
 
   it('synchronizes locale and only previews Markdown files', async () => {
@@ -79,7 +129,8 @@ describe('EditorPane modes', () => {
     expect(screen.getByRole('button', { name: 'Hide preview' })).toBeInTheDocument();
 
     act(() => useAppStore.getState().openFile('src/experiment.ts'));
-    expect(editor).toHaveAttribute('data-preview', 'false');
+    expect(screen.queryByTestId('markdown-editor')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'src/experiment.ts' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Hide preview' })).not.toBeInTheDocument();
   });
 });

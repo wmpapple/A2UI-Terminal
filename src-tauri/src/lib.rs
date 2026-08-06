@@ -14,6 +14,7 @@ use tauri::Manager;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
             let storage = Storage::open(&app_data_dir.join("a2ui-terminal.sqlite3"))?;
@@ -26,6 +27,17 @@ pub fn run() {
             commands::provider_secret_status,
             commands::delete_provider_secret,
             commands::clear_all_local_data,
+            commands::select_workspace,
+            commands::list_recent_workspaces,
+            commands::restore_workspace,
+            commands::list_workspace_files,
+            commands::read_workspace_file,
+            commands::save_workspace_file,
+            commands::save_workspace_draft,
+            commands::discard_workspace_draft,
+            commands::remove_workspace,
+            commands::select_context_files,
+            commands::save_context_file,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start A2UI Terminal");

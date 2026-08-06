@@ -1,0 +1,179 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { desktopApi } from '../shared/platform/desktop';
+import { useAppStore } from './useAppStore';
+
+beforeEach(() => {
+  vi.restoreAllMocks();
+  useAppStore.setState({
+    runtimeMode: 'desktop',
+    workspace: null,
+    recentWorkspaces: [],
+    workspaceEntries: [],
+    workspaceLoading: false,
+    workspaceError: null,
+    files: [],
+    openPaths: [],
+    activePath: '',
+    dirtyPaths: [],
+    saveStatusByPath: {},
+    recoveryDrafts: {},
+  });
+});
+
+describe('desktop workspace state', () => {
+  it('opens directly selected files without a workspace', async () => {
+    vi.spyOn(desktopApi, 'selectContextFiles').mockResolvedValue([
+      {
+        path: 'selected/file-1/notes.md',
+        name: 'notes.md',
+        language: 'markdown',
+        content: '# Notes',
+        contentHash: 'notes-hash',
+        sizeBytes: 7,
+        draft: null,
+        editable: true,
+        extracted: false,
+        sourceId: 'file-1',
+      },
+    ]);
+
+    await useAppStore.getState().selectContextFiles();
+
+    expect(useAppStore.getState().workspace).toBeNull();
+    expect(useAppStore.getState().activePath).toBe('selected/file-1/notes.md');
+    expect(useAppStore.getState().files[0].sourceId).toBe('file-1');
+    expect(useAppStore.getState().workspaceEntries[0].name).toBe('notes.md');
+  });
+
+  it('holds a crash draft for confirmation without auto-saving it', async () => {
+    vi.spyOn(desktopApi, 'restoreWorkspace').mockResolvedValue({
+      id: 'workspace-1',
+      name: 'Project',
+      available: true,
+    });
+    vi.spyOn(desktopApi, 'listWorkspaceFiles').mockResolvedValue([
+      {
+        path: 'src/main.ts',
+        name: 'main.ts',
+        language: 'typescript',
+        sizeBytes: 18,
+        readable: true,
+        editable: true,
+        extracted: false,
+      },
+    ]);
+    vi.spyOn(desktopApi, 'readWorkspaceFile').mockResolvedValue({
+      path: 'src/main.ts',
+      name: 'main.ts',
+      language: 'typescript',
+      content: 'export const a = 1;',
+      contentHash: 'disk-hash',
+      sizeBytes: 18,
+      editable: true,
+      extracted: false,
+      draft: {
+        content: 'export const a = 2;',
+        baseHash: 'disk-hash',
+        updatedAt: '2026-08-06 08:00:00',
+      },
+    });
+
+    await useAppStore.getState().restoreWorkspace('workspace-1');
+    await useAppStore.getState().openFile('src/main.ts');
+
+    expect(useAppStore.getState().files[0]).toMatchObject({
+      content: 'export const a = 1;',
+      contentHash: 'disk-hash',
+    });
+    expect(useAppStore.getState().dirtyPaths).not.toContain('src/main.ts');
+    expect(useAppStore.getState().saveStatusByPath['src/main.ts']).toBe('draft');
+    expect(useAppStore.getState().recoveryDrafts['src/main.ts']?.content).toBe(
+      'export const a = 2;'
+    );
+
+    useAppStore.getState().restoreRecoveryDraft('src/main.ts');
+    expect(useAppStore.getState().files[0].content).toBe('export const a = 2;');
+    expect(useAppStore.getState().dirtyPaths).toContain('src/main.ts');
+    expect(useAppStore.getState().recoveryDrafts['src/main.ts']).toBeUndefined();
+  });
+
+  it('keeps dirty content when the backend reports an external change', async () => {
+    vi.spyOn(desktopApi, 'saveWorkspaceDraft').mockResolvedValue();
+    vi.spyOn(desktopApi, 'saveWorkspaceFile').mockRejectedValue({
+      code: 'FILE_CONFLICT',
+      message: 'file changed outside A2UI Terminal',
+    });
+    useAppStore.setState({
+      workspace: { id: 'workspace-1', name: 'Project', available: true },
+      files: [
+        {
+          path: 'config.json',
+          name: 'config.json',
+          language: 'json',
+          content: '{"local":true}',
+          contentHash: 'old-hash',
+        },
+      ],
+      openPaths: ['config.json'],
+      activePath: 'config.json',
+      dirtyPaths: ['config.json'],
+    });
+
+    await useAppStore.getState().saveFileToDisk('config.json');
+
+    expect(useAppStore.getState().dirtyPaths).toContain('config.json');
+    expect(useAppStore.getState().saveStatusByPath['config.json']).toBe('conflict');
+    expect(useAppStore.getState().files[0].content).toBe('{"local":true}');
+  });
+
+  it('does not edit or dirty an extracted document', () => {
+    useAppStore.setState({
+      files: [
+        {
+          path: 'requirements.docx',
+          name: 'requirements.docx',
+          language: 'word',
+          content: 'Extracted body',
+          contentHash: 'document-hash',
+          editable: false,
+          extracted: true,
+        },
+      ],
+      dirtyPaths: [],
+    });
+
+    useAppStore.getState().updateFile('requirements.docx', 'changed');
+
+    expect(useAppStore.getState().files[0].content).toBe('Extracted body');
+    expect(useAppStore.getState().dirtyPaths).toEqual([]);
+  });
+
+  it('saves a directly selected text file through its authorization id', async () => {
+    const save = vi.spyOn(desktopApi, 'saveContextFile').mockResolvedValue({
+      path: 'notes.md',
+      contentHash: 'new-hash',
+      sizeBytes: 9,
+    });
+    useAppStore.setState({
+      workspace: null,
+      files: [
+        {
+          path: 'selected/file-1/notes.md',
+          name: 'notes.md',
+          language: 'markdown',
+          content: '# Changed',
+          contentHash: 'old-hash',
+          editable: true,
+          sourceId: 'file-1',
+        },
+      ],
+      dirtyPaths: ['selected/file-1/notes.md'],
+    });
+
+    await useAppStore.getState().saveFileToDisk('selected/file-1/notes.md');
+
+    expect(save).toHaveBeenCalledWith('file-1', '# Changed', 'old-hash');
+    expect(useAppStore.getState().dirtyPaths).toEqual([]);
+    expect(useAppStore.getState().saveStatusByPath['selected/file-1/notes.md']).toBe('saved');
+  });
+});

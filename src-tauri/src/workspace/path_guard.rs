@@ -5,6 +5,7 @@ const SUPPORTED_EXTENSIONS: &[&str] = &[
     "css", "html", "js", "json", "jsx", "md", "mjs", "py", "toml", "ts", "tsx", "txt", "yaml",
     "yml",
 ];
+const SUPPORTED_DOCUMENT_EXTENSIONS: &[&str] = &["docx", "pdf"];
 
 pub fn canonicalize_root(root: &Path) -> Result<PathBuf, AppError> {
     let canonical = root.canonicalize()?;
@@ -18,7 +19,7 @@ pub fn canonicalize_root(root: &Path) -> Result<PathBuf, AppError> {
 
 pub fn resolve_existing_file(root: &Path, relative_path: &Path) -> Result<PathBuf, AppError> {
     validate_relative_path(relative_path)?;
-    if !is_supported_text_path(relative_path) {
+    if !is_supported_workspace_path(relative_path) {
         return Err(AppError::InvalidInput(
             "当前文件类型不在文本文件白名单中".into(),
         ));
@@ -30,6 +31,26 @@ pub fn resolve_existing_file(root: &Path, relative_path: &Path) -> Result<PathBu
         return Err(AppError::InvalidInput("文件必须位于当前工作区内".into()));
     }
     Ok(candidate)
+}
+
+pub fn is_supported_workspace_path(path: &Path) -> bool {
+    is_supported_text_path(path)
+        || path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .map(|extension| {
+                SUPPORTED_DOCUMENT_EXTENSIONS.contains(&extension.to_ascii_lowercase().as_str())
+            })
+            .unwrap_or(false)
+}
+
+pub fn is_supported_document_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .map(|extension| {
+            SUPPORTED_DOCUMENT_EXTENSIONS.contains(&extension.to_ascii_lowercase().as_str())
+        })
+        .unwrap_or(false)
 }
 
 pub fn is_supported_text_path(path: &Path) -> bool {
@@ -55,7 +76,7 @@ fn validate_relative_path(path: &Path) -> Result<(), AppError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_supported_text_path, resolve_existing_file};
+    use super::{is_supported_document_path, is_supported_text_path, resolve_existing_file};
     use std::fs;
     use std::path::Path;
 
@@ -65,6 +86,8 @@ mod tests {
             assert!(is_supported_text_path(Path::new(path)), "rejected {path}");
         }
         assert!(!is_supported_text_path(Path::new("image.png")));
+        assert!(is_supported_document_path(Path::new("report.docx")));
+        assert!(is_supported_document_path(Path::new("paper.PDF")));
     }
 
     #[test]

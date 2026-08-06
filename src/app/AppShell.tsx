@@ -1,15 +1,22 @@
 import { GlobalOutlined, SettingOutlined } from '@ant-design/icons';
 import { Button, ConfigProvider, Dropdown, Tag, Tooltip } from 'antd';
+import { useEffect } from 'react';
 import { ChatPanel } from '../features/chat/components/ChatPanel';
 import { EditorPane } from '../features/workspace/components/EditorPane';
 import { WorkspaceSidebar } from '../features/workspace/components/WorkspaceSidebar';
 import { getRuntimeMode } from '../shared/platform/runtime';
+import { useAppStore } from '../stores/useAppStore';
 import { useI18n } from './i18n/useI18n';
 import styles from './AppShell.module.css';
 
 export function AppShell() {
   const { locale, setLocale, t } = useI18n();
   const mode = getRuntimeMode();
+  const initializeWorkspace = useAppStore((state) => state.initializeWorkspace);
+
+  useEffect(() => {
+    void initializeWorkspace();
+  }, [initializeWorkspace]);
 
   return (
     <ConfigProvider

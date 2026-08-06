@@ -9,6 +9,17 @@
     "allow-set-provider-secret",
     "allow-provider-secret-status",
     "allow-delete-provider-secret",
-    "allow-clear-all-local-data"
+    "allow-clear-all-local-data",
+    "allow-select-workspace",
+    "allow-list-recent-workspaces",
+    "allow-restore-workspace",
+    "allow-list-workspace-files",
+    "allow-read-workspace-file",
+    "allow-save-workspace-file",
+    "allow-save-workspace-draft",
+    "allow-discard-workspace-draft",
+    "allow-remove-workspace",
+    "allow-select-context-files",
+    "allow-save-context-file"
   ]
 }

@@ -26,8 +26,10 @@ cargo --version
 ```bash
 npm run dev
 npm run check
-npm run tauri dev
+npm run desktop:dev
 ```
+
+`desktop:dev` 优先使用项目工作区同级 `.tooling` 中的隔离 Rust；若不存在，则使用系统 PATH 中的 Cargo。
 
 ## 提交前检查
 

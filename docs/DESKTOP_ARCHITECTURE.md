@@ -9,12 +9,15 @@ React WebView 只负责显示和收集用户意图。真实文件、SQLite、系
 - 获取桌面基础设施状态；
 - 写入、判断或删除指定 Provider 的 API Key；
 - 经精确确认后清除所有应用本地数据。
+- 通过系统目录选择器创建或恢复工作区授权；
+- 按工作区 ID 列出、读取、保存白名单文本文件及草稿；
+- 删除工作区数据库记录，但不删除磁盘项目文件。
 
 前端没有读取 API Key 明文、执行 Shell、发起任意 Rust 网络请求或访问任意路径的命令。
 
 ## Tauri 权限
 
-`src-tauri/capabilities/main.json` 绑定唯一的 `main` 窗口。应用命令由 `build.rs` 生成权限清单，再逐项加入 Capability。阶段 4 添加目录选择器时，需要单独增加 Dialog 权限；当前不为未来功能预授权。
+`src-tauri/capabilities/main.json` 绑定唯一的 `main` 窗口。应用命令由 `build.rs` 生成权限清单，再逐项加入 Capability。目录选择器由 `select_workspace` Rust 命令在后台打开，前端没有 Dialog 插件权限，也不能向注册命令提交任意绝对路径。
 
 CSP 默认只允许本应用资源。脚本不允许远程源或内联执行；网络连接仅保留 Tauri IPC。Ant Design 的运行时样式暂时需要 `style-src 'unsafe-inline'`，后续替换样式注入方式时再收紧。
 
@@ -29,6 +32,7 @@ SQLite 文件位于 Tauri 的应用数据目录，而不是源码仓库。初始
 - `credential_refs`：用于完整清理系统凭据的 Provider 引用，不含密钥；
 - `app_settings`：应用设置。
 - `audit_events`：不含密钥和消息正文的安全审计事件骨架。
+- `workspace_drafts`：编辑崩溃恢复草稿、基础 Hash 和更新时间。
 
 工作区外键使用 `ON DELETE CASCADE`。版本记录由写入方设置 30 天到期时间，定期清理任务在 Patch/版本阶段实现。数据库迁移通过 `PRAGMA user_version` 保证可重复启动。
 
@@ -42,7 +46,7 @@ SQLite 文件位于 Tauri 的应用数据目录，而不是源码仓库。初始
 4. 扩展名在文本白名单内；
 5. 目标是已存在的普通文件。
 
-阶段 3 只实现并测试这条路径守卫，不对前端开放真实文件命令。
+阶段 4 的文件命令只接收工作区 ID 与相对路径。读取额外限制为 2 MB 和有效 UTF-8；保存前必须匹配打开文件时的 SHA-256，否则返回 `FILE_CONFLICT`，不覆盖外部修改。
 
 ## 凭据策略
 
