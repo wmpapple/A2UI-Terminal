@@ -43,6 +43,8 @@ jobs:
           components: clippy,rustfmt
       - name: Install dependencies
         run: npm ci
+      - name: Build frontend assets
+        run: npm run build
       - name: Check Rust formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
       - name: Run Rust lints
