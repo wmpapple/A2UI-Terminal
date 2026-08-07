@@ -51,7 +51,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 ## 本地配置
 
-复制 `.env.example` 只能用于设置非敏感开发默认值。不要在 `.env` 中保存 API Key。API Key 只能通过桌面 IPC 写入 Windows Credential Manager；阶段 5 接入设置页，当前阶段仅提供受限的凭据服务边界。
+复制 `.env.example` 只能用于设置非敏感开发默认值。不要在 `.env` 中保存 API Key。API Key 只能通过桌面设置页和受限 IPC 写入 Windows Credential Manager；前端只接收“是否已配置”状态。
 
 ## 桌面端验证
 

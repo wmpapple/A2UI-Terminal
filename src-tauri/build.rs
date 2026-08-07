@@ -16,6 +16,14 @@ fn main() {
         "remove_workspace",
         "select_context_files",
         "save_context_file",
+        "list_provider_configs",
+        "save_provider_config",
+        "set_active_provider",
+        "test_provider_connection",
+        "list_chat_sessions",
+        "create_chat_session",
+        "stream_chat",
+        "stop_chat",
     ]);
 
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(app_manifest))

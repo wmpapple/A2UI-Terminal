@@ -1,51 +1,75 @@
 import { Alert, Checkbox, Divider, Modal, Progress, Select, Tag } from 'antd';
 import { useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
-import { useAppStore } from '../../../stores/useAppStore';
 import type { ContextSelection } from '../../../shared/types/domain';
+import { useAppStore } from '../../../stores/useAppStore';
+import {
+  buildContextSnapshot,
+  isSensitivePath,
+  normalizeContextSelection,
+} from '../contextSnapshot';
 import styles from './ContextSelector.module.css';
 
 interface Props {
   open: boolean;
+  prompt: string;
   initialSelection: ContextSelection;
+  confirmText?: string;
   onCancel: () => void;
-  onConfirm: (selection: ContextSelection) => void;
+  onConfirm: (selection: ContextSelection, sensitiveConfirmed: boolean) => void;
 }
 
-export function ContextSelector({ open, initialSelection, onCancel, onConfirm }: Props) {
+export function ContextSelector({
+  open,
+  prompt,
+  initialSelection,
+  confirmText,
+  onCancel,
+  onConfirm,
+}: Props) {
   const { t } = useI18n();
   const files = useAppStore((state) => state.files);
+  const sessions = useAppStore((state) => state.sessions);
+  const activeSessionId = useAppStore((state) => state.activeSessionId);
   const activePath = useAppStore((state) => state.activePath);
   const selectedText = useAppStore((state) => state.selectedText);
-  const [selection, setSelection] = useState<ContextSelection>(() => ({
-    ...initialSelection,
-    selection: initialSelection.selection && selectedText.length > 0,
-  }));
-  const estimatedTokens = useMemo(() => {
-    const active = files.find((file) => file.path === activePath);
-    const chars =
-      (selection.selection ? selectedText.length : 0) +
-      (selection.currentFile ? (active?.content.length ?? 0) : 0) +
-      (selection.recentMessages ? selection.recentMessageCount * 160 : 0) +
-      selection.projectFiles.reduce(
-        (sum, path) => sum + (files.find((file) => file.path === path)?.content.length ?? 0),
-        0
-      );
-    return Math.ceil(chars / 3.2);
-  }, [activePath, files, selectedText.length, selection]);
+  const [sensitiveConfirmed, setSensitiveConfirmed] = useState(false);
+  const [selection, setSelection] = useState<ContextSelection>(() =>
+    normalizeContextSelection(initialSelection, selectedText)
+  );
+  const recentMessages = useMemo(
+    () => sessions.find((session) => session.id === activeSessionId)?.messages ?? [],
+    [activeSessionId, sessions]
+  );
+  const snapshot = useMemo(
+    () =>
+      buildContextSnapshot({
+        selection,
+        files,
+        activePath,
+        selectedText,
+        recentMessages,
+        prompt,
+      }),
+    [activePath, files, prompt, recentMessages, selectedText, selection]
+  );
 
   const setFlag = (key: 'selection' | 'currentFile' | 'recentMessages', checked: boolean) =>
     setSelection((current) => ({ ...current, [key]: checked }));
+  const requiresSensitiveConfirmation = snapshot.warnings.some((warning) =>
+    warning.includes('possible secret')
+  );
 
   return (
     <Modal
       open={open}
       title={t('contextTitle')}
-      okText={t('saveContext')}
+      okText={confirmText ?? t('confirmAndSend')}
       cancelText={t('cancel')}
       onCancel={onCancel}
-      onOk={() => onConfirm(selection)}
-      width={620}
+      onOk={() => onConfirm(selection, sensitiveConfirmed || !requiresSensitiveConfirmation)}
+      okButtonProps={{ disabled: requiresSensitiveConfirmation && !sensitiveConfirmed }}
+      width={660}
     >
       <div className={styles.body}>
         <Alert type="info" showIcon title={t('privacyHint')} />
@@ -62,9 +86,10 @@ export function ContextSelector({ open, initialSelection, onCancel, onConfirm }:
           </Checkbox>
           <Checkbox
             checked={selection.currentFile}
+            disabled={!activePath || isSensitivePath(activePath)}
             onChange={(event) => setFlag('currentFile', event.target.checked)}
           >
-            {t('currentFile')} <Tag color="blue">{activePath}</Tag>
+            {t('currentFile')} {activePath && <Tag color="blue">{activePath}</Tag>}
           </Checkbox>
           <Checkbox
             checked={selection.recentMessages}
@@ -95,19 +120,57 @@ export function ContextSelector({ open, initialSelection, onCancel, onConfirm }:
           className={styles.fileOptions}
         >
           {files
-            .filter((file) => file.path !== activePath)
+            .filter((file) => file.path !== activePath && !isSensitivePath(file.path))
             .map((file) => (
               <Checkbox value={file.path} key={file.path}>
                 {file.path}
               </Checkbox>
             ))}
         </Checkbox.Group>
+        <Divider>{t('finalSendList')}</Divider>
+        <div className={styles.sourceList}>
+          {snapshot.sources.length === 0 && !selection.recentMessages ? (
+            <Tag>{t('noFileContext')}</Tag>
+          ) : (
+            snapshot.sources.map((source) => (
+              <Tag key={`${source.kind}:${source.label}`}>{source.label}</Tag>
+            ))
+          )}
+          {selection.recentMessages && (
+            <Tag color="purple">
+              {t('recentMessageCountValue').replace(
+                '{count}',
+                String(selection.recentMessageCount)
+              )}
+            </Tag>
+          )}
+        </div>
+        {snapshot.warnings.length > 0 && (
+          <Alert
+            type="warning"
+            showIcon
+            title={t('sensitiveWarning')}
+            description={snapshot.warnings.join('\n')}
+          />
+        )}
+        {requiresSensitiveConfirmation && (
+          <Checkbox
+            checked={sensitiveConfirmed}
+            onChange={(event) => setSensitiveConfirmed(event.target.checked)}
+          >
+            {t('sensitiveConfirm')}
+          </Checkbox>
+        )}
         <div className={styles.tokens}>
-          <span>{t('tokenEstimate')}</span>
-          <strong>{estimatedTokens.toLocaleString()}</strong>
+          <span>
+            {t('contextCharacters').replace('{count}', snapshot.characterCount.toLocaleString())}
+          </span>
+          <strong>
+            {t('tokenEstimate')}: {snapshot.estimatedTokens.toLocaleString()}
+          </strong>
         </div>
         <Progress
-          percent={Math.min(100, Math.round((estimatedTokens / 8000) * 100))}
+          percent={Math.min(100, Math.round((snapshot.estimatedTokens / 128000) * 100))}
           showInfo={false}
           size="small"
         />

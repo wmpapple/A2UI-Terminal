@@ -6,7 +6,7 @@ pub use path_guard::{
 };
 
 use crate::error::AppError;
-use crate::storage::{DraftRow, Storage, WorkspaceRow};
+use crate::storage::{DraftRow, Storage, WorkspaceFileRow, WorkspaceRow};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::fmt::Write as _;
@@ -39,6 +39,7 @@ pub struct WorkspaceSummary {
     pub id: String,
     pub name: String,
     pub available: bool,
+    pub kind: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -51,6 +52,7 @@ pub struct WorkspaceFileEntry {
     pub readable: bool,
     pub editable: bool,
     pub extracted: bool,
+    pub source_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -99,6 +101,12 @@ pub fn register_workspace(
     Ok(summary_from_row(&row))
 }
 
+pub fn register_standalone_workspace(storage: &Storage) -> Result<WorkspaceSummary, AppError> {
+    let id = Uuid::new_v4().to_string();
+    let row = storage.create_standalone_workspace(&id, "独立文件")?;
+    Ok(summary_from_row(&row))
+}
+
 pub fn list_recent(storage: &Storage) -> Result<Vec<WorkspaceSummary>, AppError> {
     Ok(storage
         .recent_workspaces(10)?
@@ -112,7 +120,9 @@ pub fn restore_workspace(
     workspace_id: &str,
 ) -> Result<WorkspaceSummary, AppError> {
     let row = require_workspace(storage, workspace_id)?;
-    canonicalize_root(Path::new(&row.root_path))?;
+    if row.kind == "directory" {
+        canonicalize_root(Path::new(&row.root_path))?;
+    }
     storage.touch_workspace(workspace_id)?;
     Ok(summary_from_row(&row))
 }
@@ -121,41 +131,48 @@ pub fn list_files(
     storage: &Storage,
     workspace_id: &str,
 ) -> Result<Vec<WorkspaceFileEntry>, AppError> {
-    let root = workspace_root(storage, workspace_id)?;
+    let workspace = require_workspace(storage, workspace_id)?;
     let mut files = Vec::new();
-    for entry in WalkDir::new(&root)
-        .follow_links(false)
-        .max_depth(MAX_WALK_DEPTH)
-        .into_iter()
-        .filter_entry(should_visit)
-    {
-        let entry =
-            entry.map_err(|_| AppError::InvalidInput("工作区包含无法遍历的目录或文件".into()))?;
-        if !entry.file_type().is_file() || !is_supported_workspace_path(entry.path()) {
-            continue;
+    if workspace.kind == "directory" {
+        let root = canonicalize_root(Path::new(&workspace.root_path))?;
+        for entry in WalkDir::new(&root)
+            .follow_links(false)
+            .max_depth(MAX_WALK_DEPTH)
+            .into_iter()
+            .filter_entry(should_visit)
+        {
+            let entry = entry
+                .map_err(|_| AppError::InvalidInput("工作区包含无法遍历的目录或文件".into()))?;
+            if !entry.file_type().is_file() || !is_supported_workspace_path(entry.path()) {
+                continue;
+            }
+            let metadata = fs::metadata(entry.path())?;
+            let relative = relative_path(&root, entry.path())?;
+            let extracted = is_supported_document_path(entry.path());
+            let size_limit = if extracted {
+                MAX_DOCUMENT_FILE_BYTES
+            } else {
+                MAX_TEXT_FILE_BYTES
+            };
+            files.push(WorkspaceFileEntry {
+                name: entry.file_name().to_string_lossy().into_owned(),
+                language: language_for_path(entry.path()).to_string(),
+                path: relative,
+                size_bytes: metadata.len(),
+                readable: metadata.len() <= size_limit,
+                editable: !extracted,
+                extracted,
+                source_id: None,
+            });
+            if files.len() >= MAX_WORKSPACE_FILES {
+                return Err(AppError::InvalidInput(
+                    "工作区文本文件数量超过 20000 个安全上限".into(),
+                ));
+            }
         }
-        let metadata = fs::metadata(entry.path())?;
-        let relative = relative_path(&root, entry.path())?;
-        let extracted = is_supported_document_path(entry.path());
-        let size_limit = if extracted {
-            MAX_DOCUMENT_FILE_BYTES
-        } else {
-            MAX_TEXT_FILE_BYTES
-        };
-        files.push(WorkspaceFileEntry {
-            name: entry.file_name().to_string_lossy().into_owned(),
-            language: language_for_path(entry.path()).to_string(),
-            path: relative,
-            size_bytes: metadata.len(),
-            readable: metadata.len() <= size_limit,
-            editable: !extracted,
-            extracted,
-        });
-        if files.len() >= MAX_WORKSPACE_FILES {
-            return Err(AppError::InvalidInput(
-                "工作区文本文件数量超过 20000 个安全上限".into(),
-            ));
-        }
+    }
+    for selected in storage.workspace_files(workspace_id)? {
+        files.push(selected_file_entry(&selected));
     }
     files.sort_by(|left, right| left.path.cmp(&right.path));
     storage.touch_workspace(workspace_id)?;
@@ -167,6 +184,19 @@ pub fn read_file(
     workspace_id: &str,
     relative_path: &str,
 ) -> Result<WorkspaceDocument, AppError> {
+    if let Some(selected) = storage.workspace_file(workspace_id, relative_path)? {
+        let mut document =
+            read_selected_file(Path::new(&selected.absolute_path), &selected.source_id)?;
+        document.path = selected.virtual_path;
+        document.draft = if document.editable {
+            storage
+                .draft(workspace_id, relative_path)?
+                .map(draft_from_row)
+        } else {
+            None
+        };
+        return Ok(document);
+    }
     let root = workspace_root(storage, workspace_id)?;
     let path = resolve_existing_file(&root, Path::new(relative_path))?;
     let extracted = is_supported_document_path(&path);
@@ -254,6 +284,31 @@ pub fn read_selected_file(path: &Path, source_id: &str) -> Result<WorkspaceDocum
     })
 }
 
+pub fn attach_selected_file(
+    storage: &Storage,
+    workspace_id: &str,
+    path: &Path,
+) -> Result<WorkspaceDocument, AppError> {
+    require_workspace(storage, workspace_id)?;
+    let canonical = path.canonicalize()?;
+    let proposed_source_id = Uuid::new_v4().to_string();
+    let proposed = read_selected_file(&canonical, &proposed_source_id)?;
+    let row = storage.attach_workspace_file(
+        workspace_id,
+        &proposed_source_id,
+        canonical.to_string_lossy().as_ref(),
+        &proposed.path,
+    )?;
+    let mut document = if row.source_id == proposed_source_id {
+        proposed
+    } else {
+        read_selected_file(&canonical, &row.source_id)?
+    };
+    document.path = row.virtual_path;
+    storage.touch_workspace(workspace_id)?;
+    Ok(document)
+}
+
 pub fn save_selected_file(
     path: &Path,
     content: &str,
@@ -287,6 +342,14 @@ pub fn save_file(
 ) -> Result<SaveOutcome, AppError> {
     ensure_editable_path(relative_path)?;
     validate_content_size(content)?;
+    if let Some(selected) = storage.workspace_file(workspace_id, relative_path)? {
+        let mut outcome =
+            save_selected_file(Path::new(&selected.absolute_path), content, base_hash)?;
+        outcome.path = relative_path.to_string();
+        storage.delete_draft(workspace_id, relative_path)?;
+        storage.touch_workspace(workspace_id)?;
+        return Ok(outcome);
+    }
     let root = workspace_root(storage, workspace_id)?;
     let path = resolve_existing_file(&root, Path::new(relative_path))?;
     let current = read_limited(&path, MAX_TEXT_FILE_BYTES)?;
@@ -313,8 +376,15 @@ pub fn save_draft(
 ) -> Result<(), AppError> {
     ensure_editable_path(relative_path)?;
     validate_content_size(content)?;
-    let root = workspace_root(storage, workspace_id)?;
-    resolve_existing_file(&root, Path::new(relative_path))?;
+    if let Some(selected) = storage.workspace_file(workspace_id, relative_path)? {
+        let path = Path::new(&selected.absolute_path).canonicalize()?;
+        if !path.is_file() {
+            return Err(AppError::InvalidInput("独立文件已移动或删除".into()));
+        }
+    } else {
+        let root = workspace_root(storage, workspace_id)?;
+        resolve_existing_file(&root, Path::new(relative_path))?;
+    }
     storage.save_draft(workspace_id, relative_path, content, base_hash)
 }
 
@@ -323,8 +393,13 @@ pub fn discard_draft(
     workspace_id: &str,
     relative_path: &str,
 ) -> Result<(), AppError> {
-    let root = workspace_root(storage, workspace_id)?;
-    resolve_existing_file(&root, Path::new(relative_path))?;
+    if storage
+        .workspace_file(workspace_id, relative_path)?
+        .is_none()
+    {
+        let root = workspace_root(storage, workspace_id)?;
+        resolve_existing_file(&root, Path::new(relative_path))?;
+    }
     storage.delete_draft(workspace_id, relative_path)
 }
 
@@ -343,7 +418,34 @@ fn summary_from_row(row: &WorkspaceRow) -> WorkspaceSummary {
     WorkspaceSummary {
         id: row.id.clone(),
         name: row.name.clone(),
-        available: Path::new(&row.root_path).is_dir(),
+        available: row.kind == "standalone" || Path::new(&row.root_path).is_dir(),
+        kind: row.kind.clone(),
+    }
+}
+
+fn selected_file_entry(row: &WorkspaceFileRow) -> WorkspaceFileEntry {
+    let path = Path::new(&row.absolute_path);
+    let extracted = is_supported_document_path(path);
+    let metadata = fs::metadata(path).ok();
+    let size_bytes = metadata.as_ref().map_or(0, fs::Metadata::len);
+    let size_limit = if extracted {
+        MAX_DOCUMENT_FILE_BYTES
+    } else {
+        MAX_TEXT_FILE_BYTES
+    };
+    WorkspaceFileEntry {
+        path: row.virtual_path.clone(),
+        name: path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or("selected-file")
+            .to_string(),
+        language: language_for_path(path).to_string(),
+        size_bytes,
+        readable: metadata.is_some() && size_bytes <= size_limit,
+        editable: !extracted,
+        extracted,
+        source_id: Some(row.source_id.clone()),
     }
 }
 
@@ -494,8 +596,9 @@ fn content_hash(content: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        content_hash, language_for_path, list_files, read_file, read_selected_file,
-        register_workspace, save_draft, save_file, save_selected_file, MAX_TEXT_FILE_BYTES,
+        attach_selected_file, content_hash, language_for_path, list_files, read_file,
+        read_selected_file, register_standalone_workspace, register_workspace, restore_workspace,
+        save_draft, save_file, save_selected_file, MAX_TEXT_FILE_BYTES,
     };
     use crate::error::AppError;
     use crate::storage::Storage;
@@ -659,5 +762,41 @@ mod tests {
 
         save_selected_file(&file_path, "# After\n", &opened.content_hash).unwrap();
         assert_eq!(fs::read_to_string(file_path).unwrap(), "# After\n");
+    }
+
+    #[test]
+    fn standalone_workspace_persists_file_authorization_and_writes_to_the_real_path() {
+        let directory = tempfile::tempdir().unwrap();
+        let file_path = directory.path().join("loose.json");
+        fs::write(&file_path, "{\"before\":true}\n").unwrap();
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace = register_standalone_workspace(&storage).unwrap();
+
+        let attached = attach_selected_file(&storage, &workspace.id, &file_path).unwrap();
+        let restored = restore_workspace(&storage, &workspace.id).unwrap();
+        let entries = list_files(&storage, &workspace.id).unwrap();
+        let reopened = read_file(&storage, &workspace.id, &attached.path).unwrap();
+
+        assert_eq!(restored.kind, "standalone");
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].name, "loose.json");
+        assert_eq!(entries[0].source_id, attached.source_id);
+        assert_eq!(reopened.content, "{\"before\":true}\n");
+
+        save_file(
+            &storage,
+            &workspace.id,
+            &attached.path,
+            "{\"after\":true}\n",
+            &reopened.content_hash,
+        )
+        .unwrap();
+        storage.remove_workspace(&workspace.id).unwrap();
+
+        assert_eq!(fs::read_to_string(file_path).unwrap(), "{\"after\":true}\n");
+        assert!(storage
+            .workspace_file_by_source(attached.source_id.as_deref().unwrap())
+            .unwrap()
+            .is_none());
     }
 }

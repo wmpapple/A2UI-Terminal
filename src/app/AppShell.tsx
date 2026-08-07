@@ -1,7 +1,9 @@
 import { GlobalOutlined, SettingOutlined } from '@ant-design/icons';
 import { Button, ConfigProvider, Dropdown, Tag, Tooltip } from 'antd';
 import { useEffect } from 'react';
+import { useState } from 'react';
 import { ChatPanel } from '../features/chat/components/ChatPanel';
+import { ProviderSettings } from '../features/settings/components/ProviderSettings';
 import { EditorPane } from '../features/workspace/components/EditorPane';
 import { WorkspaceSidebar } from '../features/workspace/components/WorkspaceSidebar';
 import { getRuntimeMode } from '../shared/platform/runtime';
@@ -13,10 +15,13 @@ export function AppShell() {
   const { locale, setLocale, t } = useI18n();
   const mode = getRuntimeMode();
   const initializeWorkspace = useAppStore((state) => state.initializeWorkspace);
+  const initializeProviders = useAppStore((state) => state.initializeProviders);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     void initializeWorkspace();
-  }, [initializeWorkspace]);
+    void initializeProviders();
+  }, [initializeProviders, initializeWorkspace]);
 
   return (
     <ConfigProvider
@@ -54,7 +59,11 @@ export function AppShell() {
               </Button>
             </Dropdown>
             <Tooltip title={t('settings')}>
-              <Button type="text" icon={<SettingOutlined />} />
+              <Button
+                type="text"
+                icon={<SettingOutlined />}
+                onClick={() => setSettingsOpen(true)}
+              />
             </Tooltip>
           </div>
         </header>
@@ -63,6 +72,7 @@ export function AppShell() {
           <EditorPane />
           <ChatPanel />
         </div>
+        <ProviderSettings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       </div>
     </ConfigProvider>
   );

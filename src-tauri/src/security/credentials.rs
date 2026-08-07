@@ -28,6 +28,13 @@ impl SecretStore {
         }
     }
 
+    pub(crate) fn get(provider_id: &str) -> Result<String, AppError> {
+        let provider_id = validate_provider_id(provider_id)?;
+        Self::entry(&provider_id)?
+            .get_password()
+            .map_err(Into::into)
+    }
+
     pub fn delete(provider_id: &str) -> Result<(), AppError> {
         let provider_id = validate_provider_id(provider_id)?;
         match Self::entry(&provider_id)?.delete_credential() {

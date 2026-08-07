@@ -34,6 +34,15 @@
   background: var(--success);
   border-radius: 50%;
 }
+.header i.offline {
+  background: var(--warning, #d89614);
+}
+.header i.online {
+  background: var(--success);
+}
+.chatError {
+  margin: 8px 12px 0;
+}
 .sessionSelect {
   margin: 10px 12px 0;
 }

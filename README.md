@@ -1,6 +1,6 @@
 # A2UI Terminal
 
-A2UI Terminal 是一个本地优先、修改可审阅的 AI 工作台。Web 版本提供严格 TypeScript 的三栏 Mock 工作台；桌面版本已经支持受控打开真实工作区、文本文件编辑、Hash 冲突保护和崩溃草稿恢复。模型 Provider 与显式上下文将在下一阶段接入。
+A2UI Terminal 是一个本地优先、修改可审阅的 AI 工作台。Web 版本提供严格 TypeScript 的三栏 Mock 工作台；桌面版本已经支持受控真实工作区、文本文件编辑、Provider 配置、持久化多会话、流式响应和显式上下文确认。AI 文件修改仍必须等待阶段 6 的语义 Patch 与 Diff 审阅闭环。
 
 ## 当前技术栈
 
@@ -54,8 +54,8 @@ npm run check
 | M0-A | 已通过   | 仓库、安全与工具链治理                     |
 | M0-B | 已通过   | TypeScript、模块化与三栏 Web Mock          |
 | M0-C | 已通过   | Tauri 2、最小权限和 SQLite 骨架            |
-| M1-A | 等待验收 | 真实工作区、文件树、多 Tab、保存与冲突保护 |
-| M1-B | 未开始   | Provider、会话与显式上下文                 |
+| M1-A | 已通过   | 真实工作区、文件树、多 Tab、保存与冲突保护 |
+| M1-B | 等待验收 | Provider、会话与显式上下文                 |
 | M1-C | 未开始   | Patch → Diff → 应用 → 撤销                 |
 
 每个阶段都需要独立验收，未确认前不进入下一阶段。
@@ -67,6 +67,7 @@ npm run check
 - [桌面端架构与安全边界](docs/DESKTOP_ARCHITECTURE.md)
 - [Windows 构建、签名与更新](docs/RELEASE.md)
 - [阶段 4 验收记录](docs/PHASE_4_VALIDATION.md)
+- [阶段 5 验收记录](docs/PHASE_5_VALIDATION.md)
 - [安全响应说明](docs/SECURITY_RESPONSE.md)
 - [开发环境说明](docs/DEVELOPMENT.md)
 

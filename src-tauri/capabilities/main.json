@@ -20,6 +20,14 @@
     "allow-discard-workspace-draft",
     "allow-remove-workspace",
     "allow-select-context-files",
-    "allow-save-context-file"
+    "allow-save-context-file",
+    "allow-list-provider-configs",
+    "allow-save-provider-config",
+    "allow-set-active-provider",
+    "allow-test-provider-connection",
+    "allow-list-chat-sessions",
+    "allow-create-chat-session",
+    "allow-stream-chat",
+    "allow-stop-chat"
   ]
 }

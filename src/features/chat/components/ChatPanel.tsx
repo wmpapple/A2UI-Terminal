@@ -2,15 +2,22 @@ import {
   AppstoreOutlined,
   PaperClipOutlined,
   PlusOutlined,
+  RedoOutlined,
   SendOutlined,
   StopOutlined,
 } from '@ant-design/icons';
-import { Button, Input, message, Select, Tag, Tooltip } from 'antd';
+import { Alert, Button, Input, message, Select, Tag, Tooltip } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { ContextSelection } from '../../../shared/types/domain';
 import { useAppStore } from '../../../stores/useAppStore';
 import { ContextSelector } from '../../context/components/ContextSelector';
+import {
+  buildContextSnapshot,
+  contextReviewFingerprint,
+  normalizeContextSelection,
+  requiresContextReview,
+} from '../../context/contextSnapshot';
 import styles from './ChatPanel.module.css';
 
 const defaultContext: ContextSelection = {
@@ -22,105 +29,116 @@ const defaultContext: ContextSelection = {
 };
 
 export function ChatPanel() {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const sessions = useAppStore((state) => state.sessions);
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const activePath = useAppStore((state) => state.activePath);
+  const files = useAppStore((state) => state.files);
   const selectedText = useAppStore((state) => state.selectedText);
+  const providerConfigs = useAppStore((state) => state.providerConfigs);
+  const activeProviderId = useAppStore((state) => state.activeProviderId);
+  const chatRequestId = useAppStore((state) => state.chatRequestId);
+  const chatError = useAppStore((state) => state.chatError);
   const createSession = useAppStore((state) => state.createSession);
   const selectSession = useAppStore((state) => state.selectSession);
-  const addMessage = useAppStore((state) => state.addMessage);
-  const updateMessage = useAppStore((state) => state.updateMessage);
-  const createProposal = useAppStore((state) => state.createProposal);
-  const [prompt, setPrompt] = useState('');
-  const [contextOpen, setContextOpen] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const sendChat = useAppStore((state) => state.sendChat);
+  const stopChat = useAppStore((state) => state.stopChat);
   const contextBySession = useAppStore((state) => state.contextBySession);
   const setSessionContext = useAppStore((state) => state.setSessionContext);
   const addFileToContext = useAppStore((state) => state.addFileToContext);
   const addFile = useAppStore((state) => state.addFile);
+  const [prompt, setPrompt] = useState('');
+  const [contextOpen, setContextOpen] = useState(false);
+  const [contextIntent, setContextIntent] = useState<'review' | 'send'>('send');
+  const [reviewedContextBySession, setReviewedContextBySession] = useState<Record<string, string>>(
+    {}
+  );
   const [dragging, setDragging] = useState(false);
-  const streamRef = useRef<number | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) ?? sessions[0],
     [activeSessionId, sessions]
   );
   const savedContext = contextBySession[activeSessionId];
+  const activeProvider = providerConfigs.find((config) => config.id === activeProviderId);
+  const effectiveContext = useMemo(
+    () => normalizeContextSelection(savedContext ?? defaultContext, selectedText),
+    [savedContext, selectedText]
+  );
+  const currentContextFingerprint = useMemo(
+    () =>
+      contextReviewFingerprint({ selection: effectiveContext, files, activePath, selectedText }),
+    [activePath, effectiveContext, files, selectedText]
+  );
+  const contextReviewed = reviewedContextBySession[activeSessionId] === currentContextFingerprint;
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeSession?.messages]);
-  useEffect(
-    () => () => {
-      if (streamRef.current) window.clearInterval(streamRef.current);
-    },
-    []
-  );
+    endRef.current?.scrollIntoView({ behavior: chatRequestId ? 'auto' : 'smooth' });
+  }, [activeSession?.messages, chatRequestId]);
 
-  const stop = () => {
-    if (streamRef.current) window.clearInterval(streamRef.current);
-    streamRef.current = null;
-    setGenerating(false);
-  };
-
-  const sendWithContext = (selection: ContextSelection) => {
-    const request = prompt.trim();
-    if (!request || !activeSession) return;
-    setContextOpen(false);
+  const sendNow = (request: string, selection: ContextSelection, sensitiveConfirmed: boolean) => {
+    setSessionContext(activeSessionId, selection);
     setPrompt('');
-    setGenerating(true);
-    const assistantId = crypto.randomUUID();
-    addMessage(activeSession.id, {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: request,
-      status: 'complete',
-    });
-    addMessage(activeSession.id, {
-      id: assistantId,
-      role: 'assistant',
-      content: '',
-      status: 'streaming',
-    });
-    const sourceCount =
-      Number(selection.selection && selectedText.length > 0) +
-      Number(selection.currentFile) +
-      Number(selection.recentMessages && selection.recentMessageCount > 0) +
-      selection.projectFiles.length;
-    const response =
-      locale === 'zh-CN'
-        ? `已分析 ${sourceCount} 项上下文。我生成了一项语义修改，正在送往审阅中心。请检查修改前后内容，再决定是否应用。`
-        : `I analyzed ${sourceCount} context sources and generated a semantic change. Review the before and after content before applying it.`;
-    let offset = 0;
-    streamRef.current = window.setInterval(() => {
-      offset = Math.min(response.length, offset + 2);
-      updateMessage(
-        activeSession.id,
-        assistantId,
-        response.slice(0, offset),
-        offset === response.length ? 'complete' : 'streaming'
-      );
-      if (offset === response.length) {
-        stop();
-        createProposal();
-      }
-    }, 28);
+    void sendChat(request, selection, sensitiveConfirmed);
   };
 
   const requestSend = () => {
-    if (!prompt.trim() || generating) return;
-    sendWithContext(savedContext ?? defaultContext);
+    if (!prompt.trim() || chatRequestId || !activeSession) return;
+    const request = prompt.trim();
+    const snapshot = buildContextSnapshot({
+      selection: effectiveContext,
+      files,
+      activePath,
+      selectedText,
+      recentMessages: activeSession.messages,
+      prompt: request,
+    });
+    if (
+      !requiresContextReview(
+        reviewedContextBySession[activeSessionId],
+        currentContextFingerprint,
+        snapshot.warnings
+      )
+    ) {
+      sendNow(request, effectiveContext, true);
+      return;
+    }
+    setContextIntent('send');
+    setContextOpen(true);
   };
 
-  const confirmContext = (selection: ContextSelection) => {
-    setSessionContext(activeSessionId, selection);
+  const confirmContext = (selection: ContextSelection, sensitiveConfirmed: boolean) => {
+    const normalized = normalizeContextSelection(selection, selectedText);
+    const fingerprint = contextReviewFingerprint({
+      selection: normalized,
+      files,
+      activePath,
+      selectedText,
+    });
+    setSessionContext(activeSessionId, normalized);
+    setReviewedContextBySession((current) => ({
+      ...current,
+      [activeSessionId]: fingerprint,
+    }));
     setContextOpen(false);
+    if (contextIntent === 'review') return;
+    const request = prompt.trim();
+    if (request) sendNow(request, normalized, sensitiveConfirmed);
+  };
+
+  const retryMessage = (messageIndex: number) => {
+    const previous = activeSession?.messages
+      .slice(0, messageIndex)
+      .reverse()
+      .find((item) => item.role === 'user');
+    if (!previous) return;
+    setPrompt(previous.content);
+    setContextIntent('send');
+    setContextOpen(true);
   };
 
   const addDroppedFiles = async (fileList: FileList) => {
-    const supported =
-      /\.(txt|md|json|ts|tsx|js|jsx|py|ya?ml|css|html|xml|toml|ini|env|sql|sh|ps1)$/i;
+    const supported = /\.(txt|md|json|ts|tsx|js|jsx|py|ya?ml|css|html|xml|toml|ini|sql|sh|ps1)$/i;
     for (const file of Array.from(fileList)) {
       if (!supported.test(file.name) || file.size > 2 * 1024 * 1024) {
         message.warning(`${file.name}: ${t('unsupportedFile')}`);
@@ -143,30 +161,46 @@ export function ChatPanel() {
         <div>
           <strong>{t('assistant')}</strong>
           <span>
-            <i /> {t('provider')}
+            <i className={activeProvider?.configured ? styles.online : styles.offline} />
+            {activeProvider
+              ? `${activeProvider.id} · ${activeProvider.model}`
+              : t('providerNotConfigured')}
           </span>
         </div>
         <Tooltip title={t('newSession')}>
-          <Button type="text" icon={<PlusOutlined />} onClick={createSession} />
+          <Button type="text" icon={<PlusOutlined />} onClick={() => void createSession()} />
         </Tooltip>
       </header>
       <Select
-        value={activeSessionId}
+        value={activeSessionId || undefined}
         onChange={selectSession}
         options={sessions.map((session) => ({ value: session.id, label: session.title }))}
         className={styles.sessionSelect}
+        placeholder={t('newSession')}
       />
+      {chatError && <Alert className={styles.chatError} type="error" showIcon title={chatError} />}
       <div className={styles.messages} aria-live="polite">
-        {activeSession?.messages.map((message) => (
+        {activeSession?.messages.map((chatMessage, index) => (
           <article
-            key={message.id}
-            className={`${styles.message} ${message.role === 'user' ? styles.user : styles.assistant}`}
+            key={chatMessage.id}
+            className={`${styles.message} ${chatMessage.role === 'user' ? styles.user : styles.assistant}`}
           >
-            <div className={styles.role}>{message.role === 'user' ? 'YOU' : 'A2UI'}</div>
+            <div className={styles.role}>{chatMessage.role === 'user' ? 'YOU' : 'A2UI'}</div>
             <p>
-              {message.content}
-              {message.status === 'streaming' && <span className={styles.cursor} />}
+              {chatMessage.content ||
+                (chatMessage.status === 'streaming' ? t('waitingForProvider') : '')}
+              {chatMessage.status === 'streaming' && <span className={styles.cursor} />}
             </p>
+            {(chatMessage.status === 'error' || chatMessage.status === 'stopped') && (
+              <Button
+                size="small"
+                type="link"
+                icon={<RedoOutlined />}
+                onClick={() => retryMessage(index)}
+              >
+                {t('retry')}
+              </Button>
+            )}
           </article>
         ))}
         <div ref={endRef} />
@@ -192,14 +226,20 @@ export function ChatPanel() {
             type="text"
             size="small"
             icon={<AppstoreOutlined />}
-            onClick={() => setContextOpen(true)}
+            onClick={() => {
+              setContextIntent('review');
+              setContextOpen(true);
+            }}
           >
             {t('context')}
           </Button>
-          <Tag color="blue">{activePath}</Tag>
+          {activePath && <Tag color="blue">{activePath}</Tag>}
           {(savedContext?.projectFiles ?? []).map((path) => (
             <Tag key={path}>{path}</Tag>
           ))}
+          <Tag color={contextReviewed ? 'green' : 'orange'}>
+            {t(contextReviewed ? 'contextSaved' : 'contextRequired')}
+          </Tag>
           <Tooltip title={t('dropFilesHint')}>
             <span className={styles.dropHint}>
               <PaperClipOutlined /> {t('dropFilesShort')}
@@ -218,8 +258,8 @@ export function ChatPanel() {
             }
           }}
         />
-        {generating ? (
-          <Button danger icon={<StopOutlined />} onClick={stop}>
+        {chatRequestId ? (
+          <Button danger icon={<StopOutlined />} onClick={() => void stopChat()}>
             {t('stop')}
           </Button>
         ) : (
@@ -236,7 +276,9 @@ export function ChatPanel() {
       {contextOpen && (
         <ContextSelector
           open
-          initialSelection={savedContext ?? defaultContext}
+          prompt={prompt}
+          initialSelection={effectiveContext}
+          confirmText={contextIntent === 'review' ? t('saveContextSelection') : undefined}
           onCancel={() => setContextOpen(false)}
           onConfirm={confirmContext}
         />

@@ -14,7 +14,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('Application error', {
-      message: error.message,
+      name: error.name,
       componentStack: info.componentStack,
     });
   }

@@ -183,6 +183,12 @@
           "markdownDescription": "Enables the clear_all_local_data command without any pre-configured scope."
         },
         {
+          "description": "Enables the create_chat_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-chat-session",
+          "markdownDescription": "Enables the create_chat_session command without any pre-configured scope."
+        },
+        {
           "description": "Enables the delete_provider_secret command without any pre-configured scope.",
           "type": "string",
           "const": "allow-delete-provider-secret",
@@ -199,6 +205,18 @@
           "type": "string",
           "const": "allow-get-bootstrap-status",
           "markdownDescription": "Enables the get_bootstrap_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_chat_sessions command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-chat-sessions",
+          "markdownDescription": "Enables the list_chat_sessions command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_provider_configs command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-provider-configs",
+          "markdownDescription": "Enables the list_provider_configs command without any pre-configured scope."
         },
         {
           "description": "Enables the list_recent_workspaces command without any pre-configured scope.",
@@ -243,6 +261,12 @@
           "markdownDescription": "Enables the save_context_file command without any pre-configured scope."
         },
         {
+          "description": "Enables the save_provider_config command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-provider-config",
+          "markdownDescription": "Enables the save_provider_config command without any pre-configured scope."
+        },
+        {
           "description": "Enables the save_workspace_draft command without any pre-configured scope.",
           "type": "string",
           "const": "allow-save-workspace-draft",
@@ -267,16 +291,46 @@
           "markdownDescription": "Enables the select_workspace command without any pre-configured scope."
         },
         {
+          "description": "Enables the set_active_provider command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-active-provider",
+          "markdownDescription": "Enables the set_active_provider command without any pre-configured scope."
+        },
+        {
           "description": "Enables the set_provider_secret command without any pre-configured scope.",
           "type": "string",
           "const": "allow-set-provider-secret",
           "markdownDescription": "Enables the set_provider_secret command without any pre-configured scope."
         },
         {
+          "description": "Enables the stop_chat command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-stop-chat",
+          "markdownDescription": "Enables the stop_chat command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the stream_chat command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-stream-chat",
+          "markdownDescription": "Enables the stream_chat command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the test_provider_connection command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-test-provider-connection",
+          "markdownDescription": "Enables the test_provider_connection command without any pre-configured scope."
+        },
+        {
           "description": "Denies the clear_all_local_data command without any pre-configured scope.",
           "type": "string",
           "const": "deny-clear-all-local-data",
           "markdownDescription": "Denies the clear_all_local_data command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the create_chat_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-chat-session",
+          "markdownDescription": "Denies the create_chat_session command without any pre-configured scope."
         },
         {
           "description": "Denies the delete_provider_secret command without any pre-configured scope.",
@@ -295,6 +349,18 @@
           "type": "string",
           "const": "deny-get-bootstrap-status",
           "markdownDescription": "Denies the get_bootstrap_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_chat_sessions command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-chat-sessions",
+          "markdownDescription": "Denies the list_chat_sessions command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_provider_configs command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-provider-configs",
+          "markdownDescription": "Denies the list_provider_configs command without any pre-configured scope."
         },
         {
           "description": "Denies the list_recent_workspaces command without any pre-configured scope.",
@@ -339,6 +405,12 @@
           "markdownDescription": "Denies the save_context_file command without any pre-configured scope."
         },
         {
+          "description": "Denies the save_provider_config command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-provider-config",
+          "markdownDescription": "Denies the save_provider_config command without any pre-configured scope."
+        },
+        {
           "description": "Denies the save_workspace_draft command without any pre-configured scope.",
           "type": "string",
           "const": "deny-save-workspace-draft",
@@ -363,10 +435,34 @@
           "markdownDescription": "Denies the select_workspace command without any pre-configured scope."
         },
         {
+          "description": "Denies the set_active_provider command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-active-provider",
+          "markdownDescription": "Denies the set_active_provider command without any pre-configured scope."
+        },
+        {
           "description": "Denies the set_provider_secret command without any pre-configured scope.",
           "type": "string",
           "const": "deny-set-provider-secret",
           "markdownDescription": "Denies the set_provider_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the stop_chat command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-stop-chat",
+          "markdownDescription": "Denies the stop_chat command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the stream_chat command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-stream-chat",
+          "markdownDescription": "Denies the stream_chat command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the test_provider_connection command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-test-provider-connection",
+          "markdownDescription": "Denies the test_provider_connection command without any pre-configured scope."
         },
         {
           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",

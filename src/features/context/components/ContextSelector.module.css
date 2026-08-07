@@ -5,10 +5,15 @@
   padding-top: 8px;
 }
 .options,
-.fileOptions {
+.fileOptions,
+.sourceList {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.sourceList {
+  flex-direction: row;
+  flex-wrap: wrap;
 }
 .tokens {
   display: flex;

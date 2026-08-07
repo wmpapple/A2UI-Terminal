@@ -150,7 +150,7 @@ export function WorkspaceSidebar() {
                   onClick={() => void openFile(file.path)}
                 >
                   {iconFor(file.path)}
-                  <span>{file.path}</span>
+                  <span>{file.sourceId ? file.name : file.path}</span>
                 </button>
               </Tooltip>
             </Dropdown>

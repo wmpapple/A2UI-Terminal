@@ -21,25 +21,39 @@ beforeEach(() => {
 });
 
 describe('desktop workspace state', () => {
-  it('opens directly selected files without a workspace', async () => {
-    vi.spyOn(desktopApi, 'selectContextFiles').mockResolvedValue([
-      {
-        path: 'selected/file-1/notes.md',
-        name: 'notes.md',
-        language: 'markdown',
-        content: '# Notes',
-        contentHash: 'notes-hash',
-        sizeBytes: 7,
-        draft: null,
-        editable: true,
-        extracted: false,
-        sourceId: 'file-1',
-      },
+  it('creates a standalone workspace for directly selected files', async () => {
+    const workspace = {
+      id: 'standalone-1',
+      name: '独立文件',
+      available: true,
+      kind: 'standalone' as const,
+    };
+    vi.spyOn(desktopApi, 'selectContextFiles').mockResolvedValue({
+      workspace,
+      documents: [
+        {
+          path: 'selected/file-1/notes.md',
+          name: 'notes.md',
+          language: 'markdown',
+          content: '# Notes',
+          contentHash: 'notes-hash',
+          sizeBytes: 7,
+          draft: null,
+          editable: true,
+          extracted: false,
+          sourceId: 'file-1',
+        },
+      ],
+    });
+    vi.spyOn(desktopApi, 'listRecentWorkspaces').mockResolvedValue([workspace]);
+    vi.spyOn(desktopApi, 'listChatSessions').mockResolvedValue([
+      { id: 'session-1', title: 'New chat', messages: [] },
     ]);
 
     await useAppStore.getState().selectContextFiles();
 
-    expect(useAppStore.getState().workspace).toBeNull();
+    expect(useAppStore.getState().workspace).toEqual(workspace);
+    expect(useAppStore.getState().activeSessionId).toBe('session-1');
     expect(useAppStore.getState().activePath).toBe('selected/file-1/notes.md');
     expect(useAppStore.getState().files[0].sourceId).toBe('file-1');
     expect(useAppStore.getState().workspaceEntries[0].name).toBe('notes.md');
@@ -50,6 +64,7 @@ describe('desktop workspace state', () => {
       id: 'workspace-1',
       name: 'Project',
       available: true,
+      kind: 'directory',
     });
     vi.spyOn(desktopApi, 'listWorkspaceFiles').mockResolvedValue([
       {
@@ -61,6 +76,9 @@ describe('desktop workspace state', () => {
         editable: true,
         extracted: false,
       },
+    ]);
+    vi.spyOn(desktopApi, 'listChatSessions').mockResolvedValue([
+      { id: 'session-1', title: 'New chat', messages: [] },
     ]);
     vi.spyOn(desktopApi, 'readWorkspaceFile').mockResolvedValue({
       path: 'src/main.ts',
@@ -104,7 +122,7 @@ describe('desktop workspace state', () => {
       message: 'file changed outside A2UI Terminal',
     });
     useAppStore.setState({
-      workspace: { id: 'workspace-1', name: 'Project', available: true },
+      workspace: { id: 'workspace-1', name: 'Project', available: true, kind: 'directory' },
       files: [
         {
           path: 'config.json',

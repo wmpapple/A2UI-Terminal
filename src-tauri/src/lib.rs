@@ -38,6 +38,14 @@ pub fn run() {
             commands::remove_workspace,
             commands::select_context_files,
             commands::save_context_file,
+            commands::list_provider_configs,
+            commands::save_provider_config,
+            commands::set_active_provider,
+            commands::test_provider_connection,
+            commands::list_chat_sessions,
+            commands::create_chat_session,
+            commands::stream_chat,
+            commands::stop_chat,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start A2UI Terminal");

@@ -48,6 +48,18 @@ SQLite 文件位于 Tauri 的应用数据目录，而不是源码仓库。初始
 
 阶段 4 的文件命令只接收工作区 ID 与相对路径。读取额外限制为 2 MB 和有效 UTF-8；保存前必须匹配打开文件时的 SHA-256，否则返回 `FILE_CONFLICT`，不覆盖外部修改。
 
+## 阶段 5 IPC
+
+- Provider：`list_provider_configs`、`save_provider_config`、`set_active_provider`、`test_provider_connection`
+- 会话：`list_chat_sessions`、`create_chat_session`
+- 生成：`stream_chat`、`stop_chat`
+
+所有命令均在 Tauri 2 capability 中逐项授权。`stream_chat` 使用 IPC Channel 返回增量事件，前端不能取得 API Key。远程 Endpoint 必须是 HTTPS，仅 `localhost`、`127.0.0.1` 和 `::1` 允许 HTTP；Endpoint 和代理 URL 禁止嵌入用户名、密码、查询参数或片段。
+
+SQLite schema v3 为消息增加流状态、请求 ID、Provider ID 和错误码，并新增 `context_snapshots`。快照只保存来源、字符数、估算 Token 与内容 Hash，不保存文件上下文正文；用户和助手消息正文完整保存。
+
+SQLite schema v4 增加 `directory` 与 `standalone` 两类工作区，并通过 `workspace_files` 持久化用户明确授权的独立文件。独立文件可以来自不同目录，重启后仍可恢复会话、读取和写回真实路径；删除工作区只级联删除应用内历史、草稿与授权记录，不删除磁盘原文件。
+
 ## 凭据策略
 
 Windows 使用系统 Credential Manager。服务命名空间固定为 `com.a2ui.terminal.provider`，账户名使用经过限制的 Provider ID。前端只能获得 `configured: boolean`，无法取回密钥。

@@ -1,6 +1,16 @@
-import { invoke } from '@tauri-apps/api/core';
+import { Channel, invoke } from '@tauri-apps/api/core';
 import { getRuntimeMode } from './runtime';
-import type { WorkspaceDocument, WorkspaceFileEntry, WorkspaceSummary } from '../types/domain';
+import type {
+  ChatRequest,
+  ChatSession,
+  ChatStreamEvent,
+  ChatStreamResult,
+  ProviderConfig,
+  SelectedWorkspaceFiles,
+  WorkspaceDocument,
+  WorkspaceFileEntry,
+  WorkspaceSummary,
+} from '../types/domain';
 
 export interface BootstrapStatus {
   runtime: 'desktop';
@@ -121,9 +131,11 @@ export const desktopApi = {
     });
   },
 
-  async selectContextFiles(): Promise<WorkspaceDocument[]> {
+  async selectContextFiles(workspaceId?: string): Promise<SelectedWorkspaceFiles | null> {
     requireDesktop();
-    return invoke<WorkspaceDocument[]>('select_context_files');
+    return invoke<SelectedWorkspaceFiles | null>('select_context_files', {
+      workspaceId: workspaceId ?? null,
+    });
   },
 
   async saveContextFile(
@@ -137,5 +149,64 @@ export const desktopApi = {
       content,
       baseHash,
     });
+  },
+
+  async listProviderConfigs(): Promise<ProviderConfig[]> {
+    requireDesktop();
+    return invoke<ProviderConfig[]>('list_provider_configs');
+  },
+
+  async saveProviderConfig(config: ProviderConfig): Promise<ProviderConfig> {
+    requireDesktop();
+    const input = {
+      id: config.id,
+      kind: config.kind,
+      endpoint: config.endpoint,
+      model: config.model,
+      temperature: config.temperature,
+      proxyUrl: config.proxyUrl,
+    };
+    return invoke<ProviderConfig>('save_provider_config', { config: input });
+  },
+
+  async setActiveProvider(providerId: string): Promise<void> {
+    requireDesktop();
+    return invoke<void>('set_active_provider', { providerId });
+  },
+
+  async testProviderConnection(
+    providerId: string
+  ): Promise<{ providerId: string; reachable: boolean; latencyMs: number }> {
+    requireDesktop();
+    return invoke('test_provider_connection', { providerId });
+  },
+
+  async listChatSessions(workspaceId: string): Promise<ChatSession[]> {
+    requireDesktop();
+    return invoke<ChatSession[]>('list_chat_sessions', { workspaceId });
+  },
+
+  async createChatSession(
+    workspaceId: string,
+    sessionId: string,
+    title: string
+  ): Promise<ChatSession> {
+    requireDesktop();
+    return invoke<ChatSession>('create_chat_session', { workspaceId, sessionId, title });
+  },
+
+  async streamChat(
+    request: ChatRequest,
+    onEvent: (event: ChatStreamEvent) => void
+  ): Promise<ChatStreamResult> {
+    requireDesktop();
+    const channel = new Channel<ChatStreamEvent>();
+    channel.onmessage = onEvent;
+    return invoke<ChatStreamResult>('stream_chat', { request, onEvent: channel });
+  },
+
+  async stopChat(requestId: string): Promise<boolean> {
+    requireDesktop();
+    return invoke<boolean>('stop_chat', { requestId });
   },
 };

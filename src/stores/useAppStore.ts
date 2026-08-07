@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { TextStreamBuffer } from '../features/chat/textStreamBuffer';
+import { buildContextSnapshot } from '../features/context/contextSnapshot';
 import { createMockDiff, mockFiles, mockSessions } from '../shared/mock/workspace';
 import { desktopApi } from '../shared/platform/desktop';
 import { getRuntimeMode, type RuntimeMode } from '../shared/platform/runtime';
@@ -9,6 +11,7 @@ import type {
   ContextSelection,
   DiffProposal,
   FileSaveStatus,
+  ProviderConfig,
   WorkspaceDraft,
   WorkspaceFile,
   WorkspaceFileEntry,
@@ -24,6 +27,9 @@ const mockEntries: WorkspaceFileEntry[] = mockFiles.map((file) => ({
   editable: true,
   extracted: false,
 }));
+
+const initialRuntimeMode = getRuntimeMode();
+const useMockWorkspace = initialRuntimeMode === 'web-mock';
 
 const errorDetails = (error: unknown): { code: string; message: string } => {
   if (typeof error === 'object' && error && 'code' in error && 'message' in error) {
@@ -54,7 +60,14 @@ interface AppState {
   pendingDiff: DiffProposal | null;
   selectedText: string;
   contextBySession: Record<string, ContextSelection>;
+  providerConfigs: ProviderConfig[];
+  activeProviderId: string;
+  providerLoading: boolean;
+  providerError: string | null;
+  chatRequestId: string | null;
+  chatError: string | null;
   initializeWorkspace: () => Promise<void>;
+  initializeProviders: () => Promise<void>;
   selectWorkspace: () => Promise<void>;
   selectContextFiles: () => Promise<void>;
   restoreWorkspace: (workspaceId: string) => Promise<void>;
@@ -69,7 +82,7 @@ interface AppState {
   markSaved: (path: string) => void;
   clearWorkspaceError: () => void;
   setCenterView: (view: CenterView) => void;
-  createSession: () => void;
+  createSession: () => Promise<void>;
   selectSession: (id: string) => void;
   addMessage: (sessionId: string, message: ChatMessage) => void;
   updateMessage: (
@@ -85,27 +98,43 @@ interface AppState {
   setSessionContext: (sessionId: string, context: ContextSelection) => void;
   addFileToContext: (sessionId: string, path: string) => void;
   addFile: (file: WorkspaceFile) => void;
+  saveProvider: (config: ProviderConfig, secret?: string) => Promise<void>;
+  selectProvider: (providerId: string) => Promise<void>;
+  deleteProviderKey: (providerId: string) => Promise<void>;
+  testProvider: (providerId: string) => Promise<number>;
+  sendChat: (
+    prompt: string,
+    context: ContextSelection,
+    sensitiveConfirmed: boolean
+  ) => Promise<void>;
+  stopChat: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  runtimeMode: getRuntimeMode(),
+  runtimeMode: initialRuntimeMode,
   workspace: null,
   recentWorkspaces: [],
-  workspaceEntries: mockEntries,
+  workspaceEntries: useMockWorkspace ? mockEntries : [],
   workspaceLoading: false,
   workspaceError: null,
-  files: mockFiles,
-  openPaths: ['README.md', 'src/experiment.ts'],
-  activePath: 'README.md',
+  files: useMockWorkspace ? mockFiles : [],
+  openPaths: useMockWorkspace ? ['README.md', 'src/experiment.ts'] : [],
+  activePath: useMockWorkspace ? 'README.md' : '',
   dirtyPaths: [],
   saveStatusByPath: {},
   recoveryDrafts: {},
   centerView: 'editor',
-  sessions: mockSessions,
-  activeSessionId: 'welcome',
+  sessions: useMockWorkspace ? mockSessions : [],
+  activeSessionId: useMockWorkspace ? 'welcome' : '',
   pendingDiff: null,
   selectedText: '',
   contextBySession: {},
+  providerConfigs: [],
+  activeProviderId: 'siliconflow',
+  providerLoading: false,
+  providerError: null,
+  chatRequestId: null,
+  chatError: null,
 
   initializeWorkspace: async () => {
     if (get().runtimeMode === 'web-mock') return;
@@ -122,6 +151,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  initializeProviders: async () => {
+    if (get().runtimeMode === 'web-mock') return;
+    set({ providerLoading: true, providerError: null });
+    try {
+      const providerConfigs = await desktopApi.listProviderConfigs();
+      set({
+        providerConfigs,
+        activeProviderId: providerConfigs.find((config) => config.active)?.id ?? 'siliconflow',
+      });
+    } catch (error) {
+      set({ providerError: errorDetails(error).message });
+    } finally {
+      set({ providerLoading: false });
+    }
+  },
+
   selectWorkspace: async () => {
     if (get().runtimeMode === 'web-mock') return;
     await Promise.all(get().dirtyPaths.map((path) => get().persistDraft(path)));
@@ -131,6 +176,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!workspace) return;
       const workspaceEntries = await desktopApi.listWorkspaceFiles(workspace.id);
       const recentWorkspaces = await desktopApi.listRecentWorkspaces();
+      let sessions = await desktopApi.listChatSessions(workspace.id);
+      if (sessions.length === 0) {
+        sessions = [
+          await desktopApi.createChatSession(workspace.id, crypto.randomUUID(), '新对话'),
+        ];
+      }
       set({
         workspace,
         recentWorkspaces,
@@ -141,6 +192,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         dirtyPaths: [],
         saveStatusByPath: {},
         recoveryDrafts: {},
+        sessions,
+        activeSessionId: sessions[0].id,
+        contextBySession: {},
+        chatError: null,
       });
     } catch (error) {
       set({ workspaceError: errorDetails(error).message });
@@ -153,8 +208,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (get().runtimeMode === 'web-mock') return;
     set({ workspaceLoading: true, workspaceError: null });
     try {
-      const documents = await desktopApi.selectContextFiles();
-      if (documents.length === 0) return;
+      const currentWorkspace = get().workspace;
+      const result = await desktopApi.selectContextFiles(currentWorkspace?.id);
+      if (!result || result.documents.length === 0) return;
+      const { workspace, documents } = result;
+      const recentWorkspaces = await desktopApi.listRecentWorkspaces();
+      let sessions = get().sessions;
+      let activeSessionId = get().activeSessionId;
+      if (!currentWorkspace || currentWorkspace.id !== workspace.id) {
+        sessions = await desktopApi.listChatSessions(workspace.id);
+        if (sessions.length === 0) {
+          sessions = [
+            await desktopApi.createChatSession(workspace.id, crypto.randomUUID(), '新对话'),
+          ];
+        }
+        activeSessionId = sessions[0].id;
+      }
       const selectedFiles: WorkspaceFile[] = documents.map((document) => ({
         path: document.path,
         name: document.name,
@@ -176,8 +245,13 @@ export const useAppStore = create<AppState>((set, get) => ({
           readable: true,
           editable: file.editable !== false,
           extracted: file.extracted === true,
+          sourceId: file.sourceId,
         }));
         return {
+          workspace,
+          recentWorkspaces,
+          sessions,
+          activeSessionId,
           files: [
             ...state.files.filter((file) => !selectedPaths.includes(file.path)),
             ...selectedFiles,
@@ -211,6 +285,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const workspace = await desktopApi.restoreWorkspace(workspaceId);
       const workspaceEntries = await desktopApi.listWorkspaceFiles(workspace.id);
+      let sessions = await desktopApi.listChatSessions(workspace.id);
+      if (sessions.length === 0) {
+        sessions = [
+          await desktopApi.createChatSession(workspace.id, crypto.randomUUID(), '新对话'),
+        ];
+      }
       set({
         workspace,
         workspaceEntries,
@@ -220,6 +300,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         dirtyPaths: [],
         saveStatusByPath: {},
         recoveryDrafts: {},
+        sessions,
+        activeSessionId: sessions[0].id,
+        contextBySession: {},
+        chatError: null,
       });
     } catch (error) {
       set({ workspaceError: errorDetails(error).message });
@@ -245,6 +329,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         dirtyPaths: [],
         saveStatusByPath: {},
         recoveryDrafts: {},
+        sessions: [],
+        activeSessionId: '',
+        contextBySession: {},
+        chatRequestId: null,
+        chatError: null,
       });
     } catch (error) {
       set({ workspaceError: errorDetails(error).message });
@@ -457,8 +546,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     })),
   clearWorkspaceError: () => set({ workspaceError: null }),
   setCenterView: (centerView) => set({ centerView }),
-  createSession: () => {
+  createSession: async () => {
     const id = crypto.randomUUID();
+    const workspace = get().workspace;
+    if (get().runtimeMode === 'desktop') {
+      if (!workspace) return;
+      try {
+        const session = await desktopApi.createChatSession(workspace.id, id, '新对话');
+        set((state) => ({
+          activeSessionId: id,
+          sessions: [session, ...state.sessions],
+        }));
+      } catch (error) {
+        set({ chatError: errorDetails(error).message });
+      }
+      return;
+    }
     set((state) => ({
       activeSessionId: id,
       sessions: [...state.sessions, { id, title: '新对话', messages: [] }],
@@ -536,4 +639,248 @@ export const useAppStore = create<AppState>((set, get) => ({
         ? state.files.map((item) => (item.path === file.path ? file : item))
         : [...state.files, file],
     })),
+
+  saveProvider: async (config, secret) => {
+    if (get().runtimeMode === 'web-mock') return;
+    set({ providerLoading: true, providerError: null });
+    try {
+      await desktopApi.saveProviderConfig(config);
+      if (secret?.trim()) await desktopApi.setProviderSecret(config.id, secret.trim());
+      await get().initializeProviders();
+    } catch (error) {
+      const details = errorDetails(error);
+      set({ providerError: details.message });
+      throw new Error(details.message);
+    } finally {
+      set({ providerLoading: false });
+    }
+  },
+
+  selectProvider: async (providerId) => {
+    if (get().runtimeMode === 'web-mock') return;
+    try {
+      await desktopApi.setActiveProvider(providerId);
+      set((state) => ({
+        activeProviderId: providerId,
+        providerConfigs: state.providerConfigs.map((config) => ({
+          ...config,
+          active: config.id === providerId,
+        })),
+      }));
+    } catch (error) {
+      set({ providerError: errorDetails(error).message });
+    }
+  },
+
+  deleteProviderKey: async (providerId) => {
+    if (get().runtimeMode === 'web-mock') return;
+    set({ providerLoading: true, providerError: null });
+    try {
+      await desktopApi.deleteProviderSecret(providerId);
+      await get().initializeProviders();
+    } catch (error) {
+      set({ providerError: errorDetails(error).message });
+    } finally {
+      set({ providerLoading: false });
+    }
+  },
+
+  testProvider: async (providerId) => {
+    if (get().runtimeMode === 'web-mock') return 0;
+    set({ providerLoading: true, providerError: null });
+    try {
+      const result = await desktopApi.testProviderConnection(providerId);
+      return result.latencyMs;
+    } catch (error) {
+      const message = errorDetails(error).message;
+      set({ providerError: message });
+      throw new Error(message);
+    } finally {
+      set({ providerLoading: false });
+    }
+  },
+
+  sendChat: async (prompt, context, sensitiveConfirmed) => {
+    const state = get();
+    const workspace = state.workspace;
+    if (state.runtimeMode === 'desktop' && !workspace) {
+      set({ chatError: '请先打开工作区' });
+      return;
+    }
+    const session = state.sessions.find((item) => item.id === state.activeSessionId);
+    if (!session || !prompt.trim() || state.chatRequestId) return;
+    const snapshot = buildContextSnapshot({
+      selection: context,
+      files: state.files,
+      activePath: state.activePath,
+      selectedText: state.selectedText,
+      recentMessages: session.messages,
+      prompt,
+    });
+    const requestId = crypto.randomUUID();
+    const userMessageId = crypto.randomUUID();
+    const assistantMessageId = crypto.randomUUID();
+    const providerId = state.activeProviderId;
+    const userMessage: ChatMessage = {
+      id: userMessageId,
+      role: 'user',
+      content: prompt.trim(),
+      status: 'complete',
+      requestId,
+      providerId,
+    };
+    const assistantMessage: ChatMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      status: 'streaming',
+      requestId,
+      providerId,
+    };
+    set((current) => ({
+      chatRequestId: requestId,
+      chatError: null,
+      sessions: current.sessions.map((item) =>
+        item.id === session.id
+          ? {
+              ...item,
+              title: item.messages.length === 0 ? prompt.trim().slice(0, 36) : item.title,
+              messages: [...item.messages, userMessage, assistantMessage],
+            }
+          : item
+      ),
+    }));
+
+    if (state.runtimeMode === 'web-mock') {
+      await new Promise((resolve) => window.setTimeout(resolve, 220));
+      if (get().chatRequestId !== requestId) return;
+      get().updateMessage(
+        session.id,
+        assistantMessageId,
+        'Mock response: context confirmed. A review proposal is ready.',
+        'complete'
+      );
+      set({ chatRequestId: null });
+      get().createProposal();
+      return;
+    }
+    if (!workspace) return;
+    let receivedContent = '';
+    let terminalReceived = false;
+    let resolveTerminal: (() => void) | undefined;
+    const terminalEvent = new Promise<void>((resolve) => {
+      resolveTerminal = resolve;
+    });
+    const markTerminal = () => {
+      terminalReceived = true;
+      resolveTerminal?.();
+    };
+    const textBuffer = new TextStreamBuffer((delta) => {
+      set((current) => ({
+        sessions: current.sessions.map((item) =>
+          item.id === session.id
+            ? {
+                ...item,
+                messages: item.messages.map((message) =>
+                  message.id === assistantMessageId
+                    ? { ...message, content: message.content + delta }
+                    : message
+                ),
+              }
+            : item
+        ),
+      }));
+    });
+    try {
+      const result = await desktopApi.streamChat(
+        {
+          requestId,
+          userMessageId,
+          assistantMessageId,
+          workspaceId: workspace.id,
+          sessionId: session.id,
+          providerId,
+          prompt: prompt.trim(),
+          recentMessageCount: context.recentMessages ? context.recentMessageCount : 0,
+          contextSources: snapshot.sources,
+          sensitiveConfirmed,
+        },
+        (event) => {
+          if (event.type === 'delta') {
+            receivedContent += event.delta;
+            textBuffer.push(event.delta);
+          } else if (event.type === 'error') {
+            set({ chatError: event.message });
+            markTerminal();
+          } else {
+            markTerminal();
+          }
+        }
+      );
+      if (!terminalReceived) {
+        await Promise.race([
+          terminalEvent,
+          new Promise<void>((resolve) => window.setTimeout(resolve, 2000)),
+        ]);
+      }
+      if (result.content.startsWith(receivedContent)) {
+        textBuffer.push(result.content.slice(receivedContent.length));
+      }
+      await textBuffer.finish();
+      const displayedContent =
+        get()
+          .sessions.find((item) => item.id === session.id)
+          ?.messages.find((message) => message.id === assistantMessageId)?.content ?? '';
+      get().updateMessage(
+        session.id,
+        assistantMessageId,
+        displayedContent === result.content ? displayedContent : result.content,
+        result.status
+      );
+    } catch (error) {
+      await textBuffer.finish();
+      const details = errorDetails(error);
+      set({ chatError: details.message });
+      set((current) => ({
+        sessions: current.sessions.map((item) =>
+          item.id === session.id
+            ? {
+                ...item,
+                messages: item.messages.map((message) =>
+                  message.id === assistantMessageId
+                    ? { ...message, status: 'error', errorCode: details.code }
+                    : message
+                ),
+              }
+            : item
+        ),
+      }));
+    } finally {
+      if (get().chatRequestId === requestId) set({ chatRequestId: null });
+    }
+  },
+
+  stopChat: async () => {
+    const requestId = get().chatRequestId;
+    if (!requestId) return;
+    if (get().runtimeMode === 'web-mock') {
+      set((state) => ({
+        chatRequestId: null,
+        sessions: state.sessions.map((session) => ({
+          ...session,
+          messages: session.messages.map((message) =>
+            message.requestId === requestId && message.status === 'streaming'
+              ? { ...message, status: 'stopped' }
+              : message
+          ),
+        })),
+      }));
+      return;
+    }
+    try {
+      await desktopApi.stopChat(requestId);
+    } catch (error) {
+      set({ chatError: errorDetails(error).message });
+    }
+  },
 }));

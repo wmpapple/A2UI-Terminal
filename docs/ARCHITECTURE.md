@@ -2,7 +2,16 @@
 
 ## 当前阶段
 
-前端保持同一套三栏工作台，但通过运行时边界分为两种数据源：Web 只使用确定性 Mock；Desktop 使用受控 Tauri IPC 访问真实工作区。Provider 请求仍未接入。
+前端保持同一套三栏工作台，但通过运行时边界分为两种数据源：Web 只使用确定性 Mock；Desktop 使用受控 Tauri IPC 访问真实工作区、Provider 与 SQLite 会话。API Key 不进入前端状态或数据库。
+
+## Provider 与会话流
+
+1. 设置页只读写 Endpoint、Model、Temperature 和无凭据代理地址；API Key 通过独立 IPC 写入 Windows Credential Manager。
+2. 用户每次发送前都必须确认上下文来源。前端构造仅含勾选内容的快照，敏感路径默认排除，疑似敏感正文需要再次确认。
+3. Rust 再次校验请求大小、来源路径和敏感确认，只把来源名称、字符数和内容 Hash 写入上下文审计表，不长期复制文件上下文正文。
+4. Rust 从 SQLite 读取用户明确选择条数的历史消息，在后端组装 Provider 请求；密钥不返回前端。
+5. Provider 的 SSE 增量通过 Tauri Channel 返回，完整用户消息和助手回复写入 SQLite。停止请求使用 50 ms 取消轮询，部分回复保留为 `stopped`。
+6. 删除工作区依靠外键级联删除会话、消息与上下文摘要；真实项目文件不受影响。
 
 ## 模块边界
 

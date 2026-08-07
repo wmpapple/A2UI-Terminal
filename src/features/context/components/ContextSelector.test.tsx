@@ -19,6 +19,7 @@ describe('ContextSelector', () => {
       <I18nProvider>
         <ContextSelector
           open
+          prompt="test"
           initialSelection={initialSelection}
           onCancel={() => undefined}
           onConfirm={() => undefined}
@@ -34,6 +35,7 @@ describe('ContextSelector', () => {
       <I18nProvider>
         <ContextSelector
           open
+          prompt="test"
           initialSelection={initialSelection}
           onCancel={() => undefined}
           onConfirm={() => undefined}

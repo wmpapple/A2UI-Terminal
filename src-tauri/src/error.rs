@@ -15,6 +15,10 @@ pub enum AppError {
     FileTooLarge,
     #[error("file changed outside A2UI Terminal")]
     FileConflict,
+    #[error("provider request failed: {0}")]
+    Provider(String),
+    #[error("provider request was cancelled")]
+    RequestCancelled,
     #[error("invalid input: {0}")]
     InvalidInput(String),
     #[error("internal state is unavailable")]
@@ -30,6 +34,8 @@ impl AppError {
             Self::InvalidEncoding => "INVALID_ENCODING",
             Self::FileTooLarge => "FILE_TOO_LARGE",
             Self::FileConflict => "FILE_CONFLICT",
+            Self::Provider(_) => "PROVIDER_ERROR",
+            Self::RequestCancelled => "REQUEST_CANCELLED",
             Self::InvalidInput(_) => "INVALID_INPUT",
             Self::StateUnavailable => "STATE_UNAVAILABLE",
         }

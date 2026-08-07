@@ -18,8 +18,8 @@ describe('WorkspaceSidebar', () => {
   it('shows a full-width workspace removal action in desktop mode', () => {
     useAppStore.setState({
       runtimeMode: 'desktop',
-      workspace: { id: 'workspace-1', name: 'docs', available: true },
-      recentWorkspaces: [{ id: 'workspace-1', name: 'docs', available: true }],
+      workspace: { id: 'workspace-1', name: 'docs', available: true, kind: 'directory' },
+      recentWorkspaces: [{ id: 'workspace-1', name: 'docs', available: true, kind: 'directory' }],
       workspaceEntries: [],
       files: [],
       openPaths: [],
