@@ -1,4 +1,10 @@
-import { CloseOutlined, EyeInvisibleOutlined, EyeOutlined, SaveOutlined } from '@ant-design/icons';
+import {
+  CloseOutlined,
+  EyeInvisibleOutlined,
+  EyeOutlined,
+  SaveOutlined,
+  UndoOutlined,
+} from '@ant-design/icons';
 import { Alert, Button, Empty, Segmented, Space, Spin, Tag } from 'antd';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { ExposeParam } from 'md-editor-rt';
@@ -6,6 +12,7 @@ import 'md-editor-rt/lib/style.css';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { CenterView } from '../../../shared/types/domain';
 import { useAppStore } from '../../../stores/useAppStore';
+import { A2uiWorkbench } from '../../a2ui/inspector/A2uiWorkbench';
 import { DiffReview } from '../../diff/components/DiffReview';
 import styles from './EditorPane.module.css';
 
@@ -24,6 +31,9 @@ export function EditorPane() {
     saveStatusByPath,
     recoveryDrafts,
     centerView,
+    lastPatchApplication,
+    patchApplying,
+    patchError,
   } = useAppStore();
   const openFile = useAppStore((state) => state.openFile);
   const closeFile = useAppStore((state) => state.closeFile);
@@ -35,6 +45,7 @@ export function EditorPane() {
   const discardRecoveryDraft = useAppStore((state) => state.discardRecoveryDraft);
   const setCenterView = useAppStore((state) => state.setCenterView);
   const setSelectedText = useAppStore((state) => state.setSelectedText);
+  const undoLastPatch = useAppStore((state) => state.undoLastPatch);
   const [previewByPath, setPreviewByPath] = useState<Record<string, boolean>>({});
   const editorRegionRef = useRef<HTMLDivElement>(null);
   const markdownEditorRef = useRef<ExposeParam | null>(null);
@@ -156,9 +167,20 @@ export function EditorPane() {
           options={[
             { label: t('editor'), value: 'editor' },
             { label: t('review'), value: 'diff' },
+            { label: t('surface'), value: 'surface' },
           ]}
         />
         <div className={styles.toolbarActions}>
+          {lastPatchApplication ? (
+            <Button
+              size="small"
+              icon={<UndoOutlined />}
+              loading={patchApplying}
+              onClick={() => void undoLastPatch()}
+            >
+              {t('undoPatch')}
+            </Button>
+          ) : null}
           {isMarkdown && activeFile ? (
             <Button
               size="small"
@@ -185,6 +207,9 @@ export function EditorPane() {
           {!isExtractedDocument ? <Tag color={saveColor}>{saveLabel}</Tag> : null}
         </div>
       </div>
+      {patchError && centerView !== 'diff' ? (
+        <Alert type="error" showIcon title={patchError} />
+      ) : null}
       <div className={styles.tabs} role="tablist">
         {openPaths.map((path) => (
           <div
@@ -214,7 +239,7 @@ export function EditorPane() {
         <Alert
           type="warning"
           showIcon
-          message={activeSaveStatus === 'conflict' ? t('recoveryTitle') : t('pendingDraftTitle')}
+          title={activeSaveStatus === 'conflict' ? t('recoveryTitle') : t('pendingDraftTitle')}
           description={
             activeSaveStatus === 'conflict'
               ? t('recoveryDescription')
@@ -235,6 +260,8 @@ export function EditorPane() {
       <div className={styles.content} ref={editorRegionRef}>
         {centerView === 'diff' ? (
           <DiffReview />
+        ) : centerView === 'surface' ? (
+          <A2uiWorkbench />
         ) : activeFile && isMarkdown ? (
           <Suspense
             fallback={
@@ -262,7 +289,7 @@ export function EditorPane() {
           </Suspense>
         ) : activeFile && isExtractedDocument ? (
           <article className={styles.documentPreview} aria-label={activeFile.path}>
-            <Alert type="info" showIcon message={t('documentContextHint')} />
+            <Alert type="info" showIcon title={t('documentContextHint')} />
             <pre>{activeFile.content}</pre>
           </article>
         ) : activeFile ? (

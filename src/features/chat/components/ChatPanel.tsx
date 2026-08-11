@@ -7,6 +7,7 @@ import {
   StopOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Input, message, Select, Tag, Tooltip } from 'antd';
+import MarkdownIt from 'markdown-it';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { ContextSelection } from '../../../shared/types/domain';
@@ -28,6 +29,34 @@ const defaultContext: ContextSelection = {
   projectFiles: [],
 };
 
+const markdownRenderer = new MarkdownIt({
+  breaks: true,
+  html: false,
+  linkify: true,
+  typographer: false,
+});
+
+markdownRenderer.renderer.rules.link_open = (tokens, index, options, environment, renderer) => {
+  tokens[index].attrSet('target', '_blank');
+  tokens[index].attrSet('rel', 'noreferrer noopener');
+  return renderer.renderToken(tokens, index, options);
+};
+
+function AssistantMarkdown({ content, streaming }: { content: string; streaming: boolean }) {
+  const rendered = useMemo(() => markdownRenderer.render(content), [content]);
+
+  return (
+    <div className={styles.markdownBubble}>
+      <div
+        className={styles.markdownContent}
+        // Raw HTML is disabled above, so model-provided tags are escaped before rendering.
+        dangerouslySetInnerHTML={{ __html: rendered }}
+      />
+      {streaming && <span className={styles.cursor} />}
+    </div>
+  );
+}
+
 export function ChatPanel() {
   const { t } = useI18n();
   const sessions = useAppStore((state) => state.sessions);
@@ -39,6 +68,8 @@ export function ChatPanel() {
   const activeProviderId = useAppStore((state) => state.activeProviderId);
   const chatRequestId = useAppStore((state) => state.chatRequestId);
   const chatError = useAppStore((state) => state.chatError);
+  const pendingDiff = useAppStore((state) => state.pendingDiff);
+  const setCenterView = useAppStore((state) => state.setCenterView);
   const createSession = useAppStore((state) => state.createSession);
   const selectSession = useAppStore((state) => state.selectSession);
   const sendChat = useAppStore((state) => state.sendChat);
@@ -180,29 +211,94 @@ export function ChatPanel() {
       />
       {chatError && <Alert className={styles.chatError} type="error" showIcon title={chatError} />}
       <div className={styles.messages} aria-live="polite">
-        {activeSession?.messages.map((chatMessage, index) => (
-          <article
-            key={chatMessage.id}
-            className={`${styles.message} ${chatMessage.role === 'user' ? styles.user : styles.assistant}`}
-          >
-            <div className={styles.role}>{chatMessage.role === 'user' ? 'YOU' : 'A2UI'}</div>
-            <p>
-              {chatMessage.content ||
-                (chatMessage.status === 'streaming' ? t('waitingForProvider') : '')}
-              {chatMessage.status === 'streaming' && <span className={styles.cursor} />}
-            </p>
-            {(chatMessage.status === 'error' || chatMessage.status === 'stopped') && (
-              <Button
-                size="small"
-                type="link"
-                icon={<RedoOutlined />}
-                onClick={() => retryMessage(index)}
-              >
-                {t('retry')}
-              </Button>
-            )}
-          </article>
-        ))}
+        {activeSession?.messages.map((chatMessage, index) => {
+          const containsPatchProtocol =
+            chatMessage.role === 'assistant' &&
+            chatMessage.content.toLowerCase().includes('document_patch');
+          const containsA2uiProtocol =
+            chatMessage.role === 'assistant' && /a2ui_(surface|update)/i.test(chatMessage.content);
+          const patchFailed = chatMessage.errorCode === 'PATCH_VALIDATION_FAILED';
+          const a2uiFailed = chatMessage.errorCode === 'A2UI_VALIDATION_FAILED';
+          const patchGenerating = containsPatchProtocol && chatMessage.status === 'streaming';
+          const a2uiGenerating = containsA2uiProtocol && chatMessage.status === 'streaming';
+          return (
+            <article
+              key={chatMessage.id}
+              className={`${styles.message} ${chatMessage.role === 'user' ? styles.user : styles.assistant}`}
+            >
+              <div className={styles.role}>{chatMessage.role === 'user' ? 'YOU' : 'A2UI'}</div>
+              {a2uiGenerating ? (
+                <div className={styles.protocolError}>
+                  <Alert type="info" showIcon title={t('a2uiGenerating')} />
+                </div>
+              ) : containsA2uiProtocol ? (
+                <div className={styles.protocolError}>
+                  <Alert
+                    type={a2uiFailed ? 'warning' : 'success'}
+                    showIcon
+                    title={t(a2uiFailed ? 'a2uiValidationFailed' : 'a2uiReady')}
+                    description={
+                      a2uiFailed ? t('a2uiValidationFailedDescription') : t('a2uiReadyDescription')
+                    }
+                  />
+                  <Button type="link" onClick={() => setCenterView('surface')}>
+                    {t(a2uiFailed ? 'openInspector' : 'openSurface')}
+                  </Button>
+                </div>
+              ) : patchGenerating ? (
+                <div className={styles.protocolError}>
+                  <Alert
+                    type="info"
+                    showIcon
+                    title={t('patchGenerating')}
+                    description={t('patchGeneratingDescription')}
+                  />
+                </div>
+              ) : containsPatchProtocol ? (
+                <div className={styles.protocolError}>
+                  <Alert
+                    type={patchFailed ? 'warning' : 'info'}
+                    showIcon
+                    title={t(patchFailed ? 'patchValidationFailed' : 'patchProtocolReceived')}
+                    description={
+                      patchFailed
+                        ? t('patchValidationFailedDescription')
+                        : t('patchProtocolReceivedDescription')
+                    }
+                  />
+                  {!patchFailed && pendingDiff ? (
+                    <Button type="link" onClick={() => setCenterView('diff')}>
+                      {t('openReviewCenter')}
+                    </Button>
+                  ) : null}
+                </div>
+              ) : chatMessage.role === 'assistant' ? (
+                <AssistantMarkdown
+                  content={
+                    chatMessage.content ||
+                    (chatMessage.status === 'streaming' ? t('waitingForProvider') : '')
+                  }
+                  streaming={chatMessage.status === 'streaming'}
+                />
+              ) : (
+                <p className={styles.plainBubble}>{chatMessage.content}</p>
+              )}
+              {(chatMessage.status === 'error' ||
+                chatMessage.status === 'stopped' ||
+                patchFailed ||
+                a2uiFailed) && (
+                <Button
+                  size="small"
+                  type="link"
+                  icon={<RedoOutlined />}
+                  onClick={() => retryMessage(index)}
+                >
+                  {t('retry')}
+                </Button>
+              )}
+            </article>
+          );
+        })}
         <div ref={endRef} />
       </div>
       <div

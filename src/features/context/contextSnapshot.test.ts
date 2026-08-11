@@ -66,4 +66,43 @@ describe('context snapshot', () => {
   it('always requires confirmation for possible secrets', () => {
     expect(requiresContextReview('same', 'same', ['message: possible secret'])).toBe(true);
   });
+
+  it('normalizes and audits selection, attachments, missing files, and secret-like prompts', () => {
+    const snapshot = buildContextSnapshot({
+      selection: {
+        selection: true,
+        currentFile: false,
+        recentMessages: false,
+        recentMessageCount: 3,
+        projectFiles: ['notes.pdf', 'missing.ts', 'secrets/token.txt'],
+      },
+      files: [
+        {
+          path: 'notes.pdf',
+          name: 'notes.pdf',
+          language: 'text',
+          content: 'extracted notes',
+          extracted: true,
+        },
+        { path: 'main.ts', name: 'main.ts', language: 'ts', content: 'main' },
+        {
+          path: 'secrets/token.txt',
+          name: 'token.txt',
+          language: 'text',
+          content: 'must stay local',
+        },
+      ],
+      activePath: 'main.ts',
+      selectedText: 'selected code',
+      recentMessages: [],
+      prompt: 'API_KEY=review-before-send',
+    });
+
+    expect(snapshot.sources.map((source) => source.kind)).toEqual([
+      'selection',
+      'attached_document',
+    ]);
+    expect(snapshot.warnings).toContain('secrets/token.txt: sensitive path excluded');
+    expect(snapshot.warnings).toContain('message: possible secret');
+  });
 });

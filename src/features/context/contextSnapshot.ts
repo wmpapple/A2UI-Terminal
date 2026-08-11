@@ -126,13 +126,19 @@ export const buildContextSnapshot = ({
   };
   const active = files.find((file) => file.path === activePath);
   if (selection.selection && selectedText) {
-    addSource({ kind: 'selection', label: `selection:${activePath}`, content: selectedText });
+    addSource({
+      kind: 'selection',
+      label: activePath,
+      content: selectedText,
+      baseHash: active?.contentHash,
+    });
   }
   if (selection.currentFile && active) {
     addSource({
       kind: active.extracted ? 'attached_document' : 'current_file',
       label: active.path,
       content: active.content,
+      baseHash: active.contentHash,
     });
   }
   for (const path of selection.projectFiles) {
@@ -142,6 +148,7 @@ export const buildContextSnapshot = ({
         kind: file.extracted ? 'attached_document' : 'project_file',
         label: file.path,
         content: file.content,
+        baseHash: file.contentHash,
       });
     }
   }

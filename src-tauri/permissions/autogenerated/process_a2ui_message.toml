@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-process-a2ui-message"
+description = "Enables the process_a2ui_message command without any pre-configured scope."
+commands.allow = ["process_a2ui_message"]
+
+[[permission]]
+identifier = "deny-process-a2ui-message"
+description = "Denies the process_a2ui_message command without any pre-configured scope."
+commands.deny = ["process_a2ui_message"]

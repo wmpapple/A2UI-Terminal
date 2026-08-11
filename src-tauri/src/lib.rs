@@ -2,6 +2,7 @@ pub mod a2ui;
 pub mod ai;
 pub mod commands;
 pub mod error;
+pub mod patch;
 pub mod security;
 pub mod state;
 pub mod storage;
@@ -15,9 +16,12 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
             let storage = Storage::open(&app_data_dir.join("a2ui-terminal.sqlite3"))?;
+            storage.cleanup_expired_versions()?;
             app.manage(AppState::new(storage));
             Ok(())
         })
@@ -27,6 +31,7 @@ pub fn run() {
             commands::provider_secret_status,
             commands::delete_provider_secret,
             commands::clear_all_local_data,
+            commands::export_diagnostics,
             commands::select_workspace,
             commands::list_recent_workspaces,
             commands::restore_workspace,
@@ -46,6 +51,13 @@ pub fn run() {
             commands::create_chat_session,
             commands::stream_chat,
             commands::stop_chat,
+            commands::validate_document_patch,
+            commands::apply_document_patch,
+            commands::undo_document_patch,
+            commands::process_a2ui_message,
+            commands::list_a2ui_surfaces,
+            commands::list_a2ui_inspections,
+            commands::execute_a2ui_action,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start A2UI Terminal");

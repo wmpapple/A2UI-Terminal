@@ -2,6 +2,7 @@ import { DeleteOutlined, ExperimentOutlined, SaveOutlined } from '@ant-design/ic
 import {
   Alert,
   Button,
+  Divider,
   Form,
   Input,
   InputNumber,
@@ -18,6 +19,7 @@ import { getRuntimeMode } from '../../../shared/platform/runtime';
 import type { ProviderConfig } from '../../../shared/types/domain';
 import { useAppStore } from '../../../stores/useAppStore';
 import styles from './ProviderSettings.module.css';
+import { SystemSettings } from './SystemSettings';
 
 interface Props {
   open: boolean;
@@ -98,105 +100,111 @@ export function ProviderSettings({ open, onClose }: Props) {
       footer={null}
       width={700}
     >
-      {getRuntimeMode() === 'web-mock' ? (
-        <Alert type="info" showIcon title={t('providerDesktopOnly')} />
-      ) : !draft ? (
-        <Alert type="warning" showIcon title={t('providerUnavailable')} />
-      ) : (
-        <div className={styles.body}>
-          {providerError && <Alert type="error" showIcon title={providerError} />}
-          <div className={styles.providerRow}>
-            <Select
-              value={selectedId}
-              onChange={(providerId) => {
-                setSelectedId(providerId);
-                const config = configs.find((item) => item.id === providerId);
-                setDraft(config ? { ...config } : null);
-                setSecret('');
-              }}
-              options={configs.map((config) => ({
-                value: config.id,
-                label: providerNames[config.id] ?? config.id,
-              }))}
-              className={styles.providerSelect}
-            />
-            {draft.configured ? (
-              <Tag color="green">{t('keyConfigured')}</Tag>
-            ) : (
-              <Tag color="orange">{t('keyMissing')}</Tag>
-            )}
-            {draft.id === activeProviderId && <Tag color="blue">{t('activeProvider')}</Tag>}
-          </div>
-          <Form layout="vertical" requiredMark={false}>
-            <Form.Item label="Endpoint" required>
-              <Input
-                value={draft.endpoint}
-                onChange={(event) => update('endpoint', event.target.value)}
+      <>
+        {getRuntimeMode() === 'web-mock' ? (
+          <Alert type="info" showIcon title={t('providerDesktopOnly')} />
+        ) : !draft ? (
+          <Alert type="warning" showIcon title={t('providerUnavailable')} />
+        ) : (
+          <div className={styles.body}>
+            {providerError && <Alert type="error" showIcon title={providerError} />}
+            <div className={styles.providerRow}>
+              <Select
+                value={selectedId}
+                onChange={(providerId) => {
+                  setSelectedId(providerId);
+                  const config = configs.find((item) => item.id === providerId);
+                  setDraft(config ? { ...config } : null);
+                  setSecret('');
+                }}
+                options={configs.map((config) => ({
+                  value: config.id,
+                  label: providerNames[config.id] ?? config.id,
+                }))}
+                className={styles.providerSelect}
               />
-            </Form.Item>
-            <Form.Item label="Model" required>
-              <Input
-                value={draft.model}
-                onChange={(event) => update('model', event.target.value)}
-              />
-            </Form.Item>
-            <div className={styles.grid}>
-              <Form.Item label="Temperature">
-                <InputNumber
-                  min={0}
-                  max={2}
-                  step={0.1}
-                  value={draft.temperature}
-                  onChange={(value) => update('temperature', value ?? 0.2)}
-                />
-              </Form.Item>
-              <Form.Item label={t('proxyAddress')}>
-                <Input
-                  value={draft.proxyUrl ?? ''}
-                  placeholder="http://127.0.0.1:7890"
-                  onChange={(event) => update('proxyUrl', event.target.value || null)}
-                />
-              </Form.Item>
+              {draft.configured ? (
+                <Tag color="green">{t('keyConfigured')}</Tag>
+              ) : (
+                <Tag color="orange">{t('keyMissing')}</Tag>
+              )}
+              {draft.id === activeProviderId && <Tag color="blue">{t('activeProvider')}</Tag>}
             </div>
-            <Form.Item label="API Key" extra={t('keyStorageHint')}>
-              <Input.Password
-                value={secret}
-                autoComplete="new-password"
-                placeholder={draft.configured ? t('keyKeepPlaceholder') : t('keyInputPlaceholder')}
-                onChange={(event) => setSecret(event.target.value)}
-              />
-            </Form.Item>
-          </Form>
-          <Space wrap>
-            <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              loading={loading}
-              onClick={() => void save()}
-            >
-              {t('saveSettings')}
-            </Button>
-            <Button icon={<ExperimentOutlined />} loading={loading} onClick={() => void test()}>
-              {t('testConnection')}
-            </Button>
-            {draft.id !== activeProviderId && (
-              <Button onClick={() => void selectProvider(draft.id)}>
-                {t('setActiveProvider')}
-              </Button>
-            )}
-            {draft.configured && (
-              <Popconfirm
-                title={t('deleteKeyConfirm')}
-                onConfirm={() => void deleteProviderKey(draft.id)}
+            <Form layout="vertical" requiredMark={false}>
+              <Form.Item label="Endpoint" required>
+                <Input
+                  value={draft.endpoint}
+                  onChange={(event) => update('endpoint', event.target.value)}
+                />
+              </Form.Item>
+              <Form.Item label="Model" required>
+                <Input
+                  value={draft.model}
+                  onChange={(event) => update('model', event.target.value)}
+                />
+              </Form.Item>
+              <div className={styles.grid}>
+                <Form.Item label="Temperature">
+                  <InputNumber
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    value={draft.temperature}
+                    onChange={(value) => update('temperature', value ?? 0.2)}
+                  />
+                </Form.Item>
+                <Form.Item label={t('proxyAddress')}>
+                  <Input
+                    value={draft.proxyUrl ?? ''}
+                    placeholder="http://127.0.0.1:7890"
+                    onChange={(event) => update('proxyUrl', event.target.value || null)}
+                  />
+                </Form.Item>
+              </div>
+              <Form.Item label="API Key" extra={t('keyStorageHint')}>
+                <Input.Password
+                  value={secret}
+                  autoComplete="new-password"
+                  placeholder={
+                    draft.configured ? t('keyKeepPlaceholder') : t('keyInputPlaceholder')
+                  }
+                  onChange={(event) => setSecret(event.target.value)}
+                />
+              </Form.Item>
+            </Form>
+            <Space wrap>
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                loading={loading}
+                onClick={() => void save()}
               >
-                <Button danger icon={<DeleteOutlined />}>
-                  {t('deleteKey')}
+                {t('saveSettings')}
+              </Button>
+              <Button icon={<ExperimentOutlined />} loading={loading} onClick={() => void test()}>
+                {t('testConnection')}
+              </Button>
+              {draft.id !== activeProviderId && (
+                <Button onClick={() => void selectProvider(draft.id)}>
+                  {t('setActiveProvider')}
                 </Button>
-              </Popconfirm>
-            )}
-          </Space>
-        </div>
-      )}
+              )}
+              {draft.configured && (
+                <Popconfirm
+                  title={t('deleteKeyConfirm')}
+                  onConfirm={() => void deleteProviderKey(draft.id)}
+                >
+                  <Button danger icon={<DeleteOutlined />}>
+                    {t('deleteKey')}
+                  </Button>
+                </Popconfirm>
+              )}
+            </Space>
+          </div>
+        )}
+        <Divider />
+        <SystemSettings />
+      </>
     </Modal>
   );
 }

@@ -1,4 +1,4 @@
-use super::{ProviderConfig, ProviderMessage};
+use super::{ProviderConfig, ProviderKind, ProviderMessage};
 use crate::error::AppError;
 use futures_util::StreamExt;
 use reqwest::{Client, Url};
@@ -155,12 +155,19 @@ fn build_client(config: &ProviderConfig) -> Result<Client, AppError> {
 }
 
 fn request_body(config: &ProviderConfig, messages: &[ProviderMessage]) -> serde_json::Value {
-    json!({
+    let mut body = json!({
         "model": config.model,
         "messages": messages,
         "temperature": config.temperature,
         "stream": true
-    })
+    });
+    let token_field = if config.kind == ProviderKind::OpenAi {
+        "max_completion_tokens"
+    } else {
+        "max_tokens"
+    };
+    body[token_field] = json!(4096);
+    body
 }
 
 fn network_error(error: reqwest::Error) -> AppError {
@@ -320,6 +327,12 @@ mod tests {
             assert_eq!(body["model"], config.model);
             assert_eq!(body["stream"], true);
             assert_eq!(body["messages"][0]["content"], "hello");
+            let token_field = if config.kind == crate::ai::ProviderKind::OpenAi {
+                "max_completion_tokens"
+            } else {
+                "max_tokens"
+            };
+            assert_eq!(body[token_field], 4096);
             assert!(api_url(&config.endpoint, "chat/completions").is_ok());
         }
     }

@@ -1,0 +1,44 @@
+name: Windows unsigned acceptance packages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify synchronized versions
+        shell: powershell
+        run: ./scripts/verify-release.ps1
+      - name: Run frontend and Rust gates
+        shell: powershell
+        run: |
+          npm run check
+          cargo test --manifest-path src-tauri/Cargo.toml --all-features
+      - name: Build unsigned NSIS and MSI acceptance packages
+        uses: tauri-apps/tauri-action@v1
+      - name: Smoke-test desktop startup
+        shell: powershell
+        run: ./scripts/smoke-desktop.ps1 -BinaryPath ./src-tauri/target/release/a2ui-terminal.exe
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: a2ui-terminal-windows-${{ github.sha }}-unsigned
+          path: src-tauri/target/release/bundle/**
+          if-no-files-found: error

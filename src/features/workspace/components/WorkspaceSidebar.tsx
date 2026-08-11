@@ -104,7 +104,7 @@ export function WorkspaceSidebar() {
           closable
           type="error"
           showIcon
-          message={workspaceError}
+          title={workspaceError}
           onClose={clearWorkspaceError}
         />
       ) : null}
@@ -116,7 +116,7 @@ export function WorkspaceSidebar() {
         placeholder={t('searchFiles')}
         disabled={isDesktop && !workspace && workspaceEntries.length === 0}
       />
-      <Spin spinning={workspaceLoading} wrapperClassName={styles.treeSpinner}>
+      <Spin spinning={workspaceLoading} classNames={{ root: styles.treeSpinner }}>
         <div className={styles.tree} role="tree">
           {visibleFiles.map((file) => (
             <Dropdown

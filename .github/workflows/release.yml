@@ -1,46 +1,140 @@
-name: Windows installer smoke build
+name: Signed Windows release
 
-# This workflow intentionally produces an unsigned internal test installer.
-# Production publication remains blocked until certificate and updater keys are configured.
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build-windows:
+  publish-windows:
     runs-on: windows-latest
+    environment: production
+    env:
+      WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      WINDOWS_PUBLISHER: ${{ vars.WINDOWS_PUBLISHER }}
+      TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
-      - name: Checkout repository
+      - name: Checkout tagged source
         uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy,rustfmt
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Build frontend assets
-        run: npm run build
-
-      - name: Run Rust tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml --all-features
-
-      - name: Build unsigned NSIS and MSI test packages
-        uses: tauri-apps/tauri-action@v0
-
-      - name: Upload desktop artifacts
-        uses: actions/upload-artifact@v4
+      - name: Verify release inputs and synchronized version
+        shell: powershell
+        run: |
+          $required = @(
+            'WINDOWS_CERTIFICATE_BASE64',
+            'WINDOWS_CERTIFICATE_PASSWORD',
+            'WINDOWS_PUBLISHER',
+            'TAURI_UPDATER_PUBLIC_KEY',
+            'TAURI_SIGNING_PRIVATE_KEY'
+          )
+          $missing = $required | Where-Object { [string]::IsNullOrWhiteSpace((Get-Item "Env:$_").Value) }
+          if ($missing) { throw "Missing production release inputs: $($missing -join ', ')" }
+          ./scripts/verify-release.ps1 -Tag '${{ github.ref_name }}'
+      - name: Run release quality gates
+        shell: powershell
+        run: |
+          npm run check
+          npm run test:coverage
+          cargo fmt --manifest-path src-tauri/Cargo.toml --check
+          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+          cargo test --manifest-path src-tauri/Cargo.toml --all-features
+      - name: Import ephemeral Windows signing certificate
+        id: certificate
+        shell: powershell
+        run: |
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'a2ui-terminal-codesign.pfx'
+          [IO.File]::WriteAllBytes(
+            $certificatePath,
+            [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64)
+          )
+          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $certificate = Import-PfxCertificate `
+            -FilePath $certificatePath `
+            -CertStoreLocation Cert:\CurrentUser\My `
+            -Password $password
+          Remove-Item -LiteralPath $certificatePath -Force
+          "thumbprint=$($certificate.Thumbprint)" >> $env:GITHUB_OUTPUT
+      - name: Generate secret-free release config overlay
+        shell: powershell
+        env:
+          CERTIFICATE_THUMBPRINT: ${{ steps.certificate.outputs.thumbprint }}
+        run: |
+          $endpoint = 'https://github.com/${{ github.repository }}/releases/latest/download/latest.json'
+          $config = @{
+            bundle = @{
+              publisher = $env:WINDOWS_PUBLISHER
+              createUpdaterArtifacts = $true
+              windows = @{
+                certificateThumbprint = $env:CERTIFICATE_THUMBPRINT
+                digestAlgorithm = 'sha256'
+                timestampUrl = 'http://timestamp.digicert.com'
+              }
+            }
+            plugins = @{
+              updater = @{
+                pubkey = $env:TAURI_UPDATER_PUBLIC_KEY
+                endpoints = @($endpoint)
+                windows = @{ installMode = 'passive' }
+              }
+            }
+          }
+          $config | ConvertTo-Json -Depth 8 | Set-Content `
+            -Encoding utf8 `
+            -LiteralPath src-tauri/tauri.release.conf.json
+      - name: Build signed installers and create draft release
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ env.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          name: a2ui-terminal-windows-unsigned
-          path: src-tauri/target/release/bundle/**
-          if-no-files-found: error
+          tagName: ${{ github.ref_name }}
+          releaseName: 'A2UI Terminal ${{ github.ref_name }}'
+          releaseBody: 'Signed Windows installers and signed Tauri updater artifacts. Publish this draft only after the smoke checks pass.'
+          releaseDraft: true
+          prerelease: false
+          updaterJsonPreferNsis: true
+          args: --config src-tauri/tauri.release.conf.json
+      - name: Verify Authenticode and updater signatures
+        shell: powershell
+        run: |
+          $installers = Get-ChildItem src-tauri/target/release/bundle -Recurse -File |
+            Where-Object { $_.Extension -in '.exe', '.msi' }
+          if (-not $installers) { throw 'No Windows installers were produced.' }
+          foreach ($installer in $installers) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
+            if ($signature.Status -ne 'Valid') {
+              throw "Invalid Authenticode signature: $($installer.Name) ($($signature.Status))"
+            }
+          }
+          $updaterSignatures = Get-ChildItem src-tauri/target/release/bundle -Recurse -Filter '*.sig'
+          if (-not $updaterSignatures) { throw 'No Tauri updater signature was produced.' }
+      - name: Smoke-test signed desktop binary
+        shell: powershell
+        run: ./scripts/smoke-desktop.ps1 -BinaryPath ./src-tauri/target/release/a2ui-terminal.exe
+      - name: Remove ephemeral certificate
+        if: always() && steps.certificate.outputs.thumbprint != ''
+        shell: powershell
+        env:
+          CERTIFICATE_THUMBPRINT: ${{ steps.certificate.outputs.thumbprint }}
+        run: Remove-Item -LiteralPath "Cert:\CurrentUser\My\$env:CERTIFICATE_THUMBPRINT" -Force

@@ -16,32 +16,51 @@
   border: 1px solid var(--border);
   border-radius: 10px;
 }
-.summary > div {
+.summary > div,
+.changeHeader {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
-.summary p {
+.summary p,
+.reason {
   margin: 8px 0 0;
   color: var(--text);
   font-size: 13px;
 }
-.summary p span {
+.summary p,
+.reason span {
   color: var(--text-muted);
 }
-.diffGrid {
-  display: grid;
-  flex: 1;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  min-height: 0;
+.error {
   margin-top: 12px;
 }
-.diffGrid article {
+.changeList {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+.change {
   min-width: 0;
+  padding: 14px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 10px;
+}
+.changeHeader > span {
+  white-space: nowrap;
+}
+.diffGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+.diffGrid section {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   overflow: hidden;
 }
 .diffGrid header {
@@ -52,26 +71,32 @@
   font-size: 12px;
   font-weight: 700;
 }
-.diffGrid article:first-child pre {
+.diffGrid section:first-child pre {
   background: var(--danger-soft);
 }
-.diffGrid article:last-child pre {
+.diffGrid section:last-child pre {
   background: var(--success-soft);
 }
 .diffGrid pre {
-  height: calc(100% - 38px);
+  max-height: 280px;
+  min-height: 80px;
   margin: 0;
   padding: 14px;
   overflow: auto;
   color: var(--text-strong);
   font: 12px/1.6 var(--font-mono);
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .actions {
+  position: sticky;
+  bottom: 0;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  padding-top: 14px;
+  margin-top: 14px;
+  padding: 12px 0 0;
+  background: var(--surface);
 }
 @media (max-width: 980px) {
   .diffGrid {

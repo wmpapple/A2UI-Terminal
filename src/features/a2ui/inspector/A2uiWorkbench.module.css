@@ -1,0 +1,99 @@
+.empty {
+  display: grid;
+  height: 100%;
+  place-items: center;
+}
+.workbench {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  background: var(--panel);
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.header > div,
+.selectors,
+.inspectorTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.selectors :global(.ant-select) {
+  min-width: 140px;
+}
+.notice {
+  margin: 10px 12px 0;
+}
+.columns {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+  min-height: 0;
+}
+.runtimePane {
+  min-width: 0;
+  overflow: auto;
+  border-right: 1px solid var(--border);
+}
+.runtimePane > :global(.ant-alert) {
+  margin: 20px;
+}
+.inspector {
+  min-width: 0;
+  padding: 12px;
+  overflow: auto;
+  background: var(--surface-subtle);
+}
+.inspectorTitle {
+  justify-content: space-between;
+}
+.inspector pre {
+  max-height: 460px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  font: 11px/1.55 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.validation p {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.events {
+  display: grid;
+  gap: 8px;
+}
+.events article {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.events article > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.events small {
+  color: var(--text-muted);
+}
+@media (max-width: 1050px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+  .runtimePane {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+}

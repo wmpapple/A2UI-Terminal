@@ -1,0 +1,43 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.heading h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.notes {
+  max-height: 96px;
+  overflow: auto;
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--text-secondary);
+}
+
+.dangerZone {
+  padding: 12px;
+  border: 1px solid #ffccc7;
+  border-radius: 8px;
+  background: #fff2f0;
+}
+
+.confirmToken {
+  user-select: all;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}

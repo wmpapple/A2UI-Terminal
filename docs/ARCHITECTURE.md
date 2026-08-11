@@ -23,7 +23,7 @@ src/
 │   ├── chat/               # 会话、输入与流式 Mock
 │   ├── context/            # 请求前上下文确认
 │   ├── diff/               # 修改前后审阅与应用
-│   └── a2ui/               # Basic Catalog 白名单基础
+│   └── a2ui/               # 协议、Basic Catalog、Runtime、Inspector
 ├── shared/                 # Mock、平台接口和领域类型
 ├── stores/                 # Zustand UI 临时状态
 └── styles/                 # 全局 Design Tokens
@@ -47,12 +47,38 @@ Zustand 保存活动工作区摘要、文件树、已打开文档、多 Tab、�
 1. 用户从文件树选择演示文件。
 2. 编辑器在内存中修改内容并模拟 1 秒自动保存状态。
 3. 用户发送指令前打开上下文选择器。
-4. Mock 助手流式返回说明并创建 `DiffProposal`。
+4. Mock 助手流式返回说明并创建符合 Patch V1 形状的演示审阅数据。
 5. 中心区域切换到审阅中心，显示 before/after。
 6. 接受后更新内存文档；拒绝后不修改。
 
 该流程只验证 UI 和状态边界，不代表真实文件已经被写入。
 
+## Desktop 语义 Patch 边界
+
+AI 响应不持有文件系统能力。完整响应可以包含 Patch V1 JSON，但必须先在 Rust 中完成严格反序列化，并校验工作区、白名单路径、完整文件 Hash、锚点 Hash、唯一匹配和修改块不重叠，前端才会收到可展示的审阅对象。
+
+用户可以逐块取消或接受修改。应用命令不信任前端审阅状态，会基于当前磁盘内容再次执行全部校验，然后将语义块确定性转换为文本变更。写入失败或数据库版本记录失败时回滚本次已写文件。
+
+每次应用为所有受影响文件保存关联的 `before`/`after` 完整版本，有效期 30 天。撤销是一个新的 Patch 操作，并且只有当前文件仍匹配原操作的 `after` Hash 时才允许恢复，从而保留历史链且不覆盖外部修改。
+
 ## A2UI 边界
 
-阶段 M0-B 只定义已批准的 Basic Catalog 名称白名单，不解析或执行模型消息。Schema 校验、组件渲染、增量更新和 Action 权限在独立阶段实施。任何 HTML、Script、iframe 或动态 npm 组件默认不可信。
+A2UI 消息分为完整 `a2ui_surface` 与增量 `a2ui_update`，协议固定为 V1。Rust 是唯一信任边界：先限制原始消息大小，再严格反序列化、校验组件树、Props、数据模型和 Action，只有有效 Surface 才返回前端 Runtime。无效消息保留在 Inspector 中用于定位，但不会渲染。
+
+前端 Runtime 使用固定 `switch` 将 13 个 Basic Catalog 名称映射到仓库内 React/Ant Design 组件，不使用动态 import、任意 HTML 或模型提供的 JavaScript。增量更新按 `surfaceId` 和连续 revision 应用，只替换目标 Surface，Zustand 保留其他 Surface 对象。
+
+Action 声明与执行分离。Rust 会从已持久化组件树重新读取声明，不信任前端提交的 Action 类型：`set_state` 与 `submit_form` 为低风险本地事件；`request_patch` 只返回“需要 Diff 审阅”，不写文件；未声明 Action 和其他类型默认高风险拒绝。所有尝试写入 `a2ui_events`，供 Inspector 查看。
+
+SQLite v6 持久化 Surface、有效/无效原始消息、校验耗时和 Action 审计。删除工作区或执行“一键清除所有本地数据”时通过外键/事务一并清理。
+
+## 更新与发布边界
+
+开发版和内部验收版初始化 updater 插件但不配置 endpoint/pubkey，因此检查更新会安全降级且不影响启动。正式 tag 工作流使用临时配置覆盖层注入 GitHub Releases endpoint 和 updater 公钥；私钥仅存在于受保护的 GitHub environment secret 中。安装包 Authenticode 与 updater 内容签名是两套独立门禁，二者都必须通过。
+
+前端只能通过 `updater:default` 执行检查、下载和安装，并只获得 `process:allow-restart`，没有 shell 或任意进程能力。Tauri updater 在安装前验证签名，设置页显示版本、更新说明和下载进度。正式工作流默认创建 Draft Release，人工安装/升级验收后才发布 `latest.json`。
+
+## 诊断与本地数据管理
+
+诊断导出在 Rust 中生成并由系统保存对话框选择目标，只包含应用/Schema 版本、平台、架构和各数据表记录数量。报告结构固定声明消息正文、文件内容、工作区路径和 Provider Secret 均未包含；前端无法要求导出额外字段。
+
+“一键清除所有本地数据”必须输入固定确认文本。Rust 先删除 Credential Manager 中已知 Provider Key，再事务清空 SQLite 业务表、上下文授权和活动请求；真实工作区文件从不进入删除目标。

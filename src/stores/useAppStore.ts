@@ -1,16 +1,19 @@
 import { create } from 'zustand';
 import { TextStreamBuffer } from '../features/chat/textStreamBuffer';
 import { buildContextSnapshot } from '../features/context/contextSnapshot';
-import { createMockDiff, mockFiles, mockSessions } from '../shared/mock/workspace';
+import { createMockA2ui, createMockDiff, mockFiles, mockSessions } from '../shared/mock/workspace';
 import { desktopApi } from '../shared/platform/desktop';
 import { getRuntimeMode, type RuntimeMode } from '../shared/platform/runtime';
 import type {
+  A2uiInspection,
+  A2uiSurface,
   CenterView,
   ChatMessage,
   ChatSession,
   ContextSelection,
-  DiffProposal,
   FileSaveStatus,
+  PatchApplication,
+  PatchReview,
   ProviderConfig,
   WorkspaceDraft,
   WorkspaceFile,
@@ -41,6 +44,33 @@ const errorDetails = (error: unknown): { code: string; message: string } => {
   return { code: 'UNKNOWN', message: error instanceof Error ? error.message : String(error) };
 };
 
+const upsertA2uiSurface = (surfaces: A2uiSurface[], next: A2uiSurface): A2uiSurface[] =>
+  surfaces.some((surface) => surface.surfaceId === next.surfaceId)
+    ? surfaces.map((surface) => (surface.surfaceId === next.surfaceId ? next : surface))
+    : [next, ...surfaces];
+
+const findA2uiNode = (
+  node: A2uiSurface['root'],
+  componentId: string
+): A2uiSurface['root'] | undefined =>
+  node.id === componentId
+    ? node
+    : node.children.map((child) => findA2uiNode(child, componentId)).find(Boolean);
+
+const loadA2uiHistory = async (
+  workspaceId: string
+): Promise<{ surfaces: A2uiSurface[]; inspections: A2uiInspection[] }> => {
+  try {
+    const [surfaces, inspections] = await Promise.all([
+      desktopApi.listA2uiSurfaces(workspaceId),
+      desktopApi.listA2uiInspections(workspaceId),
+    ]);
+    return { surfaces, inspections };
+  } catch {
+    return { surfaces: [], inspections: [] };
+  }
+};
+
 interface AppState {
   runtimeMode: RuntimeMode;
   workspace: WorkspaceSummary | null;
@@ -57,7 +87,11 @@ interface AppState {
   centerView: CenterView;
   sessions: ChatSession[];
   activeSessionId: string;
-  pendingDiff: DiffProposal | null;
+  pendingDiff: PatchReview | null;
+  lastPatchApplication: PatchApplication | null;
+  patchBeforeByPath: Record<string, string>;
+  patchApplying: boolean;
+  patchError: string | null;
   selectedText: string;
   contextBySession: Record<string, ContextSelection>;
   providerConfigs: ProviderConfig[];
@@ -66,6 +100,12 @@ interface AppState {
   providerError: string | null;
   chatRequestId: string | null;
   chatError: string | null;
+  a2uiSurfaces: A2uiSurface[];
+  a2uiInspections: A2uiInspection[];
+  activeSurfaceId: string;
+  activeInspectionId: string;
+  a2uiActionLoading: boolean;
+  a2uiNotice: string | null;
   initializeWorkspace: () => Promise<void>;
   initializeProviders: () => Promise<void>;
   selectWorkspace: () => Promise<void>;
@@ -93,7 +133,9 @@ interface AppState {
   ) => void;
   createProposal: () => void;
   rejectDiff: () => void;
-  applyDiff: () => void;
+  togglePatchChange: (changeId: string) => void;
+  applyDiff: () => Promise<void>;
+  undoLastPatch: () => Promise<void>;
   setSelectedText: (text: string) => void;
   setSessionContext: (sessionId: string, context: ContextSelection) => void;
   addFileToContext: (sessionId: string, path: string) => void;
@@ -108,6 +150,9 @@ interface AppState {
     sensitiveConfirmed: boolean
   ) => Promise<void>;
   stopChat: () => Promise<void>;
+  setActiveSurface: (surfaceId: string) => void;
+  setActiveInspection: (inspectionId: string) => void;
+  executeA2uiAction: (componentId: string, eventName: string, payload: unknown) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -127,6 +172,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   sessions: useMockWorkspace ? mockSessions : [],
   activeSessionId: useMockWorkspace ? 'welcome' : '',
   pendingDiff: null,
+  lastPatchApplication: null,
+  patchBeforeByPath: {},
+  patchApplying: false,
+  patchError: null,
   selectedText: '',
   contextBySession: {},
   providerConfigs: [],
@@ -135,6 +184,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   providerError: null,
   chatRequestId: null,
   chatError: null,
+  a2uiSurfaces: [],
+  a2uiInspections: [],
+  activeSurfaceId: '',
+  activeInspectionId: '',
+  a2uiActionLoading: false,
+  a2uiNotice: null,
 
   initializeWorkspace: async () => {
     if (get().runtimeMode === 'web-mock') return;
@@ -174,7 +229,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const workspace = await desktopApi.selectWorkspace();
       if (!workspace) return;
-      const workspaceEntries = await desktopApi.listWorkspaceFiles(workspace.id);
+      const [workspaceEntries, a2uiHistory] = await Promise.all([
+        desktopApi.listWorkspaceFiles(workspace.id),
+        loadA2uiHistory(workspace.id),
+      ]);
+      const { surfaces: a2uiSurfaces, inspections: a2uiInspections } = a2uiHistory;
       const recentWorkspaces = await desktopApi.listRecentWorkspaces();
       let sessions = await desktopApi.listChatSessions(workspace.id);
       if (sessions.length === 0) {
@@ -196,6 +255,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         activeSessionId: sessions[0].id,
         contextBySession: {},
         chatError: null,
+        a2uiSurfaces,
+        a2uiInspections,
+        activeSurfaceId: a2uiSurfaces[0]?.surfaceId ?? '',
+        activeInspectionId: a2uiInspections[0]?.id ?? '',
+        a2uiNotice: null,
       });
     } catch (error) {
       set({ workspaceError: errorDetails(error).message });
@@ -215,6 +279,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       const recentWorkspaces = await desktopApi.listRecentWorkspaces();
       let sessions = get().sessions;
       let activeSessionId = get().activeSessionId;
+      let a2uiSurfaces = get().a2uiSurfaces;
+      let a2uiInspections = get().a2uiInspections;
       if (!currentWorkspace || currentWorkspace.id !== workspace.id) {
         sessions = await desktopApi.listChatSessions(workspace.id);
         if (sessions.length === 0) {
@@ -223,6 +289,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           ];
         }
         activeSessionId = sessions[0].id;
+        const history = await loadA2uiHistory(workspace.id);
+        a2uiSurfaces = history.surfaces;
+        a2uiInspections = history.inspections;
       }
       const selectedFiles: WorkspaceFile[] = documents.map((document) => ({
         path: document.path,
@@ -252,6 +321,10 @@ export const useAppStore = create<AppState>((set, get) => ({
           recentWorkspaces,
           sessions,
           activeSessionId,
+          a2uiSurfaces,
+          a2uiInspections,
+          activeSurfaceId: a2uiSurfaces[0]?.surfaceId ?? '',
+          activeInspectionId: a2uiInspections[0]?.id ?? '',
           files: [
             ...state.files.filter((file) => !selectedPaths.includes(file.path)),
             ...selectedFiles,
@@ -284,7 +357,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ workspaceLoading: true, workspaceError: null });
     try {
       const workspace = await desktopApi.restoreWorkspace(workspaceId);
-      const workspaceEntries = await desktopApi.listWorkspaceFiles(workspace.id);
+      const [workspaceEntries, a2uiHistory] = await Promise.all([
+        desktopApi.listWorkspaceFiles(workspace.id),
+        loadA2uiHistory(workspace.id),
+      ]);
+      const { surfaces: a2uiSurfaces, inspections: a2uiInspections } = a2uiHistory;
       let sessions = await desktopApi.listChatSessions(workspace.id);
       if (sessions.length === 0) {
         sessions = [
@@ -304,6 +381,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         activeSessionId: sessions[0].id,
         contextBySession: {},
         chatError: null,
+        a2uiSurfaces,
+        a2uiInspections,
+        activeSurfaceId: a2uiSurfaces[0]?.surfaceId ?? '',
+        activeInspectionId: a2uiInspections[0]?.id ?? '',
+        a2uiNotice: null,
       });
     } catch (error) {
       set({ workspaceError: errorDetails(error).message });
@@ -334,6 +416,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         contextBySession: {},
         chatRequestId: null,
         chatError: null,
+        a2uiSurfaces: [],
+        a2uiInspections: [],
+        activeSurfaceId: '',
+        activeInspectionId: '',
+        a2uiNotice: null,
       });
     } catch (error) {
       set({ workspaceError: errorDetails(error).message });
@@ -596,20 +683,144 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (file) set({ pendingDiff: createMockDiff(file), centerView: 'diff' });
   },
   rejectDiff: () => set({ pendingDiff: null, centerView: 'editor' }),
-  applyDiff: () => {
+  togglePatchChange: (changeId) =>
+    set((state) => ({
+      pendingDiff: state.pendingDiff
+        ? {
+            ...state.pendingDiff,
+            changes: state.pendingDiff.changes.map((change) =>
+              change.id === changeId ? { ...change, selected: !change.selected } : change
+            ),
+          }
+        : null,
+    })),
+  applyDiff: async () => {
     const proposal = get().pendingDiff;
     if (!proposal) return;
-    set((state) => ({
-      files: state.files.map((file) =>
-        file.path === proposal.path ? { ...file, content: proposal.after } : file
-      ),
-      dirtyPaths: state.dirtyPaths.includes(proposal.path)
-        ? state.dirtyPaths
-        : [...state.dirtyPaths, proposal.path],
-      saveStatusByPath: { ...state.saveStatusByPath, [proposal.path]: 'dirty' },
-      pendingDiff: null,
-      centerView: 'editor',
-    }));
+    const selected = proposal.changes.filter((change) => change.selected);
+    if (selected.length === 0) {
+      set({ patchError: '请至少选择一个修改块' });
+      return;
+    }
+    const beforeByPath = Object.fromEntries(
+      [...new Set(selected.map((change) => change.path))].map((path) => [
+        path,
+        get().files.find((file) => file.path === path)?.content ?? '',
+      ])
+    );
+    if (get().runtimeMode === 'web-mock') {
+      const files = selected.map((change) => ({
+        path: change.path,
+        content: change.after,
+        contentHash: 'web-mock-after',
+      }));
+      set((state) => ({
+        files: state.files.map((file) => {
+          const applied = files.find((item) => item.path === file.path);
+          return applied
+            ? { ...file, content: applied.content, contentHash: applied.contentHash }
+            : file;
+        }),
+        dirtyPaths: [...new Set([...state.dirtyPaths, ...files.map((file) => file.path)])],
+        saveStatusByPath: Object.fromEntries([
+          ...Object.entries(state.saveStatusByPath),
+          ...files.map((file) => [file.path, 'dirty' as const]),
+        ]),
+        lastPatchApplication: {
+          operationId: crypto.randomUUID(),
+          summary: proposal.summary,
+          undoOf: null,
+          files,
+        },
+        patchBeforeByPath: beforeByPath,
+        pendingDiff: null,
+        centerView: 'editor',
+        patchError: null,
+      }));
+      return;
+    }
+    const workspace = get().workspace;
+    if (!workspace) return;
+    set({ patchApplying: true, patchError: null });
+    try {
+      const application = await desktopApi.applyDocumentPatch({
+        workspaceId: workspace.id,
+        patch: proposal.patch,
+        selectedChangeIds: selected.map((change) => change.id),
+        sessionId: get().activeSessionId || undefined,
+        assistantMessageId: get()
+          .sessions.find((item) => item.id === get().activeSessionId)
+          ?.messages.filter((message) => message.role === 'assistant')
+          .at(-1)?.id,
+      });
+      set((state) => ({
+        files: state.files.map((file) => {
+          const applied = application.files.find((item) => item.path === file.path);
+          return applied
+            ? { ...file, content: applied.content, contentHash: applied.contentHash }
+            : file;
+        }),
+        dirtyPaths: state.dirtyPaths.filter(
+          (path) => !application.files.some((file) => file.path === path)
+        ),
+        saveStatusByPath: Object.fromEntries([
+          ...Object.entries(state.saveStatusByPath),
+          ...application.files.map((file) => [file.path, 'saved' as const]),
+        ]),
+        lastPatchApplication: application,
+        patchBeforeByPath: beforeByPath,
+        pendingDiff: null,
+        centerView: 'editor',
+      }));
+    } catch (error) {
+      set({ patchError: errorDetails(error).message });
+    } finally {
+      set({ patchApplying: false });
+    }
+  },
+  undoLastPatch: async () => {
+    const application = get().lastPatchApplication;
+    if (!application) return;
+    if (get().runtimeMode === 'web-mock') {
+      set((state) => ({
+        files: state.files.map((file) =>
+          file.path in state.patchBeforeByPath
+            ? { ...file, content: state.patchBeforeByPath[file.path] }
+            : file
+        ),
+        lastPatchApplication: null,
+        patchBeforeByPath: {},
+        patchError: null,
+      }));
+      return;
+    }
+    const workspace = get().workspace;
+    if (!workspace) return;
+    set({ patchApplying: true, patchError: null });
+    try {
+      const undone = await desktopApi.undoDocumentPatch(workspace.id, application.operationId);
+      set((state) => ({
+        files: state.files.map((file) => {
+          const restored = undone.files.find((item) => item.path === file.path);
+          return restored
+            ? { ...file, content: restored.content, contentHash: restored.contentHash }
+            : file;
+        }),
+        dirtyPaths: state.dirtyPaths.filter(
+          (path) => !undone.files.some((file) => file.path === path)
+        ),
+        saveStatusByPath: Object.fromEntries([
+          ...Object.entries(state.saveStatusByPath),
+          ...undone.files.map((file) => [file.path, 'saved' as const]),
+        ]),
+        lastPatchApplication: null,
+        patchBeforeByPath: {},
+      }));
+    } catch (error) {
+      set({ patchError: errorDetails(error).message });
+    } finally {
+      set({ patchApplying: false });
+    }
   },
   setSelectedText: (selectedText) => set({ selectedText }),
   setSessionContext: (sessionId, context) =>
@@ -754,6 +965,28 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (state.runtimeMode === 'web-mock') {
       await new Promise((resolve) => window.setTimeout(resolve, 220));
       if (get().chatRequestId !== requestId) return;
+      if (/\b(a2ui|surface|form|dashboard)\b|界面|表单|仪表盘/i.test(prompt)) {
+        const mock = createMockA2ui();
+        get().updateMessage(
+          session.id,
+          assistantMessageId,
+          'Mock A2UI Surface is ready for the trusted runtime.',
+          'complete'
+        );
+        set((current) => ({
+          chatRequestId: null,
+          a2uiSurfaces: upsertA2uiSurface(current.a2uiSurfaces, mock.surface),
+          a2uiInspections: [
+            mock.inspection,
+            ...current.a2uiInspections.filter((item) => item.id !== mock.inspection.id),
+          ],
+          activeSurfaceId: mock.surface.surfaceId,
+          activeInspectionId: mock.inspection.id,
+          centerView: 'surface',
+          a2uiNotice: null,
+        }));
+        return;
+      }
       get().updateMessage(
         session.id,
         assistantMessageId,
@@ -837,6 +1070,48 @@ export const useAppStore = create<AppState>((set, get) => ({
         displayedContent === result.content ? displayedContent : result.content,
         result.status
       );
+      if (result.errorCode || result.patchError) {
+        set((current) => ({
+          sessions: current.sessions.map((item) =>
+            item.id === session.id
+              ? {
+                  ...item,
+                  messages: item.messages.map((message) =>
+                    message.id === assistantMessageId
+                      ? {
+                          ...message,
+                          errorCode: result.errorCode,
+                          protocolError: result.patchError,
+                        }
+                      : message
+                  ),
+                }
+              : item
+          ),
+        }));
+      }
+      if (result.patch) {
+        set({ pendingDiff: result.patch, centerView: 'diff', patchError: null });
+      }
+      if (result.a2ui) {
+        set((current) => ({
+          a2uiSurfaces: result.a2ui?.surface
+            ? upsertA2uiSurface(current.a2uiSurfaces, result.a2ui.surface)
+            : current.a2uiSurfaces,
+          a2uiInspections: [
+            result.a2ui!.inspection,
+            ...current.a2uiInspections.filter(
+              (inspection) => inspection.id !== result.a2ui!.inspection.id
+            ),
+          ],
+          activeSurfaceId: result.a2ui?.surface?.surfaceId ?? current.activeSurfaceId,
+          activeInspectionId: result.a2ui!.inspection.id,
+          centerView: 'surface',
+          a2uiNotice: result.a2ui!.inspection.validation.valid
+            ? null
+            : result.a2ui!.inspection.validation.errors.join('；'),
+        }));
+      }
     } catch (error) {
       await textBuffer.finish();
       const details = errorDetails(error);
@@ -857,6 +1132,122 @@ export const useAppStore = create<AppState>((set, get) => ({
       }));
     } finally {
       if (get().chatRequestId === requestId) set({ chatRequestId: null });
+    }
+  },
+
+  setActiveSurface: (activeSurfaceId) =>
+    set((state) => ({
+      activeSurfaceId,
+      activeInspectionId:
+        state.a2uiInspections.find((inspection) => inspection.surfaceId === activeSurfaceId)?.id ??
+        state.activeInspectionId,
+      centerView: 'surface',
+    })),
+
+  setActiveInspection: (activeInspectionId) =>
+    set((state) => ({
+      activeInspectionId,
+      activeSurfaceId:
+        state.a2uiInspections.find((inspection) => inspection.id === activeInspectionId)
+          ?.surfaceId ?? state.activeSurfaceId,
+      centerView: 'surface',
+    })),
+
+  executeA2uiAction: async (componentId, eventName, payload) => {
+    const state = get();
+    const surface = state.a2uiSurfaces.find((item) => item.surfaceId === state.activeSurfaceId);
+    if (!surface) return;
+    const action = findA2uiNode(surface.root, componentId)?.actions[eventName];
+    const stateTarget =
+      action?.type === 'set_state' && typeof action.target === 'string' ? action.target : null;
+    set((current) => ({
+      a2uiActionLoading: stateTarget ? current.a2uiActionLoading : true,
+      a2uiNotice: null,
+      a2uiSurfaces: stateTarget
+        ? current.a2uiSurfaces.map((item) =>
+            item.surfaceId === surface.surfaceId
+              ? { ...item, data: { ...item.data, [stateTarget]: payload } }
+              : item
+          )
+        : current.a2uiSurfaces,
+    }));
+    try {
+      if (state.runtimeMode === 'web-mock') {
+        const node = findA2uiNode(surface.root, componentId);
+        const action = node?.actions[eventName];
+        const decision = action
+          ? action.type === 'request_patch'
+            ? 'review_required'
+            : 'allowed'
+          : 'denied';
+        const target = action?.target;
+        const next: A2uiSurface = {
+          ...surface,
+          data:
+            action?.type === 'set_state' && target
+              ? { ...surface.data, [target]: payload }
+              : surface.data,
+          events: [
+            {
+              id: crypto.randomUUID(),
+              componentId,
+              eventName,
+              actionType: action?.type ?? 'undeclared',
+              risk:
+                decision === 'denied' ? 'high' : decision === 'review_required' ? 'medium' : 'low',
+              decision,
+              payload,
+              durationMs: 1,
+              createdAt: new Date().toISOString(),
+            },
+            ...surface.events,
+          ],
+        };
+        set((current) => ({
+          a2uiSurfaces: upsertA2uiSurface(current.a2uiSurfaces, next),
+          a2uiNotice:
+            decision === 'review_required'
+              ? '文件操作必须进入 Diff 审阅'
+              : decision === 'denied'
+                ? '未声明的 Action 已拒绝'
+                : 'Action 已记录',
+        }));
+        return;
+      }
+      const workspace = state.workspace;
+      if (!workspace) return;
+      const result = await desktopApi.executeA2uiAction({
+        workspaceId: workspace.id,
+        surfaceId: surface.surfaceId,
+        componentId,
+        eventName,
+        payload,
+      });
+      set((current) => ({
+        a2uiSurfaces: upsertA2uiSurface(
+          current.a2uiSurfaces,
+          stateTarget
+            ? {
+                ...result.surface,
+                data: {
+                  ...result.surface.data,
+                  ...(current.a2uiSurfaces.find(
+                    (item) => item.surfaceId === result.surface.surfaceId
+                  )?.data ?? {}),
+                },
+              }
+            : result.surface
+        ),
+        a2uiNotice: result.message,
+        centerView:
+          result.decision === 'review_required' && current.pendingDiff
+            ? 'diff'
+            : current.centerView,
+      }));
+    } catch (error) {
+      set({ a2uiNotice: errorDetails(error).message });
+    } finally {
+      if (!stateTarget) set({ a2uiActionLoading: false });
     }
   },
 

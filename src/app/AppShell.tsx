@@ -3,6 +3,7 @@ import { Button, ConfigProvider, Dropdown, Tag, Tooltip } from 'antd';
 import { useEffect } from 'react';
 import { useState } from 'react';
 import { ChatPanel } from '../features/chat/components/ChatPanel';
+import { scheduleAutomaticUpdateCheck } from '../features/settings/appUpdater';
 import { ProviderSettings } from '../features/settings/components/ProviderSettings';
 import { EditorPane } from '../features/workspace/components/EditorPane';
 import { WorkspaceSidebar } from '../features/workspace/components/WorkspaceSidebar';
@@ -10,6 +11,7 @@ import { getRuntimeMode } from '../shared/platform/runtime';
 import { useAppStore } from '../stores/useAppStore';
 import { useI18n } from './i18n/useI18n';
 import styles from './AppShell.module.css';
+import { WorkspaceLayout } from './WorkspaceLayout';
 
 export function AppShell() {
   const { locale, setLocale, t } = useI18n();
@@ -22,6 +24,8 @@ export function AppShell() {
     void initializeWorkspace();
     void initializeProviders();
   }, [initializeProviders, initializeWorkspace]);
+
+  useEffect(() => scheduleAutomaticUpdateCheck(), []);
 
   return (
     <ConfigProvider
@@ -61,17 +65,18 @@ export function AppShell() {
             <Tooltip title={t('settings')}>
               <Button
                 type="text"
+                aria-label={t('settings')}
                 icon={<SettingOutlined />}
                 onClick={() => setSettingsOpen(true)}
               />
             </Tooltip>
           </div>
         </header>
-        <div className={styles.workspace}>
-          <WorkspaceSidebar />
-          <EditorPane />
-          <ChatPanel />
-        </div>
+        <WorkspaceLayout
+          left={<WorkspaceSidebar />}
+          center={<EditorPane />}
+          right={<ChatPanel />}
+        />
         <ProviderSettings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       </div>
     </ConfigProvider>

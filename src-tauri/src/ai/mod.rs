@@ -79,6 +79,7 @@ pub struct ContextSource {
     pub kind: ContextSourceKind,
     pub label: String,
     pub content: String,
+    pub base_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]

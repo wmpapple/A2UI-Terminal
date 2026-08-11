@@ -22,6 +22,7 @@ src-tauri/target/
 *.pfx
 *.p12
 *.local
+src-tauri/tauri.release.conf.json
 
 # Runtime data
 *.db

@@ -23,6 +23,11 @@ beforeEach(() => {
     sessions: mockSessions,
     activeSessionId: 'welcome',
     pendingDiff: null,
+    a2uiSurfaces: [],
+    a2uiInspections: [],
+    activeSurfaceId: '',
+    activeInspectionId: '',
+    a2uiNotice: null,
   });
 });
 
@@ -41,5 +46,48 @@ describe('workspace review flow', () => {
     expect(useAppStore.getState().files[0].content).toContain('Review workflow');
     expect(useAppStore.getState().dirtyPaths).toContain('README.md');
     expect(useAppStore.getState().pendingDiff).toBeNull();
+  });
+
+  it('does not mutate a file when every patch block is rejected', async () => {
+    const before = useAppStore.getState().files[0].content;
+    useAppStore.getState().createProposal();
+    const changeId = useAppStore.getState().pendingDiff?.changes[0].id;
+    if (!changeId) throw new Error('mock patch missing');
+    useAppStore.getState().togglePatchChange(changeId);
+    await useAppStore.getState().applyDiff();
+    expect(useAppStore.getState().files[0].content).toBe(before);
+    expect(useAppStore.getState().pendingDiff).not.toBeNull();
+  });
+
+  it('undoes an applied mock patch without discarding the history marker early', async () => {
+    const before = useAppStore.getState().files[0].content;
+    useAppStore.getState().createProposal();
+    await useAppStore.getState().applyDiff();
+    expect(useAppStore.getState().lastPatchApplication).not.toBeNull();
+    await useAppStore.getState().undoLastPatch();
+    expect(useAppStore.getState().files[0].content).toBe(before);
+    expect(useAppStore.getState().lastPatchApplication).toBeNull();
+  });
+
+  it('routes an A2UI request to the trusted Web Mock runtime and records actions', async () => {
+    await useAppStore.getState().sendChat(
+      'Create an A2UI form',
+      {
+        selection: false,
+        currentFile: false,
+        recentMessages: false,
+        recentMessageCount: 0,
+        projectFiles: [],
+      },
+      true
+    );
+    expect(useAppStore.getState().centerView).toBe('surface');
+    expect(useAppStore.getState().a2uiSurfaces[0]?.surfaceId).toBe('web-mock-form');
+    await useAppStore.getState().executeA2uiAction('name', 'change', 'Grace');
+    expect(useAppStore.getState().a2uiSurfaces[0]?.data.name).toBe('Grace');
+    expect(useAppStore.getState().a2uiSurfaces[0]?.events).toHaveLength(1);
+    await useAppStore.getState().executeA2uiAction('role', 'change', 'designer');
+    expect(useAppStore.getState().a2uiSurfaces[0]?.events[0]?.componentId).toBe('role');
+    expect(useAppStore.getState().a2uiSurfaces[0]?.events[1]?.componentId).toBe('name');
   });
 });

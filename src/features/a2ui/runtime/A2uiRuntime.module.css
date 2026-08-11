@@ -1,0 +1,124 @@
+.surface {
+  min-height: 100%;
+  padding: 20px;
+  color: var(--text);
+  background: var(--surface-subtle);
+  box-sizing: border-box;
+}
+
+.row,
+.column {
+  display: flex;
+}
+
+.row {
+  flex-direction: row;
+}
+
+.column,
+.form {
+  flex-direction: column;
+}
+
+.row[data-wrap='true'] {
+  flex-wrap: wrap;
+}
+
+.row[data-align='start'],
+.column[data-align='start'] {
+  align-items: flex-start;
+}
+.row[data-align='center'],
+.column[data-align='center'] {
+  align-items: center;
+}
+.row[data-align='end'],
+.column[data-align='end'] {
+  align-items: flex-end;
+}
+.row[data-align='stretch'],
+.column[data-align='stretch'] {
+  align-items: stretch;
+}
+.row[data-justify='center'],
+.column[data-justify='center'] {
+  justify-content: center;
+}
+.row[data-justify='end'],
+.column[data-justify='end'] {
+  justify-content: flex-end;
+}
+.row[data-justify='between'],
+.column[data-justify='between'] {
+  justify-content: space-between;
+}
+
+.gap_xs {
+  gap: 4px;
+}
+.gap_sm {
+  gap: 8px;
+}
+.gap_md {
+  gap: 14px;
+}
+.gap_lg {
+  gap: 22px;
+}
+
+.stack {
+  display: grid;
+}
+
+.stack > .child {
+  grid-area: 1 / 1;
+}
+
+.child {
+  min-width: 0;
+}
+
+.text[data-variant='title'] {
+  color: var(--text-strong);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.text[data-variant='caption'] {
+  font-size: 12px;
+}
+.text[data-tone='muted'] {
+  color: var(--text-muted);
+}
+.text[data-tone='success'] {
+  color: #238636;
+}
+.text[data-tone='warning'] {
+  color: #9a6700;
+}
+.text[data-tone='danger'] {
+  color: #cf222e;
+}
+.text[data-weight='medium'] {
+  font-weight: 500;
+}
+.text[data-weight='semibold'] {
+  font-weight: 600;
+}
+
+.field,
+.form {
+  display: flex;
+  gap: 6px;
+}
+
+.field {
+  flex-direction: column;
+}
+
+.field > span,
+.field > label {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}

@@ -10,6 +10,7 @@
     "allow-provider-secret-status",
     "allow-delete-provider-secret",
     "allow-clear-all-local-data",
+    "allow-export-diagnostics",
     "allow-select-workspace",
     "allow-list-recent-workspaces",
     "allow-restore-workspace",
@@ -28,6 +29,15 @@
     "allow-list-chat-sessions",
     "allow-create-chat-session",
     "allow-stream-chat",
-    "allow-stop-chat"
+    "allow-stop-chat",
+    "allow-validate-document-patch",
+    "allow-apply-document-patch",
+    "allow-undo-document-patch",
+    "allow-process-a2ui-message",
+    "allow-list-a2ui-surfaces",
+    "allow-list-a2ui-inspections",
+    "allow-execute-a2ui-action",
+    "updater:default",
+    "process:allow-restart"
   ]
 }

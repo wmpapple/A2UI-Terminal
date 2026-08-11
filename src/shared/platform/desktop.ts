@@ -1,11 +1,18 @@
 import { Channel, invoke } from '@tauri-apps/api/core';
 import { getRuntimeMode } from './runtime';
 import type {
+  A2uiActionResult,
+  A2uiInspection,
+  A2uiProcessResult,
+  A2uiSurface,
   ChatRequest,
   ChatSession,
   ChatStreamEvent,
   ChatStreamResult,
   ProviderConfig,
+  DocumentPatch,
+  PatchApplication,
+  PatchReview,
   SelectedWorkspaceFiles,
   WorkspaceDocument,
   WorkspaceFileEntry,
@@ -60,6 +67,11 @@ export const desktopApi = {
   async clearAllLocalData(confirmation: string): Promise<{ cleared: boolean }> {
     requireDesktop();
     return invoke<{ cleared: boolean }>('clear_all_local_data', { confirmation });
+  },
+
+  async exportDiagnostics(): Promise<{ exported: boolean; fileName: string | null }> {
+    requireDesktop();
+    return invoke<{ exported: boolean; fileName: string | null }>('export_diagnostics');
   },
 
   async selectWorkspace(): Promise<WorkspaceSummary | null> {
@@ -208,5 +220,57 @@ export const desktopApi = {
   async stopChat(requestId: string): Promise<boolean> {
     requireDesktop();
     return invoke<boolean>('stop_chat', { requestId });
+  },
+
+  async validateDocumentPatch(workspaceId: string, raw: string): Promise<PatchReview> {
+    requireDesktop();
+    return invoke<PatchReview>('validate_document_patch', { workspaceId, raw });
+  },
+
+  async applyDocumentPatch(request: {
+    workspaceId: string;
+    patch: DocumentPatch;
+    selectedChangeIds: string[];
+    sessionId?: string;
+    assistantMessageId?: string;
+  }): Promise<PatchApplication> {
+    requireDesktop();
+    return invoke<PatchApplication>('apply_document_patch', { request });
+  },
+
+  async undoDocumentPatch(workspaceId: string, operationId: string): Promise<PatchApplication> {
+    requireDesktop();
+    return invoke<PatchApplication>('undo_document_patch', { workspaceId, operationId });
+  },
+
+  async processA2uiMessage(request: {
+    workspaceId: string;
+    sessionId: string;
+    messageId: string;
+    rawMessage: string;
+  }): Promise<A2uiProcessResult | null> {
+    requireDesktop();
+    return invoke<A2uiProcessResult | null>('process_a2ui_message', { request });
+  },
+
+  async listA2uiSurfaces(workspaceId: string): Promise<A2uiSurface[]> {
+    requireDesktop();
+    return invoke<A2uiSurface[]>('list_a2ui_surfaces', { workspaceId });
+  },
+
+  async listA2uiInspections(workspaceId: string): Promise<A2uiInspection[]> {
+    requireDesktop();
+    return invoke<A2uiInspection[]>('list_a2ui_inspections', { workspaceId });
+  },
+
+  async executeA2uiAction(request: {
+    workspaceId: string;
+    surfaceId: string;
+    componentId: string;
+    eventName: string;
+    payload?: unknown;
+  }): Promise<A2uiActionResult> {
+    requireDesktop();
+    return invoke<A2uiActionResult>('execute_a2ui_action', { request });
   },
 };

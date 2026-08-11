@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { desktopApi } from '../shared/platform/desktop';
+import { createMockA2ui } from '../shared/mock/workspace';
 import { useAppStore } from './useAppStore';
 
 beforeEach(() => {
@@ -30,6 +31,10 @@ beforeEach(() => {
     ],
     chatRequestId: null,
     chatError: null,
+    a2uiSurfaces: [],
+    a2uiInspections: [],
+    activeSurfaceId: '',
+    activeInspectionId: '',
   });
 });
 
@@ -108,5 +113,79 @@ describe('desktop chat state', () => {
     await useAppStore.getState().stopChat();
 
     expect(stop).toHaveBeenCalledWith('request-1');
+  });
+
+  it('upserts a validated Surface without rebuilding unrelated surfaces', async () => {
+    const incoming = createMockA2ui();
+    const unrelated = {
+      ...incoming.surface,
+      surfaceId: 'unrelated',
+      messageId: 'other-message',
+    };
+    useAppStore.setState({ a2uiSurfaces: [unrelated], a2uiInspections: [] });
+    vi.spyOn(desktopApi, 'streamChat').mockImplementation(async (request, onEvent) => {
+      onEvent({
+        type: 'complete',
+        requestId: request.requestId,
+        messageId: request.assistantMessageId,
+      });
+      return {
+        requestId: request.requestId,
+        messageId: request.assistantMessageId,
+        content: '{"type":"a2ui_surface"}',
+        status: 'complete',
+        errorCode: 'A2UI_READY',
+        a2ui: incoming,
+      };
+    });
+
+    await useAppStore.getState().sendChat(
+      'Create a form',
+      {
+        selection: false,
+        currentFile: false,
+        recentMessages: false,
+        recentMessageCount: 0,
+        projectFiles: [],
+      },
+      true
+    );
+
+    const surfaces = useAppStore.getState().a2uiSurfaces;
+    expect(surfaces).toHaveLength(2);
+    expect(surfaces.find((surface) => surface.surfaceId === 'unrelated')).toBe(unrelated);
+    expect(useAppStore.getState().centerView).toBe('surface');
+  });
+
+  it('updates declared form state optimistically while the desktop audit is pending', async () => {
+    const mock = createMockA2ui();
+    useAppStore.setState({
+      a2uiSurfaces: [mock.surface],
+      activeSurfaceId: mock.surface.surfaceId,
+    });
+    let resolveAction!: (value: {
+      risk: 'low';
+      decision: 'allowed';
+      message: string;
+      surface: typeof mock.surface;
+    }) => void;
+    vi.spyOn(desktopApi, 'executeA2uiAction').mockReturnValue(
+      new Promise((resolve) => {
+        resolveAction = resolve;
+      })
+    );
+
+    const pending = useAppStore.getState().executeA2uiAction('name', 'change', '张三');
+    expect(useAppStore.getState().a2uiSurfaces[0]?.data.name).toBe('张三');
+    expect(useAppStore.getState().a2uiActionLoading).toBe(false);
+
+    resolveAction({
+      risk: 'low',
+      decision: 'allowed',
+      message: 'Action 已执行',
+      surface: { ...mock.surface, data: { ...mock.surface.data, name: '张三' } },
+    });
+    await pending;
+    expect(useAppStore.getState().a2uiSurfaces[0]?.data.name).toBe('张三');
   });
 });
