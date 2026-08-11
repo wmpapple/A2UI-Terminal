@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-read-document-version"
+description = "Enables the read_document_version command without any pre-configured scope."
+commands.allow = ["read_document_version"]
+
+[[permission]]
+identifier = "deny-read-document-version"
+description = "Denies the read_document_version command without any pre-configured scope."
+commands.deny = ["read_document_version"]

@@ -1,18 +1,42 @@
 use crate::ai::{default_providers, ProviderConfig, ProviderKind, ProviderMessage};
 use crate::error::AppError;
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use serde::Serialize;
+use sha2::{Digest, Sha256};
+use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 use std::sync::Mutex;
+use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 6;
+const SCHEMA_VERSION: i64 = 8;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
 const MIGRATION_V4: &str = include_str!("../../migrations/0004_standalone_workspaces.sql");
 const MIGRATION_V5: &str = include_str!("../../migrations/0005_semantic_patches.sql");
 const MIGRATION_V6: &str = include_str!("../../migrations/0006_a2ui_runtime.sql");
+const MIGRATION_V7: &str = include_str!("../../migrations/0007_document_history.sql");
+const MIGRATION_V8: &str = include_str!("../../migrations/0008_crash_recovery.sql");
+const MIGRATIONS: &[(i64, &str)] = &[
+    (1, MIGRATION_V1),
+    (2, MIGRATION_V2),
+    (3, MIGRATION_V3),
+    (4, MIGRATION_V4),
+    (5, MIGRATION_V5),
+    (6, MIGRATION_V6),
+    (7, MIGRATION_V7),
+    (8, MIGRATION_V8),
+];
+
+fn sha256(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    let mut encoded = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        write!(&mut encoded, "{byte:02x}").expect("writing to a String cannot fail");
+    }
+    encoded
+}
 
 #[derive(Debug, Clone)]
 pub struct WorkspaceRow {
@@ -39,9 +63,52 @@ fn workspace_file_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Workspac
     })
 }
 
+fn document_version_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<DocumentVersionRecord> {
+    let bytes: Vec<u8> = row.get(3)?;
+    let content = String::from_utf8(bytes).map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(3, rusqlite::types::Type::Blob, Box::new(error))
+    })?;
+    Ok(DocumentVersionRecord {
+        id: row.get(0)?,
+        workspace_id: row.get(1)?,
+        relative_path: row.get(2)?,
+        content,
+        content_hash: row.get(4)?,
+        source: row.get(5)?,
+        summary: row.get(6)?,
+        version_kind: row.get(7)?,
+        created_at: row.get(8)?,
+    })
+}
+
+fn document_version_metadata_from_row(
+    row: &rusqlite::Row<'_>,
+) -> rusqlite::Result<DocumentVersionMetadata> {
+    Ok(DocumentVersionMetadata {
+        id: row.get(0)?,
+        workspace_id: row.get(1)?,
+        relative_path: row.get(2)?,
+        content_hash: row.get(3)?,
+        source: row.get(4)?,
+        summary: row.get(5)?,
+        version_kind: row.get(6)?,
+        created_at: row.get(7)?,
+    })
+}
+
 #[derive(Debug, Clone)]
 pub struct DraftRow {
+    pub relative_path: String,
     pub content: String,
+    pub content_hash: String,
+    pub base_hash: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DraftSummaryRow {
+    pub relative_path: String,
+    pub content_hash: String,
     pub base_hash: String,
     pub updated_at: String,
 }
@@ -87,6 +154,32 @@ pub struct PatchSnapshot {
     pub content: String,
     pub content_hash: String,
     pub version_kind: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentVersionRecord {
+    pub id: String,
+    pub workspace_id: String,
+    pub relative_path: String,
+    pub content: String,
+    pub content_hash: String,
+    pub source: String,
+    pub summary: Option<String>,
+    pub version_kind: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DocumentVersionMetadata {
+    pub id: String,
+    pub workspace_id: String,
+    pub relative_path: String,
+    pub content_hash: String,
+    pub source: String,
+    pub summary: Option<String>,
+    pub version_kind: String,
+    pub created_at: String,
 }
 
 #[derive(Debug, Clone)]
@@ -166,9 +259,13 @@ impl Storage {
             fs::create_dir_all(parent)?;
         }
 
-        let connection = Connection::open(database_path)?;
+        let mut connection = Connection::open(database_path)?;
+        Self::verify_integrity(&connection)?;
         Self::configure(&connection)?;
-        Self::migrate(&connection)?;
+        Self::migrate(&mut connection)?;
+        Self::backfill_draft_hashes(&mut connection)?;
+        Self::verify_integrity(&connection)?;
+        Self::verify_foreign_keys(&connection)?;
         Ok(Self {
             connection: Mutex::new(connection),
         })
@@ -831,13 +928,21 @@ impl Storage {
             .lock()
             .map_err(|_| AppError::StateUnavailable)?;
         connection.execute(
-            "INSERT INTO workspace_drafts(workspace_id, relative_path, content, base_hash)
-             VALUES (?1, ?2, ?3, ?4)
+            "INSERT INTO workspace_drafts
+                (workspace_id, relative_path, content, content_hash, base_hash)
+             VALUES (?1, ?2, ?3, ?4, ?5)
              ON CONFLICT(workspace_id, relative_path) DO UPDATE SET
                 content = excluded.content,
+                content_hash = excluded.content_hash,
                 base_hash = excluded.base_hash,
                 updated_at = CURRENT_TIMESTAMP",
-            params![workspace_id, relative_path, content, base_hash],
+            params![
+                workspace_id,
+                relative_path,
+                content,
+                sha256(content.as_bytes()),
+                base_hash
+            ],
         )?;
         Ok(())
     }
@@ -853,18 +958,51 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         Ok(connection
             .query_row(
-                "SELECT content, base_hash, updated_at FROM workspace_drafts
+                "SELECT relative_path, content, content_hash, base_hash, updated_at
+                 FROM workspace_drafts
                  WHERE workspace_id = ?1 AND relative_path = ?2",
                 params![workspace_id, relative_path],
                 |row| {
                     Ok(DraftRow {
-                        content: row.get(0)?,
-                        base_hash: row.get(1)?,
-                        updated_at: row.get(2)?,
+                        relative_path: row.get(0)?,
+                        content: row.get(1)?,
+                        content_hash: row.get(2)?,
+                        base_hash: row.get(3)?,
+                        updated_at: row.get(4)?,
                     })
                 },
             )
             .optional()?)
+    }
+
+    pub fn workspace_draft_summaries(
+        &self,
+        workspace_id: &str,
+    ) -> Result<Vec<DraftSummaryRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut statement = connection.prepare(
+            "SELECT relative_path, content_hash, base_hash, updated_at
+             FROM workspace_drafts WHERE workspace_id = ?1
+             ORDER BY updated_at DESC, relative_path LIMIT 1001",
+        )?;
+        let rows = statement.query_map([workspace_id], |row| {
+            Ok(DraftSummaryRow {
+                relative_path: row.get(0)?,
+                content_hash: row.get(1)?,
+                base_hash: row.get(2)?,
+                updated_at: row.get(3)?,
+            })
+        })?;
+        let rows = rows.collect::<Result<Vec<_>, _>>()?;
+        if rows.len() > 1000 {
+            return Err(AppError::InvalidInput(
+                "待恢复草稿超过 1000 个安全上限".into(),
+            ));
+        }
+        Ok(rows)
     }
 
     pub fn delete_draft(&self, workspace_id: &str, relative_path: &str) -> Result<(), AppError> {
@@ -877,6 +1015,134 @@ impl Storage {
             params![workspace_id, relative_path],
         )?;
         Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn record_file_save_versions(
+        &self,
+        workspace_id: &str,
+        relative_path: &str,
+        before: &str,
+        before_hash: &str,
+        after: &str,
+        after_hash: &str,
+        source: &str,
+        summary: &str,
+    ) -> Result<(), AppError> {
+        if before_hash == after_hash {
+            return Ok(());
+        }
+        if !matches!(source, "autosave" | "restore") {
+            return Err(AppError::InvalidInput("文档版本来源无效".into()));
+        }
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction()?;
+        let before_exists = transaction
+            .query_row(
+                "SELECT 1 FROM document_versions
+                 WHERE workspace_id = ?1 AND relative_path = ?2 AND content_hash = ?3
+                 LIMIT 1",
+                params![workspace_id, relative_path, before_hash],
+                |_| Ok(true),
+            )
+            .optional()?
+            .unwrap_or(false);
+        if !before_exists {
+            transaction.execute(
+                "INSERT INTO document_versions
+                 (id, workspace_id, relative_path, content, content_hash, expires_at,
+                  version_kind, source, summary)
+                 VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', '+30 days'),
+                         'snapshot', 'initial', ?6)",
+                params![
+                    uuid::Uuid::new_v4().to_string(),
+                    workspace_id,
+                    relative_path,
+                    before.as_bytes(),
+                    before_hash,
+                    "首次记录的磁盘版本"
+                ],
+            )?;
+        }
+        transaction.execute(
+            "INSERT INTO document_versions
+             (id, workspace_id, relative_path, content, content_hash, expires_at,
+              version_kind, source, summary)
+             VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', '+30 days'),
+                     'snapshot', ?6, ?7)",
+            params![
+                uuid::Uuid::new_v4().to_string(),
+                workspace_id,
+                relative_path,
+                after.as_bytes(),
+                after_hash,
+                source,
+                summary
+            ],
+        )?;
+        transaction.execute(
+            "DELETE FROM document_versions
+             WHERE id IN (
+                 SELECT id FROM document_versions
+                 WHERE workspace_id = ?1 AND relative_path = ?2
+                   AND source IN ('initial', 'autosave', 'restore')
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT -1 OFFSET 100
+             )",
+            params![workspace_id, relative_path],
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn document_versions(
+        &self,
+        workspace_id: &str,
+        relative_path: &str,
+        limit: usize,
+    ) -> Result<Vec<DocumentVersionMetadata>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut statement = connection.prepare(
+            "SELECT id, workspace_id, relative_path, content_hash,
+                    source, summary, version_kind, created_at
+             FROM document_versions
+             WHERE workspace_id = ?1 AND relative_path = ?2
+             ORDER BY created_at DESC, id DESC
+             LIMIT ?3",
+        )?;
+        let rows = statement.query_map(
+            params![workspace_id, relative_path, limit.clamp(1, 200) as i64],
+            document_version_metadata_from_row,
+        )?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn document_version(
+        &self,
+        workspace_id: &str,
+        relative_path: &str,
+        version_id: &str,
+    ) -> Result<Option<DocumentVersionRecord>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT id, workspace_id, relative_path, content, content_hash,
+                        source, summary, version_kind, created_at
+                 FROM document_versions
+                 WHERE id = ?1 AND workspace_id = ?2 AND relative_path = ?3",
+                params![version_id, workspace_id, relative_path],
+                document_version_from_row,
+            )
+            .optional()?)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -924,8 +1190,9 @@ impl Storage {
             transaction.execute(
                 "INSERT INTO document_versions
                  (id, workspace_id, relative_path, content, content_hash, expires_at,
-                  operation_id, version_kind)
-                 VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', '+30 days'), ?6, ?7)",
+                   operation_id, version_kind, source, summary)
+                  VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', '+30 days'), ?6, ?7,
+                          'patch', ?8)",
                 params![
                     snapshot.id,
                     snapshot.workspace_id,
@@ -933,7 +1200,8 @@ impl Storage {
                     snapshot.content.as_bytes(),
                     snapshot.content_hash,
                     snapshot.operation_id,
-                    snapshot.version_kind
+                    snapshot.version_kind,
+                    summary
                 ],
             )?;
         }
@@ -1308,48 +1576,114 @@ impl Storage {
     }
 
     fn configure(connection: &Connection) -> Result<(), AppError> {
+        connection.busy_timeout(Duration::from_secs(5))?;
         connection.execute_batch(
             "PRAGMA foreign_keys = ON;
              PRAGMA journal_mode = WAL;
-             PRAGMA synchronous = NORMAL;",
+             PRAGMA synchronous = FULL;
+             PRAGMA wal_autocheckpoint = 1000;",
         )?;
         Ok(())
     }
 
-    fn migrate(connection: &Connection) -> Result<(), AppError> {
+    fn verify_integrity(connection: &Connection) -> Result<(), AppError> {
+        let result = connection
+            .query_row("PRAGMA quick_check(1)", [], |row| row.get::<_, String>(0))
+            .map_err(|_| AppError::DatabaseIntegrity)?;
+        if result.eq_ignore_ascii_case("ok") {
+            Ok(())
+        } else {
+            Err(AppError::DatabaseIntegrity)
+        }
+    }
+
+    fn verify_foreign_keys(connection: &Connection) -> Result<(), AppError> {
+        let mut statement = connection
+            .prepare("PRAGMA foreign_key_check")
+            .map_err(|_| AppError::DatabaseIntegrity)?;
+        let mut rows = statement
+            .query([])
+            .map_err(|_| AppError::DatabaseIntegrity)?;
+        if rows
+            .next()
+            .map_err(|_| AppError::DatabaseIntegrity)?
+            .is_some()
+        {
+            Err(AppError::DatabaseIntegrity)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn migrate(connection: &mut Connection) -> Result<(), AppError> {
+        Self::migrate_to(connection, SCHEMA_VERSION, MIGRATIONS)
+    }
+
+    fn migrate_to(
+        connection: &mut Connection,
+        target_version: i64,
+        migrations: &[(i64, &str)],
+    ) -> Result<(), AppError> {
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let current =
-            connection.query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))?;
-        if current > SCHEMA_VERSION {
+            transaction.query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))?;
+        if current > target_version {
             return Err(AppError::InvalidInput(format!(
-                "Database schema version {current} is newer than supported version {SCHEMA_VERSION}"
+                "Database schema version {current} is newer than supported version {target_version}"
             )));
         }
-        if current < 1 {
-            connection.execute_batch(MIGRATION_V1)?;
+        let mut applied = current;
+        for &(version, sql) in migrations.iter().filter(|(version, _)| *version > current) {
+            if version != applied + 1 || version > target_version {
+                break;
+            }
+            transaction.execute_batch(sql)?;
+            transaction.pragma_update(None, "user_version", version)?;
+            applied = version;
         }
-        if current < 2 {
-            connection.execute_batch(MIGRATION_V2)?;
+        if applied != target_version {
+            return Err(AppError::StateUnavailable);
         }
-        if current < 3 {
-            connection.execute_batch(MIGRATION_V3)?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    fn backfill_draft_hashes(connection: &mut Connection) -> Result<(), AppError> {
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let pending = {
+            let mut statement = transaction.prepare(
+                "SELECT workspace_id, relative_path, content
+                 FROM workspace_drafts WHERE content_hash = ''",
+            )?;
+            let rows = statement.query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })?;
+            rows.collect::<Result<Vec<_>, _>>()?
+        };
+        for (workspace_id, relative_path, content) in pending {
+            transaction.execute(
+                "UPDATE workspace_drafts SET content_hash = ?1
+                 WHERE workspace_id = ?2 AND relative_path = ?3 AND content_hash = ''",
+                params![sha256(content.as_bytes()), workspace_id, relative_path],
+            )?;
         }
-        if current < 4 {
-            connection.execute_batch(MIGRATION_V4)?;
-        }
-        if current < 5 {
-            connection.execute_batch(MIGRATION_V5)?;
-        }
-        if current < 6 {
-            connection.execute_batch(MIGRATION_V6)?;
-        }
+        transaction.commit()?;
         Ok(())
     }
 
     #[cfg(test)]
     pub(crate) fn open_in_memory() -> Result<Self, AppError> {
-        let connection = Connection::open_in_memory()?;
+        let mut connection = Connection::open_in_memory()?;
+        Self::verify_integrity(&connection)?;
         Self::configure(&connection)?;
-        Self::migrate(&connection)?;
+        Self::migrate(&mut connection)?;
+        Self::backfill_draft_hashes(&mut connection)?;
+        Self::verify_integrity(&connection)?;
+        Self::verify_foreign_keys(&connection)?;
         Ok(Self {
             connection: Mutex::new(connection),
         })
@@ -1374,7 +1708,10 @@ impl Storage {
 
 #[cfg(test)]
 mod tests {
-    use super::{Storage, MIGRATION_V1, SCHEMA_VERSION};
+    use super::{Storage, MIGRATIONS, MIGRATION_V1, SCHEMA_VERSION};
+    use crate::error::AppError;
+    use rusqlite::{Connection, OptionalExtension};
+    use std::fs;
 
     #[test]
     fn applies_initial_schema_once() {
@@ -1402,6 +1739,189 @@ mod tests {
                 "missing table {table}"
             );
         }
+    }
+
+    #[test]
+    fn upgrades_an_existing_v6_database_and_preserves_patch_history() {
+        let directory = tempfile::tempdir().unwrap();
+        let database_path = directory.path().join("upgrade.sqlite3");
+        {
+            let mut connection = Connection::open(&database_path).unwrap();
+            Storage::configure(&connection).unwrap();
+            Storage::migrate_to(&mut connection, 6, MIGRATIONS).unwrap();
+            connection
+                .execute(
+                    "INSERT INTO workspaces(id, name, root_path, kind)
+                     VALUES ('workspace-upgrade', 'Upgrade', 'C:\\upgrade', 'directory')",
+                    [],
+                )
+                .unwrap();
+            connection
+                .execute(
+                    "INSERT INTO patch_operations(id, workspace_id, summary, patch_json)
+                     VALUES ('operation-upgrade', 'workspace-upgrade', 'Existing patch', '{}')",
+                    [],
+                )
+                .unwrap();
+            connection
+                .execute(
+                    "INSERT INTO document_versions
+                     (id, workspace_id, relative_path, content, content_hash, expires_at,
+                      operation_id, version_kind)
+                     VALUES ('version-upgrade', 'workspace-upgrade', 'a.md', X'6F6C64',
+                             'hash', datetime('now', '+30 days'), 'operation-upgrade', 'after')",
+                    [],
+                )
+                .unwrap();
+        }
+
+        let storage = Storage::open(&database_path).unwrap();
+        assert_eq!(storage.schema_version().unwrap(), SCHEMA_VERSION);
+        let version = storage
+            .document_version("workspace-upgrade", "a.md", "version-upgrade")
+            .unwrap()
+            .unwrap();
+        assert_eq!(version.content, "old");
+        assert_eq!(version.source, "patch");
+        assert_eq!(version.summary.as_deref(), Some("Existing patch"));
+    }
+
+    #[test]
+    fn upgrades_every_supported_schema_version_and_preserves_existing_rows() {
+        for starting_version in 0..SCHEMA_VERSION {
+            let directory = tempfile::tempdir().unwrap();
+            let database_path = directory
+                .path()
+                .join(format!("upgrade-from-{starting_version}.sqlite3"));
+            if starting_version > 0 {
+                let mut connection = Connection::open(&database_path).unwrap();
+                Storage::configure(&connection).unwrap();
+                Storage::migrate_to(&mut connection, starting_version, MIGRATIONS).unwrap();
+                connection
+                    .execute(
+                        "INSERT INTO workspaces(id, name, root_path) VALUES (?1, ?2, ?3)",
+                        [
+                            format!("workspace-{starting_version}"),
+                            "Preserved".into(),
+                            format!("C:\\upgrade-{starting_version}"),
+                        ],
+                    )
+                    .unwrap();
+            }
+
+            let storage = Storage::open(&database_path).unwrap();
+            assert_eq!(storage.schema_version().unwrap(), SCHEMA_VERSION);
+            if starting_version > 0 {
+                assert!(storage
+                    .workspace(&format!("workspace-{starting_version}"))
+                    .unwrap()
+                    .is_some());
+            }
+        }
+    }
+
+    #[test]
+    fn failed_migration_rolls_back_all_schema_changes_and_version_updates() {
+        let directory = tempfile::tempdir().unwrap();
+        let database_path = directory.path().join("failed-migration.sqlite3");
+        let mut connection = Connection::open(&database_path).unwrap();
+        Storage::configure(&connection).unwrap();
+        Storage::migrate_to(&mut connection, 6, MIGRATIONS).unwrap();
+
+        let failure = Storage::migrate_to(
+            &mut connection,
+            7,
+            &[(
+                7,
+                "CREATE TABLE migration_probe(id INTEGER); INSERT INTO missing_table VALUES (1);",
+            )],
+        );
+        assert!(failure.is_err());
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .unwrap(),
+            6
+        );
+        let probe = connection
+            .query_row(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'migration_probe'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .unwrap();
+        assert!(probe.is_none());
+    }
+
+    #[test]
+    fn upgrades_v7_drafts_and_backfills_their_content_hash() {
+        let directory = tempfile::tempdir().unwrap();
+        let database_path = directory.path().join("draft-upgrade.sqlite3");
+        {
+            let mut connection = Connection::open(&database_path).unwrap();
+            Storage::configure(&connection).unwrap();
+            Storage::migrate_to(&mut connection, 7, MIGRATIONS).unwrap();
+            connection
+                .execute(
+                    "INSERT INTO workspaces(id, name, root_path)
+                     VALUES ('workspace-draft', 'Draft', 'C:\\draft')",
+                    [],
+                )
+                .unwrap();
+            connection
+                .execute(
+                    "INSERT INTO workspace_drafts
+                        (workspace_id, relative_path, content, base_hash)
+                     VALUES ('workspace-draft', 'notes.md', 'recover me', 'base')",
+                    [],
+                )
+                .unwrap();
+        }
+
+        let storage = Storage::open(&database_path).unwrap();
+        let draft = storage
+            .draft("workspace-draft", "notes.md")
+            .unwrap()
+            .unwrap();
+        assert_eq!(storage.schema_version().unwrap(), SCHEMA_VERSION);
+        assert_eq!(draft.content, "recover me");
+        assert_eq!(draft.content_hash, super::sha256(b"recover me"));
+    }
+
+    #[test]
+    fn rejects_a_corrupt_database_with_a_stable_integrity_error() {
+        let directory = tempfile::tempdir().unwrap();
+        let database_path = directory.path().join("corrupt.sqlite3");
+        fs::write(&database_path, b"not a sqlite database").unwrap();
+
+        assert!(matches!(
+            Storage::open(&database_path),
+            Err(AppError::DatabaseIntegrity)
+        ));
+    }
+
+    #[test]
+    fn configures_wal_full_sync_foreign_keys_and_lock_waiting() {
+        let directory = tempfile::tempdir().unwrap();
+        let storage = Storage::open(&directory.path().join("durable.sqlite3")).unwrap();
+        let connection = storage.connection.lock().unwrap();
+        let journal = connection
+            .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+            .unwrap();
+        let synchronous = connection
+            .query_row("PRAGMA synchronous", [], |row| row.get::<_, i64>(0))
+            .unwrap();
+        let foreign_keys = connection
+            .query_row("PRAGMA foreign_keys", [], |row| row.get::<_, i64>(0))
+            .unwrap();
+        let busy_timeout = connection
+            .query_row("PRAGMA busy_timeout", [], |row| row.get::<_, i64>(0))
+            .unwrap();
+        assert_eq!(journal.to_ascii_lowercase(), "wal");
+        assert_eq!(synchronous, 2);
+        assert_eq!(foreign_keys, 1);
+        assert_eq!(busy_timeout, 5_000);
     }
 
     #[test]

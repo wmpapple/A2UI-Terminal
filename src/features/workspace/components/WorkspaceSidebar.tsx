@@ -26,12 +26,14 @@ export function WorkspaceSidebar() {
     workspaceError,
   } = useAppStore();
   const activePath = useAppStore((state) => state.activePath);
+  const recoveryDraftSummaries = useAppStore((state) => state.recoveryDraftSummaries);
   const openFile = useAppStore((state) => state.openFile);
   const selectWorkspace = useAppStore((state) => state.selectWorkspace);
   const selectContextFiles = useAppStore((state) => state.selectContextFiles);
   const restoreWorkspace = useAppStore((state) => state.restoreWorkspace);
   const removeCurrentWorkspace = useAppStore((state) => state.removeCurrentWorkspace);
   const clearWorkspaceError = useAppStore((state) => state.clearWorkspaceError);
+  const discardRecoveryDraft = useAppStore((state) => state.discardRecoveryDraft);
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const addFileToContext = useAppStore((state) => state.addFileToContext);
   const [query, setQuery] = useState('');
@@ -108,6 +110,38 @@ export function WorkspaceSidebar() {
           onClose={clearWorkspaceError}
         />
       ) : null}
+      {recoveryDraftSummaries.length > 0 ? (
+        <Alert
+          type="warning"
+          showIcon
+          title={t('recoveryDraftsFound').replace('{count}', String(recoveryDraftSummaries.length))}
+          description={
+            <div className={styles.recoveryList}>
+              {recoveryDraftSummaries.slice(0, 5).map((draft) => (
+                <div key={draft.relativePath} className={styles.recoveryItem}>
+                  <Button
+                    type="link"
+                    size="small"
+                    disabled={!draft.available}
+                    onClick={() => void openFile(draft.relativePath)}
+                  >
+                    {draft.relativePath}
+                  </Button>
+                  {!draft.available ? <span>{t('recoveryFileUnavailable')}</span> : null}
+                  <Popconfirm
+                    title={t('discardDraft')}
+                    onConfirm={() => void discardRecoveryDraft(draft.relativePath)}
+                  >
+                    <Button type="text" size="small" danger>
+                      {t('discardDraft')}
+                    </Button>
+                  </Popconfirm>
+                </div>
+              ))}
+            </div>
+          }
+        />
+      ) : null}
       <Input
         allowClear
         value={query}
@@ -151,6 +185,9 @@ export function WorkspaceSidebar() {
                 >
                   {iconFor(file.path)}
                   <span>{file.sourceId ? file.name : file.path}</span>
+                  {recoveryDraftSummaries.some((draft) => draft.relativePath === file.path) ? (
+                    <span className={styles.recoveryDot} aria-label={t('pendingDraftTitle')} />
+                  ) : null}
                 </button>
               </Tooltip>
             </Dropdown>

@@ -9,7 +9,8 @@ use crate::security::{validate_provider_id, SecretStore};
 use crate::state::AppState;
 use crate::storage::{ChatSessionRecord, DiagnosticCounts};
 use crate::workspace::{
-    self, SaveOutcome, WorkspaceDocument, WorkspaceFileEntry, WorkspaceSummary,
+    self, DocumentVersion, DocumentVersionSummary, SaveOutcome, WorkspaceDocument,
+    WorkspaceFileEntry, WorkspaceSummary,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -20,6 +21,7 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
+use zeroize::Zeroizing;
 
 const CLEAR_CONFIRMATION: &str = "DELETE_ALL_LOCAL_DATA";
 const BUILT_IN_PROVIDERS: &[&str] = &["siliconflow", "deepseek", "openai"];
@@ -114,6 +116,8 @@ pub enum ChatStreamEvent {
         message_id: String,
         code: String,
         message: String,
+        retryable: bool,
+        retry_after_seconds: Option<u64>,
     },
 }
 
@@ -125,6 +129,9 @@ pub struct ChatStreamResult {
     content: String,
     status: String,
     error_code: Option<String>,
+    error_message: Option<String>,
+    retryable: bool,
+    retry_after_seconds: Option<u64>,
     patch: Option<PatchReview>,
     patch_error: Option<String>,
     a2ui: Option<A2uiProcessResult>,
@@ -164,10 +171,16 @@ pub fn set_provider_secret(
     provider_id: String,
     secret: String,
 ) -> Result<SecretStatus, AppError> {
+    let secret = Zeroizing::new(secret);
     let provider_id = validate_provider_id(&provider_id)?;
-    SecretStore::set(&provider_id, &secret)?;
+    let previous = SecretStore::get_optional(&provider_id)?;
+    SecretStore::set(&provider_id, secret.as_str())?;
     if let Err(error) = state.storage.remember_provider_id(&provider_id) {
-        let _ = SecretStore::delete(&provider_id);
+        if let Some(previous) = previous {
+            let _ = SecretStore::set(&provider_id, previous.as_str());
+        } else {
+            let _ = SecretStore::delete(&provider_id);
+        }
         return Err(error);
     }
     Ok(SecretStatus {
@@ -356,6 +369,14 @@ pub fn read_workspace_file(
 }
 
 #[tauri::command]
+pub fn list_recovery_drafts(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> Result<Vec<workspace::RecoveryDraftSummary>, AppError> {
+    workspace::list_recovery_drafts(&state.storage, &workspace_id)
+}
+
+#[tauri::command]
 pub fn save_workspace_file(
     state: State<'_, AppState>,
     workspace_id: String,
@@ -363,7 +384,7 @@ pub fn save_workspace_file(
     content: String,
     base_hash: String,
 ) -> Result<SaveOutcome, AppError> {
-    workspace::save_file(
+    workspace::save_file_with_history(
         &state.storage,
         &workspace_id,
         &relative_path,
@@ -469,21 +490,53 @@ pub fn save_context_file(
     content: String,
     base_hash: String,
 ) -> Result<SaveOutcome, AppError> {
-    let path = state
-        .selected_files
-        .lock()
-        .map_err(|_| AppError::StateUnavailable)?
-        .get(&source_id)
-        .cloned();
-    let path = match path {
-        Some(path) => path,
-        None => state
-            .storage
-            .workspace_file_by_source(&source_id)?
-            .map(|row| std::path::PathBuf::from(row.absolute_path))
-            .ok_or_else(|| AppError::InvalidInput("Selected file authorization expired".into()))?,
-    };
-    workspace::save_selected_file(&path, &content, &base_hash)
+    let selected = state
+        .storage
+        .workspace_file_by_source(&source_id)?
+        .ok_or_else(|| AppError::InvalidInput("Selected file authorization expired".into()))?;
+    workspace::save_file_with_history(
+        &state.storage,
+        &selected.workspace_id,
+        &selected.virtual_path,
+        &content,
+        &base_hash,
+    )
+}
+
+#[tauri::command]
+pub fn list_document_versions(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    relative_path: String,
+) -> Result<Vec<DocumentVersionSummary>, AppError> {
+    workspace::list_document_versions(&state.storage, &workspace_id, &relative_path)
+}
+
+#[tauri::command]
+pub fn read_document_version(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    relative_path: String,
+    version_id: String,
+) -> Result<DocumentVersion, AppError> {
+    workspace::read_document_version(&state.storage, &workspace_id, &relative_path, &version_id)
+}
+
+#[tauri::command]
+pub fn restore_document_version(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    relative_path: String,
+    version_id: String,
+    base_hash: String,
+) -> Result<SaveOutcome, AppError> {
+    workspace::restore_document_version(
+        &state.storage,
+        &workspace_id,
+        &relative_path,
+        &version_id,
+        &base_hash,
+    )
 }
 
 #[tauri::command]
@@ -509,9 +562,41 @@ pub fn list_provider_configs(
 pub fn save_provider_config(
     state: State<'_, AppState>,
     config: ProviderConfig,
+    secret: Option<String>,
 ) -> Result<ProviderConfigView, AppError> {
+    let secret = secret.map(Zeroizing::new);
     config.validate()?;
+    let previous_config = state
+        .storage
+        .provider_config(&config.id)?
+        .ok_or_else(|| AppError::InvalidInput("Provider 不存在".into()))?;
+    if previous_config.kind != config.kind {
+        return Err(AppError::InvalidInput(
+            "不能修改已有 Provider 的适配器类型".into(),
+        ));
+    }
+    let secret = secret.filter(|value| !value.trim().is_empty());
+    let previous_secret = if secret.is_some() {
+        SecretStore::get_optional(&config.id)?
+    } else {
+        None
+    };
     state.storage.save_provider_config(&config)?;
+    if let Some(secret) = secret {
+        if let Err(error) = SecretStore::set(&config.id, secret.as_str()) {
+            let _ = state.storage.save_provider_config(&previous_config);
+            return Err(error);
+        }
+        if let Err(error) = state.storage.remember_provider_id(&config.id) {
+            if let Some(previous_secret) = previous_secret {
+                let _ = SecretStore::set(&config.id, previous_secret.as_str());
+            } else {
+                let _ = SecretStore::delete(&config.id);
+            }
+            let _ = state.storage.save_provider_config(&previous_config);
+            return Err(error);
+        }
+    }
     Ok(ProviderConfigView {
         configured: SecretStore::exists(&config.id)?,
         active: state.storage.active_provider_id()? == config.id,
@@ -650,7 +735,7 @@ pub async fn stream_chat(
                     message_id: request.assistant_message_id.clone(),
                     delta: delta.to_string(),
                 })
-                .map_err(|_| AppError::Provider("前端流通道已关闭".into()))?;
+                .map_err(|_| AppError::StreamReceiverClosed)?;
             if last_persist.elapsed().as_millis() >= 250 {
                 state.storage.update_assistant_message(
                     &request.assistant_message_id,
@@ -709,12 +794,15 @@ pub async fn stream_chat(
                             content: partial,
                             status: "stopped".into(),
                             error_code: None,
+                            error_message: None,
+                            retryable: false,
+                            retry_after_seconds: None,
                             patch: None,
                             patch_error: None,
                             a2ui: None,
                         });
                     }
-                    Err(_) => {}
+                    Err(error) => return Err(error),
                 }
             }
             let (validated_patch, patch_error) = match patch_result {
@@ -767,6 +855,9 @@ pub async fn stream_chat(
                 content,
                 status: "complete".into(),
                 error_code,
+                error_message: None,
+                retryable: false,
+                retry_after_seconds: None,
                 patch: validated_patch,
                 patch_error,
                 a2ui: a2ui_result,
@@ -789,6 +880,9 @@ pub async fn stream_chat(
                 content: partial,
                 status: "stopped".into(),
                 error_code: None,
+                error_message: None,
+                retryable: false,
+                retry_after_seconds: None,
                 patch: None,
                 patch_error: None,
                 a2ui: None,
@@ -797,6 +891,8 @@ pub async fn stream_chat(
         Err(error) => {
             let code = error.code().to_string();
             let message = error.to_string();
+            let retryable = error.retryable();
+            let retry_after_seconds = error.retry_after_seconds();
             state.storage.update_assistant_message(
                 &request.assistant_message_id,
                 &partial,
@@ -807,7 +903,9 @@ pub async fn stream_chat(
                 request_id: request.request_id.clone(),
                 message_id: request.assistant_message_id.clone(),
                 code: code.clone(),
-                message,
+                message: message.clone(),
+                retryable,
+                retry_after_seconds,
             });
             Ok(ChatStreamResult {
                 request_id: request.request_id,
@@ -815,6 +913,9 @@ pub async fn stream_chat(
                 content: partial,
                 status: "error".into(),
                 error_code: Some(code),
+                error_message: Some(message),
+                retryable,
+                retry_after_seconds,
                 patch: None,
                 patch_error: None,
                 a2ui: None,

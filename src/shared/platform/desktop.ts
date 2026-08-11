@@ -10,7 +10,10 @@ import type {
   ChatStreamEvent,
   ChatStreamResult,
   ProviderConfig,
+  RecoveryDraftSummary,
   DocumentPatch,
+  DocumentVersion,
+  DocumentVersionSummary,
   PatchApplication,
   PatchReview,
   SelectedWorkspaceFiles,
@@ -99,6 +102,11 @@ export const desktopApi = {
     return invoke<WorkspaceDocument>('read_workspace_file', { workspaceId, relativePath });
   },
 
+  async listRecoveryDrafts(workspaceId: string): Promise<RecoveryDraftSummary[]> {
+    requireDesktop();
+    return invoke<RecoveryDraftSummary[]>('list_recovery_drafts', { workspaceId });
+  },
+
   async saveWorkspaceFile(
     workspaceId: string,
     relativePath: string,
@@ -163,12 +171,51 @@ export const desktopApi = {
     });
   },
 
+  async listDocumentVersions(
+    workspaceId: string,
+    relativePath: string
+  ): Promise<DocumentVersionSummary[]> {
+    requireDesktop();
+    return invoke<DocumentVersionSummary[]>('list_document_versions', {
+      workspaceId,
+      relativePath,
+    });
+  },
+
+  async readDocumentVersion(
+    workspaceId: string,
+    relativePath: string,
+    versionId: string
+  ): Promise<DocumentVersion> {
+    requireDesktop();
+    return invoke<DocumentVersion>('read_document_version', {
+      workspaceId,
+      relativePath,
+      versionId,
+    });
+  },
+
+  async restoreDocumentVersion(
+    workspaceId: string,
+    relativePath: string,
+    versionId: string,
+    baseHash: string
+  ): Promise<SaveWorkspaceFileResult> {
+    requireDesktop();
+    return invoke<SaveWorkspaceFileResult>('restore_document_version', {
+      workspaceId,
+      relativePath,
+      versionId,
+      baseHash,
+    });
+  },
+
   async listProviderConfigs(): Promise<ProviderConfig[]> {
     requireDesktop();
     return invoke<ProviderConfig[]>('list_provider_configs');
   },
 
-  async saveProviderConfig(config: ProviderConfig): Promise<ProviderConfig> {
+  async saveProviderConfig(config: ProviderConfig, secret?: string): Promise<ProviderConfig> {
     requireDesktop();
     const input = {
       id: config.id,
@@ -178,7 +225,10 @@ export const desktopApi = {
       temperature: config.temperature,
       proxyUrl: config.proxyUrl,
     };
-    return invoke<ProviderConfig>('save_provider_config', { config: input });
+    return invoke<ProviderConfig>('save_provider_config', {
+      config: input,
+      secret: secret?.trim() || null,
+    });
   },
 
   async setActiveProvider(providerId: string): Promise<void> {

@@ -1,5 +1,3 @@
-BEGIN;
-
 CREATE TABLE IF NOT EXISTS patch_operations (
     id TEXT PRIMARY KEY NOT NULL,
     workspace_id TEXT NOT NULL,
@@ -24,6 +22,3 @@ CREATE INDEX IF NOT EXISTS idx_patch_operations_workspace
     ON patch_operations(workspace_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_document_versions_operation
     ON document_versions(operation_id, relative_path, version_kind);
-
-PRAGMA user_version = 5;
-COMMIT;

@@ -1,5 +1,7 @@
 # 阶段 8 验收说明：分发、更新与稳定性交付
 
+> 验收状态：已通过（2026-08-11）
+
 ## 交付结论
 
 阶段 8 已补齐 Windows 发布工程、自动更新运行时、关键模块覆盖率、Playwright Web E2E、脱敏诊断导出、一键清除本地数据入口及交付文档。阶段 7 的 A2UI 与阶段 6 的真实文件 Patch/Diff/撤销保持原安全边界。
@@ -69,4 +71,4 @@ GitHub Actions YAML lint
 
 仓库已完成签名与更新能力，但本机没有产品负责人提供的正式代码签名证书、Publisher 和 updater 密钥，因此不能声称当前本地安装包已正式签名。真实签名、GitHub Draft Release 和上一版本升级需要在这些材料安全配置到 `production` environment 后完成。
 
-请验证后明确回复“阶段 8 通过”；未收到确认前停止后续实施和正式发布。
+阶段 8 已由产品负责人确认通过。正式发布仍须在 `production` environment 配置签名材料，并完成真实签名、Draft Release 和上一版本升级验证。

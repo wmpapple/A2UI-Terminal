@@ -108,11 +108,72 @@ describe('desktop chat state', () => {
 
   it('forwards stop to the active backend request', async () => {
     const stop = vi.spyOn(desktopApi, 'stopChat').mockResolvedValue(true);
-    useAppStore.setState({ chatRequestId: 'request-1' });
+    useAppStore.setState({
+      chatRequestId: 'request-1',
+      sessions: [
+        {
+          id: 'session-1',
+          title: 'New chat',
+          messages: [
+            {
+              id: 'assistant-1',
+              role: 'assistant',
+              content: 'partial',
+              status: 'streaming',
+              requestId: 'request-1',
+            },
+          ],
+        },
+      ],
+    });
 
     await useAppStore.getState().stopChat();
 
     expect(stop).toHaveBeenCalledWith('request-1');
+    expect(useAppStore.getState().chatRequestId).toBeNull();
+    expect(useAppStore.getState().sessions[0].messages[0].status).toBe('stopped');
+  });
+
+  it('keeps the structured provider error code and fallback message', async () => {
+    vi.spyOn(desktopApi, 'streamChat').mockImplementation(async (request, onEvent) => {
+      onEvent({
+        type: 'error',
+        requestId: request.requestId,
+        messageId: request.assistantMessageId,
+        code: 'PROVIDER_RATE_LIMITED',
+        message: 'Provider 请求过于频繁或额度不足（HTTP 429）',
+        retryable: true,
+        retryAfterSeconds: 8,
+      });
+      return {
+        requestId: request.requestId,
+        messageId: request.assistantMessageId,
+        content: '',
+        status: 'error',
+        errorCode: 'PROVIDER_RATE_LIMITED',
+        errorMessage: 'Provider 请求过于频繁或额度不足（HTTP 429）',
+        retryable: true,
+        retryAfterSeconds: 8,
+      };
+    });
+
+    await useAppStore.getState().sendChat(
+      'Hello',
+      {
+        selection: false,
+        currentFile: false,
+        recentMessages: false,
+        recentMessageCount: 0,
+        projectFiles: [],
+      },
+      true
+    );
+
+    expect(useAppStore.getState().chatError).toContain('HTTP 429');
+    expect(useAppStore.getState().sessions[0].messages.at(-1)).toMatchObject({
+      status: 'error',
+      errorCode: 'PROVIDER_RATE_LIMITED',
+    });
   });
 
   it('upserts a validated Surface without rebuilding unrelated surfaces', async () => {

@@ -17,7 +17,14 @@ beforeEach(() => {
     dirtyPaths: [],
     saveStatusByPath: {},
     recoveryDrafts: {},
+    recoveryDraftSummaries: [],
+    documentVersions: [],
+    versionPreview: null,
+    versionHistoryPath: '',
+    versionHistoryLoading: false,
+    versionHistoryError: null,
   });
+  vi.spyOn(desktopApi, 'listRecoveryDrafts').mockResolvedValue([]);
 });
 
 describe('desktop workspace state', () => {
@@ -60,6 +67,16 @@ describe('desktop workspace state', () => {
   });
 
   it('holds a crash draft for confirmation without auto-saving it', async () => {
+    vi.mocked(desktopApi.listRecoveryDrafts).mockResolvedValue([
+      {
+        relativePath: 'src/main.ts',
+        baseHash: 'disk-hash',
+        updatedAt: '2026-08-06 08:00:00',
+        currentHash: 'disk-hash',
+        conflict: false,
+        available: true,
+      },
+    ]);
     vi.spyOn(desktopApi, 'restoreWorkspace').mockResolvedValue({
       id: 'workspace-1',
       name: 'Project',
@@ -97,6 +114,7 @@ describe('desktop workspace state', () => {
     });
 
     await useAppStore.getState().restoreWorkspace('workspace-1');
+    expect(useAppStore.getState().recoveryDraftSummaries).toHaveLength(1);
     await useAppStore.getState().openFile('src/main.ts');
 
     expect(useAppStore.getState().files[0]).toMatchObject({
@@ -167,13 +185,19 @@ describe('desktop workspace state', () => {
   });
 
   it('saves a directly selected text file through its authorization id', async () => {
+    const saveDraft = vi.spyOn(desktopApi, 'saveWorkspaceDraft').mockResolvedValue();
     const save = vi.spyOn(desktopApi, 'saveContextFile').mockResolvedValue({
       path: 'notes.md',
       contentHash: 'new-hash',
       sizeBytes: 9,
     });
     useAppStore.setState({
-      workspace: null,
+      workspace: {
+        id: 'standalone-1',
+        name: '独立文件',
+        available: true,
+        kind: 'standalone',
+      },
       files: [
         {
           path: 'selected/file-1/notes.md',
@@ -190,8 +214,66 @@ describe('desktop workspace state', () => {
 
     await useAppStore.getState().saveFileToDisk('selected/file-1/notes.md');
 
+    expect(saveDraft).toHaveBeenCalledWith(
+      'standalone-1',
+      'selected/file-1/notes.md',
+      '# Changed',
+      'old-hash'
+    );
     expect(save).toHaveBeenCalledWith('file-1', '# Changed', 'old-hash');
     expect(useAppStore.getState().dirtyPaths).toEqual([]);
     expect(useAppStore.getState().saveStatusByPath['selected/file-1/notes.md']).toBe('saved');
+  });
+
+  it('loads persistent history and restores a selected version with the current hash', async () => {
+    const version = {
+      id: 'version-1',
+      relativePath: 'notes.md',
+      contentHash: 'old-hash',
+      source: 'initial' as const,
+      summary: 'Initial version',
+      versionKind: 'snapshot' as const,
+      createdAt: '2026-08-11 10:00:00',
+      isCurrent: false,
+    };
+    vi.spyOn(desktopApi, 'listDocumentVersions').mockResolvedValue([version]);
+    vi.spyOn(desktopApi, 'readDocumentVersion').mockResolvedValue({
+      ...version,
+      content: '# Old\n',
+    });
+    const restore = vi.spyOn(desktopApi, 'restoreDocumentVersion').mockResolvedValue({
+      path: 'notes.md',
+      contentHash: 'old-hash',
+      sizeBytes: 6,
+    });
+    useAppStore.setState({
+      workspace: { id: 'workspace-1', name: 'Project', available: true, kind: 'directory' },
+      files: [
+        {
+          path: 'notes.md',
+          name: 'notes.md',
+          language: 'markdown',
+          content: '# Current\n',
+          contentHash: 'current-hash',
+          editable: true,
+        },
+      ],
+      openPaths: ['notes.md'],
+      activePath: 'notes.md',
+      dirtyPaths: [],
+    });
+
+    await useAppStore.getState().loadDocumentVersions('notes.md');
+    await useAppStore.getState().previewDocumentVersion('notes.md', 'version-1');
+    expect(useAppStore.getState().versionPreview?.content).toBe('# Old\n');
+
+    await useAppStore.getState().restoreDocumentVersion('notes.md', 'version-1');
+
+    expect(restore).toHaveBeenCalledWith('workspace-1', 'notes.md', 'version-1', 'current-hash');
+    expect(useAppStore.getState().files[0]).toMatchObject({
+      content: '# Old\n',
+      contentHash: 'old-hash',
+    });
+    expect(useAppStore.getState().versionPreview).toBeNull();
   });
 });

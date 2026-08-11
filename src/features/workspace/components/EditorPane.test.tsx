@@ -133,4 +133,27 @@ describe('EditorPane modes', () => {
     expect(screen.getByRole('textbox', { name: 'src/experiment.ts' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Hide preview' })).not.toBeInTheDocument();
   });
+
+  it('opens persistent version history for editable desktop files', async () => {
+    const loadDocumentVersions = vi.fn().mockResolvedValue(undefined);
+    useAppStore.setState({
+      runtimeMode: 'desktop',
+      documentVersions: [],
+      versionPreview: null,
+      versionHistoryLoading: false,
+      versionHistoryError: null,
+      loadDocumentVersions,
+    });
+
+    render(
+      <I18nProvider>
+        <EditorPane />
+      </I18nProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '版本历史' }));
+
+    expect(await screen.findByText('保存文件后，版本会显示在这里')).toBeInTheDocument();
+    expect(loadDocumentVersions).toHaveBeenCalledWith('README.md');
+  });
 });

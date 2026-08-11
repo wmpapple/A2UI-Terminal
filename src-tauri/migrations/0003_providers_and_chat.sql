@@ -1,5 +1,3 @@
-BEGIN;
-
 ALTER TABLE messages ADD COLUMN status TEXT NOT NULL DEFAULT 'complete'
     CHECK (status IN ('streaming', 'complete', 'stopped', 'error'));
 ALTER TABLE messages ADD COLUMN request_id TEXT;
@@ -25,6 +23,3 @@ CREATE TABLE IF NOT EXISTS context_snapshots (
 
 CREATE INDEX IF NOT EXISTS idx_context_snapshots_session
     ON context_snapshots(session_id, created_at DESC);
-
-PRAGMA user_version = 3;
-COMMIT;

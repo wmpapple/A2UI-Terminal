@@ -56,9 +56,10 @@ export function ProviderSettings({ open, onClose }: Props) {
 
   const save = async () => {
     if (!draft) return;
+    const pendingSecret = secret;
+    setSecret('');
     try {
-      await saveProvider(draft, secret);
-      setSecret('');
+      await saveProvider(draft, pendingSecret);
       const refreshed = useAppStore
         .getState()
         .providerConfigs.find((config) => config.id === draft.id);
@@ -71,9 +72,10 @@ export function ProviderSettings({ open, onClose }: Props) {
 
   const test = async () => {
     if (!draft) return;
+    const pendingSecret = secret;
+    setSecret('');
     try {
-      await saveProvider(draft, secret);
-      setSecret('');
+      await saveProvider(draft, pendingSecret);
       const refreshed = useAppStore
         .getState()
         .providerConfigs.find((config) => config.id === draft.id);
@@ -171,6 +173,7 @@ export function ProviderSettings({ open, onClose }: Props) {
                   onChange={(event) => setSecret(event.target.value)}
                 />
               </Form.Item>
+              <Alert type="info" showIcon title={t('providerTimeoutPolicy')} />
             </Form>
             <Space wrap>
               <Button

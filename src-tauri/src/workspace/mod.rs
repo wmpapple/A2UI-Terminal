@@ -6,7 +6,10 @@ pub use path_guard::{
 };
 
 use crate::error::AppError;
-use crate::storage::{DraftRow, Storage, WorkspaceFileRow, WorkspaceRow};
+use crate::storage::{
+    DocumentVersionMetadata, DocumentVersionRecord, DraftRow, Storage, WorkspaceFileRow,
+    WorkspaceRow,
+};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::fmt::Write as _;
@@ -65,6 +68,17 @@ pub struct DraftDocument {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RecoveryDraftSummary {
+    pub relative_path: String,
+    pub base_hash: String,
+    pub updated_at: String,
+    pub current_hash: Option<String>,
+    pub conflict: bool,
+    pub available: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkspaceDocument {
     pub path: String,
     pub name: String,
@@ -84,6 +98,27 @@ pub struct SaveOutcome {
     pub path: String,
     pub content_hash: String,
     pub size_bytes: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentVersionSummary {
+    pub id: String,
+    pub relative_path: String,
+    pub content_hash: String,
+    pub source: String,
+    pub summary: Option<String>,
+    pub version_kind: String,
+    pub created_at: String,
+    pub is_current: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentVersion {
+    #[serde(flatten)]
+    pub summary: DocumentVersionSummary,
+    pub content: String,
 }
 
 pub fn register_workspace(
@@ -189,9 +224,7 @@ pub fn read_file(
             read_selected_file(Path::new(&selected.absolute_path), &selected.source_id)?;
         document.path = selected.virtual_path;
         document.draft = if document.editable {
-            storage
-                .draft(workspace_id, relative_path)?
-                .map(draft_from_row)
+            reconciled_draft(storage, workspace_id, relative_path, &document.content_hash)?
         } else {
             None
         };
@@ -219,9 +252,7 @@ pub fn read_file(
     let draft = if extracted {
         None
     } else {
-        storage
-            .draft(workspace_id, relative_path)?
-            .map(draft_from_row)
+        reconciled_draft(storage, workspace_id, relative_path, &content_hash)?
     };
     Ok(WorkspaceDocument {
         path: relative_path.to_string(),
@@ -367,6 +398,155 @@ pub fn save_file(
     })
 }
 
+pub fn save_file_with_history(
+    storage: &Storage,
+    workspace_id: &str,
+    relative_path: &str,
+    content: &str,
+    base_hash: &str,
+) -> Result<SaveOutcome, AppError> {
+    let before = read_file(storage, workspace_id, relative_path)?;
+    if before.content_hash != base_hash {
+        return Err(AppError::FileConflict);
+    }
+    let outcome = save_file(storage, workspace_id, relative_path, content, base_hash)?;
+    if outcome.content_hash == before.content_hash {
+        return Ok(outcome);
+    }
+    if let Err(error) = storage.record_file_save_versions(
+        workspace_id,
+        relative_path,
+        &before.content,
+        &before.content_hash,
+        content,
+        &outcome.content_hash,
+        "autosave",
+        "自动保存",
+    ) {
+        let _ = save_file(
+            storage,
+            workspace_id,
+            relative_path,
+            &before.content,
+            &outcome.content_hash,
+        );
+        let _ = storage.save_draft(workspace_id, relative_path, content, &before.content_hash);
+        return Err(error);
+    }
+    let _ = storage.cleanup_expired_versions();
+    Ok(outcome)
+}
+
+pub fn list_document_versions(
+    storage: &Storage,
+    workspace_id: &str,
+    relative_path: &str,
+) -> Result<Vec<DocumentVersionSummary>, AppError> {
+    let current = read_file(storage, workspace_id, relative_path)?;
+    Ok(storage
+        .document_versions(workspace_id, relative_path, 200)?
+        .into_iter()
+        .map(|version| version_summary(version, &current.content_hash))
+        .collect())
+}
+
+pub fn read_document_version(
+    storage: &Storage,
+    workspace_id: &str,
+    relative_path: &str,
+    version_id: &str,
+) -> Result<DocumentVersion, AppError> {
+    Uuid::parse_str(version_id).map_err(|_| AppError::InvalidInput("版本标识无效".into()))?;
+    let current = read_file(storage, workspace_id, relative_path)?;
+    let version = storage
+        .document_version(workspace_id, relative_path, version_id)?
+        .ok_or_else(|| AppError::InvalidInput("找不到指定文档版本".into()))?;
+    let metadata = version_metadata(&version);
+    Ok(DocumentVersion {
+        summary: version_summary(metadata, &current.content_hash),
+        content: version.content,
+    })
+}
+
+pub fn restore_document_version(
+    storage: &Storage,
+    workspace_id: &str,
+    relative_path: &str,
+    version_id: &str,
+    base_hash: &str,
+) -> Result<SaveOutcome, AppError> {
+    Uuid::parse_str(version_id).map_err(|_| AppError::InvalidInput("版本标识无效".into()))?;
+    let target = storage
+        .document_version(workspace_id, relative_path, version_id)?
+        .ok_or_else(|| AppError::InvalidInput("找不到指定文档版本".into()))?;
+    let current = read_file(storage, workspace_id, relative_path)?;
+    if current.content_hash != base_hash {
+        return Err(AppError::FileConflict);
+    }
+    if current.content_hash == target.content_hash {
+        return Ok(SaveOutcome {
+            path: relative_path.to_string(),
+            content_hash: current.content_hash,
+            size_bytes: current.size_bytes,
+        });
+    }
+    let outcome = save_file(
+        storage,
+        workspace_id,
+        relative_path,
+        &target.content,
+        &current.content_hash,
+    )?;
+    let summary = format!("恢复到 {} 的版本", target.created_at);
+    if let Err(error) = storage.record_file_save_versions(
+        workspace_id,
+        relative_path,
+        &current.content,
+        &current.content_hash,
+        &target.content,
+        &target.content_hash,
+        "restore",
+        &summary,
+    ) {
+        let _ = save_file(
+            storage,
+            workspace_id,
+            relative_path,
+            &current.content,
+            &outcome.content_hash,
+        );
+        return Err(error);
+    }
+    let _ = storage.cleanup_expired_versions();
+    Ok(outcome)
+}
+
+fn version_metadata(version: &DocumentVersionRecord) -> DocumentVersionMetadata {
+    DocumentVersionMetadata {
+        id: version.id.clone(),
+        workspace_id: version.workspace_id.clone(),
+        relative_path: version.relative_path.clone(),
+        content_hash: version.content_hash.clone(),
+        source: version.source.clone(),
+        summary: version.summary.clone(),
+        version_kind: version.version_kind.clone(),
+        created_at: version.created_at.clone(),
+    }
+}
+
+fn version_summary(version: DocumentVersionMetadata, current_hash: &str) -> DocumentVersionSummary {
+    DocumentVersionSummary {
+        id: version.id,
+        relative_path: version.relative_path,
+        is_current: version.content_hash == current_hash,
+        content_hash: version.content_hash,
+        source: version.source,
+        summary: version.summary,
+        version_kind: version.version_kind,
+        created_at: version.created_at,
+    }
+}
+
 pub fn save_draft(
     storage: &Storage,
     workspace_id: &str,
@@ -388,18 +568,49 @@ pub fn save_draft(
     storage.save_draft(workspace_id, relative_path, content, base_hash)
 }
 
+pub fn list_recovery_drafts(
+    storage: &Storage,
+    workspace_id: &str,
+) -> Result<Vec<RecoveryDraftSummary>, AppError> {
+    require_workspace(storage, workspace_id)?;
+    let mut drafts = Vec::new();
+    for row in storage.workspace_draft_summaries(workspace_id)? {
+        let current = read_file(storage, workspace_id, &row.relative_path);
+        match current {
+            Ok(document) => {
+                if row.content_hash == document.content_hash {
+                    storage.delete_draft(workspace_id, &row.relative_path)?;
+                    continue;
+                }
+                drafts.push(RecoveryDraftSummary {
+                    relative_path: row.relative_path,
+                    conflict: row.base_hash != document.content_hash,
+                    base_hash: row.base_hash,
+                    updated_at: row.updated_at,
+                    current_hash: Some(document.content_hash),
+                    available: true,
+                });
+            }
+            Err(_) => drafts.push(RecoveryDraftSummary {
+                relative_path: row.relative_path,
+                base_hash: row.base_hash,
+                updated_at: row.updated_at,
+                current_hash: None,
+                conflict: true,
+                available: false,
+            }),
+        }
+    }
+    Ok(drafts)
+}
+
 pub fn discard_draft(
     storage: &Storage,
     workspace_id: &str,
     relative_path: &str,
 ) -> Result<(), AppError> {
-    if storage
-        .workspace_file(workspace_id, relative_path)?
-        .is_none()
-    {
-        let root = workspace_root(storage, workspace_id)?;
-        resolve_existing_file(&root, Path::new(relative_path))?;
-    }
+    require_workspace(storage, workspace_id)?;
+    ensure_editable_path(relative_path)?;
     storage.delete_draft(workspace_id, relative_path)
 }
 
@@ -454,6 +665,23 @@ fn draft_from_row(row: DraftRow) -> DraftDocument {
         content: row.content,
         base_hash: row.base_hash,
         updated_at: row.updated_at,
+    }
+}
+
+fn reconciled_draft(
+    storage: &Storage,
+    workspace_id: &str,
+    relative_path: &str,
+    current_hash: &str,
+) -> Result<Option<DraftDocument>, AppError> {
+    let Some(row) = storage.draft(workspace_id, relative_path)? else {
+        return Ok(None);
+    };
+    if content_hash(row.content.as_bytes()) == current_hash {
+        storage.delete_draft(workspace_id, relative_path)?;
+        Ok(None)
+    } else {
+        Ok(Some(draft_from_row(row)))
     }
 }
 
@@ -596,9 +824,11 @@ fn content_hash(content: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        attach_selected_file, content_hash, language_for_path, list_files, read_file,
-        read_selected_file, register_standalone_workspace, register_workspace, restore_workspace,
-        save_draft, save_file, save_selected_file, MAX_TEXT_FILE_BYTES,
+        attach_selected_file, content_hash, language_for_path, list_document_versions, list_files,
+        list_recovery_drafts, read_document_version, read_file, read_selected_file,
+        register_standalone_workspace, register_workspace, restore_document_version,
+        restore_workspace, save_draft, save_file, save_file_with_history, save_selected_file,
+        MAX_TEXT_FILE_BYTES,
     };
     use crate::error::AppError;
     use crate::storage::Storage;
@@ -725,6 +955,83 @@ mod tests {
     }
 
     #[test]
+    fn crash_drafts_survive_restart_and_require_confirmation_for_external_changes() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        fs::create_dir(&project).unwrap();
+        let file_path = project.join("notes.md");
+        let database_path = root.path().join("recovery.sqlite3");
+        fs::write(&file_path, "disk v1").unwrap();
+
+        let storage = Storage::open(&database_path).unwrap();
+        let workspace = register_workspace(&storage, &project).unwrap();
+        let opened = read_file(&storage, &workspace.id, "notes.md").unwrap();
+        save_draft(
+            &storage,
+            &workspace.id,
+            "notes.md",
+            "unsaved draft",
+            &opened.content_hash,
+        )
+        .unwrap();
+        drop(storage);
+
+        fs::write(&file_path, "external v2").unwrap();
+        let storage = Storage::open(&database_path).unwrap();
+        let drafts = list_recovery_drafts(&storage, &workspace.id).unwrap();
+        assert_eq!(drafts.len(), 1);
+        assert!(drafts[0].available);
+        assert!(drafts[0].conflict);
+        assert_eq!(drafts[0].relative_path, "notes.md");
+
+        let reopened = read_file(&storage, &workspace.id, "notes.md").unwrap();
+        let draft = reopened.draft.unwrap();
+        assert_eq!(draft.content, "unsaved draft");
+        save_file_with_history(
+            &storage,
+            &workspace.id,
+            "notes.md",
+            &draft.content,
+            &reopened.content_hash,
+        )
+        .unwrap();
+        assert_eq!(fs::read_to_string(&file_path).unwrap(), "unsaved draft");
+        assert!(list_recovery_drafts(&storage, &workspace.id)
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn startup_removes_a_stale_draft_when_the_disk_write_already_completed() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        fs::create_dir(&project).unwrap();
+        let file_path = project.join("saved.md");
+        let database_path = root.path().join("stale-draft.sqlite3");
+        fs::write(&file_path, "before").unwrap();
+
+        let storage = Storage::open(&database_path).unwrap();
+        let workspace = register_workspace(&storage, &project).unwrap();
+        let opened = read_file(&storage, &workspace.id, "saved.md").unwrap();
+        save_draft(
+            &storage,
+            &workspace.id,
+            "saved.md",
+            "after",
+            &opened.content_hash,
+        )
+        .unwrap();
+        fs::write(&file_path, "after").unwrap();
+        drop(storage);
+
+        let storage = Storage::open(&database_path).unwrap();
+        assert!(list_recovery_drafts(&storage, &workspace.id)
+            .unwrap()
+            .is_empty());
+        assert!(storage.draft(&workspace.id, "saved.md").unwrap().is_none());
+    }
+
+    #[test]
     fn saves_text_content_to_the_real_file() {
         let directory = tempfile::tempdir().unwrap();
         let file_path = directory.path().join("autosave.ts");
@@ -747,6 +1054,73 @@ mod tests {
             "export const value = 2;\n"
         );
         assert_ne!(saved.content_hash, opened.content_hash);
+    }
+
+    #[test]
+    fn autosave_history_survives_restart_and_restores_without_overwriting_conflicts() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        fs::create_dir(&project).unwrap();
+        let file_path = project.join("history.md");
+        let database_path = root.path().join("history.sqlite3");
+        fs::write(&file_path, "# Original\n").unwrap();
+
+        let storage = Storage::open(&database_path).unwrap();
+        let workspace = register_workspace(&storage, &project).unwrap();
+        let opened = read_file(&storage, &workspace.id, "history.md").unwrap();
+        save_file_with_history(
+            &storage,
+            &workspace.id,
+            "history.md",
+            "# Saved\n",
+            &opened.content_hash,
+        )
+        .unwrap();
+        drop(storage);
+
+        let storage = Storage::open(&database_path).unwrap();
+        let versions = list_document_versions(&storage, &workspace.id, "history.md").unwrap();
+        assert_eq!(versions.len(), 2);
+        assert!(versions.iter().any(|version| version.source == "initial"));
+        assert!(versions
+            .iter()
+            .any(|version| version.source == "autosave" && version.is_current));
+        let original = versions
+            .iter()
+            .find(|version| version.source == "initial")
+            .unwrap();
+        let preview =
+            read_document_version(&storage, &workspace.id, "history.md", &original.id).unwrap();
+        assert_eq!(preview.content, "# Original\n");
+
+        let current = read_file(&storage, &workspace.id, "history.md").unwrap();
+        let restored = restore_document_version(
+            &storage,
+            &workspace.id,
+            "history.md",
+            &original.id,
+            &current.content_hash,
+        )
+        .unwrap();
+        assert_eq!(fs::read_to_string(&file_path).unwrap(), "# Original\n");
+        let restored_versions =
+            list_document_versions(&storage, &workspace.id, "history.md").unwrap();
+        assert!(restored_versions
+            .iter()
+            .any(|version| version.source == "restore" && version.is_current));
+
+        fs::write(&file_path, "# External\n").unwrap();
+        assert!(matches!(
+            restore_document_version(
+                &storage,
+                &workspace.id,
+                "history.md",
+                &original.id,
+                &restored.content_hash,
+            ),
+            Err(AppError::FileConflict)
+        ));
+        assert_eq!(fs::read_to_string(file_path).unwrap(), "# External\n");
     }
 
     #[test]

@@ -1,5 +1,6 @@
 use crate::error::AppError;
 use keyring::v1::Entry;
+use zeroize::Zeroizing;
 
 const SERVICE_NAME: &str = "com.a2ui.terminal.provider";
 const MAX_SECRET_LENGTH: usize = 8_192;
@@ -15,7 +16,9 @@ impl SecretStore {
                 "API 密钥长度必须在 8 到 8192 个字符之间".into(),
             ));
         }
-        Self::entry(&provider_id)?.set_password(secret)?;
+        Self::entry(&provider_id)?
+            .set_password(secret)
+            .map_err(map_store_error)?;
         Ok(())
     }
 
@@ -24,27 +27,47 @@ impl SecretStore {
         match Self::entry(&provider_id)?.get_password() {
             Ok(_) => Ok(true),
             Err(keyring::v1::Error::NoEntry) => Ok(false),
-            Err(error) => Err(error.into()),
+            Err(error) => Err(map_store_error(error)),
         }
     }
 
-    pub(crate) fn get(provider_id: &str) -> Result<String, AppError> {
+    pub(crate) fn get(provider_id: &str) -> Result<Zeroizing<String>, AppError> {
         let provider_id = validate_provider_id(provider_id)?;
         Self::entry(&provider_id)?
             .get_password()
-            .map_err(Into::into)
+            .map(Zeroizing::new)
+            .map_err(map_store_error)
+    }
+
+    pub(crate) fn get_optional(provider_id: &str) -> Result<Option<Zeroizing<String>>, AppError> {
+        let provider_id = validate_provider_id(provider_id)?;
+        match Self::entry(&provider_id)?.get_password() {
+            Ok(secret) => Ok(Some(Zeroizing::new(secret))),
+            Err(keyring::v1::Error::NoEntry) => Ok(None),
+            Err(error) => Err(map_store_error(error)),
+        }
     }
 
     pub fn delete(provider_id: &str) -> Result<(), AppError> {
         let provider_id = validate_provider_id(provider_id)?;
         match Self::entry(&provider_id)?.delete_credential() {
             Ok(()) | Err(keyring::v1::Error::NoEntry) => Ok(()),
-            Err(error) => Err(error.into()),
+            Err(error) => Err(map_store_error(error)),
         }
     }
 
     fn entry(provider_id: &str) -> Result<Entry, AppError> {
-        Ok(Entry::new(SERVICE_NAME, provider_id)?)
+        Entry::new(SERVICE_NAME, provider_id).map_err(map_store_error)
+    }
+}
+
+fn map_store_error(error: keyring::v1::Error) -> AppError {
+    match error {
+        keyring::v1::Error::NoEntry => AppError::CredentialNotFound,
+        keyring::v1::Error::NoStorageAccess(_)
+        | keyring::v1::Error::NoDefaultStore
+        | keyring::v1::Error::NotSupportedByStore(_) => AppError::CredentialUnavailable,
+        other => AppError::Credential(other),
     }
 }
 

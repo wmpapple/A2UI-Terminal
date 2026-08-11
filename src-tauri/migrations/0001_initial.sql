@@ -1,5 +1,3 @@
-BEGIN;
-
 CREATE TABLE IF NOT EXISTS workspaces (
     id TEXT PRIMARY KEY NOT NULL,
     name TEXT NOT NULL,
@@ -74,6 +72,3 @@ CREATE TABLE IF NOT EXISTS audit_events (
 
 CREATE INDEX IF NOT EXISTS idx_audit_events_created_at
     ON audit_events(created_at DESC);
-
-PRAGMA user_version = 1;
-COMMIT;

@@ -11,10 +11,13 @@ import type {
   ChatMessage,
   ChatSession,
   ContextSelection,
+  DocumentVersion,
+  DocumentVersionSummary,
   FileSaveStatus,
   PatchApplication,
   PatchReview,
   ProviderConfig,
+  RecoveryDraftSummary,
   WorkspaceDraft,
   WorkspaceFile,
   WorkspaceFileEntry,
@@ -33,6 +36,7 @@ const mockEntries: WorkspaceFileEntry[] = mockFiles.map((file) => ({
 
 const initialRuntimeMode = getRuntimeMode();
 const useMockWorkspace = initialRuntimeMode === 'web-mock';
+const locallyStoppedChatRequests = new Set<string>();
 
 const errorDetails = (error: unknown): { code: string; message: string } => {
   if (typeof error === 'object' && error && 'code' in error && 'message' in error) {
@@ -84,6 +88,12 @@ interface AppState {
   dirtyPaths: string[];
   saveStatusByPath: Record<string, FileSaveStatus>;
   recoveryDrafts: Record<string, WorkspaceDraft>;
+  recoveryDraftSummaries: RecoveryDraftSummary[];
+  documentVersions: DocumentVersionSummary[];
+  versionPreview: DocumentVersion | null;
+  versionHistoryPath: string;
+  versionHistoryLoading: boolean;
+  versionHistoryError: string | null;
   centerView: CenterView;
   sessions: ChatSession[];
   activeSessionId: string;
@@ -119,6 +129,10 @@ interface AppState {
   saveFileToDisk: (path: string) => Promise<void>;
   restoreRecoveryDraft: (path: string) => void;
   discardRecoveryDraft: (path: string) => Promise<void>;
+  loadDocumentVersions: (path: string) => Promise<void>;
+  previewDocumentVersion: (path: string, versionId: string) => Promise<void>;
+  restoreDocumentVersion: (path: string, versionId: string) => Promise<void>;
+  clearVersionPreview: () => void;
   markSaved: (path: string) => void;
   clearWorkspaceError: () => void;
   setCenterView: (view: CenterView) => void;
@@ -168,6 +182,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   dirtyPaths: [],
   saveStatusByPath: {},
   recoveryDrafts: {},
+  recoveryDraftSummaries: [],
+  documentVersions: [],
+  versionPreview: null,
+  versionHistoryPath: '',
+  versionHistoryLoading: false,
+  versionHistoryError: null,
   centerView: 'editor',
   sessions: useMockWorkspace ? mockSessions : [],
   activeSessionId: useMockWorkspace ? 'welcome' : '',
@@ -229,9 +249,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const workspace = await desktopApi.selectWorkspace();
       if (!workspace) return;
-      const [workspaceEntries, a2uiHistory] = await Promise.all([
+      const [workspaceEntries, a2uiHistory, recoveryDraftSummaries] = await Promise.all([
         desktopApi.listWorkspaceFiles(workspace.id),
         loadA2uiHistory(workspace.id),
+        desktopApi.listRecoveryDrafts(workspace.id),
       ]);
       const { surfaces: a2uiSurfaces, inspections: a2uiInspections } = a2uiHistory;
       const recentWorkspaces = await desktopApi.listRecentWorkspaces();
@@ -249,8 +270,19 @@ export const useAppStore = create<AppState>((set, get) => ({
         openPaths: [],
         activePath: '',
         dirtyPaths: [],
-        saveStatusByPath: {},
+        saveStatusByPath: Object.fromEntries(
+          recoveryDraftSummaries.map((draft) => [
+            draft.relativePath,
+            draft.conflict ? 'conflict' : 'draft',
+          ])
+        ),
         recoveryDrafts: {},
+        recoveryDraftSummaries,
+        documentVersions: [],
+        versionPreview: null,
+        versionHistoryPath: '',
+        versionHistoryLoading: false,
+        versionHistoryError: null,
         sessions,
         activeSessionId: sessions[0].id,
         contextBySession: {},
@@ -277,6 +309,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!result || result.documents.length === 0) return;
       const { workspace, documents } = result;
       const recentWorkspaces = await desktopApi.listRecentWorkspaces();
+      const recoveryDraftSummaries = await desktopApi.listRecoveryDrafts(workspace.id);
       let sessions = get().sessions;
       let activeSessionId = get().activeSessionId;
       let a2uiSurfaces = get().a2uiSurfaces;
@@ -304,6 +337,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         extracted: document.extracted,
         sourceId: document.sourceId,
       }));
+      const selectedRecoveryDrafts = Object.fromEntries(
+        documents
+          .filter((document) => document.draft)
+          .map((document) => [document.path, document.draft!])
+      );
       set((state) => {
         const selectedPaths = selectedFiles.map((file) => file.path);
         const selectedEntries: WorkspaceFileEntry[] = selectedFiles.map((file) => ({
@@ -341,7 +379,18 @@ export const useAppStore = create<AppState>((set, get) => ({
           saveStatusByPath: {
             ...state.saveStatusByPath,
             ...Object.fromEntries(selectedPaths.map((path) => [path, 'saved' as const])),
+            ...Object.fromEntries(
+              recoveryDraftSummaries.map((draft) => [
+                draft.relativePath,
+                draft.conflict ? ('conflict' as const) : ('draft' as const),
+              ])
+            ),
           },
+          recoveryDraftSummaries,
+          recoveryDrafts:
+            currentWorkspace?.id === workspace.id
+              ? { ...state.recoveryDrafts, ...selectedRecoveryDrafts }
+              : selectedRecoveryDrafts,
         };
       });
     } catch (error) {
@@ -357,9 +406,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ workspaceLoading: true, workspaceError: null });
     try {
       const workspace = await desktopApi.restoreWorkspace(workspaceId);
-      const [workspaceEntries, a2uiHistory] = await Promise.all([
+      const [workspaceEntries, a2uiHistory, recoveryDraftSummaries] = await Promise.all([
         desktopApi.listWorkspaceFiles(workspace.id),
         loadA2uiHistory(workspace.id),
+        desktopApi.listRecoveryDrafts(workspace.id),
       ]);
       const { surfaces: a2uiSurfaces, inspections: a2uiInspections } = a2uiHistory;
       let sessions = await desktopApi.listChatSessions(workspace.id);
@@ -375,8 +425,19 @@ export const useAppStore = create<AppState>((set, get) => ({
         openPaths: [],
         activePath: '',
         dirtyPaths: [],
-        saveStatusByPath: {},
+        saveStatusByPath: Object.fromEntries(
+          recoveryDraftSummaries.map((draft) => [
+            draft.relativePath,
+            draft.conflict ? 'conflict' : 'draft',
+          ])
+        ),
         recoveryDrafts: {},
+        recoveryDraftSummaries,
+        documentVersions: [],
+        versionPreview: null,
+        versionHistoryPath: '',
+        versionHistoryLoading: false,
+        versionHistoryError: null,
         sessions,
         activeSessionId: sessions[0].id,
         contextBySession: {},
@@ -411,6 +472,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         dirtyPaths: [],
         saveStatusByPath: {},
         recoveryDrafts: {},
+        recoveryDraftSummaries: [],
+        documentVersions: [],
+        versionPreview: null,
+        versionHistoryPath: '',
+        versionHistoryLoading: false,
+        versionHistoryError: null,
         sessions: [],
         activeSessionId: '',
         contextBySession: {},
@@ -467,20 +534,37 @@ export const useAppStore = create<AppState>((set, get) => ({
           extracted: document.extracted,
           sourceId: document.sourceId,
         };
-        set((state) => ({
-          files: [...state.files, file],
-          openPaths: [...state.openPaths, path],
-          activePath: path,
-          selectedText: '',
-          dirtyPaths: state.dirtyPaths,
-          saveStatusByPath: {
-            ...state.saveStatusByPath,
-            [path]: document.draft ? (draftHasConflict ? 'conflict' : 'draft') : 'saved',
-          },
-          recoveryDrafts: document.draft
-            ? { ...state.recoveryDrafts, [path]: document.draft }
-            : state.recoveryDrafts,
-        }));
+        set((state) => {
+          const recoveryDrafts = { ...state.recoveryDrafts };
+          if (document.draft) recoveryDrafts[path] = document.draft;
+          else delete recoveryDrafts[path];
+          const recoveryDraftSummaries = document.draft
+            ? [
+                {
+                  relativePath: path,
+                  baseHash: document.draft.baseHash,
+                  updatedAt: document.draft.updatedAt,
+                  currentHash: document.contentHash,
+                  conflict: draftHasConflict,
+                  available: true,
+                },
+                ...state.recoveryDraftSummaries.filter((draft) => draft.relativePath !== path),
+              ]
+            : state.recoveryDraftSummaries.filter((draft) => draft.relativePath !== path);
+          return {
+            files: [...state.files, file],
+            openPaths: [...state.openPaths, path],
+            activePath: path,
+            selectedText: '',
+            dirtyPaths: state.dirtyPaths,
+            saveStatusByPath: {
+              ...state.saveStatusByPath,
+              [path]: document.draft ? (draftHasConflict ? 'conflict' : 'draft') : 'saved',
+            },
+            recoveryDrafts,
+            recoveryDraftSummaries,
+          };
+        });
       } catch (error) {
         set({ workspaceError: errorDetails(error).message });
       } finally {
@@ -521,7 +605,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     const file = state.files.find((item) => item.path === path);
     if (state.runtimeMode === 'web-mock' || !file?.contentHash || file.editable === false) return;
     try {
-      if (file.sourceId) return;
       if (!workspace) return;
       await desktopApi.saveWorkspaceDraft(workspace.id, path, file.content, file.contentHash);
       set((current) => ({
@@ -551,18 +634,21 @@ export const useAppStore = create<AppState>((set, get) => ({
       saveStatusByPath: { ...current.saveStatusByPath, [path]: 'saving' },
     }));
     try {
-      const result = sourceId
-        ? await desktopApi.saveContextFile(sourceId, content, baseHash)
-        : workspace
-          ? await (async () => {
-              await desktopApi.saveWorkspaceDraft(workspace.id, path, content, baseHash);
-              return desktopApi.saveWorkspaceFile(workspace.id, path, content, baseHash);
-            })()
-          : null;
+      const result = workspace
+        ? await (async () => {
+            await desktopApi.saveWorkspaceDraft(workspace.id, path, content, baseHash);
+            return sourceId
+              ? desktopApi.saveContextFile(sourceId, content, baseHash)
+              : desktopApi.saveWorkspaceFile(workspace.id, path, content, baseHash);
+          })()
+        : null;
       if (!result) return;
       set((current) => {
         const recoveryDrafts = { ...current.recoveryDrafts };
         delete recoveryDrafts[path];
+        const recoveryDraftSummaries = current.recoveryDraftSummaries.filter(
+          (draft) => draft.relativePath !== path
+        );
         const latestFile = current.files.find((item) => item.path === path);
         const unchangedSinceRequest =
           latestFile?.content === content && latestFile.contentHash === baseHash;
@@ -580,8 +666,12 @@ export const useAppStore = create<AppState>((set, get) => ({
             [path]: unchangedSinceRequest ? 'saved' : 'dirty',
           },
           recoveryDrafts,
+          recoveryDraftSummaries,
         };
       });
+      if (get().versionHistoryPath === path) {
+        await get().loadDocumentVersions(path);
+      }
     } catch (error) {
       const details = errorDetails(error);
       set((current) => ({
@@ -609,6 +699,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           : [...state.dirtyPaths, path],
         saveStatusByPath: { ...state.saveStatusByPath, [path]: 'dirty' },
         recoveryDrafts,
+        recoveryDraftSummaries: state.recoveryDraftSummaries.filter(
+          (draft) => draft.relativePath !== path
+        ),
       };
     }),
 
@@ -621,10 +714,103 @@ export const useAppStore = create<AppState>((set, get) => ({
       delete recoveryDrafts[path];
       return {
         recoveryDrafts,
+        recoveryDraftSummaries: state.recoveryDraftSummaries.filter(
+          (draft) => draft.relativePath !== path
+        ),
         saveStatusByPath: { ...state.saveStatusByPath, [path]: 'saved' },
       };
     });
   },
+
+  loadDocumentVersions: async (path) => {
+    const workspace = get().workspace;
+    if (!workspace || get().runtimeMode === 'web-mock') return;
+    set({
+      versionHistoryPath: path,
+      versionHistoryLoading: true,
+      versionHistoryError: null,
+    });
+    try {
+      const documentVersions = await desktopApi.listDocumentVersions(workspace.id, path);
+      if (get().versionHistoryPath === path) set({ documentVersions });
+    } catch (error) {
+      set({ versionHistoryError: errorDetails(error).message });
+    } finally {
+      if (get().versionHistoryPath === path) set({ versionHistoryLoading: false });
+    }
+  },
+
+  previewDocumentVersion: async (path, versionId) => {
+    const workspace = get().workspace;
+    if (!workspace || get().runtimeMode === 'web-mock') return;
+    set({ versionHistoryLoading: true, versionHistoryError: null });
+    try {
+      const versionPreview = await desktopApi.readDocumentVersion(workspace.id, path, versionId);
+      set({ versionPreview });
+    } catch (error) {
+      set({ versionHistoryError: errorDetails(error).message });
+    } finally {
+      set({ versionHistoryLoading: false });
+    }
+  },
+
+  restoreDocumentVersion: async (path, versionId) => {
+    const workspace = get().workspace;
+    if (!workspace || get().runtimeMode === 'web-mock') return;
+    if (get().dirtyPaths.includes(path)) {
+      await get().saveFileToDisk(path);
+      if (get().dirtyPaths.includes(path)) {
+        set({ versionHistoryError: '当前修改尚未安全保存，无法恢复历史版本' });
+        return;
+      }
+    }
+    const file = get().files.find((item) => item.path === path);
+    if (!file?.contentHash) return;
+    set({ versionHistoryLoading: true, versionHistoryError: null });
+    try {
+      const preview = await desktopApi.readDocumentVersion(workspace.id, path, versionId);
+      const restored = await desktopApi.restoreDocumentVersion(
+        workspace.id,
+        path,
+        versionId,
+        file.contentHash
+      );
+      set((state) => {
+        const recoveryDrafts = { ...state.recoveryDrafts };
+        delete recoveryDrafts[path];
+        return {
+          files: state.files.map((item) =>
+            item.path === path
+              ? {
+                  ...item,
+                  content: preview.content,
+                  contentHash: restored.contentHash,
+                  sizeBytes: restored.sizeBytes,
+                }
+              : item
+          ),
+          dirtyPaths: state.dirtyPaths.filter((item) => item !== path),
+          saveStatusByPath: { ...state.saveStatusByPath, [path]: 'saved' },
+          recoveryDrafts,
+          versionPreview: null,
+        };
+      });
+      await get().loadDocumentVersions(path);
+    } catch (error) {
+      const details = errorDetails(error);
+      set((state) => ({
+        versionHistoryError: details.message,
+        saveStatusByPath:
+          details.code === 'FILE_CONFLICT'
+            ? { ...state.saveStatusByPath, [path]: 'conflict' }
+            : state.saveStatusByPath,
+      }));
+    } finally {
+      set({ versionHistoryLoading: false });
+    }
+  },
+
+  clearVersionPreview: () => set({ versionPreview: null }),
 
   markSaved: (path) =>
     set((state) => ({
@@ -855,8 +1041,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (get().runtimeMode === 'web-mock') return;
     set({ providerLoading: true, providerError: null });
     try {
-      await desktopApi.saveProviderConfig(config);
-      if (secret?.trim()) await desktopApi.setProviderSecret(config.id, secret.trim());
+      await desktopApi.saveProviderConfig(config, secret?.trim() || undefined);
       await get().initializeProviders();
     } catch (error) {
       const details = errorDetails(error);
@@ -1040,6 +1225,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
         (event) => {
           if (event.type === 'delta') {
+            if (locallyStoppedChatRequests.has(requestId)) return;
             receivedContent += event.delta;
             textBuffer.push(event.delta);
           } else if (event.type === 'error') {
@@ -1056,7 +1242,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           new Promise<void>((resolve) => window.setTimeout(resolve, 2000)),
         ]);
       }
-      if (result.content.startsWith(receivedContent)) {
+      const locallyStopped = locallyStoppedChatRequests.has(requestId);
+      if (!locallyStopped && result.content.startsWith(receivedContent)) {
         textBuffer.push(result.content.slice(receivedContent.length));
       }
       await textBuffer.finish();
@@ -1067,9 +1254,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       get().updateMessage(
         session.id,
         assistantMessageId,
-        displayedContent === result.content ? displayedContent : result.content,
-        result.status
+        locallyStopped || displayedContent === result.content ? displayedContent : result.content,
+        locallyStopped ? 'stopped' : result.status
       );
+      if (result.status === 'error' && result.errorMessage) {
+        set({ chatError: result.errorMessage });
+      }
       if (result.errorCode || result.patchError) {
         set((current) => ({
           sessions: current.sessions.map((item) =>
@@ -1131,6 +1321,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         ),
       }));
     } finally {
+      locallyStoppedChatRequests.delete(requestId);
       if (get().chatRequestId === requestId) set({ chatRequestId: null });
     }
   },
@@ -1269,7 +1460,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
     try {
-      await desktopApi.stopChat(requestId);
+      const stopped = await desktopApi.stopChat(requestId);
+      if (!stopped) return;
+      locallyStoppedChatRequests.add(requestId);
+      set((state) => ({
+        chatRequestId: state.chatRequestId === requestId ? null : state.chatRequestId,
+        sessions: state.sessions.map((session) => ({
+          ...session,
+          messages: session.messages.map((message) =>
+            message.requestId === requestId && message.status === 'streaming'
+              ? { ...message, status: 'stopped' }
+              : message
+          ),
+        })),
+      }));
     } catch (error) {
       set({ chatError: errorDetails(error).message });
     }

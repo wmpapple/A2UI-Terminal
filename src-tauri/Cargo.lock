@@ -25,6 +25,7 @@ dependencies = [
  "tokio",
  "uuid",
  "walkdir",
+ "zeroize",
  "zip 6.0.0",
 ]
 

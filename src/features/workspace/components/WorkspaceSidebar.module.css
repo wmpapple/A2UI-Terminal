@@ -84,10 +84,35 @@
   cursor: pointer;
   text-align: left;
 }
-.file span:last-child {
+.file > span:not(.recoveryDot) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.recoveryDot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  background: #faad14;
+  border-radius: 50%;
+}
+.recoveryList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+.recoveryItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 11px;
+}
+.recoveryItem > span {
+  flex: 1;
+  color: var(--text-muted);
 }
 .file:hover {
   background: var(--surface-hover);

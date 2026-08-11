@@ -2,9 +2,11 @@
 
 ## 本地保存的数据
 
-A2UI Terminal 桌面版会在应用数据目录的 SQLite 中保存工作区授权记录、会话、完整消息正文、显式上下文元数据、崩溃恢复草稿、文档版本、Patch 审计和 A2UI Inspector 记录。会话永久保留，文档版本默认保留 30 天。
+A2UI Terminal 桌面版会在应用数据目录的 SQLite 中保存工作区授权记录、会话、完整消息正文、显式上下文元数据、崩溃恢复草稿、文档版本、Patch 审计和 A2UI Inspector 记录。会话永久保留，文档版本默认保留 30 天；每个文件的普通自动保存/恢复历史最多保留最近 100 条，Patch 审计版本不受该数量上限影响。
 
-API Key 不写入 SQLite、localStorage、日志或项目文件，只保存在 Windows Credential Manager。Web Mock 不读取上述桌面数据。
+崩溃草稿包含尚未写入磁盘的编辑正文、基础磁盘 Hash、草稿正文 Hash 和更新时间。它只保存在本地 SQLite；工作区启动时用于发现待恢复编辑，并在磁盘内容已与草稿一致或用户明确保留磁盘版本后删除。
+
+API Key 不写入 SQLite、localStorage、日志或项目文件，只保存在 Windows Credential Manager。从命令参数和凭据库取得的临时 Key 字符串会在离开作用域时清零；更新配置失败会恢复旧 Key，前端只能读取是否已配置。Web Mock 不读取上述桌面数据。
 
 ## 发送给 AI Provider 的数据
 

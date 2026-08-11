@@ -1,5 +1,3 @@
-BEGIN;
-
 CREATE TABLE IF NOT EXISTS a2ui_surfaces (
     id TEXT PRIMARY KEY NOT NULL,
     surface_id TEXT NOT NULL,
@@ -53,6 +51,3 @@ CREATE INDEX IF NOT EXISTS idx_a2ui_messages_workspace
     ON a2ui_messages(workspace_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_a2ui_events_surface
     ON a2ui_events(surface_row_id, created_at);
-
-PRAGMA user_version = 6;
-COMMIT;

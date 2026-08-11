@@ -1,5 +1,3 @@
-BEGIN;
-
 ALTER TABLE workspaces
     ADD COLUMN kind TEXT NOT NULL DEFAULT 'directory'
     CHECK (kind IN ('directory', 'standalone'));
@@ -17,6 +15,3 @@ CREATE TABLE IF NOT EXISTS workspace_files (
 
 CREATE INDEX IF NOT EXISTS idx_workspace_files_workspace
     ON workspace_files(workspace_id, created_at);
-
-PRAGMA user_version = 4;
-COMMIT;

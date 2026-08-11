@@ -2,6 +2,7 @@ import {
   CloseOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
+  HistoryOutlined,
   SaveOutlined,
   UndoOutlined,
 } from '@ant-design/icons';
@@ -18,6 +19,9 @@ import styles from './EditorPane.module.css';
 
 const MarkdownEditor = lazy(() =>
   import('md-editor-rt').then((module) => ({ default: module.MdEditor }))
+);
+const VersionHistoryDrawer = lazy(() =>
+  import('./VersionHistoryDrawer').then((module) => ({ default: module.VersionHistoryDrawer }))
 );
 
 export function EditorPane() {
@@ -47,6 +51,7 @@ export function EditorPane() {
   const setSelectedText = useAppStore((state) => state.setSelectedText);
   const undoLastPatch = useAppStore((state) => state.undoLastPatch);
   const [previewByPath, setPreviewByPath] = useState<Record<string, boolean>>({});
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const editorRegionRef = useRef<HTMLDivElement>(null);
   const markdownEditorRef = useRef<ExposeParam | null>(null);
   const autosaveTimersRef = useRef(
@@ -203,6 +208,16 @@ export function EditorPane() {
               {t('saveNow')}
             </Button>
           ) : null}
+          {runtimeMode === 'desktop' && activeFile && !isExtractedDocument ? (
+            <Button
+              size="small"
+              icon={<HistoryOutlined />}
+              aria-label={t('versionHistory')}
+              onClick={() => setVersionHistoryOpen(true)}
+            >
+              {t('versionHistory')}
+            </Button>
+          ) : null}
           {isExtractedDocument ? <Tag color="purple">{t('readOnlyDocument')}</Tag> : null}
           {!isExtractedDocument ? <Tag color={saveColor}>{saveLabel}</Tag> : null}
         </div>
@@ -304,6 +319,15 @@ export function EditorPane() {
           <Empty description="Select a file" />
         )}
       </div>
+      {versionHistoryOpen ? (
+        <Suspense fallback={null}>
+          <VersionHistoryDrawer
+            open
+            path={activeFile?.path ?? ''}
+            onClose={() => setVersionHistoryOpen(false)}
+          />
+        </Suspense>
+      ) : null}
     </main>
   );
 }

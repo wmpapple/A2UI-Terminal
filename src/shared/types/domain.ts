@@ -44,12 +44,36 @@ export interface WorkspaceDraft {
   updatedAt: string;
 }
 
+export interface RecoveryDraftSummary {
+  relativePath: string;
+  baseHash: string;
+  updatedAt: string;
+  currentHash: string | null;
+  conflict: boolean;
+  available: boolean;
+}
+
 export interface WorkspaceDocument extends WorkspaceFile {
   contentHash: string;
   sizeBytes: number;
   draft: WorkspaceDraft | null;
   editable: boolean;
   extracted: boolean;
+}
+
+export interface DocumentVersionSummary {
+  id: string;
+  relativePath: string;
+  contentHash: string;
+  source: 'legacy' | 'initial' | 'autosave' | 'patch' | 'restore';
+  summary: string | null;
+  versionKind: 'snapshot' | 'before' | 'after';
+  createdAt: string;
+  isCurrent: boolean;
+}
+
+export interface DocumentVersion extends DocumentVersionSummary {
+  content: string;
 }
 
 export type FileSaveStatus = 'saved' | 'dirty' | 'draft' | 'saving' | 'conflict' | 'error';
@@ -118,6 +142,8 @@ export type ChatStreamEvent =
       messageId: string;
       code: string;
       message: string;
+      retryable: boolean;
+      retryAfterSeconds: number | null;
     };
 
 export interface ChatStreamResult {
@@ -126,6 +152,9 @@ export interface ChatStreamResult {
   content: string;
   status: 'complete' | 'stopped' | 'error';
   errorCode: string | null;
+  errorMessage?: string | null;
+  retryable?: boolean;
+  retryAfterSeconds?: number | null;
   patch?: PatchReview | null;
   patchError?: string | null;
   a2ui?: A2uiProcessResult | null;

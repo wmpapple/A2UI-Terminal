@@ -1,0 +1,42 @@
+.path {
+  margin: 0;
+  color: var(--text-strong);
+  font-family: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  margin: 8px 0 16px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.alert {
+  margin-bottom: 12px;
+}
+
+.loading {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+}
+
+.previewMeta {
+  margin-bottom: 12px;
+}
+
+.preview {
+  max-height: 58vh;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  color: var(--text-strong);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
