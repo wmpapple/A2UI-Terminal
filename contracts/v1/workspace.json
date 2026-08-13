@@ -1,0 +1,16 @@
+{
+  "path": "notes/meeting.md",
+  "name": "meeting.md",
+  "language": "markdown",
+  "content": "# Meeting\n\nDecision: ship safely.",
+  "contentHash": "sha256-workspace-content",
+  "sizeBytes": 33,
+  "draft": {
+    "content": "# Meeting\n\nDecision: review first.",
+    "baseHash": "sha256-workspace-base",
+    "updatedAt": "2026-08-13T09:00:00Z"
+  },
+  "editable": true,
+  "extracted": false,
+  "sourceId": null
+}

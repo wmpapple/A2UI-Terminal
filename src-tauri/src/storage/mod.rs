@@ -1,7 +1,7 @@
 use crate::ai::{default_providers, ProviderConfig, ProviderKind, ProviderMessage};
 use crate::error::AppError;
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt::Write as _;
 use std::fs;
@@ -113,7 +113,7 @@ pub struct DraftSummaryRow {
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatMessageRecord {
     pub id: String,
@@ -126,7 +126,7 @@ pub struct ChatMessageRecord {
     pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatSessionRecord {
     pub id: String,

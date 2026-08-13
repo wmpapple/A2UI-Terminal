@@ -1,14 +1,14 @@
 mod policy;
 mod protocol;
 
-pub use protocol::{is_component_allowed, ALLOWED_COMPONENTS, SCHEMA_VERSION};
+pub use protocol::{is_component_allowed, SurfaceMessage, ALLOWED_COMPONENTS, SCHEMA_VERSION};
 
 use crate::error::AppError;
 use crate::storage::{A2uiInspectionRow, A2uiSurfaceRow, Storage};
 use policy::{evaluate, ActionDecision, ActionRisk};
 use protocol::{
     apply_update, find_node, normalize_surface, validate_runtime_value, validate_surface, A2uiNode,
-    A2uiSurfaceState, SurfaceMessage, UpdateMessage, MAX_MESSAGE_BYTES,
+    A2uiSurfaceState, UpdateMessage, MAX_MESSAGE_BYTES,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -24,7 +24,7 @@ pub struct A2uiValidation {
     pub duration_ms: u64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct A2uiEventView {
     pub id: String,
@@ -38,7 +38,7 @@ pub struct A2uiEventView {
     pub created_at: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct A2uiSurfaceView {
     pub surface_id: String,
@@ -53,7 +53,7 @@ pub struct A2uiSurfaceView {
     pub events: Vec<A2uiEventView>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct A2uiInspectionView {
     pub id: String,
@@ -64,7 +64,7 @@ pub struct A2uiInspectionView {
     pub created_at: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct A2uiProcessResult {
     pub surface: Option<A2uiSurfaceView>,
@@ -91,7 +91,7 @@ pub struct ExecuteActionRequest {
     pub payload: Value,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActionExecutionResult {
     pub risk: ActionRisk,

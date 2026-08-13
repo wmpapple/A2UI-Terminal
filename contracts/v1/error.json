@@ -1,0 +1,7 @@
+{
+  "code": "PROVIDER_RATE_LIMITED",
+  "message": "请求过于频繁",
+  "retryable": true,
+  "httpStatus": 429,
+  "retryAfterSeconds": 12
+}

@@ -10,7 +10,7 @@ use crate::storage::{
     DocumentVersionMetadata, DocumentVersionRecord, DraftRow, Storage, WorkspaceFileRow,
     WorkspaceRow,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt::Write as _;
 use std::fs;
@@ -36,7 +36,7 @@ const IGNORED_DIRECTORIES: &[&str] = &[
     "venv",
 ];
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceSummary {
     pub id: String,
@@ -45,7 +45,7 @@ pub struct WorkspaceSummary {
     pub kind: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceFileEntry {
     pub path: String,
@@ -58,7 +58,7 @@ pub struct WorkspaceFileEntry {
     pub source_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DraftDocument {
     pub content: String,
@@ -66,7 +66,7 @@ pub struct DraftDocument {
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RecoveryDraftSummary {
     pub relative_path: String,
@@ -77,7 +77,7 @@ pub struct RecoveryDraftSummary {
     pub available: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceDocument {
     pub path: String,
@@ -92,7 +92,7 @@ pub struct WorkspaceDocument {
     pub source_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveOutcome {
     pub path: String,
@@ -100,7 +100,7 @@ pub struct SaveOutcome {
     pub size_bytes: u64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentVersionSummary {
     pub id: String,
@@ -113,7 +113,7 @@ pub struct DocumentVersionSummary {
     pub is_current: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentVersion {
     #[serde(flatten)]

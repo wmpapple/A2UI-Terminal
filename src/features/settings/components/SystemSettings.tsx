@@ -7,7 +7,6 @@ import {
 import { Alert, Button, Input, Modal, Progress, Tag, message } from 'antd';
 import { useState, useSyncExternalStore } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
-import { desktopApi } from '../../../shared/platform/desktop';
 import { getRuntimeMode } from '../../../shared/platform/runtime';
 import {
   checkForAppUpdate,
@@ -16,6 +15,7 @@ import {
   subscribeToUpdates,
 } from '../appUpdater';
 import styles from './SystemSettings.module.css';
+import { systemController } from '../systemController';
 
 const CLEAR_CONFIRMATION = 'DELETE_ALL_LOCAL_DATA';
 
@@ -31,7 +31,7 @@ export function SystemSettings() {
   const exportDiagnostics = async () => {
     setExporting(true);
     try {
-      const result = await desktopApi.exportDiagnostics();
+      const result = await systemController.exportDiagnostics();
       if (result.exported) message.success(t('diagnosticsExported'));
     } catch {
       message.error(t('diagnosticsFailed'));
@@ -44,7 +44,7 @@ export function SystemSettings() {
     if (confirmation !== CLEAR_CONFIRMATION) return;
     setClearing(true);
     try {
-      await desktopApi.clearAllLocalData(confirmation);
+      await systemController.clearAllLocalData(confirmation);
       message.success(t('localDataCleared'));
       window.setTimeout(() => window.location.reload(), 250);
     } catch {

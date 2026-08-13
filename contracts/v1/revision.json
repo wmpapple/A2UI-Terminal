@@ -1,0 +1,23 @@
+{
+  "summary": {
+    "id": "revision-contract-v1",
+    "relativePath": "notes/meeting.md",
+    "contentHash": "sha256-revision-content",
+    "source": "patch",
+    "summary": "Update meeting decision",
+    "versionKind": "after",
+    "createdAt": "2026-08-13T09:02:00Z",
+    "isCurrent": true
+  },
+  "document": {
+    "id": "revision-contract-v1",
+    "relativePath": "notes/meeting.md",
+    "contentHash": "sha256-revision-content",
+    "source": "patch",
+    "summary": "Update meeting decision",
+    "versionKind": "after",
+    "createdAt": "2026-08-13T09:02:00Z",
+    "isCurrent": true,
+    "content": "Decision: ship after review."
+  }
+}

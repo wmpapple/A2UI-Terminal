@@ -1,0 +1,43 @@
+{
+  "session": {
+    "id": "session-contract-v1",
+    "workspaceId": "workspace-contract-v1",
+    "title": "Contract fixture",
+    "createdAt": "2026-08-13T09:00:00Z",
+    "updatedAt": "2026-08-13T09:01:00Z",
+    "messages": [
+      {
+        "id": "message-user-v1",
+        "role": "user",
+        "content": "Summarize this meeting.",
+        "status": "complete",
+        "requestId": "request-contract-v1",
+        "providerId": "openai",
+        "errorCode": null,
+        "createdAt": "2026-08-13T09:00:30Z"
+      }
+    ]
+  },
+  "streamEvent": {
+    "type": "error",
+    "requestId": "request-contract-v1",
+    "messageId": "message-assistant-v1",
+    "code": "PROVIDER_RATE_LIMITED",
+    "message": "请求过于频繁",
+    "retryable": true,
+    "retryAfterSeconds": 12
+  },
+  "streamResult": {
+    "requestId": "request-contract-v1",
+    "messageId": "message-assistant-v1",
+    "content": "Partial response",
+    "status": "error",
+    "errorCode": "PROVIDER_RATE_LIMITED",
+    "errorMessage": "请求过于频繁",
+    "retryable": true,
+    "retryAfterSeconds": 12,
+    "patch": null,
+    "patchError": null,
+    "a2ui": null
+  }
+}

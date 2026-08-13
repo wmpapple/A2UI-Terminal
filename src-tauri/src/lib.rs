@@ -1,8 +1,10 @@
 pub mod a2ui;
 pub mod ai;
+pub mod application;
 pub mod commands;
 pub mod error;
 pub mod patch;
+pub mod repository;
 pub mod security;
 pub mod state;
 pub mod storage;

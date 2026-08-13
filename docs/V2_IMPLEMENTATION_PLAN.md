@@ -1,6 +1,7 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**仅完成规划文档，V2 代码尚未开始**  
+> 当前状态：**S0.3 已验收完成；S0.4 自动验证通过，待人工验收；V2 功能代码尚未开始**
+>
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
 > 本文职责：实施顺序、验收门槛、逐步变更账本、决策记录和新对话上下文恢复
@@ -143,7 +144,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 | 里程碑        | 目标                                        | 退出条件                                           | 状态   |
 | ------------- | ------------------------------------------- | -------------------------------------------------- | ------ |
-| V2-0 基线加固 | 当前 V1 工作树可复现，建立合同和拆分支点    | 当前改动归属清楚；全量基线验证；无行为重构完成     | 待开始 |
+| V2-0 基线加固 | 当前 V1 工作树可复现，建立合同和拆分支点    | 当前改动归属清楚；全量基线验证；无行为重构完成     | 进行中 |
 | V2-A 产品外壳 | 首页、引导、任务创建、简单模式、最近成果    | 无需理解技术术语即可创建 Task 并进入 Result 工作台 | 待开始 |
 | V2-B 成果闭环 | 导入、Result、统一审阅、版本、文档/表格导出 | 文档类 P0 从资料到保存/导出端到端通过              | 待开始 |
 | V2-C 动态工具 | 清单、表单、小工具和风险确认                | 至少两个真实 A2UI 工具闭环通过                     | 待开始 |
@@ -157,26 +158,28 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S0.1 固化当前工作树基线
 
-状态：`待开始`
+状态：`已完成`
 
-- 目标：确认 V1 当前未提交功能的真实状态，避免 V2 建在未验证基线上。
-- 工作：归类现有 50 个工作树文件；检查 migration v1-v8；运行前端、Rust、Web E2E 和桌面冒烟；记录正式签名材料仍属外部条件。
+- 目标：确认 V1 基线及此前修复的真实状态，避免 V2 建在未验证基线上。
+- 工作：归类提交 `7030367` 中的 51 个 V1 修复文件；检查 migration v1-v8；运行前端、Rust、Web E2E 和桌面冒烟；记录正式签名材料仍属外部条件。
 - 允许修改：验证文档和必要的基线缺陷修复；任何修复必须单独记账。
 - 验收：`npm run check`、`npm run test:coverage`、`npm run test:e2e`、Rust fmt/clippy/test、desktop build/smoke 结果明确。
 - 不包含：任何 V2 UI 或新 schema。
+- 验收证据：[S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 
 #### S0.2 建立前后端合同 fixture
 
-状态：`待开始`
+状态：`已完成`
 
 - 目标：在拆 store/commands 前锁定当前 DTO、错误码和关键流程行为。
 - 工作：为 Workspace、Chat、Patch、A2UI、Revision 建 serde JSON fixture；TypeScript 消费相同 fixture；建立 schema/contract test。
 - 验收：Rust 序列化与 TypeScript 类型/解析一致；未知字段策略明确；Web Mock 合同不调用 Desktop。
 - 需求：支撑 ARC-03、A2UI-06 和后续全部 V2 DTO。
+- 合同说明：[CONTRACT_FIXTURES_V1.md](CONTRACT_FIXTURES_V1.md)。
 
 #### S0.3 拆分前端应用边界（无行为变化）
 
-状态：`待开始`
+状态：`已完成`
 
 - 目标：把 1445 行 `useAppStore` 分为 Gateway、领域 controller 和 feature store。
 - 建议顺序：workspace → provider → chat → review → a2ui；每次只迁移一个领域。
@@ -185,7 +188,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S0.4 拆分 Rust command/application/repository 边界（无行为变化）
 
-状态：`待开始`
+状态：`待人工验收`
 
 - 目标：commands 变薄，storage/workspace 按领域拆分，并保留现有安全内核。
 - 建议顺序：provider → chat → revision → workspace → a2ui/patch adapter。
@@ -491,16 +494,16 @@ npm run tauri build -- --debug --no-bundle
 
 > 更新规则：开始步骤前先改状态并记 START；完成后先写证据再标完成。
 
-| 步骤                    | 状态   | 最近记录 | 下一动作                         |
-| ----------------------- | ------ | -------- | -------------------------------- |
-| DOC-0 架构与实施文档    | 已完成 | LOG-0003 | 等待用户授权代码实施             |
-| S0.1 固化当前工作树基线 | 待开始 | LOG-0002 | 获得授权后验证并归档当前 V1 改动 |
-| S0.2 合同 fixture       | 待开始 | —        | 依赖 S0.1                        |
-| S0.3 前端边界拆分       | 待开始 | —        | 依赖 S0.2                        |
-| S0.4 Rust 边界拆分      | 待开始 | —        | 依赖 S0.2                        |
-| S1.1…S4.8               | 待开始 | —        | 按第 4 节依赖推进                |
+| 步骤                    | 状态       | 最近记录 | 下一动作                     |
+| ----------------------- | ---------- | -------- | ---------------------------- |
+| DOC-0 架构与实施文档    | 已完成     | LOG-0003 | 已进入 S0.1                  |
+| S0.1 固化当前工作树基线 | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收 |
+| S0.2 合同 fixture       | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收 |
+| S0.3 前端边界拆分       | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收 |
+| S0.4 Rust 边界拆分      | 待人工验收 | LOG-0015 | 等待用户验收；禁止开始 S1.1  |
+| S1.1…S4.8               | 待开始     | —        | 按第 4 节依赖推进            |
 
-当前没有代码实施步骤处于进行中。
+S0.3 已通过自动验证和用户人工验收。S0.4 已完成实现和自动验证，当前停在人工验收门；不得开始 S1.1 或任何 V2 功能实现。
 
 ## 10. 连续变更账本
 
@@ -561,6 +564,217 @@ npm run tauri build -- --debug --no-bundle
 - 验证：两份文档通过 Prettier 和 Git whitespace 检查；未运行代码测试。
 - ADR：新增 ADR-016；O-06 的默认值和邀请时机已关闭，接收端、保留期、聚合和删除机制仍开放。
 - 下一动作：等待代码实施授权后，从 S0.1 验证并归档当前 V1 改动。
+
+### LOG-0004 — S0.1 — START
+
+- 时间：2026-08-11（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户授权：开始 S0.1 固化当前工作树基线；用户验收前禁止开始下一步。
+- 开始基线：`main` / `3e9467656ba415e766562f04507ce975f6e4f626`（`V2.0准备文档`）。
+- 开始前工作树：干净，已跟踪修改 0、未跟踪文件 0。
+- 归档事实：此前 51 个文件、3931 insertions / 231 deletions 的 V1 修复与准备文档已由提交 `703036728647d468990c034a7703f72fcf67e9e6`（`V1.0修复`）归档；V2 决策文档更新由当前 HEAD 归档。
+- 环境快照：Windows PowerShell；Node.js `v24.18.0`；npm `11.16.0`；Cargo 不在系统 PATH，仓库使用 `D:\A2UI\.tooling` 隔离工具链。
+- 本步允许范围：只读审计、前端/Rust/Web E2E/桌面构建与冒烟验证、S0.1 验证归档文档；仅在发现基线缺陷时进行单独记账的必要修复。
+- 明确禁止：S0.2 合同 fixture、任何 V2 UI、新 schema、Result/Task/Template/Export 等 V2 功能。
+- 计划验证：`npm run check`、`npm run test:coverage`、`npm run test:e2e`、Rust fmt/clippy/test、desktop debug build 和 smoke。
+- 下一动作：归类 `7030367` 的 V1 变更，核对 migration v1-v8 和命令/Capability，然后运行完整质量门。
+
+### LOG-0005 — S0.1 — PROGRESS
+
+- 时间：2026-08-11（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `3e9467656ba415e766562f04507ce975f6e4f626`，tree `c01db2e739aa074ac877f383480da2b6277552f2`；开始前干净。
+- 实际工作：
+  - 将 `7030367` 的 51 个 V1 修复文件按文档、migration/权限、Rust Provider/存储/IPC、前端工作区/Provider/合同与配置依赖分类归档。
+  - 确认 schema 版本为 v8、`0001`–`0008` 全部注册；v1-v6 的历史迁移事务修复已提交，后续冻结 v1-v8，只追加新 migration。
+  - 核对 36 个 Rust command、36 个 capability allow 权限和 36 个自动生成 permission，集合一致。
+  - 新增独立验收证据 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
+- 修改文件：`docs/V2_IMPLEMENTATION_PLAN.md`、`docs/S0_1_V1_BASELINE_VALIDATION.md`；没有修改业务代码、测试、配置、migration 或依赖。
+- 正式前端基线：临时 Node.js `v22.23.2` / npm `11.16.0` 下 `npm run check`、`npm run test:coverage`、`npm run test:e2e` 全通过；17 个测试文件、50 个测试、3 个 E2E 全通过；覆盖率 statements 96.96%、branches 83.82%、functions 93.10%、lines 98.80%。
+- Rust 基线：隔离工具链 Cargo/Rustc `1.97.1` 下 fmt、clippy `-D warnings`、all-features test 全通过；65 个测试、0 失败。
+- Desktop 基线：`npm run tauri build -- --debug --no-bundle` 和隔离启动冒烟均通过；生成的 debug 产物不纳入版本控制。
+- 补充检查：本机 Node.js `v24.18.0` 下前端门也通过；`npm audit --omit=dev` 为 0 漏洞；`scripts/verify-release.ps1` 确认版本 `0.1.9` 一致。
+- 非阻断观察：Vite 主 chunk 约 1058.11 kB（gzip 351.52 kB）触发体积提示；Windows 链接器产生导入库提示。两项均不影响当前验证，留待对应性能/发布步骤处理。
+- 外部条件：正式 Windows Publisher、证书和 Updater 签名密钥均未注入；本步只验证 debug 构建与启动，不声明正式签名/升级通过。
+- 安全、兼容和回滚：未调用 AI Provider，未读取或输出密钥，未修改 schema/IPC/Capability；本步只有两份 Markdown 改动，可独立审阅或回退。
+- 状态与证据：自动验证通过，S0.1 转为 `待人工验收`；详细命令、结果、文件清单和人工检查项见独立验收记录。
+- 下一具体动作：停止实施并等待用户明确验收；在此之前禁止开始 S0.2。
+
+### LOG-0006 — S0.1 — COMPLETE
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户验收：用户明确回复“**S0.1 验收通过**”。
+- 基线：`main` / `3e9467656ba415e766562f04507ce975f6e4f626`；S0.1 产品基线、自动化结果、非阻断风险和外部条件保持 LOG-0005 及独立验收记录中的结论。
+- 实际修改：仅把实施计划和独立验收记录由“待人工验收”更新为“已完成”，没有修改业务代码、测试、配置、migration、IPC、Capability 或依赖。
+- 状态与证据：S0.1 的自动验证和人工验收均已满足，状态改为 `已完成`。
+- 下一具体动作：S0.2 仍为 `待开始`；等待用户单独授权，不因本次验收自动进入下一步。
+
+### LOG-0007 — S0.2 — START
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户授权：明确要求开始 S0.2。
+- 基线 commit 与开始前工作树：`main` / `3e9467656ba415e766562f04507ce975f6e4f626`；已有 S0.1 文档改动 `docs/V2_IMPLEMENTATION_PLAN.md` 和新增 `docs/S0_1_V1_BASELINE_VALIDATION.md`，均予以保留。
+- 目标与允许范围：锁定 Workspace、Chat、Patch、A2UI、Revision 的现有 JSON DTO、稳定错误结构和关键合同；新增共享 fixture、Rust serde 合同测试、TypeScript 消费/解析合同测试及合同说明。
+- 明确不修改：v1-v8 migration、Tauri command 注册与 Capability、业务流程、UI、store/commands 模块边界、schema v9、Result/Task/Template/Export 等 V2 功能。
+- 验收目标：Rust 序列化与共享 JSON 一致；TypeScript 从相同 fixture 验证合同；明确未知字段策略；Web Mock 合同测试不调用 Desktop。
+- 下一具体动作：盘点五类 DTO 的 Rust serde 定义和 TypeScript 类型，选定最小代表性合同集合。
+
+### LOG-0008 — S0.2 — PROGRESS
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 实际修改：
+  - 在 `contracts/v1/` 新增 Workspace、Chat、Patch、A2UI、Revision 和 AppError 六份共享 JSON fixture；内容均为固定虚构数据。
+  - 新增 TypeScript 合同 guards 和 Vitest，直接消费相同 fixture；验证必需字段、枚举、嵌套结构、未知字段策略和 Web Mock 不调用 Desktop。
+  - 新增 Rust 集成测试，直接消费相同 fixture并做 serde 完整往返比较；为既有响应 DTO 派生 `Deserialize`，不改变序列化输出或运行时路径。
+  - 新增 [CONTRACT_FIXTURES_V1.md](CONTRACT_FIXTURES_V1.md)，明确可信 Rust 响应允许新增字段，AI/外部 Patch 与 A2UI 输入继续严格拒绝未知字段。
+- 修改文件：
+  - 共享 fixture：`contracts/v1/a2ui.json`、`chat.json`、`error.json`、`patch.json`、`revision.json`、`workspace.json`。
+  - TypeScript：`src/shared/contracts/guards.ts`、`src/shared/contracts/contracts.test.ts`。
+  - Rust 测试：`src-tauri/tests/contract_fixtures.rs`。
+  - Rust DTO 测试能力：`src-tauri/src/workspace/mod.rs`、`storage/mod.rs`、`commands.rs`、`patch/mod.rs`、`a2ui/mod.rs`、`a2ui/policy.rs`。
+  - 文档：`docs/CONTRACT_FIXTURES_V1.md`、`docs/V2_IMPLEMENTATION_PLAN.md`；保留既有未提交 `docs/S0_1_V1_BASELINE_VALIDATION.md`。
+- 生成文件：`dist`、`coverage`、`test-results` 和 Rust `target` 均为已忽略测试/构建产物，不纳入源代码变更。
+- Migration / IPC / Capability：无 migration、schema、Tauri command 注册、IPC 名称/参数、Capability 或 permission 变化；`src/shared/platform/desktop.ts` 未修改。
+- 测试：
+  - Node.js `v22.23.2` / npm `11.16.0`：Prettier、ESLint、TypeScript、18 个文件/54 项 Vitest、Vite build、coverage 和 3 项 Playwright Web E2E 全通过。
+  - 覆盖率保持 statements 96.96%、branches 83.82%、functions 93.10%、lines 98.80%。
+  - Rust Cargo/Rustc `1.97.1`：fmt、clippy all-targets/all-features `-D warnings`、64 个库测试、1 个 command 注册测试和 4 个合同测试全通过，共 69 项、0 失败。
+  - 最小合同门单独验证 TypeScript 4/4 和 Rust 4/4 通过。
+- 测试过程修正：首次 Rust 合同编译发现 `SurfaceMessage` re-export/import 重名并已修正；首次完整前端类型检查发现 guard 收窄问题并已修正；一次组合前端命令因 120 秒外层超时被终止，随后拆分重跑全部通过。
+- 未运行：未重复 S0.1 的 Tauri debug build/desktop smoke；本步不修改运行时代码路径、IPC 或 Desktop gateway，Rust 全量测试、前端 build 和 Web E2E 已覆盖相关风险。未调用真实 Provider、数据库或网络。
+- 安全/兼容：Patch 与 A2UI Rust `deny_unknown_fields` 保持不变并有双端拒绝测试；响应新增字段允许旧客户端忽略，但删除/改名/类型或语义变化仍视为破坏性合同变更。Fixture 不含真实正文、路径、Prompt、回复或密钥。
+- 回滚：可整体删除 `contracts/v1`、两端合同测试/guards/说明文档，并移除既有 DTO 的 `Deserialize` 派生与 `SurfaceMessage` re-export；不涉及数据回滚。
+- ADR / 开放问题：无新增 ADR；不改变 ARC-03 的 Provider adapter 决策，S0.2 只建立后续 DTO 的兼容门。
+- 状态与证据：S0.2 自动验收条件全部满足，转为 `待人工验收`。
+- 下一具体动作：停止实施并等待用户明确验收；在此之前禁止开始 S0.3。
+
+### LOG-0009 — S0.2 — COMPLETE
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户验收：用户明确回复“通过，进入下一阶段”。
+- 状态与证据：LOG-0008 的共享 fixture、双端合同测试、未知字段策略和完整质量门均获接受；S0.2 改为 `已完成`。
+- 实际修改：只更新实施账本和步骤状态；没有因验收追加合同、IPC、migration 或产品功能改动。
+- 下一具体动作：用户同时授权进入下一阶段，按实施计划开始 S0.3。
+
+### LOG-0010 — S0.3 — START
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户授权：S0.2 验收通过，并明确要求进入下一阶段。
+- 基线 commit 与开始前工作树：`main` / `3e9467656ba415e766562f04507ce975f6e4f626`；保留未提交的 S0.1/S0.2 文档、fixture、合同测试和 DTO 测试派生改动。
+- 目标与允许范围：在不改变行为的前提下，按 workspace → provider → chat → review → A2UI 拆分前端 Gateway、领域 controller 和 feature store；移除 `SystemSettings` 对 Desktop API 的直接调用。
+- 明确不修改：Rust 业务边界、Tauri IPC/Capability、migration/schema、UI 视觉和流程、Patch/A2UI 安全算法、Result/Task/Template/Export 等 V2 功能。
+- 验收目标：现有组件、单元测试和 Web E2E 行为一致；Desktop API 只由 Gateway/controller 使用；`SystemSettings` 不再直接导入 Desktop API；领域 store 边界可独立测试。
+- 下一具体动作：盘点 `useAppStore.ts` 状态/动作依赖和所有 Desktop API 调用，先建立 Gateway 与 Workspace controller/slice。
+
+### LOG-0011 — S0.3 — PROGRESS
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 实际修改：
+  - 新增 `src/shared/platform/gateway.ts`，作为前端唯一低层 Desktop API 适配入口；既有 `desktop.ts` IPC 名称和参数保持不变。
+  - 新增 Workspace、Provider、Chat、Review、A2UI 领域 controller 和 store slice；新增系统管理 controller。
+  - 将原 `useAppStore.ts` 的动作实现按原顺序、原逻辑迁移到五个 slice，组合根从 1481 行降为 71 行，只保留共享初始状态和 slice 拼装。
+  - 将共享 `AppState`/Zustand set/get 类型移至 `src/stores/types.ts`，错误解析、A2UI 查找/合并和本地停止请求集合移至 `src/stores/support.ts`。
+  - `SystemSettings` 改经 `systemController` 调用诊断导出和清理，不再直接导入 Desktop API。
+  - 新增 `src/stores/architecture.test.ts`，锁定 Desktop API 只能经 Gateway、组件不得导入 Desktop/Gateway、feature store 必须经 controller、组合根保持小型拼装等边界。
+- S0.3 新增文件：
+  - `src/shared/platform/gateway.ts`。
+  - `src/stores/types.ts`、`src/stores/support.ts`、`src/stores/architecture.test.ts`。
+  - `src/features/workspace/workspaceController.ts`、`workspaceStore.ts`。
+  - `src/features/settings/providerController.ts`、`providerStore.ts`、`systemController.ts`。
+  - `src/features/chat/chatController.ts`、`chatStore.ts`。
+  - `src/features/diff/reviewController.ts`、`reviewStore.ts`。
+  - `src/features/a2ui/a2uiController.ts`、`a2uiStore.ts`。
+- S0.3 修改文件：`src/stores/useAppStore.ts`、`src/features/settings/components/SystemSettings.tsx`、`docs/V2_IMPLEMENTATION_PLAN.md`。工作树中其他 Rust/fixture/文档差异来自已验收的 S0.1/S0.2，予以保留。
+- Migration / IPC / Capability：无 migration、schema、Rust、Tauri command 注册、IPC 名称/参数、Capability、permission 或 `src/shared/platform/desktop.ts` 变化；UI DOM、样式和交互文案保持不变。
+- 边界结果：生产代码中只有 `gateway.ts` 依赖 `desktop.ts`；React 组件不依赖 Desktop/Gateway；领域 store 只依赖 controller；controller 才依赖 Gateway。
+- 测试：
+  - Node.js `v22.23.2` / npm `11.16.0` 下 Prettier、ESLint、TypeScript、19 个文件/58 项 Vitest、Vite build、coverage 和 3 项 Playwright Web E2E 全通过。
+  - 覆盖率保持 statements 96.96%、branches 83.82%、functions 93.10%、lines 98.80%。
+  - Rust Cargo/Rustc `1.97.1`：fmt、clippy all-targets/all-features `-D warnings`、64 个库测试、1 个 command 注册测试和 4 个合同测试全通过，共 69 项、0 失败。
+  - 相关行为/边界定向门 5 个文件、22 项测试通过。
+- 测试过程修正：
+  - 两次 Node 22 定向测试因临时包装器内嵌 `npx/npm exec` 的 npm 11 参数解析失败，改用 Node 22 直接启动本地 Vitest；测试随后通过。
+  - 静态架构测试最初使用 Node 环境，与项目全局 jsdom setup 不兼容；改用 `import.meta.glob('?raw')`，不新增 `@types/node` 或依赖，随后通过。
+  - 完整门首次发现追加后的实施账本未格式化，执行 Prettier 后完整重跑通过。
+  - Rust 全量测试首次因 S0.1 桌面冒烟残留的仓库 debug exe 进程占用文件而无法链接；只终止精确路径对应的一个进程，重跑 69 项全部通过。
+- 未运行：未重复 Tauri desktop build/smoke；S0.3 未修改 Desktop gateway 底层、IPC、Rust 或构建配置，前端 production build、Web E2E 与 Rust 全量回归已覆盖本步行为保持目标。未调用真实 Provider、数据库或网络。
+- 安全/隐私/兼容：Patch/A2UI 安全校验仍在可信 Rust；前端只是重排调用边界；未放宽数据访问或记录正文/路径/密钥。现有组件继续使用同一 `useAppStore` API，不要求调用方迁移。
+- 回滚：可将 slice 中动作机械移回 `useAppStore`，删除 controller/Gateway/support/types 并恢复 `SystemSettings` 直接调用；不涉及数据或 schema 回滚。
+- ADR / 开放问题：无新增 ADR；实现符合 ADR-004（模式共享 Core Services）和 ADR-008（增量包裹，不大爆炸重写）。
+- 状态与证据：S0.3 自动验收条件全部满足，转为 `待人工验收`。
+- 下一具体动作：停止实施并等待用户明确验收；在此之前禁止开始 S0.4。
+
+### LOG-0012 — S0.3 — PROGRESS
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户请求：对 S0.3 进行独立测试验证；不授权 S0.4。
+- 验证基线：`main` / `3e9467656ba415e766562f04507ce975f6e4f626`；工作树保持 S0.1/S0.2/S0.3 尚未提交的累积改动，验证前后未修改功能实现。
+- 静态边界验证：
+  - `useAppStore.ts` 仍为 71 行组合根。
+  - 生产代码只有 `src/shared/platform/gateway.ts` 依赖底层 `desktop.ts`；React 组件不依赖 Desktop/Gateway；feature store 不直接依赖 Gateway。
+  - 架构边界测试 4/4 通过。
+- 前端正式门：Node.js `v22.23.2` / npm `11.16.0` 下 Prettier、ESLint、TypeScript、19 个文件/58 项 Vitest、Vite production build 和 coverage 全通过。
+- 覆盖率：statements 96.96%、branches 83.82%、functions 93.10%、lines 98.80%。
+- Web Mock E2E：3/3 通过，覆盖三栏/语言切换、Context review → 可信 A2UI、Patch 必须先审阅再应用。
+- Rust 回归：Cargo/Rustc `1.97.1` 下 fmt、clippy all-targets/all-features `-D warnings`、64 个库测试、1 个 command 注册测试和 4 个共享合同测试全通过，共 69 项、0 失败。
+- Desktop 验证：Node 22 下 `npm run tauri build -- --debug --no-bundle` 通过；`scripts/smoke-desktop.ps1` 隔离启动通过，冒烟退出后残留应用进程为 0。
+- 非阻断观察：Vite 主 chunk 约 1059.22 kB（gzip 351.82 kB）仍触发既有体积提示；Windows 链接器仍输出导入库信息。均未造成测试、构建或启动失败。
+- 修改文件：只追加 `docs/V2_IMPLEMENTATION_PLAN.md` 验证账本；没有修改 S0.3 实现、migration、IPC、Capability、依赖或配置。
+- 安全/隐私：未调用真实 Provider，未读取或输出密钥，未访问用户真实文件；桌面冒烟使用隔离数据目录。
+- 状态与证据：S0.3 独立自动验证全部通过，继续保持 `待人工验收`；本次验证补齐了 LOG-0011 未重复执行的桌面 debug build/smoke 证据。
+- 下一具体动作：等待用户决定是否验收 S0.3；在明确验收前禁止开始 S0.4。
+
+### LOG-0013 — S0.3 — COMPLETE
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户验收：用户明确回复“**S0.3 验收通过进入下一阶段**”。
+- 状态与证据：LOG-0011/LOG-0012 的 Gateway/controller/领域 slice、架构边界测试、桌面冒烟和完整质量门均获接受；S0.3 改为 `已完成`。
+- 实际修改：只更新实施账本和步骤状态；没有因验收追加前端、IPC、migration 或产品功能改动。
+- 下一具体动作：用户同时授权进入下一阶段，按实施计划开始 S0.4。
+
+### LOG-0014 — S0.4 — START
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户授权：S0.3 验收通过，并明确要求进入下一阶段。
+- 基线 commit 与开始前工作树：`main` / `3e9467656ba415e766562f04507ce975f6e4f626`；保留未提交的 S0.1-S0.3 文档、fixture、合同测试、DTO 测试派生和前端边界拆分改动。
+- 目标与允许范围：按 provider → chat → revision → workspace → A2UI/Patch adapter 拆分 Rust command/application/repository 边界，使 command 只负责 Tauri 参数/状态适配和调用 application service。
+- 明确不修改：36 个现有命令名和 JSON 合同、Capability/permission、v1-v8 migration、持久化语义、Patch/A2UI 安全校验算法、前端 UI/流程、Result/Task/Template/Export 等 V2 功能。
+- 验收目标：36 个命令注册和 Capability 不变；S0.2 合同 fixture 全通过；commands 变薄；storage/workspace 按领域形成 repository/service 边界；迁移和安全测试全部通过。
+- 下一具体动作：审计 1055 行 `commands.rs`、2087 行 `storage/mod.rs` 和 1176 行 `workspace/mod.rs` 的依赖，先抽 Provider application/repository facade。
+
+### LOG-0015 — S0.4 — PROGRESS
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 基线与范围：延续 LOG-0014 的 `main` / `3e9467656ba415e766562f04507ce975f6e4f626` 和 S0.1-S0.3 累积工作树；只拆 Rust command/application/repository 边界，不进入 S1.1。
+- 实际修改：
+  - 新增 `application/provider.rs`、`chat.rs`、`workspace.rs`、`revision.rs` 和 `adapters.rs`，分别承接 Provider 密钥/配置编排、Chat 流式生命周期、Workspace 用例、版本用例以及 Patch/A2UI 安全内核适配。
+  - 新增 `repository/provider.rs`、`chat.rs`、`workspace.rs`，为现有 `Storage` 建立按领域的持久化 facade；本步没有重写 `Storage` 或改变 SQLite 语义。
+  - `commands.rs` 从 1055 行降至约 632 行；命令层保留 Tauri `State`、系统对话框、IPC `Channel`、活动请求取消注册表、诊断和清理入口，领域用例统一委派 Application Service。
+  - Chat DTO 移至应用层并从 `commands` 重导出，保持 S0.2 Rust 合同测试的原导入路径和 JSON 结构；流式回调使用平台无关闭包，Application 层不依赖 Tauri。
+  - Patch/A2UI 解析、校验、应用和 Action 算法保持原模块不动；新增 adapter 只转发到可信安全内核。
+- 修改/新增文件：`src-tauri/src/lib.rs`、`src-tauri/src/commands.rs`、`src-tauri/src/application/*`、`src-tauri/src/repository/*`、`src-tauri/tests/architecture_boundaries.rs`、本实施账本。工作树中其他差异属于 S0.1-S0.3 已验收改动。
+- Migration / IPC / Capability：未修改 v1-v8 migration、schema、`build.rs`、Capability 或 permission；`lib.rs` 中 36 个 `generate_handler!` 命令及命令名称/参数保持不变。
+- 新增架构门：4 项集成测试分别锁定全部 36 个 V1 命令、阻止 `commands.rs` 重新直连领域实现、阻止 Application 层依赖 Tauri，并确认 Patch/A2UI 安全内核仍位于命令层之外。
+- Rust 验证：Cargo/Rustc `1.97.1` 下 `cargo fmt --all -- --check`、`cargo clippy --all-targets -- -D warnings`、`cargo test --all-targets` 全通过；64 个库测试、4 个架构测试、1 个命令注册测试、4 个合同测试，共 73 项、0 失败。
+- 前端验证：Node.js `v22.23.2` / npm `11.16.0` 下 `npm run check` 全通过；19 个文件/58 项 Vitest、Vite production build、coverage、3 项 Playwright Web Mock E2E 全通过。覆盖率保持 statements 96.96%、branches 83.82%、functions 93.10%、lines 98.80%。
+- Desktop 验证：Node 22 下 `npm run tauri build -- --debug --no-bundle` 通过；`scripts/smoke-desktop.ps1` 使用隔离数据目录启动通过，退出后残留 `a2ui-terminal` 进程为 0。
+- 差异审计：`git diff --check` 通过；migration/Capability 目录无差异；未调用真实 Provider，未读取用户真实文档或密钥。
+- 过程修正：首次 Rust 编译因未设置仓库隔离 `RUSTUP_HOME/CARGO_HOME` 导致 rustup 代理等待，终止两条确切验证进程并改用既有隔离工具链；之后发现一个 `u32/usize` facade 参数类型错误并修正。架构测试首次把 `use crate::ai::` 误判为业务直连，收窄为缩进调用模式后全部通过。首次前端门发现账本未格式化，执行 Prettier 后完整重跑通过。
+- 非阻断观察：Vite 主 chunk 约 1059.22 kB（gzip 351.82 kB）的既有体积提示仍存在；Windows 链接器继续输出导入库信息，未造成检查、构建或启动失败。
+- 安全、隐私、兼容与回滚：密钥仍只在 Credential Manager；Application DTO 不暴露明文密钥；Patch/A2UI、文件授权、冲突检测和持久化实现未放宽。可把命令委派逻辑机械移回 `commands.rs` 并删除新增 facade/service，不涉及 schema 或数据回滚。
+- ADR / 开放问题：无新增 ADR；实现落实 ADR-003（Rust 唯一可信边界）和 ADR-008（增量包裹 V1 内核）。
+- 状态与证据：S0.4 实现及自动验收条件全部通过，状态转为 `待人工验收`，不是 `已完成`。
+- 下一具体动作：停止实施并等待用户明确验收；验收前禁止开始 S1.1、schema v9 或任何 V2 产品功能。
 
 ### 新账本记录模板
 
@@ -636,10 +850,13 @@ npm run tauri build -- --debug --no-bundle
 
 ## 12. 交接摘要
 
-截至本文件建立时：
+截至 LOG-0015：
 
-- V1 可信内核已在代码中形成，但当前工作树包含尚未提交的可靠性、版本历史和崩溃恢复改动；其最新全量验证必须在 S0.1 重做。
-- V2 仅完成架构和实施规划；Result、Task、Template、Export、Adaptive Context、Simple Mode、产品事件等尚未进入代码。
-- 下一次获得代码实施授权后，唯一安全起点是 **S0.1 固化当前工作树基线**，不是直接开发首页。
+- V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
+- S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
+- V2 产品功能仍仅完成架构和实施规划；Result、Task、Template、Export、Adaptive Context、Simple Mode、产品事件等尚未进入代码。
+- S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
+- S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，完整自动验证通过，当前等待人工验收。
+- S1.1 尚未授权；不得提前实施 schema v9 或任何 V2 产品功能。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - 如果文档与实际代码不一致，先记录差异并修正文档状态；不要为了符合文档而破坏性改写用户代码。

@@ -1,0 +1,75 @@
+{
+  "protocol": {
+    "version": "1.0",
+    "type": "document_patch",
+    "workspaceId": "workspace-contract-v1",
+    "baseRevision": null,
+    "summary": "Update meeting decision",
+    "changes": [
+      {
+        "id": "change-contract-v1",
+        "path": "notes/meeting.md",
+        "operation": "replace",
+        "baseHash": "sha256-workspace-content",
+        "anchor": {
+          "before": "Decision: ship safely.",
+          "beforeHash": "sha256-anchor"
+        },
+        "content": "Decision: ship after review.",
+        "reason": "Record the review gate",
+        "risk": "low"
+      }
+    ]
+  },
+  "review": {
+    "id": "review-contract-v1",
+    "workspaceId": "workspace-contract-v1",
+    "summary": "Update meeting decision",
+    "patch": {
+      "version": "1.0",
+      "type": "document_patch",
+      "workspaceId": "workspace-contract-v1",
+      "baseRevision": null,
+      "summary": "Update meeting decision",
+      "changes": [
+        {
+          "id": "change-contract-v1",
+          "path": "notes/meeting.md",
+          "operation": "replace",
+          "baseHash": "sha256-workspace-content",
+          "anchor": {
+            "before": "Decision: ship safely.",
+            "beforeHash": "sha256-anchor"
+          },
+          "content": "Decision: ship after review.",
+          "reason": "Record the review gate",
+          "risk": "low"
+        }
+      ]
+    },
+    "changes": [
+      {
+        "id": "change-contract-v1",
+        "path": "notes/meeting.md",
+        "operation": "replace",
+        "reason": "Record the review gate",
+        "risk": "low",
+        "before": "Decision: ship safely.",
+        "after": "Decision: ship after review.",
+        "selected": true
+      }
+    ]
+  },
+  "application": {
+    "operationId": "operation-contract-v1",
+    "summary": "Update meeting decision",
+    "undoOf": null,
+    "files": [
+      {
+        "path": "notes/meeting.md",
+        "content": "Decision: ship after review.",
+        "contentHash": "sha256-patched-content"
+      }
+    ]
+  }
+}

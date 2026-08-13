@@ -1,0 +1,72 @@
+{
+  "protocol": {
+    "version": "1.0",
+    "type": "a2ui_surface",
+    "surfaceId": "surface-contract-v1",
+    "revision": 1,
+    "root": {
+      "id": "root",
+      "component": "Column",
+      "props": {
+        "gap": 12
+      },
+      "children": [
+        {
+          "id": "title",
+          "component": "Text",
+          "props": {
+            "text": "Review required"
+          },
+          "children": [],
+          "actions": {}
+        }
+      ],
+      "actions": {}
+    },
+    "data": {
+      "confirmed": false
+    }
+  },
+  "processResult": {
+    "surface": {
+      "surfaceId": "surface-contract-v1",
+      "workspaceId": "workspace-contract-v1",
+      "sessionId": "session-contract-v1",
+      "messageId": "message-assistant-v1",
+      "revision": 1,
+      "root": {
+        "id": "root",
+        "component": "Column",
+        "props": {
+          "gap": 12
+        },
+        "children": [],
+        "actions": {}
+      },
+      "data": {
+        "confirmed": false
+      },
+      "rawMessage": "{\"type\":\"a2ui_surface\"}",
+      "validation": {
+        "valid": true,
+        "errors": [],
+        "warnings": [],
+        "durationMs": 2
+      },
+      "events": []
+    },
+    "inspection": {
+      "id": "inspection-contract-v1",
+      "messageId": "message-assistant-v1",
+      "surfaceId": "surface-contract-v1",
+      "rawMessage": "{\"type\":\"a2ui_surface\"}",
+      "validation": {
+        "valid": true,
+        "errors": [],
+        "warnings": [],
+        "durationMs": 2
+      },
+      "createdAt": null
+    }
+  }
+}

@@ -52,15 +52,18 @@ V2 的产品品类是“可信的 AI 成果工作台”。聊天是任务控制�
 
 ```text
 React components
-  └─ useAppStore.ts（UI 状态 + 流程编排 + Desktop API 调用）
-       └─ shared/platform/desktop.ts（Tauri invoke/channel 适配）
-            └─ commands.rs（IPC + 部分应用编排）
-                 ├─ workspace/mod.rs（授权、读取、保存、版本、草稿）
-                 ├─ ai/*（Provider、SSE、上下文校验）
-                 ├─ patch/mod.rs（Patch 校验、应用、撤销）
-                 ├─ a2ui/*（协议、Runtime 状态、Action 策略）
-                 ├─ security/*（系统凭据）
-                 └─ storage/mod.rs（全部 SQLite Repository）
+  └─ feature stores / controllers
+       └─ shared/platform/gateway.ts
+            └─ shared/platform/desktop.ts（Tauri invoke/channel 适配）
+                 └─ commands.rs（薄 IPC、对话框、Channel、取消注册表）
+                      └─ application/*（Provider/Chat/Revision/Workspace 用例编排）
+                           ├─ repository/*（按领域包裹现有 Storage）
+                           ├─ workspace/mod.rs（授权、读取、保存、版本、草稿）
+                           ├─ ai/*（Provider、SSE、上下文校验）
+                           ├─ patch/mod.rs（Patch 校验、应用、撤销）
+                           ├─ a2ui/*（协议、Runtime 状态、Action 策略）
+                           ├─ security/*（系统凭据）
+                           └─ storage/mod.rs（现有 SQLite 实现）
 ```
 
 ### 3.3 当前已经具备的可信内核
@@ -103,8 +106,8 @@ React components
 
 `[CURRENT]` 以下是演进风险，不是对现有 V1 功能的否定：
 
-- `src/stores/useAppStore.ts` 约 1445 行，同时承担 UI 状态、工作区、会话、Provider、上下文、Patch、A2UI 和异步编排。
-- `src-tauri/src/commands.rs` 约 1000 行；`stream_chat` 同时处理上下文、历史、Provider、持久化、Patch 重试和 A2UI 分流。
+- S0.3 已将 `src/stores/useAppStore.ts` 降为约 71 行组合根；现有组件 API 尚集中，后续新增 V2 领域不得重新堆回组合根。
+- S0.4 已将 `src-tauri/src/commands.rs` 从约 1055 行降为约 632 行；Provider/Chat/Revision/Workspace 编排已进入 `application/*`，现有 `commands.rs` 仍待后续按领域拆文件。
 - `src-tauri/src/storage/mod.rs` 约 1980 行，所有表的 Repository 和迁移基础设施集中在一个模块。
 - `src-tauri/src/workspace/mod.rs` 约 1100 行，文件授权、格式提取、保存、草稿和版本职责集中。
 - UI 组件直接读取大型全局 store；`SystemSettings` 还直接调用 Desktop API。

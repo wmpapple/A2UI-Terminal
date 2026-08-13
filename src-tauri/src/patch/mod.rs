@@ -92,7 +92,7 @@ pub enum PatchRisk {
     High,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PatchReview {
     pub id: String,
@@ -102,7 +102,7 @@ pub struct PatchReview {
     pub changes: Vec<PatchReviewChange>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PatchReviewChange {
     pub id: String,
@@ -115,7 +115,7 @@ pub struct PatchReviewChange {
     pub selected: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppliedPatchFile {
     pub path: String,
@@ -123,7 +123,7 @@ pub struct AppliedPatchFile {
     pub content_hash: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PatchApplication {
     pub operation_id: String,
