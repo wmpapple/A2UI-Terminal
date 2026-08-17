@@ -8,6 +8,10 @@
 
 Schema v8 为 `workspace_drafts` 增加正文 SHA-256，并为工作区恢复查询增加索引。升级已有 v7 数据库时，旧草稿正文会在本地事务内补齐哈希，不修改草稿正文。
 
+Schema v9 新增 `results` 聚合、约束、索引和版本同步触发器。v8→v9 不批量复制旧文件、Surface 或正文；旧数据在显式打开时惰性建立 Result。迁移失败时 `results` 表和 `user_version` 一并回滚，旧 v8 数据保持不变。
+
+Schema v10 新增 `task_templates`、`tasks`、Task/Result 同工作区约束和唯一绑定索引。v9→v10 原样保留现有 Result，并幂等播种 4 个内置模板；失败时新表、触发器、模板数据和 `user_version` 在同一迁移事务中回滚。Task 执行写入本地结构草稿后再以单个 SQLite 事务建立 Result 并完成 Task；数据库事务失败会删除本次新建的 UUID 文件，重复执行不会生成第二个持久成果。
+
 ## 草稿恢复流程
 
 - 编辑约 250 ms 后，正文、基础磁盘 Hash、正文 Hash 和更新时间写入 SQLite。

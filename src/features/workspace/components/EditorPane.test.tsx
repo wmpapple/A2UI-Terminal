@@ -156,4 +156,28 @@ describe('EditorPane modes', () => {
     expect(await screen.findByText('保存文件后，版本会显示在这里')).toBeInTheDocument();
     expect(loadDocumentVersions).toHaveBeenCalledWith('README.md');
   });
+
+  it('keeps file selection visible in simple mode without rendering the file tree', () => {
+    const selectContextFiles = vi.fn().mockResolvedValue(undefined);
+    useAppStore.setState({
+      files: [],
+      openPaths: [],
+      activePath: '',
+      workspaceLoading: false,
+      workspaceError: null,
+      selectContextFiles,
+    });
+
+    render(
+      <I18nProvider>
+        <EditorPane showInspector={false} showSimpleFileActions />
+      </I18nProvider>
+    );
+
+    expect(screen.getByText('选择文件后即可查看、编辑或让 AI 协助处理')).toBeInTheDocument();
+    const chooseFileButtons = screen.getAllByRole('button', { name: /选择文件/ });
+    expect(chooseFileButtons).toHaveLength(2);
+    fireEvent.click(chooseFileButtons[0]);
+    expect(selectContextFiles).toHaveBeenCalledOnce();
+  });
 });

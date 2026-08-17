@@ -16,6 +16,15 @@ const NATIVE_COMMANDS: [&str; 12] = [
     "list_recovery_drafts",
 ];
 
+const RESULT_COMMANDS: [&str; 2] = ["list_results", "get_result"];
+const TASK_COMMANDS: [&str; 5] = [
+    "list_task_templates",
+    "create_task",
+    "answer_task_questions",
+    "get_task",
+    "start_task",
+];
+
 #[test]
 fn native_commands_are_registered_and_allowed_for_the_main_window() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -44,5 +53,21 @@ fn native_commands_are_registered_and_allowed_for_the_main_window() {
                 .any(|permission| permission == &format!("allow-{}", command.replace('_', "-"))),
             "{command} is missing from the main-window capability"
         );
+    }
+
+    for command in RESULT_COMMANDS {
+        assert!(build_script.contains(&format!("\"{command}\"")));
+        assert!(runtime.contains(&format!("commands::{command},")));
+        assert!(permissions
+            .iter()
+            .any(|permission| permission == &format!("allow-{}", command.replace('_', "-"))));
+    }
+
+    for command in TASK_COMMANDS {
+        assert!(build_script.contains(&format!("\"{command}\"")));
+        assert!(runtime.contains(&format!("commands::{command},")));
+        assert!(permissions
+            .iter()
+            .any(|permission| permission == &format!("allow-{}", command.replace('_', "-"))));
     }
 }

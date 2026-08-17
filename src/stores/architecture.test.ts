@@ -47,4 +47,28 @@ describe('front-end application boundaries', () => {
     expect(source).toContain('...createA2uiStore(set, get)');
     expect(source).not.toContain('desktopGateway');
   });
+
+  it('keeps simple and professional modes as one presentation shell over shared business state', () => {
+    const shell = sources['../app/AppShell.tsx'];
+    const preferences = sources['../app/shellPreferences.ts'];
+
+    expect(shell.match(/<WorkspaceLayout/g)).toHaveLength(1);
+    expect(shell.match(/<WorkspaceSidebar/g)).toHaveLength(1);
+    expect(shell.match(/<EditorPane/g)).toHaveLength(1);
+    expect(shell.match(/<ChatPanel/g)).toHaveLength(1);
+    expect(shell).toContain('showLeftPanel={professional}');
+    expect(shell).toContain('showInspector={professional}');
+    expect(shell).toContain('showSimpleFileActions={!professional}');
+    expect(shell).toContain('professionalTools={professional}');
+    expect(shell).toContain('open={professional && settingsOpen}');
+    expect(sources['../features/settings/components/ProviderSettings.tsx']).toContain(
+      '<Form.Item label="Endpoint" required>'
+    );
+    expect(sources['../features/settings/components/ProviderSettings.tsx']).toContain(
+      '<Form.Item label="API Key"'
+    );
+    expect(preferences).not.toContain('useAppStore');
+    expect(preferences).not.toContain('platform/gateway');
+    expect(preferences).not.toContain('platform/desktop');
+  });
 });

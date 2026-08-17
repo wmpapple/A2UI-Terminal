@@ -5,6 +5,8 @@ import patch from '../../../contracts/v1/patch.json';
 import a2ui from '../../../contracts/v1/a2ui.json';
 import revision from '../../../contracts/v1/revision.json';
 import error from '../../../contracts/v1/error.json';
+import result from '../../../contracts/v2/result.json';
+import task from '../../../contracts/v2/task.json';
 import {
   isA2uiProcessResult,
   isA2uiSurfaceProtocol,
@@ -18,6 +20,11 @@ import {
   isPatchApplication,
   isPatchReview,
   isWorkspaceDocument,
+  isResultDetail,
+  isResultSummary,
+  isTaskDetail,
+  isTaskRunResult,
+  isTaskTemplate,
 } from './guards';
 import { desktopApi } from '../platform/desktop';
 
@@ -44,12 +51,19 @@ describe('shared Rust/TypeScript contract fixtures', () => {
     expect(isDocumentVersionSummary(revision.summary)).toBe(true);
     expect(isDocumentVersion(revision.document)).toBe(true);
     expect(isAppErrorContract(error)).toBe(true);
+    expect(isResultSummary(result.summary)).toBe(true);
+    expect(isResultDetail(result.detail)).toBe(true);
+    expect(isTaskTemplate(task.template)).toBe(true);
+    expect(isTaskDetail(task.task)).toBe(true);
+    expect(isTaskRunResult(task.runResult)).toBe(true);
   });
 
   it('allows additive fields on trusted Rust responses for forward compatibility', () => {
     expect(isWorkspaceDocument({ ...workspace, futureField: 'allowed' })).toBe(true);
     expect(isChatSession({ ...chat.session, futureField: 'allowed' })).toBe(true);
     expect(isDocumentVersion({ ...revision.document, futureField: 'allowed' })).toBe(true);
+    expect(isResultDetail({ ...result.detail, futureField: 'allowed' })).toBe(true);
+    expect(isTaskDetail({ ...task.task, futureField: 'allowed' })).toBe(true);
   });
 
   it('rejects unknown fields on untrusted Patch and A2UI protocol inputs', () => {

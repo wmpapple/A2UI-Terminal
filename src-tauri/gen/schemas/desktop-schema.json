@@ -177,6 +177,12 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Enables the answer_task_questions command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-answer-task-questions",
+          "markdownDescription": "Enables the answer_task_questions command without any pre-configured scope."
+        },
+        {
           "description": "Enables the apply_document_patch command without any pre-configured scope.",
           "type": "string",
           "const": "allow-apply-document-patch",
@@ -193,6 +199,12 @@
           "type": "string",
           "const": "allow-create-chat-session",
           "markdownDescription": "Enables the create_chat_session command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the create_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-task",
+          "markdownDescription": "Enables the create_task command without any pre-configured scope."
         },
         {
           "description": "Enables the delete_provider_secret command without any pre-configured scope.",
@@ -223,6 +235,18 @@
           "type": "string",
           "const": "allow-get-bootstrap-status",
           "markdownDescription": "Enables the get_bootstrap_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_result command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-result",
+          "markdownDescription": "Enables the get_result command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-task",
+          "markdownDescription": "Enables the get_task command without any pre-configured scope."
         },
         {
           "description": "Enables the list_a2ui_inspections command without any pre-configured scope.",
@@ -265,6 +289,18 @@
           "type": "string",
           "const": "allow-list-recovery-drafts",
           "markdownDescription": "Enables the list_recovery_drafts command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_results command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-results",
+          "markdownDescription": "Enables the list_results command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_task_templates command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-task-templates",
+          "markdownDescription": "Enables the list_task_templates command without any pre-configured scope."
         },
         {
           "description": "Enables the list_workspace_files command without any pre-configured scope.",
@@ -363,6 +399,12 @@
           "markdownDescription": "Enables the set_provider_secret command without any pre-configured scope."
         },
         {
+          "description": "Enables the start_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-start-task",
+          "markdownDescription": "Enables the start_task command without any pre-configured scope."
+        },
+        {
           "description": "Enables the stop_chat command without any pre-configured scope.",
           "type": "string",
           "const": "allow-stop-chat",
@@ -393,6 +435,12 @@
           "markdownDescription": "Enables the validate_document_patch command without any pre-configured scope."
         },
         {
+          "description": "Denies the answer_task_questions command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-answer-task-questions",
+          "markdownDescription": "Denies the answer_task_questions command without any pre-configured scope."
+        },
+        {
           "description": "Denies the apply_document_patch command without any pre-configured scope.",
           "type": "string",
           "const": "deny-apply-document-patch",
@@ -409,6 +457,12 @@
           "type": "string",
           "const": "deny-create-chat-session",
           "markdownDescription": "Denies the create_chat_session command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the create_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-task",
+          "markdownDescription": "Denies the create_task command without any pre-configured scope."
         },
         {
           "description": "Denies the delete_provider_secret command without any pre-configured scope.",
@@ -439,6 +493,18 @@
           "type": "string",
           "const": "deny-get-bootstrap-status",
           "markdownDescription": "Denies the get_bootstrap_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_result command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-result",
+          "markdownDescription": "Denies the get_result command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-task",
+          "markdownDescription": "Denies the get_task command without any pre-configured scope."
         },
         {
           "description": "Denies the list_a2ui_inspections command without any pre-configured scope.",
@@ -481,6 +547,18 @@
           "type": "string",
           "const": "deny-list-recovery-drafts",
           "markdownDescription": "Denies the list_recovery_drafts command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_results command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-results",
+          "markdownDescription": "Denies the list_results command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_task_templates command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-task-templates",
+          "markdownDescription": "Denies the list_task_templates command without any pre-configured scope."
         },
         {
           "description": "Denies the list_workspace_files command without any pre-configured scope.",
@@ -577,6 +655,12 @@
           "type": "string",
           "const": "deny-set-provider-secret",
           "markdownDescription": "Denies the set_provider_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the start_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-start-task",
+          "markdownDescription": "Denies the start_task command without any pre-configured scope."
         },
         {
           "description": "Denies the stop_chat command without any pre-configured scope.",

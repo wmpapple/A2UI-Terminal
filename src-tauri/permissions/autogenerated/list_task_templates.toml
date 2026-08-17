@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-task-templates"
+description = "Enables the list_task_templates command without any pre-configured scope."
+commands.allow = ["list_task_templates"]
+
+[[permission]]
+identifier = "deny-list-task-templates"
+description = "Denies the list_task_templates command without any pre-configured scope."
+commands.deny = ["list_task_templates"]

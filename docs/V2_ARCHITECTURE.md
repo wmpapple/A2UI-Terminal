@@ -1,8 +1,8 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线（尚未实施）  
+> 文档状态：V2 目标架构基线；S1.1、S1.2 已验收，S1.3 已实现并待人工验收
 > 建立日期：2026-08-11  
-> 对照代码：`main` 分支工作树，HEAD `e15a259d7703ac0b885007cde3c6241a5cbbf258`  
+> 对照代码：`main` 分支累积工作树，HEAD `7be6ef7`
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
 > PRD SHA-256：`E56FD2303B6228C5FC7AB1936FB1C2B71229845D6780DFDA2ACE06D69347AA3C`
 
@@ -80,27 +80,27 @@ React components
 - 流式响应、停止、分阶段超时、稳定错误码和部分响应保留。
 - `document_patch` 严格校验、逐块接受/拒绝、应用、事务回滚和撤销。
 - A2UI Protocol V1、13 个固定组件、严格 Schema、增量更新、Action 审计和 Inspector。
-- SQLite schema v8、迁移完整性检查、外键检查、WAL 和崩溃恢复。
+- SQLite schema v10、迁移完整性检查、外键检查、WAL 和崩溃恢复；v9 已加入 Result 聚合，v10 的 Task/Template 基础正等待 S1.2 人工验收。
 - Windows CI、内部未签名包、正式签名/Updater 工作流框架、脱敏诊断和本地数据清除。
 
 ### 3.4 当前尚未具备的 V2 核心
 
 `[CURRENT GAP]`
 
-| 领域     | 当前状态                                | V2 缺口                                                         |
-| -------- | --------------------------------------- | --------------------------------------------------------------- |
-| 成果     | 文件、聊天、Surface 分散存在            | 没有独立 Result/Artifact ID、生命周期、状态、当前版本和导出入口 |
-| 任务     | 用户直接进入三栏工作台并发送聊天        | 没有任务首页、Task、结构化补问、统一 Orchestrator               |
-| 导入     | 文本、DOCX、PDF；独立文件选择           | 未支持 CSV/XLSX、图片、统一导入批次、格式能力说明               |
-| 上下文   | 前端组装所选全文，Rust 做大小和敏感校验 | 没有 Full/Retrieval/Hybrid 策略、检索索引、Context Pack         |
-| 审阅     | `document_patch` 有专用 Diff            | 普通保存、模板、选区助手、A2UI Action 尚未统一为 Review Request |
-| 成果类型 | 文本编辑器和 A2UI Surface               | 没有文档/表格/清单/表单/小工具统一类型系统                      |
-| 导出     | 无成果级导出服务                        | 无 DOCX/PDF/富文本、CSV/XLSX、JSON 导出与导出审计               |
-| 模板     | 无持久化任务模板                        | 无字段 Schema、输出类型、安全规则、模板版本                     |
-| 模式     | 始终是专业三栏界面                      | 无默认简单模式、首页、最近成果；专业工具未隔离                  |
-| 模型路径 | 首次使用需要自行配置 Key                | 无内置可用路径、本地模型探测、本机/云端持续标识                 |
-| 指标     | 有安全审计，没有产品事件体系            | 无 WUO、激活、审阅、保存、导出、恢复等隐私安全埋点              |
-| 搜索     | 无统一搜索                              | 无成果、资料包元数据和授权正文索引                              |
+| 领域     | 当前状态                                                      | V2 缺口                                                         |
+| -------- | ------------------------------------------------------------- | --------------------------------------------------------------- |
+| 成果     | Result 聚合、文件/Surface 惰性关联、列表/详情 IPC             | 尚无创建/归档/复制、成果 UI 和导出入口                          |
+| 任务     | S1.2 已实现并验收本地 Task、结构化补问和草稿 Orchestrator     | 尚无任务首页、上下文 Manifest 和真实生成编排                    |
+| 导入     | 文本、DOCX、PDF；独立文件选择                                 | 未支持 CSV/XLSX、图片、统一导入批次、格式能力说明               |
+| 上下文   | 前端组装所选全文，Rust 做大小和敏感校验                       | 没有 Full/Retrieval/Hybrid 策略、检索索引、Context Pack         |
+| 审阅     | `document_patch` 有专用 Diff                                  | 普通保存、模板、选区助手、A2UI Action 尚未统一为 Review Request |
+| 成果类型 | 文本编辑器和 A2UI Surface                                     | 没有文档/表格/清单/表单/小工具统一类型系统                      |
+| 导出     | 无成果级导出服务                                              | 无 DOCX/PDF/富文本、CSV/XLSX、JSON 导出与导出审计               |
+| 模板     | S1.2 已实现并验收 4 个版本化内置文档模板和字段 Schema         | 尚无个人模板、系统规则/上下文规则编辑和模板 UI                  |
+| 模式     | S1.3 已实现五入口导航、默认简单模式与专业模式显示边界，待验收 | 首页仍是占位外壳；无 S1.4 引导、任务入口和最近成果              |
+| 模型路径 | 首次使用需要自行配置 Key                                      | 无内置可用路径、本地模型探测、本机/云端持续标识                 |
+| 指标     | 有安全审计，没有产品事件体系                                  | 无 WUO、激活、审阅、保存、导出、恢复等隐私安全埋点              |
+| 搜索     | 无统一搜索                                                    | 无成果、资料包元数据和授权正文索引                              |
 
 ### 3.5 当前结构热点
 
@@ -239,11 +239,15 @@ Result
 - `storageRef` 对前端必须是不透明引用；不得用任意绝对路径作为业务 API。
 - 新成果默认保存到应用管理的本地“我的成果”目录；只有导出或用户主动另存时才通过系统对话框选择外部位置。
 - “我的成果”目录由 Rust 管理，前端只获得 Result 和不透明存储引用；设置中应提供打开目录、空间占用和迁移入口。
+- 用户可以主动新建文本型 Result。创建表单至少明确标题和成果类型，默认生成 UTF-8 Markdown；用户点击“创建”即为本次创建动作的显式确认，不需要伪装成 AI Review。
+- AI 不得直接创建文件。AI 只能提出 `create_file` Review Request，内容、建议文件名、托管位置和风险必须先展示给用户；只有用户接受后，Rust 才能创建真实文件、初始 Revision 和 Result 关联。
 - 文档、表格等文件型成果通过 Revision 保存内容和 Hash；A2UI 成果保存协议状态及权限声明。
 - 每个 Result 必须能继续编辑，并至少拥有保存或导出路径。
 - Result 删除与真实文件删除是两个不同操作；V2 P0 默认只归档/删除应用记录，不删除真实文件。
 
 ### 5.2 Task（任务）
+
+`[IMPLEMENTED — PENDING S1.2 ACCEPTANCE]` 当前子集持久化 `write | modify | organize | analyze` 文档任务、版本化模板、经 allowlist 校验的回答、最多 3 个必要问题和 Result 绑定。`processingMode`、`providerId`、`contextManifestId`、`build_ui` 与 `freeform` 仍是后续目标字段。
 
 ```text
 Task
@@ -269,7 +273,7 @@ Task 记录用户意图、必要输入和一次连续成果流程；Chat Session
 ```text
 ReviewRequest
   id: UUID
-  resultId: UUID
+  resultId: UUID?  # create_file 在接受前没有占位 Result
   source: chat | selection | template | a2ui_action | import_transform
   operationKind: document_patch | table_patch | structured_patch | create_file | replace_result
   status: pending | partially_accepted | accepted | rejected | applied | conflicted | failed
@@ -280,6 +284,8 @@ ReviewRequest
 ```
 
 旧 `patch_operations` 和 `document_versions` 保留为成熟执行记录；V2 Review Request 在上层统一各种来源，并通过适配器调用现有 Patch 内核。
+
+`create_file` 的 payload 只能携带受限的建议名称、文本成果类型、完整候选内容和不透明目标作用域，不能携带可直接执行的绝对路径。待审阅状态不得创建空占位文件、临时成果或 Revision。用户接受后，Rust 必须重新校验名称、扩展名、目标作用域和冲突状态，以原子方式写入并在同一业务事务中建立 Result/Revision；用户拒绝、取消或审阅过期时磁盘保持不变。目标已存在时默认拒绝覆盖，改名或覆盖必须形成新的用户决定。
 
 ### 5.4 Context Manifest 与 Context Pack
 
@@ -302,35 +308,40 @@ ContextPack（可复用授权集合）
 
 Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字段 Schema、默认结构、成果类型、系统规则、上下文规则、风险声明和兼容范围。个人模板不得保存用户敏感原文。
 
+`[IMPLEMENTED — PENDING S1.2 ACCEPTANCE]` schema v10 的 `task_templates` 已登记会议纪要、文档总结、周报和简历优化 v1。当前模板只保存非内容型字段规则、默认空白章节和风险等级；用户源文不进入模板，个人模板与更完整的系统/上下文规则留待后续步骤。
+
 ## 6. 数据架构与迁移
 
 ### 6.1 当前 SQLite
 
-`[CURRENT]` schema v8 包含：
+`[IMPLEMENTED — PENDING S1.2 ACCEPTANCE]` schema v10 包含：
 
 - `workspaces`、`workspace_files`、`workspace_drafts`
 - `sessions`、`messages`、`context_snapshots`
 - `document_versions`、`patch_operations`
 - `a2ui_surfaces`、`a2ui_messages`、`a2ui_events`
 - `provider_settings`、`credential_refs`、`app_settings`、`audit_events`
+- `results`（第一等成果聚合；旧文件/Surface 惰性归档，不批量复制正文）
+- `task_templates`（版本化内置模板；不保存用户源文）
+- `tasks`（状态、结构化回答、最多 3 个当前必要问题计数和 Result 绑定）
 
 ### 6.2 V2 目标表
 
-`[TARGET]` 建议从 v9 起只做前向、连续、事务迁移：
+`[TARGET]` 从 v9 起只做前向、连续、事务迁移；v9 Result 与 v10 Task/Template 已落地：
 
-| 表                                     | 作用                                  | 关键关系                                      |
-| -------------------------------------- | ------------------------------------- | --------------------------------------------- |
-| `results`                              | 成果聚合和当前状态                    | workspace、task、session、current revision    |
-| `tasks`                                | 任务生命周期和结构化输入              | workspace、template、result、context manifest |
-| `review_requests`                      | 统一审阅头                            | result、base revision、patch operation        |
-| `review_blocks`                        | 语义块/表格块/字段块决定              | review request                                |
-| `context_manifests`                    | 一次实际发送的策略、模式与汇总        | task、session/request                         |
-| `context_manifest_sources`             | 来源元数据，不存长期正文              | manifest                                      |
-| `context_packs` / `context_pack_items` | 可复用资料引用集合                    | workspace                                     |
-| `templates`                            | 内置/个人模板及版本                   | optional workspace                            |
-| `export_jobs`                          | 导出格式、版本、状态、脱敏错误        | result/revision                               |
-| `product_events`                       | 本地隐私安全行为事件                  | optional task/result                          |
-| `search_documents`                     | 成果/资料包允许索引的元数据和分块引用 | result/context item                           |
+| 表                                     | 作用                                       | 关键关系                                           |
+| -------------------------------------- | ------------------------------------------ | -------------------------------------------------- |
+| `results`                              | 成果聚合和当前状态（v9 已落地基础字段）    | workspace、task、session、current revision         |
+| `tasks`                                | 任务生命周期和结构化输入（v10 基础已落地） | workspace、template、result；context manifest 后续 |
+| `review_requests`                      | 统一审阅头                                 | result、base revision、patch operation             |
+| `review_blocks`                        | 语义块/表格块/字段块决定                   | review request                                     |
+| `context_manifests`                    | 一次实际发送的策略、模式与汇总             | task、session/request                              |
+| `context_manifest_sources`             | 来源元数据，不存长期正文                   | manifest                                           |
+| `context_packs` / `context_pack_items` | 可复用资料引用集合                         | workspace                                          |
+| `task_templates`                       | 内置/个人模板及版本（v10 内置基础已落地）  | 当前为全局内置；个人模板后续                       |
+| `export_jobs`                          | 导出格式、版本、状态、脱敏错误             | result/revision                                    |
+| `product_events`                       | 本地隐私安全行为事件                       | optional task/result                               |
+| `search_documents`                     | 成果/资料包允许索引的元数据和分块引用      | result/context item                                |
 
 迁移规则：
 
@@ -340,6 +351,8 @@ Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字
 4. 旧 Session、Patch、A2UI 数据保持可读；关联字段允许空值。
 5. 升级前后执行 `quick_check` 与 `foreign_key_check`；失败必须停止启动而不是覆盖数据。
 6. 每个 schema 版本都要有从 v0…当前版本的升级测试和故障回滚测试。
+
+v10 迁移额外保证：v9 Result 原样保留，内置模板以 `(id, version)` 幂等播种，Task/Result 必须属于同一工作区且一个 Task 最多绑定一个 Result；迁移失败时任务表、模板表和 `user_version` 一并回滚。
 
 ### 6.3 状态所有权
 
@@ -371,6 +384,19 @@ Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字
   → 完成态：继续编辑 / 查看历史 / 导出 / 另存副本
 ```
 
+S1.2 当前只开放上述流程的本地准备子集：创建 Task → 校验/补问 → 在“我的成果”目录生成明确标注“尚未调用 AI”的 Markdown 结构草稿 → 事务绑定 Result。它不调用 Provider，不代表真实正文生成；完整模型、Context 和 Review 链路仍受后续步骤及 O-08 约束。
+
+用户主动新建不依赖 AI：
+
+```text
+首页/成果页点击“新建”
+  → 选择文本成果类型并输入标题
+  → Rust 校验受控名称和“我的成果”目标作用域
+  → 用户确认创建
+  → 原子创建 UTF-8 文本文件 + Result + 初始 Revision
+  → 打开工作台继续编辑
+```
+
 ### 7.2 统一 Review Pipeline
 
 ```text
@@ -387,6 +413,8 @@ Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字
 ```
 
 任何 `save_*`、模板写入或 A2UI Action 若代表 AI 建议，不得直接调用文件保存命令。纯用户手工编辑的自动保存仍可走安全保存链，不强制进入 AI 审阅。
+
+创建文件同样遵守上述边界：用户主动点击“新建”并确认属于直接用户意图；聊天、模板或 A2UI 中由 AI 建议的新文件只能进入 `create_file` Review。审阅界面必须展示建议文件名、文本类型、目标位置说明和完整内容预览，并提供接受、拒绝与调整名称；接受前文件系统写入次数必须为零，重复应用同一 Review 必须幂等。
 
 ### 7.3 自适应上下文
 
@@ -414,6 +442,7 @@ Planner 输出必须包含：策略、实际来源数、估算大小、排除原
 - 图片是否发送、发送给本地还是云端模型，必须与其他来源一样进入 Context Manifest 并由用户确认。
 - Provider 不支持视觉输入时必须明确说明，不得静默丢弃图片或伪造理解结果。
 - P0 优先保证文本型和结构清晰文档的可靠读取、成果生成与基础导出，不承诺完整复刻 Office/PDF 内部结构。
+- P0 新建成果以 UTF-8 Markdown 和纯文本为规范编辑格式；CSV 等结构化文本由表格适配器负责。DOCX、PDF、XLSX 等是受控导入/导出格式，不作为首期 AI 创建与无损回写的规范内部格式。
 - 公式、宏、嵌入式图表和扫描文档首期优先提供只读预览或 AI 上下文能力；不承诺结构化编辑、公式语义保持或无损回写。
 - 宏和外部链接永不执行；CSV/XLSX 导出必须防止公式注入；压缩型格式继续受大小、展开量、条目数和 Zip Bomb 限制。
 
@@ -443,15 +472,19 @@ Planner 输出必须包含：策略、实际来源数、估算大小、排除原
 
 两种模式共享同一 Core Services、数据和安全策略，只改变导航、术语和信息密度。
 
-| 能力   | 简单模式（默认）                  | 专业模式                                |
-| ------ | --------------------------------- | --------------------------------------- |
-| 首页   | 六类任务、拖入区、最近成果        | 可增加工作区快捷入口                    |
-| 工作台 | 成果区 + AI 助手 + 查看修改       | 文件树、会话细节、模型切换              |
-| 术语   | AI 可读取内容、查看修改、交互结果 | Context、Diff、Surface、Catalog、Action |
-| 调试   | 用户可理解错误                    | Inspector、原始协议、Schema、延迟       |
-| 安全   | 确认、审阅、撤销                  | 可查看规则，但不能绕过红线              |
+`[CURRENT — S1.3 待人工验收]` 应用外壳现在提供首页、成果、模板、工作台和设置五个 Hash 路由；未知路由安全回退到首页。新安装默认简单模式，用户选择仅以 `simple | professional` 保存到本地 UI 偏好，非法值或存储读取失败均回退为简单模式；存储写入失败不阻止当前会话切换。该偏好不进入业务数据库，不含正文、路径、Endpoint 或密钥。
+
+| 能力   | 简单模式（默认）                            | 专业模式                                |
+| ------ | ------------------------------------------- | --------------------------------------- |
+| 首页   | 六类任务、拖入区、最近成果                  | 可增加工作区快捷入口                    |
+| 工作台 | 选择文件、成果区、AI 助手、新对话、查看修改 | 文件树、会话细节、模型切换              |
+| 术语   | AI 可读取内容、查看修改、交互结果           | Context、Diff、Surface、Catalog、Action |
+| 调试   | 用户可理解错误                              | Inspector、原始协议、Schema、延迟       |
+| 安全   | 确认、审阅、撤销                            | 可查看规则，但不能绕过红线              |
 
 专业模式不是另一套业务实现，不允许复制 Task/Result/Review 逻辑形成分叉。
+
+`[CURRENT — S1.3 待人工验收]` 两种模式渲染同一组 `WorkspaceLayout`、`WorkspaceSidebar`、`EditorPane` 和 `ChatPanel`，并共享同一 Zustand store、Gateway 与 Rust IPC。简单模式不渲染文件树、会话列表、Provider/Model 标识、A2UI Inspector、Endpoint 和 API Key 入口，但保留直接复用现有授权链路的“选择文件”和直接复用现有会话动作的“新对话”；专业模式恢复完整 V1 工具。模式切换不会重建业务 store、迁移 Result/Task 数据、改变上下文授权或扩大 Capability。首页、成果和模板页面目前只承担导航占位，S1.4 之前不提供伪造的最近成果或引导数据。
 
 ## 10. IPC 与事件合同
 
@@ -466,8 +499,8 @@ Planner 输出必须包含：策略、实际来源数、估算大小、排除原
 ### 10.2 建议的 V2 命令组
 
 ```text
-task:     create_task, answer_task_questions, start_task, cancel_task, get_task
-result:   list_results, get_result, save_result_draft, archive_result, duplicate_result
+task:     list_task_templates, create_task, answer_task_questions, start_task, get_task  # S1.2 已实现并验收；cancel 后续
+result:   list_results, get_result, create_text_result, save_result_draft, archive_result, duplicate_result
 import:   select_import_sources, inspect_import_batch, confirm_import
 context:  plan_context, confirm_context_manifest, list_context_packs, save_context_pack
 review:   get_review, decide_review_blocks, apply_review, discard_review
@@ -544,22 +577,22 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 
 ## 14. 需求追踪摘要
 
-| PRD 能力      | 架构承载                                            | 状态                           |
-| ------------- | --------------------------------------------------- | ------------------------------ |
-| ONB/HOME      | app routing、home feature、Result queries           | Target                         |
-| IMP/TASK      | Import Service、Task Orchestrator、Template         | Target                         |
-| WS            | Result Workbench、typed editors、mode shell         | Target                         |
-| CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | 部分 Current，V2 Target        |
-| REV-01…06     | Review Request + 现有 Patch/Revision 内核           | 内核 Current，统一入口 Target  |
-| OUT-01…06     | Result type adapters、A2UI、Action Policy           | A2UI 内核 Current，其余 Target |
-| EXP-01…04     | Export Service、export jobs、format adapters        | Target                         |
-| RES-01        | Result 聚合                                         | Target，V2 最先落地            |
-| SEL-01        | Selection controller → Review Pipeline              | Target                         |
-| PRV-04/MDL-05 | Processing options、local probe                     | Target                         |
-| SRCH-01       | 授权索引和 Search Service                           | P1 Target                      |
-| ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化         |
-| A2UI-06       | capability negotiation + conformance CI             | Target                         |
-| UX-08         | Import suggestions mapped to Result type            | P1 Target                      |
+| PRD 能力      | 架构承载                                            | 状态                                         |
+| ------------- | --------------------------------------------------- | -------------------------------------------- |
+| ONB/HOME      | app routing、home feature、Result queries           | Target                                       |
+| IMP/TASK      | Import Service、Task Orchestrator、Template         | Task/内置模板基础已实现待验收，Import Target |
+| WS            | Result Workbench、typed editors、mode shell         | Target                                       |
+| CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | 部分 Current，V2 Target                      |
+| REV-01…06     | Review Request + 现有 Patch/Revision 内核           | 内核 Current，统一入口 Target                |
+| OUT-01…06     | Result type adapters、A2UI、Action Policy           | A2UI 内核 Current，其余 Target               |
+| EXP-01…04     | Export Service、export jobs、format adapters        | Target                                       |
+| RES-01        | Result 聚合                                         | 基础聚合 Current，完整生命周期 Target        |
+| SEL-01        | Selection controller → Review Pipeline              | Target                                       |
+| PRV-04/MDL-05 | Processing options、local probe                     | Target                                       |
+| SRCH-01       | 授权索引和 Search Service                           | P1 Target                                    |
+| ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                       |
+| A2UI-06       | capability negotiation + conformance CI             | Target                                       |
+| UX-08         | Import suggestions mapped to Result type            | P1 Target                                    |
 
 完整实施顺序、逐步验收和变更记录见实施文档；这里的 `Target` 不代表已经承诺具体版本日期。
 
@@ -583,6 +616,8 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 14. 允许克制、透明、可关闭的匿名产品指标，但用户内容永不上报。
 15. V2 大众产品名称采用“A2UI 工作台”。
 16. 匿名指标默认关闭，首次核心闭环完成后才邀请用户主动开启。
+17. 用户可主动新建文本成果；AI 只能提议创建文件，用户接受 Review 前不得发生真实写入。
+18. 首期规范编辑格式为 UTF-8 Markdown/纯文本，不以完整 Office/PDF/XLSX 结构兼容或无损回写为目标。
 
 ### 15.2 实施前必须关闭的开放问题
 

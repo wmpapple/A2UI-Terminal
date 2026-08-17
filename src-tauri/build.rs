@@ -36,6 +36,13 @@ fn main() {
         "list_a2ui_surfaces",
         "list_a2ui_inspections",
         "execute_a2ui_action",
+        "list_results",
+        "get_result",
+        "list_task_templates",
+        "create_task",
+        "answer_task_questions",
+        "get_task",
+        "start_task",
     ]);
 
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(app_manifest))

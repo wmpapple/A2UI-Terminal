@@ -2,6 +2,95 @@ export type Locale = 'zh-CN' | 'en-US';
 export type CenterView = 'editor' | 'diff' | 'surface';
 export type MessageRole = 'user' | 'assistant';
 export type ProviderKind = 'silicon_flow' | 'deep_seek' | 'open_ai' | 'custom';
+export type ResultType = 'document' | 'spreadsheet' | 'checklist' | 'form' | 'tool';
+export type ResultStatus =
+  'draft' | 'generating' | 'review_pending' | 'ready' | 'exporting' | 'failed' | 'archived';
+export type ResultStorageKind = 'workspace_file' | 'standalone_file' | 'managed_local';
+export type TaskKind = 'write' | 'modify' | 'organize' | 'analyze';
+export type TaskStatus =
+  | 'draft'
+  | 'awaiting_input'
+  | 'ready'
+  | 'running'
+  | 'review_pending'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+export type TemplateFieldKind = 'short_text' | 'select';
+
+export interface TemplateField {
+  id: string;
+  label: string;
+  kind: TemplateFieldKind;
+  required: boolean;
+  options: string[];
+  defaultValue: unknown | null;
+  maxLength: number | null;
+}
+
+export interface TaskTemplate {
+  id: string;
+  version: number;
+  name: string;
+  description: string;
+  kind: TaskKind;
+  desiredResultType: 'document';
+  fields: TemplateField[];
+  defaultSections: string[];
+  riskLevel: 'low' | 'medium' | 'high';
+  builtin: boolean;
+}
+
+export interface TaskQuestion {
+  fieldId: string;
+  prompt: string;
+  kind: TemplateFieldKind;
+  options: string[];
+  required: boolean;
+  maxLength: number | null;
+}
+
+export interface TaskDetail {
+  id: string;
+  workspaceId: string;
+  templateId: string;
+  templateVersion: number;
+  kind: TaskKind;
+  desiredResultType: 'document';
+  status: TaskStatus;
+  inputAnswers: Record<string, unknown>;
+  questions: TaskQuestion[];
+  resultId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+export interface TaskRunResult {
+  task: TaskDetail;
+  result: ResultDetail;
+  outputMode: 'local_scaffold';
+}
+
+export interface ResultSummary {
+  id: string;
+  workspaceId: string;
+  type: ResultType;
+  title: string;
+  status: ResultStatus;
+  storageKind: ResultStorageKind;
+  currentRevisionId: string | null;
+  a2uiSurfaceId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+export interface ResultDetail extends ResultSummary {
+  storageRef: string;
+  activeSessionId: string | null;
+  managedState: Record<string, unknown> | null;
+}
 
 export interface WorkspaceFile {
   path: string;

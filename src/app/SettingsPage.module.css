@@ -1,0 +1,38 @@
+.page {
+  flex: 1;
+  min-height: 0;
+  padding: 28px;
+  overflow: auto;
+  background: var(--surface-subtle);
+}
+
+.content {
+  display: grid;
+  width: min(760px, 100%);
+  gap: 18px;
+  margin: 0 auto;
+}
+
+.content > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: var(--accent);
+  font-size: 22px;
+}
+
+.content h1 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 24px;
+}
+
+.content header p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.modeNotice {
+  margin: 16px 0;
+}

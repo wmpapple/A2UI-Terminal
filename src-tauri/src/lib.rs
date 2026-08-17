@@ -2,6 +2,7 @@ pub mod a2ui;
 pub mod ai;
 pub mod application;
 pub mod commands;
+pub mod domain;
 pub mod error;
 pub mod patch;
 pub mod repository;
@@ -22,9 +23,11 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
+            let managed_results_dir =
+                application::result::prepare_managed_results_dir(&app_data_dir)?;
             let storage = Storage::open(&app_data_dir.join("a2ui-terminal.sqlite3"))?;
             storage.cleanup_expired_versions()?;
-            app.manage(AppState::new(storage));
+            app.manage(AppState::new(storage, managed_results_dir));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -64,6 +67,13 @@ pub fn run() {
             commands::list_a2ui_surfaces,
             commands::list_a2ui_inspections,
             commands::execute_a2ui_action,
+            commands::list_results,
+            commands::get_result,
+            commands::list_task_templates,
+            commands::create_task,
+            commands::answer_task_questions,
+            commands::get_task,
+            commands::start_task,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start A2UI Terminal");

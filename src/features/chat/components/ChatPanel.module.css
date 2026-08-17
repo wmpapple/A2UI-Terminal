@@ -184,6 +184,15 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.validationDetail {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+.validationDetail strong {
+  flex: none;
+}
 .role {
   color: var(--text-muted);
   font-size: 10px;

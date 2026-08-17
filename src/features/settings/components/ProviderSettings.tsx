@@ -24,6 +24,7 @@ import { SystemSettings } from './SystemSettings';
 interface Props {
   open: boolean;
   onClose: () => void;
+  includeSystemSettings?: boolean;
 }
 
 const providerNames: Record<string, string> = {
@@ -33,7 +34,7 @@ const providerNames: Record<string, string> = {
   custom: 'OpenAI-Compatible',
 };
 
-export function ProviderSettings({ open, onClose }: Props) {
+export function ProviderSettings({ open, onClose, includeSystemSettings = true }: Props) {
   const { t } = useI18n();
   const configs = useAppStore((state) => state.providerConfigs);
   const activeProviderId = useAppStore((state) => state.activeProviderId);
@@ -205,8 +206,8 @@ export function ProviderSettings({ open, onClose }: Props) {
             </Space>
           </div>
         )}
-        <Divider />
-        <SystemSettings />
+        {includeSystemSettings ? <Divider /> : null}
+        {includeSystemSettings ? <SystemSettings /> : null}
       </>
     </Modal>
   );

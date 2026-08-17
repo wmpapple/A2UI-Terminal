@@ -3,6 +3,7 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined,
   HistoryOutlined,
+  PaperClipOutlined,
   SaveOutlined,
   UndoOutlined,
 } from '@ant-design/icons';
@@ -24,7 +25,15 @@ const VersionHistoryDrawer = lazy(() =>
   import('./VersionHistoryDrawer').then((module) => ({ default: module.VersionHistoryDrawer }))
 );
 
-export function EditorPane() {
+interface EditorPaneProps {
+  showInspector?: boolean;
+  showSimpleFileActions?: boolean;
+}
+
+export function EditorPane({
+  showInspector = true,
+  showSimpleFileActions = false,
+}: EditorPaneProps) {
   const { locale, t } = useI18n();
   const {
     runtimeMode,
@@ -33,6 +42,8 @@ export function EditorPane() {
     activePath,
     dirtyPaths,
     saveStatusByPath,
+    workspaceLoading,
+    workspaceError,
     recoveryDrafts,
     centerView,
     lastPatchApplication,
@@ -40,6 +51,8 @@ export function EditorPane() {
     patchError,
   } = useAppStore();
   const openFile = useAppStore((state) => state.openFile);
+  const selectContextFiles = useAppStore((state) => state.selectContextFiles);
+  const clearWorkspaceError = useAppStore((state) => state.clearWorkspaceError);
   const closeFile = useAppStore((state) => state.closeFile);
   const updateFile = useAppStore((state) => state.updateFile);
   const markSaved = useAppStore((state) => state.markSaved);
@@ -172,10 +185,21 @@ export function EditorPane() {
           options={[
             { label: t('editor'), value: 'editor' },
             { label: t('review'), value: 'diff' },
-            { label: t('surface'), value: 'surface' },
+            { label: t(showInspector ? 'surface' : 'interactiveResult'), value: 'surface' },
           ]}
         />
         <div className={styles.toolbarActions}>
+          {showSimpleFileActions ? (
+            <Button
+              size="small"
+              type="primary"
+              icon={<PaperClipOutlined />}
+              loading={workspaceLoading}
+              onClick={() => void selectContextFiles()}
+            >
+              {t('chooseFiles')}
+            </Button>
+          ) : null}
           {lastPatchApplication ? (
             <Button
               size="small"
@@ -222,6 +246,15 @@ export function EditorPane() {
           {!isExtractedDocument ? <Tag color={saveColor}>{saveLabel}</Tag> : null}
         </div>
       </div>
+      {showSimpleFileActions && workspaceError ? (
+        <Alert
+          closable
+          type="error"
+          showIcon
+          title={workspaceError}
+          onClose={clearWorkspaceError}
+        />
+      ) : null}
       {patchError && centerView !== 'diff' ? (
         <Alert type="error" showIcon title={patchError} />
       ) : null}
@@ -276,7 +309,7 @@ export function EditorPane() {
         {centerView === 'diff' ? (
           <DiffReview />
         ) : centerView === 'surface' ? (
-          <A2uiWorkbench />
+          <A2uiWorkbench showInspector={showInspector} />
         ) : activeFile && isMarkdown ? (
           <Suspense
             fallback={
@@ -316,7 +349,18 @@ export function EditorPane() {
             onChange={(event) => updateFile(activeFile.path, event.target.value)}
           />
         ) : (
-          <Empty description="Select a file" />
+          <Empty description={t('selectFilePrompt')}>
+            {showSimpleFileActions ? (
+              <Button
+                type="primary"
+                icon={<PaperClipOutlined />}
+                loading={workspaceLoading}
+                onClick={() => void selectContextFiles()}
+              >
+                {t('chooseFiles')}
+              </Button>
+            ) : null}
+          </Empty>
         )}
       </div>
       {versionHistoryOpen ? (

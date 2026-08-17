@@ -57,7 +57,96 @@ function AssistantMarkdown({ content, streaming }: { content: string; streaming:
   );
 }
 
-export function ChatPanel() {
+function validationFailureReason(protocolError?: string | null) {
+  return protocolError
+    ?.replace(/^AI 修改方案未通过安全校验[：:]\s*/, '')
+    .replace(/^invalid input:\s*/i, '')
+    .trim();
+}
+
+function looksLikeUnverifiedFileCompletionClaim(content: string) {
+  const clauses = content.split(/[。！？.!?\n]/u).map((clause) => clause.trim().toLowerCase());
+  return clauses.some((clause) => {
+    if (!clause) return false;
+    const mentionsArtifact = [
+      '文件',
+      '文档',
+      '成果',
+      'file',
+      'document',
+      'artifact',
+      'result',
+    ].some((term) => clause.includes(term));
+    const conditionalOrNegative = [
+      '如果',
+      '假如',
+      '若您',
+      '尚未',
+      '还未',
+      '还没有',
+      '没有创建',
+      '没有生成',
+      '没有保存',
+      '没有修改',
+      '未创建',
+      '未生成',
+      '未保存',
+      '未修改',
+      'if ',
+      'when ',
+      'not created',
+      'not generated',
+      'not saved',
+      'not modified',
+      "haven't created",
+      'have not created',
+      "didn't create",
+      'did not create',
+    ].some((term) => clause.includes(term));
+    const claimsCompletion = [
+      '我已创建',
+      '我已经创建',
+      '我已经为您创建',
+      '我已为您创建',
+      '我已生成',
+      '我已经生成',
+      '我已经为您生成',
+      '我已为您生成',
+      '我已保存',
+      '我已经保存',
+      '我已修改',
+      '我已经修改',
+      '我已写入',
+      '我已经写入',
+      '已经创建完成',
+      '已创建完成',
+      '创建完成',
+      '已经成功写入',
+      'i created',
+      "i've created",
+      'i have created',
+      'i generated',
+      "i've generated",
+      'i have generated',
+      'i saved',
+      "i've saved",
+      'i have saved',
+      'i modified',
+      "i've modified",
+      'i have modified',
+      'has been created',
+      'has been saved',
+      'has been modified',
+    ].some((term) => clause.includes(term));
+    return mentionsArtifact && claimsCompletion && !conditionalOrNegative;
+  });
+}
+
+interface ChatPanelProps {
+  professionalTools?: boolean;
+}
+
+export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
   const { t } = useI18n();
   const sessions = useAppStore((state) => state.sessions);
   const activeSessionId = useAppStore((state) => state.activeSessionId);
@@ -193,22 +282,42 @@ export function ChatPanel() {
           <strong>{t('assistant')}</strong>
           <span>
             <i className={activeProvider?.configured ? styles.online : styles.offline} />
-            {activeProvider
-              ? `${activeProvider.id} · ${activeProvider.model}`
-              : t('providerNotConfigured')}
+            {professionalTools
+              ? activeProvider
+                ? `${activeProvider.id} · ${activeProvider.model}`
+                : t('providerNotConfigured')
+              : t(activeProvider?.configured ? 'assistantReady' : 'assistantSetupNeeded')}
           </span>
         </div>
-        <Tooltip title={t('newSession')}>
-          <Button type="text" icon={<PlusOutlined />} onClick={() => void createSession()} />
-        </Tooltip>
+        {professionalTools ? (
+          <Tooltip title={t('newSession')}>
+            <Button
+              type="text"
+              aria-label={t('newSession')}
+              icon={<PlusOutlined />}
+              onClick={() => void createSession()}
+            />
+          </Tooltip>
+        ) : (
+          <Button
+            size="small"
+            aria-label={t('newConversation')}
+            icon={<PlusOutlined />}
+            onClick={() => void createSession()}
+          >
+            {t('newConversation')}
+          </Button>
+        )}
       </header>
-      <Select
-        value={activeSessionId || undefined}
-        onChange={selectSession}
-        options={sessions.map((session) => ({ value: session.id, label: session.title }))}
-        className={styles.sessionSelect}
-        placeholder={t('newSession')}
-      />
+      {professionalTools ? (
+        <Select
+          value={activeSessionId || undefined}
+          onChange={selectSession}
+          options={sessions.map((session) => ({ value: session.id, label: session.title }))}
+          className={styles.sessionSelect}
+          placeholder={t('newSession')}
+        />
+      ) : null}
       {chatError && <Alert className={styles.chatError} type="error" showIcon title={chatError} />}
       <div className={styles.messages} aria-live="polite">
         {activeSession?.messages.map((chatMessage, index) => {
@@ -218,7 +327,16 @@ export function ChatPanel() {
           const containsA2uiProtocol =
             chatMessage.role === 'assistant' && /a2ui_(surface|update)/i.test(chatMessage.content);
           const patchFailed = chatMessage.errorCode === 'PATCH_VALIDATION_FAILED';
+          const patchFailureReason = validationFailureReason(chatMessage.protocolError);
           const a2uiFailed = chatMessage.errorCode === 'A2UI_VALIDATION_FAILED';
+          const unverifiedCompletionClaim =
+            chatMessage.errorCode === 'UNVERIFIED_FILE_COMPLETION_CLAIM' ||
+            (chatMessage.role === 'assistant' &&
+              chatMessage.status === 'complete' &&
+              !containsPatchProtocol &&
+              !containsA2uiProtocol &&
+              looksLikeUnverifiedFileCompletionClaim(chatMessage.content));
+          const fileCreationUnavailable = chatMessage.errorCode === 'FILE_CREATION_NOT_AVAILABLE';
           const patchGenerating = containsPatchProtocol && chatMessage.status === 'streaming';
           const a2uiGenerating = containsA2uiProtocol && chatMessage.status === 'streaming';
           return (
@@ -227,7 +345,16 @@ export function ChatPanel() {
               className={`${styles.message} ${chatMessage.role === 'user' ? styles.user : styles.assistant}`}
             >
               <div className={styles.role}>{chatMessage.role === 'user' ? 'YOU' : 'A2UI'}</div>
-              {a2uiGenerating ? (
+              {fileCreationUnavailable ? (
+                <div className={styles.protocolError}>
+                  <Alert
+                    type="info"
+                    showIcon
+                    title={t('fileCreationUnavailable')}
+                    description={t('fileCreationUnavailableDescription')}
+                  />
+                </div>
+              ) : a2uiGenerating ? (
                 <div className={styles.protocolError}>
                   <Alert type="info" showIcon title={t('a2uiGenerating')} />
                 </div>
@@ -261,9 +388,19 @@ export function ChatPanel() {
                     showIcon
                     title={t(patchFailed ? 'patchValidationFailed' : 'patchProtocolReceived')}
                     description={
-                      patchFailed
-                        ? t('patchValidationFailedDescription')
-                        : t('patchProtocolReceivedDescription')
+                      patchFailed ? (
+                        <div>
+                          <div>{t('patchValidationFailedDescription')}</div>
+                          {patchFailureReason ? (
+                            <div className={styles.validationDetail}>
+                              <strong>{t('validationFailureReason')}</strong>
+                              <span>{patchFailureReason}</span>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        t('patchProtocolReceivedDescription')
+                      )
                     }
                   />
                   {!patchFailed && pendingDiff ? (
@@ -271,6 +408,15 @@ export function ChatPanel() {
                       {t('openReviewCenter')}
                     </Button>
                   ) : null}
+                </div>
+              ) : unverifiedCompletionClaim ? (
+                <div className={styles.protocolError}>
+                  <Alert
+                    type="warning"
+                    showIcon
+                    title={t('unverifiedCompletionClaim')}
+                    description={t('unverifiedCompletionClaimDescription')}
+                  />
                 </div>
               ) : chatMessage.role === 'assistant' ? (
                 <AssistantMarkdown

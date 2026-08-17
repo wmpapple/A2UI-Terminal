@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-answer-task-questions"
+description = "Enables the answer_task_questions command without any pre-configured scope."
+commands.allow = ["answer_task_questions"]
+
+[[permission]]
+identifier = "deny-answer-task-questions"
+description = "Denies the answer_task_questions command without any pre-configured scope."
+commands.deny = ["answer_task_questions"]

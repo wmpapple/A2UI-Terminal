@@ -1,5 +1,7 @@
 use a2ui_terminal_lib::a2ui::{A2uiProcessResult, SurfaceMessage};
 use a2ui_terminal_lib::commands::{ChatStreamEvent, ChatStreamResult};
+use a2ui_terminal_lib::domain::result::{ResultDetail, ResultSummary};
+use a2ui_terminal_lib::domain::task::{TaskDetail, TaskRunResult, TaskTemplate};
 use a2ui_terminal_lib::error::{AppError, ProviderFailure};
 use a2ui_terminal_lib::patch::{DocumentPatch, PatchApplication, PatchReview};
 use a2ui_terminal_lib::storage::ChatSessionRecord;
@@ -14,6 +16,8 @@ const PATCH_FIXTURE: &str = include_str!("../../contracts/v1/patch.json");
 const A2UI_FIXTURE: &str = include_str!("../../contracts/v1/a2ui.json");
 const REVISION_FIXTURE: &str = include_str!("../../contracts/v1/revision.json");
 const ERROR_FIXTURE: &str = include_str!("../../contracts/v1/error.json");
+const RESULT_FIXTURE: &str = include_str!("../../contracts/v2/result.json");
+const TASK_FIXTURE: &str = include_str!("../../contracts/v2/task.json");
 
 fn assert_round_trip<T>(value: &Value)
 where
@@ -52,11 +56,32 @@ fn rust_serde_matches_all_shared_response_fixtures() {
 }
 
 #[test]
+fn rust_serde_matches_result_v2_fixture() {
+    let result: Value = serde_json::from_str(RESULT_FIXTURE).unwrap();
+    assert_round_trip::<ResultSummary>(&result["summary"]);
+    assert_round_trip::<ResultDetail>(&result["detail"]);
+}
+
+#[test]
+fn rust_serde_matches_task_v2_fixture() {
+    let task: Value = serde_json::from_str(TASK_FIXTURE).unwrap();
+    assert_round_trip::<TaskTemplate>(&task["template"]);
+    assert_round_trip::<TaskDetail>(&task["task"]);
+    assert_round_trip::<TaskRunResult>(&task["runResult"]);
+}
+
+#[test]
 fn response_dtos_allow_additive_fields_for_forward_compatibility() {
     let mut workspace: Value = serde_json::from_str(WORKSPACE_FIXTURE).unwrap();
     workspace["futureField"] = Value::String("allowed".into());
     serde_json::from_value::<WorkspaceDocument>(workspace)
         .expect("trusted responses must ignore additive fields");
+
+    let fixture: Value = serde_json::from_str(RESULT_FIXTURE).unwrap();
+    let mut result = fixture["detail"].clone();
+    result["futureField"] = Value::String("allowed".into());
+    serde_json::from_value::<ResultDetail>(result)
+        .expect("trusted Result responses must ignore additive fields");
 }
 
 #[test]

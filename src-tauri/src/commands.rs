@@ -6,6 +6,10 @@ use crate::ai::{ChatRequest, ProviderConfig, ProviderConfigView};
 pub use crate::application::chat::{ChatStreamEvent, ChatStreamResult};
 pub use crate::application::provider::{ProviderConnectionResult, SecretStatus};
 use crate::application::{adapters, chat, provider, revision, workspace as workspace_service};
+use crate::domain::result::{ResultDetail, ResultSummary};
+use crate::domain::task::{
+    AnswerTaskInput, CreateTaskInput, TaskDetail, TaskRunResult, TaskTemplate,
+};
 use crate::error::AppError;
 use crate::patch::{DocumentPatch, PatchApplication, PatchReview};
 use crate::security::SecretStore;
@@ -281,7 +285,9 @@ pub fn read_workspace_file(
     workspace_id: String,
     relative_path: String,
 ) -> Result<WorkspaceDocument, AppError> {
-    workspace_service::read_file(&state.storage, &workspace_id, &relative_path)
+    let document = workspace_service::read_file(&state.storage, &workspace_id, &relative_path)?;
+    crate::application::result::ensure_file_result(&state.storage, &workspace_id, &document)?;
+    Ok(document)
 }
 
 #[tauri::command]
@@ -558,7 +564,18 @@ pub fn process_a2ui_message(
     state: State<'_, AppState>,
     request: ProcessA2uiRequest,
 ) -> Result<Option<A2uiProcessResult>, AppError> {
-    adapters::process_a2ui(&state.storage, &request)
+    let processed = adapters::process_a2ui(&state.storage, &request)?;
+    if let Some(surface) = processed
+        .as_ref()
+        .and_then(|processed| processed.surface.as_ref())
+    {
+        crate::application::result::ensure_surface_by_id(
+            &state.storage,
+            &surface.workspace_id,
+            &surface.surface_id,
+        )?;
+    }
+    Ok(processed)
 }
 
 #[tauri::command]
@@ -566,7 +583,15 @@ pub fn list_a2ui_surfaces(
     state: State<'_, AppState>,
     workspace_id: String,
 ) -> Result<Vec<A2uiSurfaceView>, AppError> {
-    adapters::list_surfaces(&state.storage, &workspace_id)
+    let surfaces = adapters::list_surfaces(&state.storage, &workspace_id)?;
+    for surface in &surfaces {
+        crate::application::result::ensure_surface_by_id(
+            &state.storage,
+            &surface.workspace_id,
+            &surface.surface_id,
+        )?;
+    }
+    Ok(surfaces)
 }
 
 #[tauri::command]
@@ -599,6 +624,55 @@ pub fn stop_chat(state: State<'_, AppState>, request_id: String) -> Result<bool,
     }
 }
 
+#[tauri::command]
+pub fn list_results(
+    state: State<'_, AppState>,
+    workspace_id: Option<String>,
+    include_archived: Option<bool>,
+) -> Result<Vec<ResultSummary>, AppError> {
+    crate::application::result::list(
+        &state.storage,
+        workspace_id.as_deref(),
+        include_archived.unwrap_or(false),
+    )
+}
+
+#[tauri::command]
+pub fn get_result(state: State<'_, AppState>, result_id: String) -> Result<ResultDetail, AppError> {
+    crate::application::result::get(&state.storage, &result_id)
+}
+
+#[tauri::command]
+pub fn list_task_templates(state: State<'_, AppState>) -> Result<Vec<TaskTemplate>, AppError> {
+    crate::application::task::list_templates(&state.storage)
+}
+
+#[tauri::command]
+pub fn create_task(
+    state: State<'_, AppState>,
+    input: CreateTaskInput,
+) -> Result<TaskDetail, AppError> {
+    crate::application::task::create(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn answer_task_questions(
+    state: State<'_, AppState>,
+    input: AnswerTaskInput,
+) -> Result<TaskDetail, AppError> {
+    crate::application::task::answer(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn get_task(state: State<'_, AppState>, task_id: String) -> Result<TaskDetail, AppError> {
+    crate::application::task::get(&state.storage, &task_id)
+}
+
+#[tauri::command]
+pub fn start_task(state: State<'_, AppState>, task_id: String) -> Result<TaskRunResult, AppError> {
+    crate::application::task::start(&state.storage, &state.managed_results_dir, &task_id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::build_diagnostic_report;
@@ -620,6 +694,8 @@ mod tests {
                 a2ui_messages: 8,
                 a2ui_events: 9,
                 configured_providers: 1,
+                tasks: 4,
+                results: 10,
             },
         );
         let json = serde_json::to_value(report).unwrap();

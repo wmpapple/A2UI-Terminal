@@ -79,4 +79,22 @@ describe('WorkspaceLayout', () => {
     expect(workspace.style.gridTemplateColumns).toContain('minmax(360px, 1fr)');
     expect(workspace.style.gridTemplateColumns).toContain('280px');
   });
+
+  it('uses the same editor and assistant nodes without rendering the file panel in simple mode', () => {
+    render(
+      <I18nProvider>
+        <WorkspaceLayout
+          showLeftPanel={false}
+          left={<div>files</div>}
+          center={<div>editor</div>}
+          right={<div>assistant</div>}
+        />
+      </I18nProvider>
+    );
+
+    expect(screen.queryByText('files')).not.toBeInTheDocument();
+    expect(screen.getByText('editor')).toBeInTheDocument();
+    expect(screen.getByText('assistant')).toBeInTheDocument();
+    expect(screen.getAllByRole('separator')).toHaveLength(1);
+  });
 });

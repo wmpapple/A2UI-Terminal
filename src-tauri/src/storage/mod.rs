@@ -9,7 +9,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 8;
+const SCHEMA_VERSION: i64 = 10;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -18,6 +18,8 @@ const MIGRATION_V5: &str = include_str!("../../migrations/0005_semantic_patches.
 const MIGRATION_V6: &str = include_str!("../../migrations/0006_a2ui_runtime.sql");
 const MIGRATION_V7: &str = include_str!("../../migrations/0007_document_history.sql");
 const MIGRATION_V8: &str = include_str!("../../migrations/0008_crash_recovery.sql");
+const MIGRATION_V9: &str = include_str!("../../migrations/0009_results.sql");
+const MIGRATION_V10: &str = include_str!("../../migrations/0010_tasks_and_templates.sql");
 const MIGRATIONS: &[(i64, &str)] = &[
     (1, MIGRATION_V1),
     (2, MIGRATION_V2),
@@ -27,6 +29,8 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (6, MIGRATION_V6),
     (7, MIGRATION_V7),
     (8, MIGRATION_V8),
+    (9, MIGRATION_V9),
+    (10, MIGRATION_V10),
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -220,6 +224,77 @@ pub struct A2uiEventRow {
     pub created_at: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct ResultRow {
+    pub id: String,
+    pub workspace_id: String,
+    pub result_type: String,
+    pub title: String,
+    pub status: String,
+    pub storage_kind: String,
+    pub storage_ref: String,
+    pub current_revision_id: Option<String>,
+    pub active_session_id: Option<String>,
+    pub a2ui_surface_id: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+    pub completed_at: Option<String>,
+    pub managed_state_json: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TaskTemplateRow {
+    pub id: String,
+    pub version: u32,
+    pub name: String,
+    pub description: String,
+    pub task_kind: String,
+    pub desired_result_type: String,
+    pub field_schema_json: String,
+    pub default_sections_json: String,
+    pub risk_level: String,
+    pub builtin: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct TaskRow {
+    pub id: String,
+    pub workspace_id: String,
+    pub template_id: String,
+    pub template_version: u32,
+    pub task_kind: String,
+    pub desired_result_type: String,
+    pub status: String,
+    pub input_answers_json: String,
+    pub question_count: u32,
+    pub result_id: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+    pub completed_at: Option<String>,
+}
+
+pub struct NewTaskRow<'a> {
+    pub id: &'a str,
+    pub workspace_id: &'a str,
+    pub template_id: &'a str,
+    pub template_version: u32,
+    pub task_kind: &'a str,
+    pub desired_result_type: &'a str,
+    pub status: &'a str,
+    pub input_answers_json: &'a str,
+    pub question_count: u32,
+}
+
+pub struct ManagedTaskResultRow<'a> {
+    pub result_id: &'a str,
+    pub task_id: &'a str,
+    pub workspace_id: &'a str,
+    pub title: &'a str,
+    pub storage_ref: &'a str,
+    pub source_ref: &'a str,
+    pub managed_state_json: &'a str,
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticCounts {
@@ -233,6 +308,60 @@ pub struct DiagnosticCounts {
     pub a2ui_messages: u64,
     pub a2ui_events: u64,
     pub configured_providers: u64,
+    pub tasks: u64,
+    pub results: u64,
+}
+
+fn result_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ResultRow> {
+    Ok(ResultRow {
+        id: row.get(0)?,
+        workspace_id: row.get(1)?,
+        result_type: row.get(2)?,
+        title: row.get(3)?,
+        status: row.get(4)?,
+        storage_kind: row.get(5)?,
+        storage_ref: row.get(6)?,
+        current_revision_id: row.get(7)?,
+        active_session_id: row.get(8)?,
+        a2ui_surface_id: row.get(9)?,
+        created_at: row.get(10)?,
+        updated_at: row.get(11)?,
+        completed_at: row.get(12)?,
+        managed_state_json: row.get(13)?,
+    })
+}
+
+fn task_template_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<TaskTemplateRow> {
+    Ok(TaskTemplateRow {
+        id: row.get(0)?,
+        version: row.get::<_, i64>(1)?.max(0) as u32,
+        name: row.get(2)?,
+        description: row.get(3)?,
+        task_kind: row.get(4)?,
+        desired_result_type: row.get(5)?,
+        field_schema_json: row.get(6)?,
+        default_sections_json: row.get(7)?,
+        risk_level: row.get(8)?,
+        builtin: row.get::<_, i64>(9)? != 0,
+    })
+}
+
+fn task_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<TaskRow> {
+    Ok(TaskRow {
+        id: row.get(0)?,
+        workspace_id: row.get(1)?,
+        template_id: row.get(2)?,
+        template_version: row.get::<_, i64>(3)?.max(0) as u32,
+        task_kind: row.get(4)?,
+        desired_result_type: row.get(5)?,
+        status: row.get(6)?,
+        input_answers_json: row.get(7)?,
+        question_count: row.get::<_, i64>(8)?.max(0) as u32,
+        result_id: row.get(9)?,
+        created_at: row.get(10)?,
+        updated_at: row.get(11)?,
+        completed_at: row.get(12)?,
+    })
 }
 
 fn a2ui_surface_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<A2uiSurfaceRow> {
@@ -302,6 +431,8 @@ impl Storage {
             a2ui_messages: count("a2ui_messages")?,
             a2ui_events: count("a2ui_events")?,
             configured_providers: count("credential_refs")?,
+            tasks: count("tasks")?,
+            results: count("results")?,
         })
     }
 
@@ -1425,6 +1556,359 @@ impl Storage {
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
+    pub fn results(
+        &self,
+        workspace_id: Option<&str>,
+        include_archived: bool,
+    ) -> Result<Vec<ResultRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut statement = connection.prepare(
+            "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
+                    r.storage_kind, r.storage_ref, r.current_revision_id,
+                    r.active_session_id,
+                    CASE WHEN r.source_kind = 'a2ui_surface' THEN r.source_ref END,
+                    r.created_at, r.updated_at,
+                    r.completed_at, r.managed_state_json
+             FROM results r
+             WHERE (?1 IS NULL OR r.workspace_id = ?1)
+               AND (?2 = 1 OR r.status <> 'archived')
+             ORDER BY r.updated_at DESC, r.id DESC
+             LIMIT 200",
+        )?;
+        let rows = statement.query_map(params![workspace_id, include_archived], result_from_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn result(&self, result_id: &str) -> Result<Option<ResultRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
+                        r.storage_kind, r.storage_ref, r.current_revision_id,
+                        r.active_session_id,
+                        CASE WHEN r.source_kind = 'a2ui_surface' THEN r.source_ref END,
+                        r.created_at, r.updated_at,
+                        r.completed_at, r.managed_state_json
+                 FROM results r
+                 WHERE r.id = ?1",
+                [result_id],
+                result_from_row,
+            )
+            .optional()?)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn ensure_file_result(
+        &self,
+        result_id: &str,
+        workspace_id: &str,
+        relative_path: &str,
+        title: &str,
+        storage_kind: &str,
+        storage_ref: &str,
+        current_revision_id: Option<&str>,
+    ) -> Result<ResultRow, AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction()?;
+        transaction.execute(
+            "INSERT INTO results
+                (id, workspace_id, result_type, title, status, storage_kind,
+                 storage_ref, source_kind, source_ref, current_revision_id)
+             VALUES (?1, ?2, 'document', ?3, 'ready', ?4, ?5,
+                     'workspace_file', ?6, ?7)
+             ON CONFLICT(workspace_id, source_kind, source_ref) DO UPDATE SET
+                title = excluded.title,
+                current_revision_id = COALESCE(excluded.current_revision_id, results.current_revision_id),
+                updated_at = CURRENT_TIMESTAMP",
+            params![
+                result_id,
+                workspace_id,
+                title,
+                storage_kind,
+                storage_ref,
+                relative_path,
+                current_revision_id
+            ],
+        )?;
+        let row = transaction.query_row(
+            "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
+                    r.storage_kind, r.storage_ref, r.current_revision_id,
+                    r.active_session_id, NULL, r.created_at, r.updated_at,
+                    r.completed_at, r.managed_state_json
+             FROM results r
+             WHERE r.workspace_id = ?1 AND r.source_kind = 'workspace_file'
+               AND r.source_ref = ?2",
+            params![workspace_id, relative_path],
+            result_from_row,
+        )?;
+        transaction.commit()?;
+        Ok(row)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn ensure_surface_result(
+        &self,
+        result_id: &str,
+        surface_row_id: &str,
+        workspace_id: &str,
+        surface_id: &str,
+        session_id: &str,
+        title: &str,
+        managed_state_json: &str,
+    ) -> Result<ResultRow, AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction()?;
+        transaction.execute(
+            "INSERT INTO results
+                (id, workspace_id, result_type, title, status, storage_kind,
+                 storage_ref, source_kind, source_ref, active_session_id,
+                 a2ui_surface_row_id, managed_state_json)
+             VALUES (?1, ?2, 'tool', ?3, 'ready', 'managed_local', ?4,
+                     'a2ui_surface', ?5, ?6, ?7, ?8)
+             ON CONFLICT(workspace_id, source_kind, source_ref) DO UPDATE SET
+                title = excluded.title,
+                active_session_id = COALESCE(results.active_session_id, excluded.active_session_id),
+                a2ui_surface_row_id = excluded.a2ui_surface_row_id,
+                managed_state_json = excluded.managed_state_json,
+                updated_at = CURRENT_TIMESTAMP",
+            params![
+                result_id,
+                workspace_id,
+                title,
+                format!("result://a2ui/{result_id}"),
+                surface_id,
+                session_id,
+                surface_row_id,
+                managed_state_json
+            ],
+        )?;
+        let row = transaction.query_row(
+            "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
+                    r.storage_kind, r.storage_ref, r.current_revision_id,
+                    r.active_session_id, r.source_ref, r.created_at, r.updated_at,
+                    r.completed_at, r.managed_state_json
+             FROM results r
+             WHERE r.workspace_id = ?1 AND r.source_kind = 'a2ui_surface'
+               AND r.source_ref = ?2",
+            params![workspace_id, surface_id],
+            result_from_row,
+        )?;
+        transaction.commit()?;
+        Ok(row)
+    }
+
+    pub fn task_templates(&self) -> Result<Vec<TaskTemplateRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut statement = connection.prepare(
+            "SELECT id, version, name, description, task_kind, desired_result_type,
+                    field_schema_json, default_sections_json, risk_level, builtin
+             FROM task_templates
+             WHERE status = 'active'
+             ORDER BY CASE id
+                WHEN 'meeting_minutes' THEN 1
+                WHEN 'document_summary' THEN 2
+                WHEN 'weekly_report' THEN 3
+                WHEN 'resume_optimization' THEN 4
+                ELSE 5 END, version DESC",
+        )?;
+        let rows = statement.query_map([], task_template_from_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn task_template(&self, template_id: &str) -> Result<Option<TaskTemplateRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT id, version, name, description, task_kind, desired_result_type,
+                        field_schema_json, default_sections_json, risk_level, builtin
+                 FROM task_templates
+                 WHERE id = ?1 AND status = 'active'
+                 ORDER BY version DESC LIMIT 1",
+                [template_id],
+                task_template_from_row,
+            )
+            .optional()?)
+    }
+
+    pub fn task_template_version(
+        &self,
+        template_id: &str,
+        version: u32,
+    ) -> Result<Option<TaskTemplateRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT id, version, name, description, task_kind, desired_result_type,
+                        field_schema_json, default_sections_json, risk_level, builtin
+                 FROM task_templates WHERE id = ?1 AND version = ?2",
+                params![template_id, version],
+                task_template_from_row,
+            )
+            .optional()?)
+    }
+
+    pub fn insert_task(&self, task: NewTaskRow<'_>) -> Result<TaskRow, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        connection.execute(
+            "INSERT INTO tasks
+                (id, workspace_id, template_id, template_version, task_kind,
+                 desired_result_type, status, input_answers_json, question_count)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![
+                task.id,
+                task.workspace_id,
+                task.template_id,
+                task.template_version,
+                task.task_kind,
+                task.desired_result_type,
+                task.status,
+                task.input_answers_json,
+                task.question_count,
+            ],
+        )?;
+        connection
+            .query_row(
+                "SELECT id, workspace_id, template_id, template_version, task_kind,
+                    desired_result_type, status, input_answers_json, question_count,
+                    result_id, created_at, updated_at, completed_at
+             FROM tasks WHERE id = ?1",
+                [task.id],
+                task_from_row,
+            )
+            .map_err(AppError::from)
+    }
+
+    pub fn task(&self, task_id: &str) -> Result<Option<TaskRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT id, workspace_id, template_id, template_version, task_kind,
+                        desired_result_type, status, input_answers_json, question_count,
+                        result_id, created_at, updated_at, completed_at
+                 FROM tasks WHERE id = ?1",
+                [task_id],
+                task_from_row,
+            )
+            .optional()?)
+    }
+
+    pub fn update_task_answers(
+        &self,
+        task_id: &str,
+        input_answers_json: &str,
+        status: &str,
+        question_count: u32,
+    ) -> Result<TaskRow, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let updated = connection.execute(
+            "UPDATE tasks
+             SET input_answers_json = ?2, status = ?3, question_count = ?4,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?1 AND status IN ('draft', 'awaiting_input')",
+            params![task_id, input_answers_json, status, question_count],
+        )?;
+        if updated != 1 {
+            return Err(AppError::InvalidInput(
+                "当前任务状态不允许继续回答问题".into(),
+            ));
+        }
+        connection
+            .query_row(
+                "SELECT id, workspace_id, template_id, template_version, task_kind,
+                        desired_result_type, status, input_answers_json, question_count,
+                        result_id, created_at, updated_at, completed_at
+                 FROM tasks WHERE id = ?1",
+                [task_id],
+                task_from_row,
+            )
+            .map_err(AppError::from)
+    }
+
+    pub fn complete_task_with_managed_result(
+        &self,
+        input: ManagedTaskResultRow<'_>,
+    ) -> Result<ResultRow, AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let claimed = transaction.execute(
+            "UPDATE tasks SET status = 'running', updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?1 AND workspace_id = ?2 AND status = 'ready' AND result_id IS NULL",
+            params![input.task_id, input.workspace_id],
+        )?;
+        if claimed != 1 {
+            return Err(AppError::InvalidInput(
+                "当前任务尚未就绪、已经执行或不属于该工作区".into(),
+            ));
+        }
+        transaction.execute(
+            "INSERT INTO results
+                (id, workspace_id, task_id, result_type, title, status, storage_kind,
+                 storage_ref, source_kind, source_ref, managed_state_json)
+             VALUES (?1, ?2, ?3, 'document', ?4, 'draft', 'managed_local',
+                     ?5, 'managed_local', ?6, ?7)",
+            params![
+                input.result_id,
+                input.workspace_id,
+                input.task_id,
+                input.title,
+                input.storage_ref,
+                input.source_ref,
+                input.managed_state_json,
+            ],
+        )?;
+        transaction.execute(
+            "UPDATE tasks
+             SET status = 'completed', result_id = ?2, question_count = 0,
+                 completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?1 AND status = 'running'",
+            params![input.task_id, input.result_id],
+        )?;
+        let row = transaction.query_row(
+            "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
+                    r.storage_kind, r.storage_ref, r.current_revision_id,
+                    r.active_session_id, NULL, r.created_at, r.updated_at,
+                    r.completed_at, r.managed_state_json
+             FROM results r WHERE r.id = ?1",
+            [input.result_id],
+            result_from_row,
+        )?;
+        transaction.commit()?;
+        Ok(row)
+    }
+
     pub fn a2ui_inspections(&self, workspace_id: &str) -> Result<Vec<A2uiInspectionRow>, AppError> {
         let connection = self
             .connection
@@ -1556,7 +2040,9 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         let transaction = connection.transaction()?;
         transaction.execute_batch(
-            "DELETE FROM a2ui_events;
+            "DELETE FROM tasks;
+             DELETE FROM results;
+             DELETE FROM a2ui_events;
              DELETE FROM a2ui_messages;
              DELETE FROM a2ui_surfaces;
              DELETE FROM workspace_drafts;
@@ -1710,7 +2196,7 @@ impl Storage {
 mod tests {
     use super::{Storage, MIGRATIONS, MIGRATION_V1, SCHEMA_VERSION};
     use crate::error::AppError;
-    use rusqlite::{Connection, OptionalExtension};
+    use rusqlite::{params, Connection, OptionalExtension};
     use std::fs;
 
     #[test]
@@ -1733,6 +2219,9 @@ mod tests {
             "a2ui_surfaces",
             "a2ui_messages",
             "a2ui_events",
+            "results",
+            "task_templates",
+            "tasks",
         ] {
             assert!(
                 storage.table_exists(table).unwrap(),
@@ -1818,6 +2307,376 @@ mod tests {
                     .is_some());
             }
         }
+    }
+
+    #[test]
+    fn v9_migration_does_not_eagerly_copy_legacy_files_or_surfaces() {
+        let directory = tempfile::tempdir().unwrap();
+        let database_path = directory.path().join("lazy-results.sqlite3");
+        {
+            let mut connection = Connection::open(&database_path).unwrap();
+            Storage::configure(&connection).unwrap();
+            Storage::migrate_to(&mut connection, 8, MIGRATIONS).unwrap();
+            connection
+                .execute(
+                    "INSERT INTO workspaces(id, name, root_path, kind)
+                     VALUES ('workspace-lazy', 'Lazy', 'C:\\lazy', 'directory')",
+                    [],
+                )
+                .unwrap();
+        }
+
+        let storage = Storage::open(&database_path).unwrap();
+        assert_eq!(storage.schema_version().unwrap(), SCHEMA_VERSION);
+        assert!(storage.results(None, true).unwrap().is_empty());
+    }
+
+    #[test]
+    fn v8_to_v9_preserves_legacy_records_and_adds_only_empty_result_aggregate() {
+        let directory = tempfile::tempdir().unwrap();
+        let database_path = directory.path().join("v8-to-v9.sqlite3");
+        {
+            let mut connection = Connection::open(&database_path).unwrap();
+            Storage::configure(&connection).unwrap();
+            Storage::migrate_to(&mut connection, 8, MIGRATIONS).unwrap();
+            connection
+                .execute(
+                    "INSERT INTO workspaces(id, name, root_path, kind)
+                     VALUES ('workspace-v8', 'Legacy', 'C:\\legacy-v8', 'directory')",
+                    [],
+                )
+                .unwrap();
+            connection
+                .execute(
+                    "INSERT INTO sessions(id, workspace_id, title)
+                     VALUES ('session-v8', 'workspace-v8', 'Legacy chat')",
+                    [],
+                )
+                .unwrap();
+            connection
+                .execute(
+                    "INSERT INTO messages(id, session_id, role, body)
+                     VALUES ('message-v8', 'session-v8', 'assistant', 'preserved')",
+                    [],
+                )
+                .unwrap();
+        }
+
+        let storage = Storage::open(&database_path).unwrap();
+        assert_eq!(storage.schema_version().unwrap(), SCHEMA_VERSION);
+        assert_eq!(
+            storage.sessions("workspace-v8").unwrap()[0].messages[0].content,
+            "preserved"
+        );
+        assert!(storage
+            .results(Some("workspace-v8"), true)
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn failed_v9_migration_rolls_back_result_table_and_schema_version() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        Storage::configure(&connection).unwrap();
+        Storage::migrate_to(&mut connection, 8, MIGRATIONS).unwrap();
+
+        let failure = Storage::migrate_to(
+            &mut connection,
+            9,
+            &[(
+                9,
+                "CREATE TABLE results(id TEXT PRIMARY KEY); INSERT INTO missing_table VALUES (1);",
+            )],
+        );
+        assert!(failure.is_err());
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .unwrap(),
+            8
+        );
+        let exists = connection
+            .query_row(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'results'",
+                [],
+                |_| Ok(true),
+            )
+            .optional()
+            .unwrap();
+        assert!(exists.is_none());
+    }
+
+    #[test]
+    fn v9_to_v10_preserves_results_and_seeds_versioned_templates() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        Storage::configure(&connection).unwrap();
+        Storage::migrate_to(&mut connection, 9, MIGRATIONS).unwrap();
+        connection
+            .execute(
+                "INSERT INTO workspaces(id, name, root_path) VALUES ('w-v9', 'V9', 'C:\\v9')",
+                [],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO results
+                   (id, workspace_id, result_type, title, status, storage_kind,
+                    storage_ref, source_kind, source_ref)
+                 VALUES ('r-v9', 'w-v9', 'document', 'Preserved', 'ready',
+                         'workspace_file', 'result://file/r-v9', 'workspace_file', 'a.md')",
+                [],
+            )
+            .unwrap();
+
+        Storage::migrate_to(&mut connection, 10, MIGRATIONS).unwrap();
+
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM task_templates", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            4
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM tasks", [], |row| row.get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT title FROM results WHERE id = 'r-v9'", [], |row| row
+                    .get::<_, String>(0))
+                .unwrap(),
+            "Preserved"
+        );
+    }
+
+    #[test]
+    fn failed_v10_migration_rolls_back_task_tables_and_schema_version() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        Storage::configure(&connection).unwrap();
+        Storage::migrate_to(&mut connection, 9, MIGRATIONS).unwrap();
+        let failure = Storage::migrate_to(
+            &mut connection,
+            10,
+            &[(
+                10,
+                "CREATE TABLE tasks(id TEXT); INSERT INTO missing_table VALUES (1);",
+            )],
+        );
+        assert!(failure.is_err());
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .unwrap(),
+            9
+        );
+        assert!(!connection
+            .query_row(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'tasks'",
+                [],
+                |_| Ok(true),
+            )
+            .optional()
+            .unwrap()
+            .unwrap_or(false));
+    }
+
+    #[test]
+    fn v10_enforces_question_limit_and_same_workspace_task_result_binding() {
+        let storage = Storage::open_in_memory().unwrap();
+        let connection = storage.connection.lock().unwrap();
+        connection
+            .execute_batch(
+                "INSERT INTO workspaces(id, name, root_path) VALUES
+                    ('w-task-a', 'A', 'C:\\a'), ('w-task-b', 'B', 'C:\\b');
+                 INSERT INTO tasks
+                    (id, workspace_id, template_id, template_version, task_kind,
+                     desired_result_type, status, question_count)
+                 VALUES ('task-a', 'w-task-a', 'meeting_minutes', 1, 'organize',
+                         'document', 'ready', 0);",
+            )
+            .unwrap();
+        assert!(connection
+            .execute(
+                "INSERT INTO tasks
+                    (id, workspace_id, template_id, template_version, task_kind,
+                     desired_result_type, status, question_count)
+                 VALUES ('task-too-many', 'w-task-a', 'meeting_minutes', 1, 'organize',
+                         'document', 'awaiting_input', 4)",
+                [],
+            )
+            .is_err());
+        assert!(connection
+            .execute(
+                "INSERT INTO results
+                    (id, workspace_id, task_id, result_type, title, status, storage_kind,
+                     storage_ref, source_kind, source_ref)
+                 VALUES ('result-cross', 'w-task-b', 'task-a', 'document', 'Invalid',
+                         'draft', 'managed_local', 'result://file/result-cross',
+                         'managed_local', 'result-cross.md')",
+                [],
+            )
+            .is_err());
+    }
+
+    #[test]
+    fn result_survives_session_removal_and_workspace_delete_cascades_only_records() {
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace = storage
+            .upsert_workspace("workspace-result", "Result", "C:\\result")
+            .unwrap();
+        let session = storage
+            .create_session(
+                &workspace.id,
+                "550e8400-e29b-41d4-a716-446655440010",
+                "Disposable chat",
+            )
+            .unwrap();
+        {
+            let connection = storage.connection.lock().unwrap();
+            connection
+                .execute(
+                    "INSERT INTO results
+                       (id, workspace_id, result_type, title, status, storage_kind,
+                        storage_ref, source_kind, source_ref, active_session_id)
+                     VALUES ('550e8400-e29b-41d4-a716-446655440011', ?1, 'document',
+                             'Independent result', 'ready', 'workspace_file',
+                             'result://file/test', 'workspace_file', 'notes.md', ?2)",
+                    params![workspace.id, session.id],
+                )
+                .unwrap();
+            connection
+                .execute("DELETE FROM sessions WHERE id = ?1", [session.id])
+                .unwrap();
+        }
+
+        let result = storage
+            .result("550e8400-e29b-41d4-a716-446655440011")
+            .unwrap()
+            .unwrap();
+        assert!(result.active_session_id.is_none());
+        assert!(storage.remove_workspace(&workspace.id).unwrap());
+        assert!(storage
+            .result("550e8400-e29b-41d4-a716-446655440011")
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn a2ui_result_keeps_validated_snapshot_after_source_session_is_deleted() {
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace = storage
+            .upsert_workspace("workspace-tool", "Tool", "C:\\tool")
+            .unwrap();
+        let session = storage
+            .create_session(
+                &workspace.id,
+                "550e8400-e29b-41d4-a716-446655440030",
+                "Disposable surface chat",
+            )
+            .unwrap();
+        {
+            let connection = storage.connection.lock().unwrap();
+            connection
+                .execute(
+                    "INSERT INTO a2ui_surfaces
+                       (id, surface_id, workspace_id, session_id, message_id,
+                        protocol_version, revision, state_json, raw_message, validation_json)
+                     VALUES ('surface-row', 'meeting-tool', ?1, ?2, 'message-id',
+                             '1.0', 1, '{\"safe\":true}', '{}', '{}')",
+                    params![workspace.id, session.id],
+                )
+                .unwrap();
+            connection
+                .execute(
+                    "INSERT INTO results
+                       (id, workspace_id, result_type, title, status, storage_kind,
+                        storage_ref, source_kind, source_ref, active_session_id,
+                        a2ui_surface_row_id, managed_state_json)
+                     VALUES ('550e8400-e29b-41d4-a716-446655440031', ?1, 'tool',
+                             'Meeting tool', 'ready', 'managed_local',
+                             'result://a2ui/tool', 'a2ui_surface', 'meeting-tool', ?2,
+                             'surface-row', '{\"safe\":true}')",
+                    params![workspace.id, session.id],
+                )
+                .unwrap();
+            connection
+                .execute("DELETE FROM sessions WHERE id = ?1", [session.id])
+                .unwrap();
+            let snapshot: String = connection
+                .query_row(
+                    "SELECT managed_state_json FROM results WHERE id = ?1",
+                    ["550e8400-e29b-41d4-a716-446655440031"],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(snapshot, r#"{"safe":true}"#);
+        }
+
+        let result = storage
+            .result("550e8400-e29b-41d4-a716-446655440031")
+            .unwrap()
+            .unwrap();
+        assert!(result.active_session_id.is_none());
+        assert_eq!(result.a2ui_surface_id.as_deref(), Some("meeting-tool"));
+        let detail = crate::repository::result::ResultRepository::new(&storage)
+            .get("550e8400-e29b-41d4-a716-446655440031")
+            .unwrap()
+            .unwrap();
+        assert_eq!(detail.managed_state.unwrap()["safe"], true);
+    }
+
+    #[test]
+    fn result_current_revision_tracks_new_versions_without_command_coupling() {
+        let storage = Storage::open_in_memory().unwrap();
+        storage
+            .upsert_workspace(
+                "workspace-revision-result",
+                "Revision",
+                "C:\\revision-result",
+            )
+            .unwrap();
+        storage
+            .ensure_file_result(
+                "550e8400-e29b-41d4-a716-446655440040",
+                "workspace-revision-result",
+                "notes.md",
+                "Notes",
+                "workspace_file",
+                "result://file/revision",
+                None,
+            )
+            .unwrap();
+        storage
+            .record_file_save_versions(
+                "workspace-revision-result",
+                "notes.md",
+                "before",
+                "before-hash",
+                "after",
+                "after-hash",
+                "autosave",
+                "save",
+            )
+            .unwrap();
+
+        let result = storage
+            .result("550e8400-e29b-41d4-a716-446655440040")
+            .unwrap()
+            .unwrap();
+        let current_hash: String = {
+            let connection = storage.connection.lock().unwrap();
+            connection
+                .query_row(
+                    "SELECT content_hash FROM document_versions WHERE id = ?1",
+                    [result.current_revision_id.as_deref().unwrap()],
+                    |row| row.get(0),
+                )
+                .unwrap()
+        };
+        assert_eq!(current_hash, "after-hash");
     }
 
     #[test]
@@ -1946,6 +2805,7 @@ mod tests {
         let counts = storage.diagnostic_counts().unwrap();
 
         assert_eq!(counts.workspaces, 1);
+        assert_eq!(counts.results, 0);
         let serialized = serde_json::to_string(&counts).unwrap();
         assert!(!serialized.contains("Private project"));
         assert!(!serialized.contains("C:\\\\private"));

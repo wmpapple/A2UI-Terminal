@@ -2,7 +2,13 @@
 
 ## 当前阶段
 
-前端保持同一套三栏工作台，但通过运行时边界分为两种数据源：Web 只使用确定性 Mock；Desktop 使用受控 Tauri IPC 访问真实工作区、Provider 与 SQLite 会话。API Key 不进入前端状态或数据库。
+前端在同一套工作台核心之上提供默认简单模式和可选专业模式，并通过运行时边界分为两种数据源：Web 只使用确定性 Mock；Desktop 使用受控 Tauri IPC 访问真实工作区、Provider 与 SQLite 会话。API Key 不进入前端状态或数据库。
+
+## 应用外壳与双模式
+
+应用通过轻量 Hash 路由提供首页、成果、模板、工作台和设置五个入口。首页、成果和模板在 S1.3 仅是导航占位，不包含新手引导、最近成果或真实任务创建。新安装默认简单模式；本地偏好只保存 `simple | professional`，未知值回退为简单模式。
+
+简单模式与专业模式复用同一个 `WorkspaceLayout`、工作区 store、Gateway、IPC 和 Rust 安全内核。简单模式隐藏文件树、会话列表、Provider/Model 标识、A2UI Inspector、Endpoint 和 API Key 配置入口，但保留复用既有授权与会话动作的“选择文件”和“新对话”；专业模式恢复既有 V1 三栏工具。切换模式只改变显示密度，不复制业务数据、不修改上下文授权，也不增加命令权限。
 
 ## Provider 与会话流
 
@@ -34,7 +40,15 @@ src/
 
 Zustand 保存活动工作区摘要、文件树、已打开文档、多 Tab、基础 Hash、脏状态和恢复提示。工作区授权与草稿写入 SQLite；真实文件内容仍以磁盘为事实来源，不复制成长期数据库正文。会话、版本和审计继续由 SQLite 承担；API Key 只进入 Windows Credential Manager。
 
-SQLite 启动先后执行完整性检查、单事务连续迁移和外键检查。Schema v8 为崩溃草稿保存正文 Hash；工作区恢复时列出全部草稿，区分待恢复、外部冲突、磁盘已写成功的陈旧记录和原文件不可用四种状态。目录文件与独立授权文件都先持久化草稿再写磁盘。
+SQLite 启动先后执行完整性检查、单事务连续迁移和外键检查。Schema v8 为崩溃草稿保存正文 Hash；schema v9 新增独立 Result 聚合；schema v10 新增版本化内置模板和 Task/Result 绑定。旧文件或 Surface 仍在显式打开时惰性关联，不批量复制正文。工作区恢复时列出全部草稿，区分待恢复、外部冲突、磁盘已写成功的陈旧记录和原文件不可用四种状态。目录文件与独立授权文件都先持久化草稿再写磁盘。
+
+## Result 基础聚合
+
+Result 是独立于 Chat Session 的成果事实源。v9 `results` 保存类型、状态、存储类别、不透明存储引用、当前版本和可选 Surface 快照；对外 DTO 不返回绝对路径。文件正文仍由授权文件系统和版本链承载，A2UI Result 保存已通过可信校验的状态快照。删除会话只清空可选会话关联，删除工作区级联清理应用记录但不触碰真实项目文件。应用数据目录下的 `my-results` 是新成果默认托管目录；S1.2 Task Orchestrator 可生成明确标注未调用 AI 的 UTF-8 Markdown 结构草稿，真实 AI 新建仍必须进入后续 Review 边界。
+
+## Task 与内置模板基础
+
+Schema v10 以 `(template id, version)` 保存会议纪要、文档总结、周报和简历优化的字段规则与空白结构，不保存用户源文。Task 回答由 Rust allowlist、类型、选项和长度校验，当前必要问题最多 3 个；只有 `ready` Task 能通过 Orchestrator 创建一个托管 Result。文件先以不可预测 UUID 名写入应用数据目录，数据库事务再以双向标识绑定 Task/Result；事务失败只清理由本次调用新建的文件。该链路不引用 Provider，O-08 未关闭前不会把结构草稿表述成 AI 生成结果。
 
 ## Desktop 工作区流程
 

@@ -26,6 +26,43 @@ interface WorkspaceLayoutProps {
   left: ReactNode;
   center: ReactNode;
   right: ReactNode;
+  showLeftPanel?: boolean;
+}
+
+interface ResizeHandleProps {
+  active: boolean;
+  label: string;
+  minimum: number;
+  value: number;
+  onDoubleClick: () => void;
+  onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
+  onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
+}
+
+function ResizeHandle({
+  active,
+  label,
+  minimum,
+  value,
+  onDoubleClick,
+  onKeyDown,
+  onPointerDown,
+}: ResizeHandleProps) {
+  return (
+    <div
+      className={`${styles.resizeHandle} ${active ? styles.resizeHandleActive : ''}`}
+      role="separator"
+      aria-label={label}
+      aria-orientation="vertical"
+      aria-valuemin={minimum}
+      aria-valuenow={Math.round(value)}
+      tabIndex={0}
+      title={label}
+      onDoubleClick={onDoubleClick}
+      onKeyDown={onKeyDown}
+      onPointerDown={onPointerDown}
+    />
+  );
 }
 
 const clamp = (value: number, minimum: number, maximum: number) =>
@@ -48,7 +85,23 @@ function readStoredWidths(): ColumnWidths {
   return DEFAULT_WIDTHS;
 }
 
-function constrainWidths(widths: ColumnWidths, containerWidth: number): ColumnWidths {
+function constrainWidths(
+  widths: ColumnWidths,
+  containerWidth: number,
+  showLeftPanel: boolean
+): ColumnWidths {
+  if (!showLeftPanel) {
+    const minimumLayoutWidth = MIN_CENTER_WIDTH + MIN_RIGHT_WIDTH + SPLITTER_WIDTH;
+    if (!Number.isFinite(containerWidth) || containerWidth < minimumLayoutWidth) return widths;
+    return {
+      left: widths.left,
+      right: clamp(
+        widths.right,
+        MIN_RIGHT_WIDTH,
+        containerWidth - MIN_CENTER_WIDTH - SPLITTER_WIDTH
+      ),
+    };
+  }
   const minimumLayoutWidth =
     MIN_LEFT_WIDTH + MIN_CENTER_WIDTH + MIN_RIGHT_WIDTH + SPLITTER_WIDTH * 2;
   if (!Number.isFinite(containerWidth) || containerWidth < minimumLayoutWidth) return widths;
@@ -59,7 +112,12 @@ function constrainWidths(widths: ColumnWidths, containerWidth: number): ColumnWi
   return { left, right };
 }
 
-export function WorkspaceLayout({ left, center, right }: WorkspaceLayoutProps) {
+export function WorkspaceLayout({
+  left,
+  center,
+  right,
+  showLeftPanel = true,
+}: WorkspaceLayoutProps) {
   const { t } = useI18n();
   const [initialWidths] = useState(readStoredWidths);
   const [widths, setWidths] = useState(initialWidths);
@@ -93,13 +151,16 @@ export function WorkspaceLayout({ left, center, right }: WorkspaceLayoutProps) {
     const fitToContainer = () => {
       const containerWidth = workspace.getBoundingClientRect().width;
       if (containerWidth <= 0) return;
-      updateWidths(constrainWidths(preferredWidthsRef.current, containerWidth), false);
+      updateWidths(
+        constrainWidths(preferredWidthsRef.current, containerWidth, showLeftPanel),
+        false
+      );
     };
     const observer = new ResizeObserver(fitToContainer);
     observer.observe(workspace);
     fitToContainer();
     return () => observer.disconnect();
-  }, [updateWidths]);
+  }, [showLeftPanel, updateWidths]);
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
@@ -111,7 +172,9 @@ export function WorkspaceLayout({ left, center, right }: WorkspaceLayoutProps) {
         drag.kind === 'left'
           ? { left: drag.startWidths.left + delta, right: drag.startWidths.right }
           : { left: drag.startWidths.left, right: drag.startWidths.right - delta };
-      updateWidths(constrainWidths(desired, workspace.getBoundingClientRect().width));
+      updateWidths(
+        constrainWidths(desired, workspace.getBoundingClientRect().width, showLeftPanel)
+      );
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', endDragging);
@@ -122,64 +185,85 @@ export function WorkspaceLayout({ left, center, right }: WorkspaceLayoutProps) {
       window.removeEventListener('pointercancel', endDragging);
       endDragging();
     };
-  }, [endDragging, updateWidths]);
+  }, [endDragging, showLeftPanel, updateWidths]);
 
-  const startDragging = (kind: 'left' | 'right', event: ReactPointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    dragRef.current = {
-      kind,
-      startX: event.clientX,
-      startWidths: widthsRef.current,
-    };
-    setDragging(kind);
-  };
+  const startDragging = useCallback(
+    (kind: 'left' | 'right', event: ReactPointerEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      dragRef.current = {
+        kind,
+        startX: event.clientX,
+        startWidths: widthsRef.current,
+      };
+      setDragging(kind);
+    },
+    []
+  );
 
-  const resizeWithKeyboard = (kind: 'left' | 'right', event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-    event.preventDefault();
+  const resizeWithKeyboard = useCallback(
+    (kind: 'left' | 'right', event: KeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      event.preventDefault();
+      const workspaceWidth = workspaceRef.current?.getBoundingClientRect().width ?? 0;
+      const delta = event.key === 'ArrowLeft' ? -KEYBOARD_STEP : KEYBOARD_STEP;
+      const desired =
+        kind === 'left'
+          ? { ...widthsRef.current, left: widthsRef.current.left + delta }
+          : { ...widthsRef.current, right: widthsRef.current.right - delta };
+      updateWidths(constrainWidths(desired, workspaceWidth, showLeftPanel));
+      persistWidths();
+    },
+    [persistWidths, showLeftPanel, updateWidths]
+  );
+
+  const resetWidths = useCallback(() => {
     const workspaceWidth = workspaceRef.current?.getBoundingClientRect().width ?? 0;
-    const delta = event.key === 'ArrowLeft' ? -KEYBOARD_STEP : KEYBOARD_STEP;
-    const desired =
-      kind === 'left'
-        ? { ...widthsRef.current, left: widthsRef.current.left + delta }
-        : { ...widthsRef.current, right: widthsRef.current.right - delta };
-    updateWidths(constrainWidths(desired, workspaceWidth));
+    updateWidths(constrainWidths(DEFAULT_WIDTHS, workspaceWidth, showLeftPanel));
     persistWidths();
-  };
+  }, [persistWidths, showLeftPanel, updateWidths]);
 
-  const resetWidths = () => {
-    const workspaceWidth = workspaceRef.current?.getBoundingClientRect().width ?? 0;
-    updateWidths(constrainWidths(DEFAULT_WIDTHS, workspaceWidth));
-    persistWidths();
-  };
+  const resizeLeftWithKeyboard = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => resizeWithKeyboard('left', event),
+    [resizeWithKeyboard]
+  );
+  const resizeRightWithKeyboard = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => resizeWithKeyboard('right', event),
+    [resizeWithKeyboard]
+  );
+  const startLeftDragging = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => startDragging('left', event),
+    [startDragging]
+  );
+  const startRightDragging = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => startDragging('right', event),
+    [startDragging]
+  );
 
   const separator = (kind: 'left' | 'right') => (
-    <div
-      className={`${styles.resizeHandle} ${dragging === kind ? styles.resizeHandleActive : ''}`}
-      role="separator"
-      aria-label={t(kind === 'left' ? 'resizeFilePanel' : 'resizeAssistantPanel')}
-      aria-orientation="vertical"
-      aria-valuemin={kind === 'left' ? MIN_LEFT_WIDTH : MIN_RIGHT_WIDTH}
-      aria-valuenow={Math.round(kind === 'left' ? widths.left : widths.right)}
-      tabIndex={0}
-      title={t(kind === 'left' ? 'resizeFilePanel' : 'resizeAssistantPanel')}
+    <ResizeHandle
+      active={dragging === kind}
+      label={t(kind === 'left' ? 'resizeFilePanel' : 'resizeAssistantPanel')}
+      minimum={kind === 'left' ? MIN_LEFT_WIDTH : MIN_RIGHT_WIDTH}
+      value={kind === 'left' ? widths.left : widths.right}
       onDoubleClick={resetWidths}
-      onKeyDown={(event) => resizeWithKeyboard(kind, event)}
-      onPointerDown={(event) => startDragging(kind, event)}
+      onKeyDown={kind === 'left' ? resizeLeftWithKeyboard : resizeRightWithKeyboard}
+      onPointerDown={kind === 'left' ? startLeftDragging : startRightDragging}
     />
   );
 
   return (
     <div
       ref={workspaceRef}
-      className={`${styles.workspace} ${dragging ? styles.workspaceResizing : ''}`}
+      className={`${styles.workspace} ${showLeftPanel ? '' : styles.workspaceSimple} ${dragging ? styles.workspaceResizing : ''}`}
       data-testid="workspace-layout"
       style={{
-        gridTemplateColumns: `${widths.left}px ${SPLITTER_WIDTH}px minmax(${MIN_CENTER_WIDTH}px, 1fr) ${SPLITTER_WIDTH}px ${widths.right}px`,
+        gridTemplateColumns: showLeftPanel
+          ? `${widths.left}px ${SPLITTER_WIDTH}px minmax(${MIN_CENTER_WIDTH}px, 1fr) ${SPLITTER_WIDTH}px ${widths.right}px`
+          : `minmax(${MIN_CENTER_WIDTH}px, 1fr) ${SPLITTER_WIDTH}px ${widths.right}px`,
       }}
     >
-      {left}
-      {separator('left')}
+      {showLeftPanel ? left : null}
+      {showLeftPanel ? separator('left') : null}
       {center}
       {separator('right')}
       {right}

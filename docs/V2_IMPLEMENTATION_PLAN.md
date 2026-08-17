@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S0.3 已验收完成；S0.4 自动验证通过，待人工验收；V2 功能代码尚未开始**
+> 当前状态：**S1.3 已完成实现与自动验证，等待人工验收；尚未开始 S1.4**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -144,8 +144,8 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 | 里程碑        | 目标                                        | 退出条件                                           | 状态   |
 | ------------- | ------------------------------------------- | -------------------------------------------------- | ------ |
-| V2-0 基线加固 | 当前 V1 工作树可复现，建立合同和拆分支点    | 当前改动归属清楚；全量基线验证；无行为重构完成     | 进行中 |
-| V2-A 产品外壳 | 首页、引导、任务创建、简单模式、最近成果    | 无需理解技术术语即可创建 Task 并进入 Result 工作台 | 待开始 |
+| V2-0 基线加固 | 当前 V1 工作树可复现，建立合同和拆分支点    | 当前改动归属清楚；全量基线验证；无行为重构完成     | 已完成 |
+| V2-A 产品外壳 | 首页、引导、任务创建、简单模式、最近成果    | 无需理解技术术语即可创建 Task 并进入 Result 工作台 | 进行中 |
 | V2-B 成果闭环 | 导入、Result、统一审阅、版本、文档/表格导出 | 文档类 P0 从资料到保存/导出端到端通过              | 待开始 |
 | V2-C 动态工具 | 清单、表单、小工具和风险确认                | 至少两个真实 A2UI 工具闭环通过                     | 待开始 |
 | V2-D 质量发布 | 指标、恢复、更新、可访问性、Beta            | PRD P0 清单、隐私、安全、签名升级全部通过          | 待开始 |
@@ -188,7 +188,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S0.4 拆分 Rust command/application/repository 边界（无行为变化）
 
-状态：`待人工验收`
+状态：`已完成`
 
 - 目标：commands 变薄，storage/workspace 按领域拆分，并保留现有安全内核。
 - 建议顺序：provider → chat → revision → workspace → a2ui/patch adapter。
@@ -199,7 +199,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S1.1 Result 领域、schema v9 与旧数据兼容
 
-状态：`待开始`
+状态：`已完成`
 
 - 对应：RES-01、HOME-02、OUT-01。
 - 工作：Result 状态机、Repository/Application Service、`results` 表；旧文件/Surface 惰性关联；列表/详情命令与合同。
@@ -208,7 +208,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S1.2 Task、Template 基础与 Task Orchestrator
 
-状态：`待开始`
+状态：`已完成`
 
 - 对应：TASK-01/02、模板 P0、代码边界要求。
 - 工作：Task 状态机、内置模板版本、字段 Schema、最多 3 个必要问题、Result 绑定；Orchestrator 先支持文档任务。
@@ -216,7 +216,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S1.3 应用导航、默认简单模式与专业模式开关
 
-状态：`待开始`
+状态：`待人工验收`
 
 - 对应：WS-01、简单/专业模式、产品术语表。
 - 工作：首页/成果/模板/设置导航；专业模式偏好；保留 V1 文件树、会话、Inspector 和 Provider 参数。
@@ -236,8 +236,8 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 状态：`待开始`
 
 - 对应：WS-01/02/04、EXP-03。
-- 工作：成果区 + AI 助手双栏；保存状态、版本、撤销、查看修改、导出入口；专业模式可展开文件树。
-- 验收：文档 Result 重开不依赖聊天；完成态提供继续编辑、导出、另存副本和历史，不以继续聊天为唯一下一步。
+- 工作：成果区 + AI 助手双栏；保存状态、版本、撤销、查看修改、导出入口；专业模式可展开文件树；首页/成果页提供用户主动新建文本成果入口，调用受控的 `create_text_result`，默认保存到“我的成果”。
+- 验收：文档 Result 重开不依赖聊天；完成态提供继续编辑、导出、另存副本和历史，不以继续聊天为唯一下一步。用户无需先选择已有文件即可新建 UTF-8 Markdown/纯文本成果；Rust 拒绝绝对路径、路径穿越、非法扩展名和静默覆盖，成功创建时原子建立文件、Result 与初始 Revision。
 
 ### V2-B：资料、上下文、统一审阅与交付
 
@@ -281,8 +281,8 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 状态：`待开始`
 
 - 对应：REV-01…06。
-- 工作：Review schema、来源适配、语义块决定、应用状态机；现有 document_patch 接入而不是重写。
-- 验收：聊天、选区、模板、A2UI 的 AI 写入均能证明经过统一入口；部分接受/拒绝；并发冲突三种大众选项；所有 AI 文件修改 100% 可恢复。
+- 工作：Review schema、来源适配、语义块决定、应用状态机；现有 document_patch 接入而不是重写；新增 `create_file` Review payload 和可信应用适配器，模型只能建议受限名称、文本类型、完整候选内容与不透明目标作用域。
+- 验收：聊天、选区、模板、A2UI 的 AI 写入均能证明经过统一入口；部分接受/拒绝；并发冲突三种大众选项；所有 AI 文件修改 100% 可恢复。以“生成出游文档”且没有选中现有文件为合同/E2E 场景：必须展示创建审阅，接受前磁盘零写入，拒绝后无文件，接受后只创建一个文件/Result/Revision；重复应用幂等，名称冲突不静默覆盖，绝对路径/路径穿越/非文本扩展名被 Rust 拒绝。
 
 #### S2.6 选区助手
 
@@ -299,6 +299,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 - 对应：TASK-01、WS-02、OUT-01/02。
 - 工作：document、spreadsheet、checklist、form、tool 的 Result adapter；共享保存/版本/状态协议。
 - 验收：切换视图不丢内容、历史或待审阅修改；每种类型都有继续编辑和保存路径。
+- 首期边界：document 的规范内部格式是 UTF-8 Markdown/纯文本；CSV 等结构化文本由 spreadsheet adapter 处理。DOCX/PDF/XLSX 作为导入/导出格式，不承诺完整结构编辑或无损回写。
 
 #### S2.8 Export Service 与 P0 格式
 
@@ -430,14 +431,14 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 | ONB-01         | S1.4                   | 无                             | 未开始      |
 | HOME-01/02     | S1.1、S1.4             | 只有会话/工作区                | 未开始      |
 | IMP-01/02      | S2.1、S2.2             | 文本/DOCX/PDF 部分支持         | 未开始      |
-| TASK-01/02     | S1.2                   | 无 Task                        | 未开始      |
-| WS-01/02/03/04 | S1.3、S1.5、S2.6、S2.7 | V1 三栏/保存/版本              | 未开始      |
+| TASK-01/02     | S1.2                   | Task/内置模板基础已实现        | 已完成      |
+| WS-01/02/03/04 | S1.3、S1.5、S2.6、S2.7 | S1.3 双模式导航外壳待人工验收  | 部分完成    |
 | CTX-01/02/03   | S2.3                   | 显式上下文和敏感确认已有       | 未开始      |
 | CTX-05         | S2.4                   | 只有全文选择                   | 未开始      |
 | REV-01…04/06   | S2.5                   | document_patch 内核已有        | 未开始      |
 | OUT-01…04      | S2.7、S3.2…S3.4        | 文本+A2UI 内核                 | 未开始      |
 | EXP-01/02/03   | S2.8                   | 无成果导出                     | 未开始      |
-| RES-01         | S1.1                   | 无 Result                      | 未开始      |
+| RES-01         | S1.1                   | Result 基础聚合已实现          | 已完成      |
 | SEL-01         | S2.6                   | 只记录选区                     | 未开始      |
 | PRV-04         | S2.3/S4.2              | Provider 设置已有              | 未开始      |
 | ARC-03         | S0.4                   | 统一 compatible 传输层部分已有 | 未开始      |
@@ -487,6 +488,7 @@ npm run tauri build -- --debug --no-bundle
 - Result/Task 新表创建失败时回滚整个 migration，继续保留 v8 数据。
 - 导入只建立授权引用或新成果，不原地修改来源文件。
 - Review 应用失败同时回滚文件和数据库；恢复是新 Revision，不删除历史。
+- `create_file` Review 在用户接受前不得建立占位文件或 Revision；应用失败回滚文件、Result 和 Revision，名称冲突默认停止并要求用户重新决定，不能覆盖已有文件。
 - 导出失败删除未完成临时文件，不删除 Result。
 - Provider/检索/遥测关闭时，已有本地成果仍可打开和导出。
 
@@ -500,10 +502,13 @@ npm run tauri build -- --debug --no-bundle
 | S0.1 固化当前工作树基线 | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收 |
 | S0.2 合同 fixture       | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收 |
 | S0.3 前端边界拆分       | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收 |
-| S0.4 Rust 边界拆分      | 待人工验收 | LOG-0015 | 等待用户验收；禁止开始 S1.1  |
-| S1.1…S4.8               | 待开始     | —        | 按第 4 节依赖推进            |
+| S0.4 Rust 边界拆分      | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收 |
+| S1.1 Result/schema v9   | 已完成     | LOG-0023 | 已通过用户人工验收           |
+| S1.2 Task/Template      | 已完成     | LOG-0026 | 已通过用户人工验收           |
+| S1.3 导航/双模式外壳    | 待人工验收 | LOG-0031 | 人工缺陷已修补，等待复验     |
+| S1.4…S4.8               | 待开始     | —        | 按第 4 节依赖推进            |
 
-S0.3 已通过自动验证和用户人工验收。S0.4 已完成实现和自动验证，当前停在人工验收门；不得开始 S1.1 或任何 V2 功能实现。
+S1.2 已通过自动验证和用户人工验收。S1.3 已完成范围内实现与自动验证，当前停止在人工验收点；在用户明确验收通过前不得开始 S1.4 或其他后续步骤。
 
 ## 10. 连续变更账本
 
@@ -776,6 +781,235 @@ S0.3 已通过自动验证和用户人工验收。S0.4 已完成实现和自动�
 - 状态与证据：S0.4 实现及自动验收条件全部通过，状态转为 `待人工验收`，不是 `已完成`。
 - 下一具体动作：停止实施并等待用户明确验收；验收前禁止开始 S1.1、schema v9 或任何 V2 产品功能。
 
+### LOG-0016 — S0.4 — COMPLETE
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户验收：用户明确回复“**S0.4通过**”，并授权进入 S1.1。
+- 状态与证据：LOG-0015 中 36 命令兼容、73 项 Rust 测试、58 项前端测试、3 项 E2E、桌面构建/冒烟及边界拆分结果均获接受；S0.4 改为 `已完成`。
+- 实际修改：仅更新实施账本和步骤状态；没有因验收追加业务、migration、IPC 或 Capability 改动。
+- 下一具体动作：按用户授权启动 S1.1 Result 领域、schema v9 与旧数据兼容。
+
+### LOG-0017 — S1.1 — START
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户授权：阅读 `A2UI-Terminal/docs` 并进入下一阶段 S1.1。
+- 基线 commit 与开始前工作树：`main` / `7be6ef7`（`基线加固`）；开始前工作树干净，S0.1-S0.4 已归入该提交。
+- 已读材料：完整读取 `V2_IMPLEMENTATION_PLAN.md`、`V2_ARCHITECTURE.md`，并复核 `ARCHITECTURE.md`、`DOCUMENT_VERSION_HISTORY.md`、`SQLITE_CRASH_RECOVERY.md`、`PRIVACY.md` 的持久化、版本、恢复和隐私约束。
+- 目标与允许范围：新增 Result 状态机、Repository/Application Service、schema v9 `results` 表、旧文件/Surface 惰性关联、Result 列表/详情 IPC 与共享合同；同步诊断/清理、权限和迁移测试。
+- 明确不修改：不实现 Task/Template、首页/简单模式、导入/导出、Review Request、遥测或真实模型路径；不改写 v1-v8 migration，不复制整个旧工作区或旧文件正文，不删除真实项目文件。
+- 兼容/保存约束：Result 与 Chat Session 解耦；旧 Session/Patch/A2UI 继续可读；新成果的托管位置必须归属应用数据目录中的“我的成果”，外部导出位置留到后续步骤由系统对话框选择。
+- 验收目标：v0-v8 全路径升级至 v9；migration 故障整体回滚；删除 Workspace 级联 Result 记录但不删除真实文件；切换/删除非必要 Session 不破坏 Result；新命令、Capability、Rust/TS 合同和完整质量门通过。
+- 下一具体动作：审计 `storage/mod.rs` 的迁移/事务/清理实现、Workspace/Surface 标识和命令注册链，确定最小 v9 表及惰性关联事务。
+
+### LOG-0018 — S1.1 — PROGRESS
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 基线与范围：延续 LOG-0017 的 `main` / `7be6ef7` 干净基线；只实施 Result 基础聚合、schema v9、只读 IPC 与旧数据惰性关联，没有进入 S1.2。
+- Result 领域：新增 `domain/result.rs`，定义 document/spreadsheet/checklist/form/tool 类型、七态 Result 状态机、三类存储方式、标题约束和稳定 Summary/Detail DTO。
+- Repository/Application：新增 `repository/result.rs` 与 `application/result.rs`；列表、详情、旧文件/Surface 惰性归档均经 Application Service，命令层只做 Tauri 参数适配。启动时只在应用数据目录下建立 `my-results` 托管目录，不开放外部绝对路径。
+- schema v9：新增 `0009_results.sql`，包含 `results` 表、枚举/标题约束、索引、Workspace 级联、Session/Revision/Surface `SET NULL` 关系、A2UI 可信状态快照和版本同步触发器。未修改 v1-v8 migration。
+- 惰性兼容：v8→v9 只创建空聚合，不扫描/复制旧文件或 Surface 正文；`read_workspace_file` 首次打开旧文件时建立 document Result，处理或列出可信 Surface 时建立 tool Result。重复打开依赖唯一约束幂等更新。
+- 会话解耦：文件 Result 不绑定 Chat Session；tool Result 持久化已验证 `managedState`，删除来源 Session 后 `activeSessionId` 和原 Surface 外键清空，但 Result 元数据与可信快照仍可由 `get_result` 读取。
+- 版本关联：SQLite 触发器覆盖 autosave、restore、Patch、undo 和版本清理路径，按实际插入顺序维护 `currentRevisionId`，避免命令层耦合以及同秒 UUID 排序误判。
+- IPC/合同：新增 `list_results`、`get_result` 两条只读命令；同步 `build.rs`、`lib.rs`、main Capability、自动生成权限和 Tauri schema。新增 `contracts/v2/result.json`，Rust serde 与 TypeScript guard 共同消费；Desktop Gateway 返回不透明 `result://` 引用。
+- 诊断/清理：诊断计数新增 `results` 数量且不包含标题、正文、路径或状态快照；一键清理先删除 Result 记录，再清理 V1 表，不删除真实文件。Workspace 删除通过外键清理 Result，不执行文件系统删除。
+- 测试覆盖：新增/扩展 Result 状态机、托管目录、v0-v8→v9 全路径升级、v8 记录保留、v9 故障回滚、无 eager copy、Session 解耦、A2UI 快照存活、Workspace 级联、current revision 触发器、Result Rust/TS 合同、命令注册与 Application 无 Tauri 依赖测试。
+- Rust 验证：Cargo/Rustc `1.97.1` 下 fmt、clippy all-targets `-D warnings`、`cargo test --all-targets` 全通过；73 个库测试、4 个架构测试、1 个命令注册测试、5 个合同测试，共 83 项、0 失败。
+- 前端验证：Node.js `v22.23.2` / npm `11.16.0` 下 `npm run check`、coverage 和 3 项 Playwright E2E 全通过；19 个文件/58 项 Vitest，覆盖率 statements 96.96%、branches 83.82%、functions 93.10%、lines 98.80%。
+- Desktop 验证：Node 22 下 `npm run tauri build -- --debug --no-bundle` 通过；隔离数据目录桌面启动冒烟通过，退出后残留进程为 0。
+- 过程修正：首次设计在命令成功后刷新 Result 版本，审计发现这会在 Result 同步失败时把已经成功的文件写入错误地报告为失败；改为 schema v9 触发器原子跟随 `document_versions` 事务。触发器定向测试又发现同秒版本不能按随机 UUID 判断最新，改用 SQLite `rowid` 插入顺序后通过。
+- 非阻断观察：Vite 主 chunk 约 1059.38 kB（gzip 351.87 kB）的既有体积提示仍存在；Windows 链接器继续输出导入库信息，未造成失败。
+- 修改文件：`src-tauri/migrations/0009_results.sql`、`src-tauri/src/domain/*`、`application/result.rs`、`repository/result.rs`、storage/commands/lib/build/capability/permission/schema、Rust 测试；`contracts/v2/result.json`、TS domain/guard/Desktop API/测试；架构、隐私、SQLite 和本实施文档。
+- 安全、隐私、兼容与回滚：Result DTO 不返回绝对路径；迁移不复制正文；A2UI 快照仅来自可信 Rust 已验证状态；未新增写入命令、AI 路径或外发能力。schema 不自动降级；回滚应用版本前必须使用兼容版本或备份恢复，不能让只支持 v8 的应用打开 v9 数据库。
+- ADR / 开放问题：无新增产品 ADR；落实 ADR-001、ADR-003、ADR-008、ADR-010。O-03/O-05/O-06/O-07/O-08 状态未变。
+- 状态与证据：S1.1 自动验收条件全部满足，转为 `待人工验收`，不是 `已完成`。
+- 下一具体动作：停止实施并等待用户明确验收；在此之前禁止开始 S1.2 Task/Template 或任何后续步骤。
+
+### LOG-0019 — PRODUCT DECISION — CREATE TEXT RESULT / AI CREATE REVIEW
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户决策：支持用户主动新建文件；支持 AI 提议创建文件，但实际写入必须由用户确认；首期聚焦文本型成果，不以完整 Office 文件格式兼容为目标。
+- 架构落点：用户主动创建与 AI 建议创建分离。用户在首页/成果页明确提交新建表单后，由 Rust 受控创建文本 Result；AI、模板、聊天和 A2UI 只能生成 `create_file` Review Request，接受前不得写入磁盘、创建占位 Result 或 Revision。
+- 实施落点：S1.5 增加 `create_text_result` 及大众工作台新建入口；S2.5 增加 `create_file` Review schema、预览、确认与原子应用；S2.7 将 UTF-8 Markdown/纯文本定义为 document 首期规范内部格式，复杂 Office/PDF/XLSX 保持受控导入/导出或只读边界。
+- 安全与恢复：前端不提交绝对路径；Rust 校验受控名称、扩展名、不透明目标作用域、名称冲突和幂等键。AI 创建在用户接受前磁盘零写入；接受时原子建立文件、Result、初始 Revision，任一步失败全部回滚；默认不覆盖同名文件。
+- 验收回归：新增“未选择文件时请求生成出游文档”场景，预期产生创建审阅而不是 `PATCH_VALIDATION_FAILED`；拒绝不产生文件，接受只产生一个可重开的文本成果，重复应用不重复创建。
+- 实际修改：仅更新 `V2_ARCHITECTURE.md` 与 `V2_IMPLEMENTATION_PLAN.md`；没有修改源代码、schema、IPC、Capability 或 S1.1 实现。
+- 状态：产品决策已固化；S1.1 仍为待人工验收，没有开始 S1.2、S1.5 或 S2.5。
+- 下一具体动作：继续等待 S1.1 人工验收；后续按依赖顺序实现，并在到达 S1.5/S2.5 时以本记录为强制验收条件。
+
+### LOG-0020 — S1.1 FOLLOW-UP — PATCH VALIDATION DETAIL UI
+
+- 时间：2026-08-13（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户授权：修复 Patch 安全校验失败时前端只显示统一提示、看不到后端具体原因的问题。
+- 实际修改：`ChatPanel` 在 `PATCH_VALIDATION_FAILED` 警告中保留“文件没有被修改”的通俗说明，并追加现有 `protocolError` 的“具体原因”；中英文文案与局部布局同步更新。Patch 读取将底层 NotFound 收敛为“目标文件不存在或未获当前工作区授权：{path}”。没有展示模型原始 `document_patch`，没有新增 IPC 或放宽校验。
+- 测试：新增组件用例，验证可信后端原因可见且模型原始协议仍被隐藏；定向 Vitest 4/4 通过。完整 `npm run check` 通过：Prettier、ESLint、TypeScript、19 个文件/59 项 Vitest 和生产构建均成功；仅保留既有主 chunk 体积警告。新增 Rust 回归测试覆盖模型猜测不存在文件的可操作错误，定向测试 1/1 通过；仅有既有 Windows 链接器信息警告。
+- 兼容性：本次详情只存在于当前请求返回和前端会话内存；旧会话数据库只持久化稳定错误码，因此重启后旧失败消息继续显示统一兜底说明，不伪造具体原因。
+- 范围：这是用户授权的现有 UI 可诊断性修复，不实现 Task/Template、`create_file` Review 或任何 S1.2+ 功能；S1.1 验收状态保持 `待人工验收`。
+- 下一具体动作：完成前端完整质量门并等待 S1.1 人工验收。
+
+### LOG-0021 — S1.1 FOLLOW-UP — VERIFIED COMPLETION CLAIM GUARD
+
+- 时间：2026-08-14（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户授权：修复现阶段 AI 没有生成文件却以普通文本声称“已经创建文档”的可信性缺陷；不提前实现后续新建文件能力。
+- 根因：Provider 返回普通说明文本，不包含 `document_patch`、A2UI 或 Result/Revision 凭证，原流程仍以 `errorCode=null` 持久化并按普通 Markdown 展示；系统 Prompt 的“不得声称已修改文件”只有软约束，没有运行时后置条件。
+- 后端修改：普通文本在没有可信协议结果时进入完成声明检测；若声称文件/文档/成果已经创建、生成、保存、写入或修改，写入稳定错误码 `UNVERIFIED_FILE_COMPLETION_CLAIM`。否定、条件和真实说明文本保持可用，不改变 Patch/A2UI 校验或文件权限。
+- 前端修改：错误码命中时隐藏误导性原文，显示“文件并未创建或修改”和零写入说明；为数据库中尚无新错误码的旧消息提供同规则兼容识别，因此已有“我已经为您创建了基础出游指南文档”也会被拦截。中英文文案同步。
+- 测试：Rust 定向测试 1/1 通过，覆盖中英文正例、否定和条件语句；ChatPanel 定向 Vitest 5/5 通过，验证误导原文不再显示。完整质量门结果见本记录最终交付说明。
+- 完整验证：`npm run check` 全通过，包含 Prettier、ESLint、TypeScript、19 个文件/60 项 Vitest 和生产构建；Rust `cargo fmt --check`、Clippy all-targets `-D warnings` 与全量测试通过，共 75 个库测试、4 个架构测试、1 个命令注册测试、5 个合同测试。仅保留既有 Vite 主 chunk 体积和 Windows 链接器信息警告。
+- 安全、兼容与回滚：不解析或执行模型文本，不新增写入能力、IPC、Capability 或 migration；只增加完成声明的可信结果门和展示状态。旧客户端忽略新错误码时仍只看到原文本，因此发布时前后端必须同版本升级。
+- 范围与状态：这是 S1.1 人工验收前用户明确授权的现有流程修复，不启动 S1.2、S1.5 或 S2.5；真实用户新建与 AI `create_file` Review 仍按 LOG-0019 后续实施。
+- 下一具体动作：停止实施并继续等待 S1.1 人工验收；不得提前开始 S1.2。
+
+### LOG-0022 — S1.1 FOLLOW-UP — UNSUPPORTED CREATE INTENT PREFLIGHT
+
+- 时间：2026-08-14（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户授权：修复现阶段“生成出游文档”在没有可编辑文件上下文时仍调用模型、生成无效 `document_patch` 并进入自动重试的问题；不提前实现真实新建能力。
+- 后端修改：在 Provider 请求前增加创建意图门；请求包含新建/创建/生成/制作/起草等动作和文档、文件、报告、指南、纪要、周报、简历等文本成果，且没有 Selection/CurrentFile/ProjectFile 可编辑上下文时，不调用模型、不进入 Patch 解析或自动重试。请求仍以稳定错误码 `FILE_CREATION_NOT_AVAILABLE` 和真实零写入说明持久化；即使旧客户端不识别错误码，也不会收到虚假完成声明。
+- 前端修改：`FILE_CREATION_NOT_AVAILABLE` 显示专用信息卡，明确当前版本尚不支持直接新建、没有文件被创建，并提示先创建或选择可编辑文本文件。卡片不展示模型输出，也不提供会重复失败的自动重试入口；中英文同步。
+- 兼容边界：有可编辑文件上下文时不拦截，继续使用现有 Patch/Review；“如何生成”“为什么没生成”“文档在哪里”等方法或状态问题不按创建动作拦截。真实主动新建和 AI `create_file` Review 仍归 S1.5/S2.5。
+- 测试：Rust 定向测试覆盖“生成出游文档”、会议纪要、英文创建请求、方法/状态问题和有可编辑上下文场景；首次测试发现“会议纪要”缺少通用文件名词，补齐首批场景词表后 1/1 通过。ChatPanel 定向 Vitest 6/6 通过。
+- 完整验证：`npm run check` 全通过，包含 Prettier、ESLint、TypeScript、19 个文件/61 项 Vitest 和生产构建；Rust `cargo fmt --check`、Clippy all-targets `-D warnings` 与全量测试通过，共 76 个库测试、4 个架构测试、1 个命令注册测试、5 个合同测试。仅保留既有 Vite 主 chunk 体积和 Windows 链接器信息警告。
+- 安全、隐私与范围：没有新增文件写入、IPC、Capability、migration、外发或内容采集；前置门减少无意义 Provider 调用和错误 Patch，不放宽任何安全校验。S1.1 状态保持 `待人工验收`，没有启动 S1.2。
+- 下一具体动作：停止实施并等待 S1.1 人工验收；不得提前开始 S1.2。
+
+### LOG-0023 — S1.1 — ACCEPTED
+
+- 时间：2026-08-14（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户验收：用户明确回复“**S1.1 验收通过**”。
+- 状态：S1.1 Result 领域、schema v9 与旧数据兼容由 `待人工验收` 转为 `已完成`；LOG-0018 至 LOG-0022 的实现、验证和验收前修补共同构成最终基线。
+- 下一具体动作：按依赖顺序进入 S1.2；S1.2 验收前禁止开始 S1.3。
+
+### LOG-0024 — S1.2 — START
+
+- 时间：2026-08-14（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `7be6ef7`；保留已验收但尚未提交的 S1.1 累积工作树及 LOG-0019 至 LOG-0022 的验收前修补。
+- 用户授权：S1.1 验收通过并要求开始下一阶段。
+- 目标与允许范围：只实现 Task 状态机、版本化内置模板、字段 Schema、最多 3 个必要问题、Task/Result 绑定和文档类 Task Orchestrator；先闭环会议纪要和文档总结，并登记周报、简历优化 P0 模板。
+- 明确不做：不进入 S1.3 导航/简单模式，不实现 S1.4 真实模型供应，不提前实现导入、Review 新建、导出、遥测或搜索；页面和后续调用方不得绕过 Orchestrator 直调 Provider。
+- 开放问题：O-08 保持开放；本步骤只建立本地任务编排与成果草稿边界，不伪装成 AI 已完成生成。
+- 下一具体动作：设计并实现 schema v10、Task/Template Repository/Application、共享合同、命令权限和迁移/状态机/兼容性测试。
+
+### LOG-0025 — S1.2 — PROGRESS / AUTOMATED VALIDATION COMPLETE
+
+- 时间：2026-08-14 16:24（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 基线与范围：延续 LOG-0024 的 `main` / `7be6ef7` 及已验收的累积工作树；只完成 S1.2 Task/Template/Orchestrator，没有进入 S1.3 UI、S1.4 真实模型、S1.5 主动新建或 S2.5 AI `create_file` Review。
+- schema v10：新增 `task_templates` 和 `tasks`，Task 状态/JSON/问题数约束、Template 复合版本键、Workspace 级联、Task/Result 唯一双向绑定及同工作区触发器；v9→v10 保留既有 Result，幂等播种 4 个 P0 模板。`clear_all_local_data` 清理用户 Task，保留系统内置模板；脱敏诊断只增加 Task 数量。
+- 领域与编排：新增 Task 状态机、严格字段 Schema、回答 allowlist/类型/选项/长度校验、最多 3 个必要问题；会议纪要、文档总结、周报、简历优化均为 v1 内置模板。`start_task` 仅把 `ready` Task 转换为应用数据 `my-results` 下 UUID 命名的 UTF-8 Markdown 结构草稿，并在事务中绑定一个 `draft` Result；草稿显式声明“尚未调用 AI 生成正文”，返回 `outputMode=local_scaffold`。
+- 文件安全与失败语义：前端只获得 `result://` 不透明引用；模板不保存源文，Task 回答只留在本机；新文件使用 `create_new`，写入/同步或数据库事务失败时只清理由本次调用创建的 UUID 文件，重复启动同一 Task 被拒绝且不留下第二个文件。Task Orchestrator 不引用 Provider/AI 模块，O-08 保持开放。
+- IPC / Capability / 合同：新增 `list_task_templates`、`create_task`、`answer_task_questions`、`get_task`、`start_task` 5 个命令，并同步 `build.rs`、`lib.rs`、主窗口 Capability、自动权限、生成 Schema 和注册测试；新增 `contracts/v2/task.json`、Rust serde DTO、TypeScript 类型/guards/Desktop Gateway。
+- 自动测试：迁移覆盖 v0-v9→v10、v9 数据保留、v10 故障回滚、4 模板播种、问题数上限、跨工作区绑定拒绝；领域/应用覆盖状态机、非法/未知回答、会议纪要和文档总结 Task/Result 闭环、重复运行清理、无 Provider 边界。Rust 全特性通过 84 个库测试、5 个架构测试、1 个命令注册测试、6 个合同测试；Clippy all-targets/all-features `-D warnings` 和 rustfmt 通过。
+- 前端验证：`npm run check` 通过（Prettier、ESLint、TypeScript、19 个文件/61 项 Vitest、生产构建）；`npm run test:coverage` 通过，Statements 96.96%、Branches 83.82%、Functions 93.10%、Lines 98.80%；Playwright Web Mock 3/3 通过。
+- 桌面验证：最终代码再次执行 `npm run tauri build -- --debug --no-bundle` 通过；`scripts/smoke-desktop.ps1` 启动冒烟通过，PID 41160 已退出，残留进程 0。仅保留既有 Vite 主 chunk 体积警告和 Windows linker 信息警告。
+- 过程修正：首次 Rust 回归发现两项 S1.1 测试仍把最终 schema 写死为 v9，改为当前 `SCHEMA_VERSION`；修正测试局部变量遮蔽；审计文件失败路径后补充 write/sync 清理。一次定向 `cargo test` 命令因同时传入两个过滤参数被 CLI 拒绝，随后分别执行并全部通过；最终完整质量门不受影响。
+- 文档：同步 `ARCHITECTURE.md`、`V2_ARCHITECTURE.md`、`PRIVACY.md`、`SQLITE_CRASH_RECOVERY.md` 和本连续账本，明确本地结构草稿不是 AI 正文生成。
+- 状态与证据：S1.2 自动验收条件全部满足，转为 `待人工验收`，不是 `已完成`。
+- 下一具体动作：停止实施并等待用户明确验收；在此之前禁止开始 S1.3 或任何后续步骤。
+
+### LOG-0026 — S1.2 — ACCEPTED
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户验收：用户明确回复“**S1.2 验收通过**”。
+- 状态：S1.2 Task、Template 基础与 Task Orchestrator 由 `待人工验收` 转为 `已完成`；LOG-0024 至 LOG-0025 构成最终实现与验证证据。
+- 下一具体动作：按依赖顺序进入 S1.3；S1.3 验收前禁止开始 S1.4。
+
+### LOG-0027 — S1.3 — START
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `7be6ef7`；保留已验收但尚未提交的 S1.1、S1.2 累积工作树及此前验收前修补。
+- 用户授权：S1.2 验收通过并要求开始下一阶段。
+- 目标与允许范围：只实现首页/成果/模板/设置导航外壳、默认简单模式、专业模式偏好与信息密度切换；专业模式继续承载 V1 文件树、会话、A2UI Inspector 和 Provider 高级参数。
+- 验收边界：简单模式默认隐藏文件树、Inspector、Endpoint、Token 等技术细节；两种模式必须共享同一 store、Gateway、Result/Task 数据和安全内核，不复制业务状态或放宽命令权限。
+- 明确不做：不实现 S1.4 三步引导、六类首页入口、最近成果和真实模型路径，不实现 S1.5 成果工作台、新建、导出或后续导入/Review/遥测能力。
+- 下一具体动作：审计现有 `AppShell`、`WorkspaceLayout`、设置与 Web Mock E2E，建立轻量路由/模式偏好和可测试的显示边界。
+
+### LOG-0028 — S1.3 — COMPLETE（待人工验收）
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 基线与范围：延续 LOG-0027 的 `main` / `7be6ef7` 和已验收的累积工作树；只完成 S1.3 导航、默认简单模式、专业模式偏好及显示边界，没有进入 S1.4 或 S1.5。
+- 实际修改：
+  - 新增首页、成果、模板、工作台、设置五个轻量 Hash 导航入口；首页/成果/模板当前为明确占位外壳，不伪装 S1.4 的引导、任务入口或最近成果能力。
+  - 新安装默认使用简单模式；模式偏好只以 `simple | professional` 写入浏览器本地存储，重启后恢复，非法值回退到简单模式。
+  - 简单模式隐藏文件树、会话选择、新建会话、Provider/Model 标识、A2UI Inspector、原始检查信息、Endpoint 与 API Key 配置入口；专业模式恢复现有 V1 三栏工作台及 Provider 高级配置。
+  - 两种模式复用同一个 `WorkspaceLayout`、`WorkspaceSidebar`、`EditorPane`、`ChatPanel`、Zustand store、Gateway 与 Rust 安全内核；切换仅改变渲染密度，不复制/迁移业务数据，不增加 IPC 或权限。
+  - 大众界面产品名更新为“A2UI 工作台”；设置页提供清晰的简单/专业模式说明。
+- 主要修改文件：`src/app/AppShell.tsx`、`WorkspaceLayout.tsx`、`ShellPage.tsx`、`SettingsPage.tsx`、`shellPreferences.ts`、对应 CSS/测试、`EditorPane.tsx`、`ChatPanel.tsx`、`A2uiWorkbench.tsx`、`ProviderSettings.tsx`、i18n、Web Mock E2E 和架构/隐私文档。
+- Migration / IPC / Capability：S1.3 未新增或修改数据库 migration、Tauri command、事件、Capability、权限或密钥处理路径；工作树中的 v9/v10 与 Task/Result IPC 仍属于已验收 S1.1/S1.2。
+- 前端验证：
+  - `npm run check` 通过：Prettier、ESLint、TypeScript、21 个测试文件/69 项 Vitest、生产构建全部成功。
+  - `npm run test:coverage` 通过：Statements 96.96%、Branches 83.82%、Functions 93.10%、Lines 98.80%。
+  - `npm run test:e2e` 通过：Chromium Web Mock 3/3；覆盖默认简单模式、五入口导航、技术细节隐藏、专业模式持久化、同一 A2UI 数据跨模式保留及既有 Review 流程。
+- Rust 验证：`cargo fmt --check`、`cargo clippy --all-targets --all-features -- -D warnings`、`cargo test --all-features` 均通过；Rust 测试为 84 个库测试、5 个架构边界测试、1 个命令注册测试、6 个合同 fixture 测试，全部成功。
+- 桌面验证：`npm run tauri build -- --debug --no-bundle` 通过；`scripts/smoke-desktop.ps1` 启动冒烟通过，PID 33628 已退出且无残留进程。仅有既存 Vite 主 chunk 体积提示与 Windows linker 信息警告。
+- 过程修正：首次 E2E 因“工作台”同时匹配导航与按钮、随后又因图标进入可访问名称导致 `exact` 选择器超时；改为限定导航区域和结尾匹配。首次全量 ESLint 发现 React 19 ref 读取规则告警；将拖拽手柄提取为组件并用稳定回调重构，最终全量质量门通过。
+- 安全、隐私与兼容：模式偏好不含正文、路径、文件名、Prompt、回复、Endpoint 或密钥；切换模式不修改 Provider 配置、上下文授权、Result/Task/Review 状态或命令权限。Web Mock 与 Desktop 仍使用相同 Gateway 合同。
+- 状态与证据：S1.3 自动验收条件全部满足，转为 `待人工验收`，不是 `已完成`。
+- 下一具体动作：停止实施并等待用户明确回复“**S1.3 验收通过**”；在此之前禁止开始 S1.4 或任何后续步骤。
+
+### LOG-0029 — S1.3 — ACCEPTANCE VALIDATION
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户目标：对 S1.3 进行独立测试验收，确认阶段功能完整、代码结构清晰，并提供可逐项执行的人工验收文档；未授权进入 S1.4。
+- 范围复核：逐项对照 S1.3 导航、默认简单模式、专业模式、技术信息隔离、偏好持久化、业务状态唯一性和安全规则不变；首页/成果/模板的真实业务能力仍明确归属 S1.4/S1.5。
+- 代码结构审查：
+  - `AppShell` 只创建一组 `WorkspaceLayout`、`WorkspaceSidebar`、`EditorPane` 和 `ChatPanel`，两种模式没有复制业务组件树。
+  - 模式只通过 `showLeftPanel`、`showInspector`、`professionalTools` 和 Provider modal 可见性控制展示；共享同一 Zustand store、Gateway、IPC、Result/Task/Review/A2UI 状态与 Rust 安全内核。
+  - 模式偏好模块不依赖 store、Gateway 或 Desktop API；React 页面仍不能直连 Desktop/Gateway；`useAppStore` 保持小型组合根。
+  - 路由使用五项 allowlist，未知 Hash 回退首页；高级 Provider 参数仍集中封装于 `ProviderSettings`。
+- 验收修补：`shellPreferences` 增加浏览器存储异常保护；Local Storage 读取失败安全回退简单模式，写入失败不阻止当前会话切换。新增异常路径单元测试，并扩展 E2E，覆盖简单模式设置页不出现 Provider 高级入口、Endpoint/API Key，以及专业模式入口恢复和工作台 Hash。
+- 人工验收文档：新增 [S1_3_MANUAL_ACCEPTANCE.md](S1_3_MANUAL_ACCEPTANCE.md)，包含 14 项功能检查、4 项安全/隐私检查、桌面/Web Mock 操作方法、阶段边界、缺陷分级、通过规则和签字区。
+- 定向验证：6 个相关 Vitest 文件/24 项测试通过；Chromium Web Mock E2E 3/3 通过。
+- 前端全量验证：`npm run check` 通过，包含 Prettier、ESLint、TypeScript、21 个测试文件/70 项 Vitest 和生产构建；`npm run test:coverage` 通过，Statements 96.96%、Branches 83.82%、Functions 93.10%、Lines 98.80%。
+- Rust 验证：`cargo fmt --check` 和 `cargo clippy --all-targets --all-features -- -D warnings` 通过；隔离 target 的 `cargo test --all-features` 通过 84 个库测试、5 个架构边界测试、1 个命令注册测试和 6 个合同 fixture 测试。
+- 桌面验证：设置 `CARGO_TARGET_DIR=src-tauri/target/s1-3-acceptance` 后执行 Tauri debug 干净构建通过；隔离可执行文件启动冒烟通过，PID 25396 已退出，无验收实例残留。既有 `tauri dev` 实例保持运行，未强制关闭。
+- 过程异常：默认 target 的首次 `cargo test` 因已有 `tauri dev` 占用 `a2ui-terminal.exe` 返回 Windows `os error 5`；这是文件锁而非断言失败。改用隔离 target 后完整测试和构建均通过，不需要修改业务代码或终止用户进程。首次全量前端门禁只提示新 Markdown 未格式化，执行 Prettier 后复跑全量通过。
+- Migration / IPC / Capability：本轮没有新增或修改 migration、command、event、Capability 或权限；存储异常修补只影响非敏感 UI 偏好。
+- 状态与结论：未发现 S1.3 阻断或严重缺陷；自动验收与代码结构审查通过，S1.3 继续保持 `待人工验收`，不能据此自动标记为用户已验收。
+- 下一具体动作：用户按照人工验收文档检查并明确回复“**S1.3 验收通过**”；在此之前不得开始 S1.4。
+
+### LOG-0030 — S1.3 — ACCEPTANCE FAILED / CORRECTION
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户人工反馈：简单模式找不到选择文件入口，也不能开启新对话。
+- 复核结论：两项均为 S1.3 严重可用性缺陷，不是 S1.4 范围。S1.3 要求隐藏技术文件树和会话细节，不等于移除“选择文件”和“新对话”两个核心动作。
+- 根因：`showLeftPanel={false}` 隐藏了唯一包含文件选择按钮的 `WorkspaceSidebar`；`ChatPanel` 又把新会话按钮和会话列表一起放在 `professionalTools` 条件内，造成过度隐藏。
+- 账本修正：LOG-0029 中“未发现 S1.3 阻断或严重缺陷”的结论被本记录取代；自动测试没有覆盖核心入口可发现性，人工验收正确拦截了阶段通过。
+- 状态：S1.3 继续保持 `待人工验收`，但在修补完成前不具备再次验收条件；S1.4 仍未开始。
+- 下一具体动作：在简单模式复用现有文件授权和会话创建动作，恢复清晰入口并补齐测试与人工验收项。
+
+### LOG-0031 — S1.3 — ACCEPTANCE FIX COMPLETE（待人工复验）
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 实际修补：
+  - `EditorPane` 新增简单模式文件动作：工具栏始终显示“选择文件”，无活动文件时中央空状态再次提供主按钮；调用现有 `selectContextFiles`，选择成功后沿用既有授权、独立文件工作区、打开文件和恢复草稿链路。
+  - 简单模式现在直接显示文件选择失败信息并支持关闭；项目文件树、路径列表和工作区管理仍保持隐藏。
+  - `ChatPanel` 简单模式标题区新增带明确可访问名称的“新对话”按钮，直接调用现有 `createSession`；会话下拉列表、Provider/Model 标识和技术会话术语仍隐藏。专业模式行为不变。
+  - 中英文文案区分“新对话”与专业模式“新建会话”，设置说明改为隐藏“文件树/会话列表”，不再暗示核心动作被禁用。
+- 结构与安全：只新增展示属性 `showSimpleFileActions`，文件选择与新对话均复用同一 Zustand action、controller、Gateway、IPC 和 Rust 安全边界；没有复制文件读取、会话持久化或业务状态。
+- 测试补充：EditorPane 组件测试确认简单模式文件入口调用既有 action；ChatPanel 测试确认简单模式隐藏会话列表和 Provider 标识但可创建并切换空对话；架构测试约束简单模式文件动作；E2E 确认入口可见、新对话清空当前展示且技术信息仍隐藏。
+- 定向验证：5 个受影响 Vitest 文件/22 项测试通过；Chromium Web Mock E2E 3/3 通过。
+- 前端全量验证：`npm run check` 通过，包含 Prettier、ESLint、TypeScript、21 个测试文件/71 项 Vitest 和生产构建；覆盖率 Statements 96.96%、Branches 83.82%、Functions 93.10%、Lines 98.80%。
+- Rust 与桌面验证：隔离 target 下 `cargo fmt --check`、`cargo clippy --all-targets --all-features -- -D warnings` 和全部 84 + 5 + 1 + 6 项 Rust 测试通过；Tauri debug build 与桌面启动冒烟通过，PID 20112 已退出。既有 `tauri dev` 实例未被终止。
+- Migration / IPC / Capability：没有新增或修改 migration、command、event、Capability 或权限；没有改变 Key、上下文确认、Review 或文件写入策略。
+- 文档：更新 `S1_3_MANUAL_ACCEPTANCE.md`，将简单模式选择文件和新对话列为强制人工验收项，并把缺失任一入口定义为严重缺陷；同步当前架构说明。
+- 状态与证据：两项用户发现的 S1.3 缺陷均已修补并通过自动回归；S1.3 回到 `待人工验收`，不是 `已完成`。
+- 下一具体动作：请用户在正在运行的桌面开发实例中复验“选择文件”和“新对话”；明确验收前不得开始 S1.4。
+
 ### 新账本记录模板
 
 ```markdown
@@ -819,6 +1053,8 @@ S0.3 已通过自动验证和用户人工验收。S0.4 已完成实现和自动�
 | ADR-014 | 匿名指标克制透明可关闭，内容永不上报            | 已接受 | 用户决策 2026-08-11  |
 | ADR-015 | 大众产品名称为“A2UI 工作台”                     | 已接受 | 用户决策 2026-08-11  |
 | ADR-016 | 匿名指标默认关闭，首次核心闭环后邀请主动开启    | 已接受 | 用户决策 2026-08-11  |
+| ADR-017 | 用户可主动新建；AI 创建必须先经用户确认         | 已接受 | 用户决策 2026-08-13  |
+| ADR-018 | 首期新建聚焦 UTF-8 文本，不追求 Office 无损兼容 | 已接受 | 用户决策 2026-08-13  |
 
 ### 开放问题
 
@@ -850,13 +1086,14 @@ S0.3 已通过自动验证和用户人工验收。S0.4 已完成实现和自动�
 
 ## 12. 交接摘要
 
-截至 LOG-0015：
+截至 LOG-0031：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能仍仅完成架构和实施规划；Result、Task、Template、Export、Adaptive Context、Simple Mode、产品事件等尚未进入代码。
+- V2 产品功能已完成并验收 S1.1 Result/schema v9 与 S1.2 Task/Template/schema v10/本地草稿 Orchestrator；S1.3 导航、默认简单模式和专业模式显示边界完成实现，用户发现的简单模式“选择文件/新对话”缺失已在 LOG-0031 修补并通过全量自动回归，当前等待人工复验。S1.4 引导/首页业务能力、Export、Adaptive Context 和产品事件尚未开始。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
-- S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，完整自动验证通过，当前等待人工验收。
-- S1.1 尚未授权；不得提前实施 schema v9 或任何 V2 产品功能。
+- S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
+- S1.3 当前等待人工验收；不得提前实施 S1.4 或任何后续步骤。
+- 已明确补充新建边界：S1.5 提供用户主动新建文本成果；S2.5 提供 AI `create_file` Review，用户确认前零写入；首期不以完整 Office 格式兼容为目标。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - 如果文档与实际代码不一致，先记录差异并修正文档状态；不要为了符合文档而破坏性改写用户代码。

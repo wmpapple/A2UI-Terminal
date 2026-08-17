@@ -357,7 +357,7 @@ fn canonicalize_model_hashes(
         let base_hash = if let Some(hash) = hashes.get(&change.path) {
             hash.clone()
         } else {
-            let document = workspace::read_file(storage, workspace_id, &change.path)?;
+            let document = read_patch_document(storage, workspace_id, &change.path)?;
             let hash = document.content_hash;
             hashes.insert(change.path.clone(), hash.clone());
             hash
@@ -383,7 +383,7 @@ fn plan(
         let document = if let Some(document) = documents.get(&change.path) {
             document.clone()
         } else {
-            let document = workspace::read_file(storage, &patch.workspace_id, &change.path)?;
+            let document = read_patch_document(storage, &patch.workspace_id, &change.path)?;
             if !document.editable || document.extracted {
                 return Err(AppError::InvalidInput("Patch 只能修改文本代码文件".into()));
             }
@@ -477,6 +477,19 @@ fn plan(
         reviews.extend(changes);
     }
     Ok((files, reviews))
+}
+
+fn read_patch_document(
+    storage: &Storage,
+    workspace_id: &str,
+    path: &str,
+) -> Result<WorkspaceDocument, AppError> {
+    match workspace::read_file(storage, workspace_id, path) {
+        Err(AppError::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => Err(
+            AppError::InvalidInput(format!("目标文件不存在或未获当前工作区授权：{path}")),
+        ),
+        result => result,
+    }
 }
 
 fn write_all_or_rollback(
@@ -781,6 +794,25 @@ mod tests {
 
         assert_eq!(review.changes[0].before, "curl http://localhost:8000\n```");
         assert!(review.patch.changes[0].anchor.before_hash.is_some());
+    }
+
+    #[test]
+    fn reports_an_actionable_reason_when_the_model_guesses_a_missing_file() {
+        let (_dir, storage, workspace_id) = setup("PROJECT_GUIDE.md", "# Project\n");
+        let proposal = patch(
+            &workspace_id,
+            "TRAVEL_GUIDE.md",
+            "# Travel",
+            "# Travel guide",
+        );
+        let raw = serde_json::to_string(&proposal).unwrap();
+
+        let error = parse_review(&storage, &workspace_id, &raw).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "invalid input: 目标文件不存在或未获当前工作区授权：TRAVEL_GUIDE.md"
+        );
     }
 
     #[test]

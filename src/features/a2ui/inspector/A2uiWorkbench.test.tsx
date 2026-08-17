@@ -58,4 +58,17 @@ describe('A2uiWorkbench', () => {
     expect(screen.getByText('Surface 已被安全拒绝，不会渲染')).toBeInTheDocument();
     expect(screen.queryByLabelText(/A2UI Surface/)).not.toBeInTheDocument();
   });
+
+  it('keeps the validated runtime but hides protocol Inspector details in simple mode', () => {
+    render(
+      <I18nProvider>
+        <A2uiWorkbench showInspector={false} />
+      </I18nProvider>
+    );
+
+    expect(screen.getByText('Research profile')).toBeInTheDocument();
+    expect(screen.queryByText('协议 Inspector')).not.toBeInTheDocument();
+    expect(screen.queryByText('Schema')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('协议消息')).not.toBeInTheDocument();
+  });
 });

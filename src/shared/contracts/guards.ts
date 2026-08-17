@@ -8,6 +8,11 @@ import type {
   DocumentVersionSummary,
   PatchApplication,
   PatchReview,
+  ResultDetail,
+  ResultSummary,
+  TaskDetail,
+  TaskRunResult,
+  TaskTemplate,
   WorkspaceDocument,
 } from '../types/domain';
 
@@ -62,6 +67,117 @@ const a2uiComponents = new Set([
   'Form',
 ]);
 const a2uiActions = new Set(['set_state', 'submit_form', 'request_patch']);
+const resultTypes = new Set(['document', 'spreadsheet', 'checklist', 'form', 'tool']);
+const resultStatuses = new Set([
+  'draft',
+  'generating',
+  'review_pending',
+  'ready',
+  'exporting',
+  'failed',
+  'archived',
+]);
+const resultStorageKinds = new Set(['workspace_file', 'standalone_file', 'managed_local']);
+const taskKinds = new Set(['write', 'modify', 'organize', 'analyze']);
+const taskStatuses = new Set([
+  'draft',
+  'awaiting_input',
+  'ready',
+  'running',
+  'review_pending',
+  'completed',
+  'failed',
+  'cancelled',
+]);
+const templateFieldKinds = new Set(['short_text', 'select']);
+
+export const isResultSummary = (value: unknown): value is ResultSummary =>
+  isObject(value) &&
+  isString(value.id) &&
+  isString(value.workspaceId) &&
+  isString(value.type) &&
+  resultTypes.has(value.type) &&
+  isString(value.title) &&
+  isString(value.status) &&
+  resultStatuses.has(value.status) &&
+  isString(value.storageKind) &&
+  resultStorageKinds.has(value.storageKind) &&
+  isNullableString(value.currentRevisionId) &&
+  isNullableString(value.a2uiSurfaceId) &&
+  isString(value.createdAt) &&
+  isString(value.updatedAt) &&
+  isNullableString(value.completedAt);
+
+export const isResultDetail = (value: unknown): value is ResultDetail =>
+  isResultSummary(value) &&
+  isObject(value) &&
+  isString(value.storageRef) &&
+  value.storageRef.startsWith('result://') &&
+  isNullableString(value.activeSessionId) &&
+  (value.managedState === null || isObject(value.managedState));
+
+const isTemplateField = (value: unknown): boolean =>
+  isObject(value) &&
+  isString(value.id) &&
+  isString(value.label) &&
+  isString(value.kind) &&
+  templateFieldKinds.has(value.kind) &&
+  isBoolean(value.required) &&
+  isStringArray(value.options) &&
+  (value.defaultValue === null || value.defaultValue !== undefined) &&
+  isNullableNumber(value.maxLength);
+
+export const isTaskTemplate = (value: unknown): value is TaskTemplate =>
+  isObject(value) &&
+  isString(value.id) &&
+  isNumber(value.version) &&
+  isString(value.name) &&
+  isString(value.description) &&
+  isString(value.kind) &&
+  taskKinds.has(value.kind) &&
+  value.desiredResultType === 'document' &&
+  Array.isArray(value.fields) &&
+  value.fields.every(isTemplateField) &&
+  isStringArray(value.defaultSections) &&
+  isString(value.riskLevel) &&
+  patchRisks.has(value.riskLevel) &&
+  isBoolean(value.builtin);
+
+const isTaskQuestion = (value: unknown): boolean =>
+  isObject(value) &&
+  isString(value.fieldId) &&
+  isString(value.prompt) &&
+  isString(value.kind) &&
+  templateFieldKinds.has(value.kind) &&
+  isStringArray(value.options) &&
+  isBoolean(value.required) &&
+  isNullableNumber(value.maxLength);
+
+export const isTaskDetail = (value: unknown): value is TaskDetail =>
+  isObject(value) &&
+  isString(value.id) &&
+  isString(value.workspaceId) &&
+  isString(value.templateId) &&
+  isNumber(value.templateVersion) &&
+  isString(value.kind) &&
+  taskKinds.has(value.kind) &&
+  value.desiredResultType === 'document' &&
+  isString(value.status) &&
+  taskStatuses.has(value.status) &&
+  isObject(value.inputAnswers) &&
+  Array.isArray(value.questions) &&
+  value.questions.length <= 3 &&
+  value.questions.every(isTaskQuestion) &&
+  isNullableString(value.resultId) &&
+  isString(value.createdAt) &&
+  isString(value.updatedAt) &&
+  isNullableString(value.completedAt);
+
+export const isTaskRunResult = (value: unknown): value is TaskRunResult =>
+  isObject(value) &&
+  isTaskDetail(value.task) &&
+  isResultDetail(value.result) &&
+  value.outputMode === 'local_scaffold';
 
 const isWorkspaceDraft = (value: unknown): boolean =>
   isObject(value) &&

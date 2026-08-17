@@ -36,6 +36,12 @@
   grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
   min-height: 0;
 }
+.columnsSimple {
+  grid-template-columns: minmax(0, 1fr);
+}
+.columnsSimple .runtimePane {
+  border-right: 0;
+}
 .runtimePane {
   min-width: 0;
   overflow: auto;

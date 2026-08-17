@@ -41,6 +41,13 @@
     "allow-list-a2ui-surfaces",
     "allow-list-a2ui-inspections",
     "allow-execute-a2ui-action",
+    "allow-list-results",
+    "allow-get-result",
+    "allow-list-task-templates",
+    "allow-create-task",
+    "allow-answer-task-questions",
+    "allow-get-task",
+    "allow-start-task",
     "updater:default",
     "process:allow-restart"
   ]

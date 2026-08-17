@@ -42,11 +42,8 @@ fn all_36_v1_commands_remain_registered() {
     let runtime = include_str!("../src/lib.rs");
     let commands = include_str!("../src/commands.rs");
 
-    assert_eq!(runtime.matches("commands::").count(), V1_COMMANDS.len());
-    assert_eq!(
-        commands.matches("#[tauri::command]").count(),
-        V1_COMMANDS.len()
-    );
+    assert!(runtime.matches("commands::").count() >= V1_COMMANDS.len());
+    assert!(commands.matches("#[tauri::command]").count() >= V1_COMMANDS.len());
     for command in V1_COMMANDS {
         assert!(runtime.contains(&format!("commands::{command},")));
         assert!(commands.contains(&format!("fn {command}(")));
@@ -87,6 +84,8 @@ fn application_services_do_not_depend_on_tauri() {
         include_str!("../src/application/adapters.rs"),
         include_str!("../src/application/chat.rs"),
         include_str!("../src/application/provider.rs"),
+        include_str!("../src/application/result.rs"),
+        include_str!("../src/application/task.rs"),
         include_str!("../src/application/revision.rs"),
         include_str!("../src/application/workspace.rs"),
     ] {
@@ -94,6 +93,16 @@ fn application_services_do_not_depend_on_tauri() {
         assert!(!source.contains("State<'_"));
         assert!(!source.contains("Channel<"));
     }
+}
+
+#[test]
+fn task_orchestrator_does_not_bypass_the_unresolved_model_boundary() {
+    let task = include_str!("../src/application/task.rs");
+
+    assert!(!task.contains("crate::ai"));
+    assert!(!task.contains("Provider"));
+    assert!(!task.contains("stream_chat"));
+    assert!(task.contains("local_scaffold"));
 }
 
 #[test]

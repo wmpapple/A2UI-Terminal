@@ -20,6 +20,11 @@ import type {
   WorkspaceDocument,
   WorkspaceFileEntry,
   WorkspaceSummary,
+  ResultDetail,
+  ResultSummary,
+  TaskDetail,
+  TaskRunResult,
+  TaskTemplate,
 } from '../types/domain';
 
 export interface BootstrapStatus {
@@ -75,6 +80,44 @@ export const desktopApi = {
   async exportDiagnostics(): Promise<{ exported: boolean; fileName: string | null }> {
     requireDesktop();
     return invoke<{ exported: boolean; fileName: string | null }>('export_diagnostics');
+  },
+
+  async listResults(workspaceId?: string, includeArchived = false): Promise<ResultSummary[]> {
+    requireDesktop();
+    return invoke<ResultSummary[]>('list_results', {
+      workspaceId: workspaceId ?? null,
+      includeArchived,
+    });
+  },
+
+  async getResult(resultId: string): Promise<ResultDetail> {
+    requireDesktop();
+    return invoke<ResultDetail>('get_result', { resultId });
+  },
+
+  async listTaskTemplates(): Promise<TaskTemplate[]> {
+    requireDesktop();
+    return invoke<TaskTemplate[]>('list_task_templates');
+  },
+
+  async createTask(workspaceId: string, templateId: string): Promise<TaskDetail> {
+    requireDesktop();
+    return invoke<TaskDetail>('create_task', { input: { workspaceId, templateId } });
+  },
+
+  async answerTaskQuestions(taskId: string, answers: Record<string, unknown>): Promise<TaskDetail> {
+    requireDesktop();
+    return invoke<TaskDetail>('answer_task_questions', { input: { taskId, answers } });
+  },
+
+  async getTask(taskId: string): Promise<TaskDetail> {
+    requireDesktop();
+    return invoke<TaskDetail>('get_task', { taskId });
+  },
+
+  async startTask(taskId: string): Promise<TaskRunResult> {
+    requireDesktop();
+    return invoke<TaskRunResult>('start_task', { taskId });
   },
 
   async selectWorkspace(): Promise<WorkspaceSummary | null> {
