@@ -1,13 +1,14 @@
 use serde_json::Value;
 use std::{fs, path::PathBuf};
 
-const NATIVE_COMMANDS: [&str; 12] = [
+const NATIVE_COMMANDS: [&str; 13] = [
     "validate_document_patch",
     "apply_document_patch",
     "undo_document_patch",
     "process_a2ui_message",
     "list_a2ui_surfaces",
     "list_a2ui_inspections",
+    "delete_a2ui_surface",
     "execute_a2ui_action",
     "export_diagnostics",
     "list_document_versions",
@@ -16,7 +17,17 @@ const NATIVE_COMMANDS: [&str; 12] = [
     "list_recovery_drafts",
 ];
 
-const RESULT_COMMANDS: [&str; 2] = ["list_results", "get_result"];
+const RESULT_COMMANDS: [&str; 9] = [
+    "list_results",
+    "get_result",
+    "create_text_result",
+    "read_result_document",
+    "save_result_document",
+    "list_result_revisions",
+    "read_result_revision",
+    "restore_result_revision",
+    "duplicate_result",
+];
 const TASK_COMMANDS: [&str; 5] = [
     "list_task_templates",
     "create_task",

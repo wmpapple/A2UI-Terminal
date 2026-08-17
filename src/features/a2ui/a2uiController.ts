@@ -8,6 +8,8 @@ export const a2uiController = {
     ]);
     return { surfaces, inspections };
   },
+  deleteSurface: (workspaceId: string, surfaceId: string) =>
+    desktopGateway.deleteA2uiSurface(workspaceId, surfaceId),
   execute: (request: {
     workspaceId: string;
     surfaceId: string;

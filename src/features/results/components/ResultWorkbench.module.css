@@ -1,0 +1,144 @@
+.workbench,
+.assistant {
+  min-width: 0;
+  min-height: 0;
+  background: var(--panel);
+}
+
+.workbench {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+}
+
+.toolbar,
+.assistantHeader,
+.actions {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar {
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.identity {
+  min-width: 150px;
+}
+
+.identity strong,
+.identity span {
+  display: block;
+}
+
+.identity strong {
+  overflow: hidden;
+  color: var(--text-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity span {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.editor {
+  min-height: 0 !important;
+  flex: 1;
+  padding: 24px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  resize: none !important;
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.assistant {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 14px;
+}
+
+.assistantHeader {
+  gap: 8px;
+}
+
+.assistantHeader :global(.ant-tag) {
+  margin-left: auto;
+}
+
+.loading,
+.empty {
+  padding: 32px;
+}
+
+.diffGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.diffGrid pre,
+.preview {
+  max-height: 420px;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  background: var(--canvas);
+  border-radius: 8px;
+  white-space: pre-wrap;
+}
+
+.versionList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.versionItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.versionItem > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.versionItem strong,
+.versionItem span {
+  display: block;
+}
+
+.versionItem span {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 1000px) {
+  .toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .actions {
+    justify-content: flex-start;
+  }
+}

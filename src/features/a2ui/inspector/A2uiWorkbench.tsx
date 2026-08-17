@@ -1,5 +1,10 @@
-import { CheckCircleOutlined, CopyOutlined, SafetyOutlined } from '@ant-design/icons';
-import { Alert, Button, Empty, Select, Tabs, Tag } from 'antd';
+import {
+  CheckCircleOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  SafetyOutlined,
+} from '@ant-design/icons';
+import { Alert, Button, Empty, Popconfirm, Select, Tabs, Tag } from 'antd';
 import { useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { useAppStore } from '../../../stores/useAppStore';
@@ -20,8 +25,12 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
   const notice = useAppStore((state) => state.a2uiNotice);
   const setActiveSurface = useAppStore((state) => state.setActiveSurface);
   const setActiveInspection = useAppStore((state) => state.setActiveInspection);
+  const setCenterView = useAppStore((state) => state.setCenterView);
+  const deleteActiveSurface = useAppStore((state) => state.deleteActiveA2uiSurface);
   const executeAction = useAppStore((state) => state.executeA2uiAction);
   const [copied, setCopied] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const surface = surfaces.find((item) => item.surfaceId === activeSurfaceId) ?? surfaces[0];
   const inspection =
     inspections.find((item) => item.id === activeInspectionId) ??
@@ -61,29 +70,68 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
           <strong>{t('a2uiRuntime')}</strong>
           {showInspector && surface ? <Tag color="purple">r{surface.revision}</Tag> : null}
         </div>
-        {showInspector ? (
-          <div className={styles.selectors}>
-            {surfaces.length ? (
+        <div className={styles.headerActions}>
+          {showInspector ? (
+            <div className={styles.selectors}>
+              {surfaces.length ? (
+                <Select
+                  size="small"
+                  aria-label={t('surface')}
+                  value={surface?.surfaceId}
+                  disabled={actionLoading || deleteConfirmOpen}
+                  options={surfaces.map((item) => ({
+                    value: item.surfaceId,
+                    label: item.surfaceId,
+                  }))}
+                  onChange={setActiveSurface}
+                />
+              ) : null}
               <Select
                 size="small"
-                aria-label={t('surface')}
-                value={surface?.surfaceId}
-                options={surfaces.map((item) => ({ value: item.surfaceId, label: item.surfaceId }))}
-                onChange={setActiveSurface}
+                aria-label={t('inspectionMessage')}
+                value={inspection?.id}
+                disabled={actionLoading || deleteConfirmOpen}
+                options={inspections.map((item) => ({
+                  value: item.id,
+                  label: `${item.validation.valid ? '✓' : '✕'} ${item.surfaceId ?? item.messageId}`,
+                }))}
+                onChange={setActiveInspection}
               />
-            ) : null}
-            <Select
-              size="small"
-              aria-label={t('inspectionMessage')}
-              value={inspection?.id}
-              options={inspections.map((item) => ({
-                value: item.id,
-                label: `${item.validation.valid ? '✓' : '✕'} ${item.surfaceId ?? item.messageId}`,
-              }))}
-              onChange={setActiveInspection}
-            />
-          </div>
-        ) : null}
+            </div>
+          ) : null}
+          {surface ? (
+            <Popconfirm
+              title={t('deleteA2uiSurfaceTitle')}
+              description={t('deleteA2uiSurfaceDescription')}
+              okText={t('deletePermanently')}
+              cancelText={t('cancel')}
+              okButtonProps={{ danger: true }}
+              disabled={actionLoading}
+              open={deleteConfirmOpen}
+              onOpenChange={(open) => {
+                setDeleteConfirmOpen(open);
+                setDeleteTargetId(open ? surface.surfaceId : null);
+              }}
+              onCancel={() => {
+                setDeleteConfirmOpen(false);
+                setDeleteTargetId(null);
+              }}
+              onConfirm={() => {
+                const surfaceId = deleteTargetId;
+                setDeleteConfirmOpen(false);
+                setDeleteTargetId(null);
+                return surfaceId ? deleteActiveSurface(surfaceId) : Promise.resolve();
+              }}
+            >
+              <Button danger size="small" icon={<DeleteOutlined />} loading={actionLoading}>
+                {t('deletePermanently')}
+              </Button>
+            </Popconfirm>
+          ) : null}
+          <Button size="small" aria-label={t('close')} onClick={() => setCenterView('editor')}>
+            {t('close')}
+          </Button>
+        </div>
       </header>
       {notice ? <Alert className={styles.notice} type="info" showIcon title={notice} /> : null}
       <div className={`${styles.columns} ${showInspector ? '' : styles.columnsSimple}`}>

@@ -243,6 +243,25 @@ pub struct ResultRow {
 }
 
 #[derive(Debug, Clone)]
+pub struct ResultSourceRow {
+    pub result: ResultRow,
+    pub source_kind: String,
+    pub source_ref: String,
+}
+
+pub struct NewManagedResultRow<'a> {
+    pub result_id: &'a str,
+    pub workspace_id: &'a str,
+    pub title: &'a str,
+    pub storage_ref: &'a str,
+    pub source_ref: &'a str,
+    pub managed_state_json: &'a str,
+    pub revision_id: &'a str,
+    pub content: &'a str,
+    pub content_hash: &'a str,
+}
+
+#[derive(Debug, Clone)]
 pub struct TaskTemplateRow {
     pub id: String,
     pub version: u32,
@@ -293,6 +312,9 @@ pub struct ManagedTaskResultRow<'a> {
     pub storage_ref: &'a str,
     pub source_ref: &'a str,
     pub managed_state_json: &'a str,
+    pub revision_id: &'a str,
+    pub content: &'a str,
+    pub content_hash: &'a str,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -328,6 +350,14 @@ fn result_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ResultRow> {
         updated_at: row.get(11)?,
         completed_at: row.get(12)?,
         managed_state_json: row.get(13)?,
+    })
+}
+
+fn result_source_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ResultSourceRow> {
+    Ok(ResultSourceRow {
+        result: result_from_row(row)?,
+        source_kind: row.get(14)?,
+        source_ref: row.get(15)?,
     })
 }
 
@@ -909,6 +939,29 @@ impl Storage {
         })
     }
 
+    pub fn ensure_managed_results_workspace(
+        &self,
+        workspace_id: &str,
+    ) -> Result<WorkspaceRow, AppError> {
+        let root_path = "a2ui://managed-results";
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        connection.execute(
+            "INSERT INTO workspaces(id, name, root_path, kind)
+             VALUES (?1, '我的成果', ?2, 'standalone')
+             ON CONFLICT(id) DO UPDATE SET name = excluded.name",
+            params![workspace_id, root_path],
+        )?;
+        Ok(WorkspaceRow {
+            id: workspace_id.to_string(),
+            name: "我的成果".to_string(),
+            root_path: root_path.to_string(),
+            kind: "standalone".to_string(),
+        })
+    }
+
     pub fn attach_workspace_file(
         &self,
         workspace_id: &str,
@@ -1014,6 +1067,7 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         let mut statement = connection.prepare(
             "SELECT id, name, root_path, kind FROM workspaces
+             WHERE root_path <> 'a2ui://managed-results'
              ORDER BY updated_at DESC LIMIT ?1",
         )?;
         let rows = statement.query_map([limit.min(20) as i64], |row| {
@@ -1556,6 +1610,45 @@ impl Storage {
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
+    pub fn delete_a2ui_surface(
+        &self,
+        workspace_id: &str,
+        surface_id: &str,
+    ) -> Result<bool, AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction()?;
+        let surface_row_id: Option<String> = transaction
+            .query_row(
+                "SELECT id FROM a2ui_surfaces WHERE workspace_id = ?1 AND surface_id = ?2",
+                params![workspace_id, surface_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let Some(surface_row_id) = surface_row_id else {
+            return Ok(false);
+        };
+        transaction.execute(
+            "DELETE FROM results
+             WHERE workspace_id = ?1
+               AND (a2ui_surface_row_id = ?2
+                    OR (source_kind = 'a2ui_surface' AND source_ref = ?3))",
+            params![workspace_id, surface_row_id, surface_id],
+        )?;
+        transaction.execute(
+            "DELETE FROM a2ui_messages WHERE workspace_id = ?1 AND surface_id = ?2",
+            params![workspace_id, surface_id],
+        )?;
+        let deleted = transaction.execute(
+            "DELETE FROM a2ui_surfaces WHERE id = ?1 AND workspace_id = ?2",
+            params![surface_row_id, workspace_id],
+        )?;
+        transaction.commit()?;
+        Ok(deleted == 1)
+    }
+
     pub fn results(
         &self,
         workspace_id: Option<&str>,
@@ -1601,6 +1694,235 @@ impl Storage {
                 result_from_row,
             )
             .optional()?)
+    }
+
+    pub fn result_source(&self, result_id: &str) -> Result<Option<ResultSourceRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
+                        r.storage_kind, r.storage_ref, r.current_revision_id,
+                        r.active_session_id,
+                        CASE WHEN r.source_kind = 'a2ui_surface' THEN r.source_ref END,
+                        r.created_at, r.updated_at, r.completed_at, r.managed_state_json,
+                        r.source_kind, r.source_ref
+                 FROM results r WHERE r.id = ?1",
+                [result_id],
+                result_source_from_row,
+            )
+            .optional()?)
+    }
+
+    pub fn create_managed_text_result(
+        &self,
+        input: NewManagedResultRow<'_>,
+    ) -> Result<ResultRow, AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        transaction.execute(
+            "INSERT INTO document_versions
+                (id, workspace_id, relative_path, content, content_hash, expires_at,
+                 version_kind, source, summary)
+             VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', '+30 days'),
+                     'snapshot', 'initial', '创建成果')",
+            params![
+                input.revision_id,
+                input.workspace_id,
+                input.source_ref,
+                input.content.as_bytes(),
+                input.content_hash,
+            ],
+        )?;
+        transaction.execute(
+            "INSERT INTO results
+                (id, workspace_id, result_type, title, status, storage_kind,
+                 storage_ref, source_kind, source_ref, current_revision_id,
+                 managed_state_json)
+             VALUES (?1, ?2, 'document', ?3, 'draft', 'managed_local',
+                     ?4, 'managed_local', ?5, ?6, ?7)",
+            params![
+                input.result_id,
+                input.workspace_id,
+                input.title,
+                input.storage_ref,
+                input.source_ref,
+                input.revision_id,
+                input.managed_state_json,
+            ],
+        )?;
+        let row = transaction.query_row(
+            "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
+                    r.storage_kind, r.storage_ref, r.current_revision_id,
+                    r.active_session_id, NULL, r.created_at, r.updated_at,
+                    r.completed_at, r.managed_state_json
+             FROM results r WHERE r.id = ?1",
+            [input.result_id],
+            result_from_row,
+        )?;
+        transaction.commit()?;
+        Ok(row)
+    }
+
+    pub fn ensure_managed_result_initial_revision(
+        &self,
+        result_id: &str,
+        workspace_id: &str,
+        source_ref: &str,
+        revision_id: &str,
+        content: &str,
+        content_hash: &str,
+    ) -> Result<(), AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let matches = transaction.query_row(
+            "SELECT COUNT(*) FROM results
+             WHERE id = ?1 AND workspace_id = ?2 AND source_kind = 'managed_local'
+               AND source_ref = ?3 AND result_type = 'document'",
+            params![result_id, workspace_id, source_ref],
+            |row| row.get::<_, i64>(0),
+        )?;
+        if matches != 1 {
+            return Err(AppError::InvalidInput("成果不是可编辑的托管文档".into()));
+        }
+        let existing: Option<String> = transaction
+            .query_row(
+                "SELECT id FROM document_versions
+                 WHERE workspace_id = ?1 AND relative_path = ?2 AND content_hash = ?3
+                 ORDER BY created_at DESC, id DESC LIMIT 1",
+                params![workspace_id, source_ref, content_hash],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let stable_revision_id = if let Some(existing) = existing {
+            existing
+        } else {
+            transaction.execute(
+                "INSERT INTO document_versions
+                    (id, workspace_id, relative_path, content, content_hash, expires_at,
+                     version_kind, source, summary)
+                 VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', '+30 days'),
+                         'snapshot', 'initial', '补录托管成果初始版本')",
+                params![
+                    revision_id,
+                    workspace_id,
+                    source_ref,
+                    content.as_bytes(),
+                    content_hash,
+                ],
+            )?;
+            revision_id.to_string()
+        };
+        transaction.execute(
+            "UPDATE results SET current_revision_id = ?2, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?1 AND current_revision_id IS NULL",
+            params![result_id, stable_revision_id],
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn record_managed_result_save_versions(
+        &self,
+        result_id: &str,
+        workspace_id: &str,
+        source_ref: &str,
+        before: &str,
+        before_hash: &str,
+        after: &str,
+        after_hash: &str,
+        source: &str,
+        summary: &str,
+    ) -> Result<Option<String>, AppError> {
+        if before_hash == after_hash {
+            return Ok(None);
+        }
+        if !matches!(source, "autosave" | "restore") {
+            return Err(AppError::InvalidInput("成果版本来源无效".into()));
+        }
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let matches = transaction.query_row(
+            "SELECT COUNT(*) FROM results
+             WHERE id = ?1 AND workspace_id = ?2 AND source_kind = 'managed_local'
+               AND source_ref = ?3 AND result_type = 'document'",
+            params![result_id, workspace_id, source_ref],
+            |row| row.get::<_, i64>(0),
+        )?;
+        if matches != 1 {
+            return Err(AppError::InvalidInput("成果不是可编辑的托管文档".into()));
+        }
+        let before_exists = transaction
+            .query_row(
+                "SELECT 1 FROM document_versions
+                 WHERE workspace_id = ?1 AND relative_path = ?2 AND content_hash = ?3 LIMIT 1",
+                params![workspace_id, source_ref, before_hash],
+                |_| Ok(true),
+            )
+            .optional()?
+            .unwrap_or(false);
+        if !before_exists {
+            transaction.execute(
+                "INSERT INTO document_versions
+                    (id, workspace_id, relative_path, content, content_hash, expires_at,
+                     version_kind, source, summary)
+                 VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', '+30 days'),
+                         'snapshot', 'initial', '首次记录的成果版本')",
+                params![
+                    uuid::Uuid::new_v4().to_string(),
+                    workspace_id,
+                    source_ref,
+                    before.as_bytes(),
+                    before_hash,
+                ],
+            )?;
+        }
+        let revision_id = uuid::Uuid::new_v4().to_string();
+        transaction.execute(
+            "INSERT INTO document_versions
+                (id, workspace_id, relative_path, content, content_hash, expires_at,
+                 version_kind, source, summary)
+             VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', '+30 days'),
+                     'snapshot', ?6, ?7)",
+            params![
+                revision_id,
+                workspace_id,
+                source_ref,
+                after.as_bytes(),
+                after_hash,
+                source,
+                summary,
+            ],
+        )?;
+        transaction.execute(
+            "UPDATE results SET current_revision_id = ?2, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?1",
+            params![result_id, revision_id],
+        )?;
+        transaction.execute(
+            "DELETE FROM document_versions
+             WHERE id IN (
+                 SELECT id FROM document_versions
+                 WHERE workspace_id = ?1 AND relative_path = ?2
+                   AND source IN ('initial', 'autosave', 'restore')
+                 ORDER BY created_at DESC, id DESC LIMIT -1 OFFSET 100
+             )",
+            params![workspace_id, source_ref],
+        )?;
+        transaction.commit()?;
+        Ok(Some(revision_id))
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1874,11 +2196,26 @@ impl Storage {
             ));
         }
         transaction.execute(
+            "INSERT INTO document_versions
+                (id, workspace_id, relative_path, content, content_hash, expires_at,
+                 version_kind, source, summary)
+             VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', '+30 days'),
+                     'snapshot', 'initial', '创建本地任务草稿')",
+            params![
+                input.revision_id,
+                input.workspace_id,
+                input.source_ref,
+                input.content.as_bytes(),
+                input.content_hash,
+            ],
+        )?;
+        transaction.execute(
             "INSERT INTO results
                 (id, workspace_id, task_id, result_type, title, status, storage_kind,
-                 storage_ref, source_kind, source_ref, managed_state_json)
+                 storage_ref, source_kind, source_ref, current_revision_id,
+                 managed_state_json)
              VALUES (?1, ?2, ?3, 'document', ?4, 'draft', 'managed_local',
-                     ?5, 'managed_local', ?6, ?7)",
+                     ?5, 'managed_local', ?6, ?7, ?8)",
             params![
                 input.result_id,
                 input.workspace_id,
@@ -1886,6 +2223,7 @@ impl Storage {
                 input.title,
                 input.storage_ref,
                 input.source_ref,
+                input.revision_id,
                 input.managed_state_json,
             ],
         )?;
@@ -2626,6 +2964,116 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(detail.managed_state.unwrap()["safe"], true);
+    }
+
+    #[test]
+    fn deleting_a2ui_surface_is_workspace_scoped_and_removes_its_full_history() {
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace_a = storage
+            .upsert_workspace("workspace-delete-a", "Delete A", "C:\\delete-a")
+            .unwrap();
+        let workspace_b = storage
+            .upsert_workspace("workspace-delete-b", "Delete B", "C:\\delete-b")
+            .unwrap();
+        let session_a = storage
+            .create_session(
+                &workspace_a.id,
+                "550e8400-e29b-41d4-a716-446655440060",
+                "Surface A",
+            )
+            .unwrap();
+        let session_b = storage
+            .create_session(
+                &workspace_b.id,
+                "550e8400-e29b-41d4-a716-446655440061",
+                "Surface B",
+            )
+            .unwrap();
+        let state_json = r#"{"surfaceId":"shared-surface","revision":1,"root":{"id":"root","component":"Text","text":"safe"},"data":{}}"#;
+        let validation_json = r#"{"valid":true,"errors":[],"warnings":[],"durationMs":1}"#;
+        storage
+            .save_a2ui_surface(
+                "surface-row-a",
+                "shared-surface",
+                &workspace_a.id,
+                &session_a.id,
+                "message-a",
+                1,
+                state_json,
+                "{}",
+                validation_json,
+                "inspection-a",
+                1,
+            )
+            .unwrap();
+        storage
+            .save_a2ui_surface(
+                "surface-row-b",
+                "shared-surface",
+                &workspace_b.id,
+                &session_b.id,
+                "message-b",
+                1,
+                state_json,
+                "{}",
+                validation_json,
+                "inspection-b",
+                1,
+            )
+            .unwrap();
+        storage
+            .ensure_surface_result(
+                "550e8400-e29b-41d4-a716-446655440062",
+                "surface-row-a",
+                &workspace_a.id,
+                "shared-surface",
+                &session_a.id,
+                "Surface A",
+                state_json,
+            )
+            .unwrap();
+        storage
+            .record_a2ui_action(
+                "surface-row-a",
+                None,
+                "event-a",
+                "root",
+                "click",
+                "set_state",
+                "low",
+                "allowed",
+                "{}",
+                1,
+            )
+            .unwrap();
+
+        assert!(!storage
+            .delete_a2ui_surface(&workspace_b.id, "missing-surface")
+            .unwrap());
+        assert!(storage
+            .delete_a2ui_surface(&workspace_a.id, "shared-surface")
+            .unwrap());
+        assert!(storage
+            .a2ui_surface(&workspace_a.id, "shared-surface")
+            .unwrap()
+            .is_none());
+        assert!(storage
+            .a2ui_inspections(&workspace_a.id)
+            .unwrap()
+            .is_empty());
+        assert!(storage.a2ui_events("surface-row-a").unwrap().is_empty());
+        assert!(storage
+            .result("550e8400-e29b-41d4-a716-446655440062")
+            .unwrap()
+            .is_none());
+        assert!(storage
+            .a2ui_surface(&workspace_b.id, "shared-surface")
+            .unwrap()
+            .is_some());
+        assert_eq!(storage.a2ui_inspections(&workspace_b.id).unwrap().len(), 1);
+        assert!(!storage
+            .delete_a2ui_surface(&workspace_a.id, "shared-surface")
+            .unwrap());
     }
 
     #[test]

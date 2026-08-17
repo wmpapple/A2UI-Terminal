@@ -9,6 +9,8 @@ import type {
   PatchApplication,
   PatchReview,
   ResultDetail,
+  ResultDocument,
+  ResultRevision,
   ResultSummary,
   TaskDetail,
   TaskRunResult,
@@ -115,6 +117,27 @@ export const isResultDetail = (value: unknown): value is ResultDetail =>
   value.storageRef.startsWith('result://') &&
   isNullableString(value.activeSessionId) &&
   (value.managedState === null || isObject(value.managedState));
+
+export const isResultDocument = (value: unknown): value is ResultDocument =>
+  isObject(value) &&
+  isResultDetail(value.result) &&
+  isString(value.format) &&
+  new Set(['markdown', 'plain_text']).has(value.format) &&
+  isString(value.content) &&
+  isString(value.contentHash) &&
+  isNumber(value.sizeBytes) &&
+  isBoolean(value.editable);
+
+export const isResultRevision = (value: unknown): value is ResultRevision =>
+  isObject(value) &&
+  isString(value.id) &&
+  isString(value.contentHash) &&
+  isString(value.source) &&
+  versionSources.has(value.source) &&
+  isNullableString(value.summary) &&
+  isString(value.createdAt) &&
+  isBoolean(value.isCurrent) &&
+  isString(value.content);
 
 const isTemplateField = (value: unknown): boolean =>
   isObject(value) &&

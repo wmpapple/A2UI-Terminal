@@ -6,7 +6,9 @@ use crate::error::AppError;
 use crate::repository::task::TaskRepository;
 use crate::storage::{ManagedTaskResultRow, Storage};
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::Path;
@@ -113,6 +115,12 @@ pub fn start(
     fs::create_dir_all(managed_results_dir)?;
     let title = result_title(&template, &task.input_answers);
     let content = scaffold_markdown(&title, &template, &task.input_answers);
+    let digest = Sha256::digest(content.as_bytes());
+    let mut content_hash = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        write!(&mut content_hash, "{byte:02x}").expect("writing to a String cannot fail");
+    }
+    let revision_id = Uuid::new_v4().to_string();
     let storage_ref = format!("result://file/{result_id}");
     let managed_state = serde_json::to_string(&json!({
         "format": "markdown",
@@ -141,6 +149,9 @@ pub fn start(
         storage_ref: &storage_ref,
         source_ref: &file_name,
         managed_state_json: &managed_state,
+        revision_id: &revision_id,
+        content: &content,
+        content_hash: &content_hash,
     }) {
         Ok(result) => result,
         Err(error) => {
@@ -271,6 +282,7 @@ mod tests {
                 crate::domain::result::ResultStatus::Draft
             );
             assert_eq!(run.output_mode, "local_scaffold");
+            assert!(run.result.summary.current_revision_id.is_some());
             assert!(output
                 .path()
                 .join(format!("{}.md", run.result.summary.id))

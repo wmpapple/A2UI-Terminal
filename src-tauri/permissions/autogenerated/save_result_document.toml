@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-result-document"
+description = "Enables the save_result_document command without any pre-configured scope."
+commands.allow = ["save_result_document"]
+
+[[permission]]
+identifier = "deny-save-result-document"
+description = "Denies the save_result_document command without any pre-configured scope."
+commands.deny = ["save_result_document"]

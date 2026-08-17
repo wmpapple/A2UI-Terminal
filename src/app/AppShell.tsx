@@ -9,8 +9,13 @@ import {
 import { Button, ConfigProvider, Dropdown, Tag } from 'antd';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ChatPanel } from '../features/chat/components/ChatPanel';
+import { HomePage } from '../features/home/components/HomePage';
+import { OnboardingDialog } from '../features/home/components/OnboardingDialog';
 import { scheduleAutomaticUpdateCheck } from '../features/settings/appUpdater';
 import { ProviderSettings } from '../features/settings/components/ProviderSettings';
+import { ResultsPage } from '../features/results/components/ResultsPage';
+import { ResultAssistantPanel } from '../features/results/components/ResultAssistantPanel';
+import { ResultWorkbench } from '../features/results/components/ResultWorkbench';
 import { EditorPane } from '../features/workspace/components/EditorPane';
 import { WorkspaceSidebar } from '../features/workspace/components/WorkspaceSidebar';
 import { getRuntimeMode } from '../shared/platform/runtime';
@@ -19,6 +24,7 @@ import { useI18n } from './i18n/useI18n';
 import styles from './AppShell.module.css';
 import { SettingsPage } from './SettingsPage';
 import { ShellPage } from './ShellPage';
+import { readOnboardingComplete, writeOnboardingComplete } from './onboardingPreferences';
 import {
   navigateTo,
   readExperienceMode,
@@ -35,8 +41,10 @@ export function AppShell() {
   const initializeWorkspace = useAppStore((state) => state.initializeWorkspace);
   const initializeProviders = useAppStore((state) => state.initializeProviders);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(() => !readOnboardingComplete());
   const [experienceMode, setExperienceMode] = useState(readExperienceMode);
   const [route, setRoute] = useState(() => routeFromHash(window.location.hash));
+  const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const professional = experienceMode === 'professional';
 
   useEffect(() => {
@@ -63,6 +71,13 @@ export function AppShell() {
     navigateTo(nextRoute);
   };
 
+  const openWorkbench = (resultId?: string) => {
+    setActiveResultId(resultId ?? null);
+    openRoute('workbench');
+  };
+
+  const openResult = (resultId: string) => openWorkbench(resultId);
+
   const navigationItems: Array<{
     route: AppRoute;
     label: ReturnType<typeof t>;
@@ -76,12 +91,24 @@ export function AppShell() {
   ];
 
   const content =
-    route === 'workbench' ? (
+    route === 'home' ? (
+      <HomePage onOpenWorkbench={openWorkbench} onOpenGuide={() => setOnboardingOpen(true)} />
+    ) : route === 'results' ? (
+      <ResultsPage onOpenResult={openResult} />
+    ) : route === 'workbench' ? (
       <WorkspaceLayout
         showLeftPanel={professional}
         left={<WorkspaceSidebar />}
-        center={<EditorPane showInspector={professional} showSimpleFileActions={!professional} />}
-        right={<ChatPanel professionalTools={professional} />}
+        center={
+          activeResultId ? (
+            <ResultWorkbench resultId={activeResultId} onDuplicated={openResult} />
+          ) : (
+            <EditorPane showInspector={professional} showSimpleFileActions={!professional} />
+          )
+        }
+        right={
+          activeResultId ? <ResultAssistantPanel /> : <ChatPanel professionalTools={professional} />
+        }
       />
     ) : route === 'settings' ? (
       <SettingsPage
@@ -90,8 +117,14 @@ export function AppShell() {
         onOpenProviderSettings={() => setSettingsOpen(true)}
       />
     ) : (
-      <ShellPage route={route} onOpenWorkbench={() => openRoute('workbench')} />
+      <ShellPage route={route} onOpenWorkbench={() => openWorkbench()} />
     );
+
+  const completeOnboarding = () => {
+    writeOnboardingComplete();
+    setOnboardingOpen(false);
+    openRoute('home');
+  };
 
   return (
     <ConfigProvider
@@ -153,6 +186,11 @@ export function AppShell() {
           open={professional && settingsOpen}
           includeSystemSettings={false}
           onClose={() => setSettingsOpen(false)}
+        />
+        <OnboardingDialog
+          open={onboardingOpen}
+          onFinish={completeOnboarding}
+          onSkip={completeOnboarding}
         />
       </div>
     </ConfigProvider>

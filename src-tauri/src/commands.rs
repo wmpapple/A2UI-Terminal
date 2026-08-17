@@ -603,6 +603,15 @@ pub fn list_a2ui_inspections(
 }
 
 #[tauri::command]
+pub fn delete_a2ui_surface(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    surface_id: String,
+) -> Result<bool, AppError> {
+    adapters::delete_surface(&state.storage, &workspace_id, &surface_id)
+}
+
+#[tauri::command]
 pub fn execute_a2ui_action(
     state: State<'_, AppState>,
     request: ExecuteActionRequest,
@@ -640,6 +649,76 @@ pub fn list_results(
 #[tauri::command]
 pub fn get_result(state: State<'_, AppState>, result_id: String) -> Result<ResultDetail, AppError> {
     crate::application::result::get(&state.storage, &result_id)
+}
+
+#[tauri::command]
+pub fn create_text_result(
+    state: State<'_, AppState>,
+    input: crate::domain::result::CreateTextResultInput,
+) -> Result<crate::domain::result::ResultDocument, AppError> {
+    crate::application::result::create_text(&state.storage, &state.managed_results_dir, input)
+}
+
+#[tauri::command]
+pub fn read_result_document(
+    state: State<'_, AppState>,
+    result_id: String,
+) -> Result<crate::domain::result::ResultDocument, AppError> {
+    crate::application::result::read_document(
+        &state.storage,
+        &state.managed_results_dir,
+        &result_id,
+    )
+}
+
+#[tauri::command]
+pub fn save_result_document(
+    state: State<'_, AppState>,
+    input: crate::domain::result::SaveResultDocumentInput,
+) -> Result<crate::domain::result::ResultDocument, AppError> {
+    crate::application::result::save_document(&state.storage, &state.managed_results_dir, input)
+}
+
+#[tauri::command]
+pub fn list_result_revisions(
+    state: State<'_, AppState>,
+    result_id: String,
+) -> Result<Vec<crate::domain::result::ResultRevisionSummary>, AppError> {
+    crate::application::result::list_revisions(
+        &state.storage,
+        &state.managed_results_dir,
+        &result_id,
+    )
+}
+
+#[tauri::command]
+pub fn read_result_revision(
+    state: State<'_, AppState>,
+    result_id: String,
+    revision_id: String,
+) -> Result<crate::domain::result::ResultRevision, AppError> {
+    crate::application::result::read_revision(
+        &state.storage,
+        &state.managed_results_dir,
+        &result_id,
+        &revision_id,
+    )
+}
+
+#[tauri::command]
+pub fn restore_result_revision(
+    state: State<'_, AppState>,
+    input: crate::domain::result::RestoreResultRevisionInput,
+) -> Result<crate::domain::result::ResultDocument, AppError> {
+    crate::application::result::restore_revision(&state.storage, &state.managed_results_dir, input)
+}
+
+#[tauri::command]
+pub fn duplicate_result(
+    state: State<'_, AppState>,
+    result_id: String,
+) -> Result<crate::domain::result::ResultDocument, AppError> {
+    crate::application::result::duplicate(&state.storage, &state.managed_results_dir, &result_id)
 }
 
 #[tauri::command]

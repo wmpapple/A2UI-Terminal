@@ -1,0 +1,63 @@
+.page {
+  flex: 1;
+  min-height: 0;
+  padding: 32px clamp(20px, 4vw, 56px);
+  overflow: auto;
+  background: var(--canvas);
+}
+
+.content {
+  width: min(1060px, 100%);
+  margin: 0 auto;
+}
+
+.header,
+.card,
+.meta {
+  display: flex;
+  align-items: center;
+}
+
+.header {
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  margin: 0;
+  color: var(--text-strong);
+}
+
+.header p {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 12px;
+}
+
+.card strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-strong);
+}
+
+.meta {
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}

@@ -3,6 +3,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub enum TextResultFormat {
+    Markdown,
+    PlainText,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ResultType {
     Document,
     Spreadsheet,
@@ -58,6 +65,60 @@ pub struct ResultDetail {
     pub managed_state: Option<serde_json::Value>,
 }
 
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateTextResultInput {
+    pub title: String,
+    pub file_name: String,
+    pub format: TextResultFormat,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SaveResultDocumentInput {
+    pub result_id: String,
+    pub content: String,
+    pub base_hash: String,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RestoreResultRevisionInput {
+    pub result_id: String,
+    pub revision_id: String,
+    pub base_hash: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ResultDocument {
+    pub result: ResultDetail,
+    pub format: TextResultFormat,
+    pub content: String,
+    pub content_hash: String,
+    pub size_bytes: u64,
+    pub editable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ResultRevisionSummary {
+    pub id: String,
+    pub content_hash: String,
+    pub source: String,
+    pub summary: Option<String>,
+    pub created_at: String,
+    pub is_current: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ResultRevision {
+    #[serde(flatten)]
+    pub summary: ResultRevisionSummary,
+    pub content: String,
+}
+
 impl ResultStatus {
     pub fn can_transition_to(self, next: Self) -> bool {
         use ResultStatus::{Archived, Draft, Exporting, Failed, Generating, Ready, ReviewPending};
@@ -90,7 +151,7 @@ pub fn validate_title(title: &str) -> Result<&str, AppError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{validate_title, ResultStatus};
+    use super::{validate_title, CreateTextResultInput, ResultStatus, TextResultFormat};
 
     #[test]
     fn result_status_machine_allows_recovery_but_rejects_invalid_shortcuts() {
@@ -106,5 +167,17 @@ mod tests {
         assert_eq!(validate_title("  会议纪要  ").unwrap(), "会议纪要");
         assert!(validate_title("").is_err());
         assert!(validate_title(&"x".repeat(161)).is_err());
+    }
+
+    #[test]
+    fn create_input_rejects_unknown_fields() {
+        let parsed = serde_json::from_value::<CreateTextResultInput>(serde_json::json!({
+            "title": "记录",
+            "fileName": "记录.md",
+            "format": "markdown",
+            "absolutePath": "C:\\\\secret.md"
+        }));
+        assert!(parsed.is_err());
+        assert_eq!(TextResultFormat::PlainText, TextResultFormat::PlainText);
     }
 }

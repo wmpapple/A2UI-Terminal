@@ -6,6 +6,7 @@ export type ResultType = 'document' | 'spreadsheet' | 'checklist' | 'form' | 'to
 export type ResultStatus =
   'draft' | 'generating' | 'review_pending' | 'ready' | 'exporting' | 'failed' | 'archived';
 export type ResultStorageKind = 'workspace_file' | 'standalone_file' | 'managed_local';
+export type TextResultFormat = 'markdown' | 'plain_text';
 export type TaskKind = 'write' | 'modify' | 'organize' | 'analyze';
 export type TaskStatus =
   | 'draft'
@@ -90,6 +91,34 @@ export interface ResultDetail extends ResultSummary {
   storageRef: string;
   activeSessionId: string | null;
   managedState: Record<string, unknown> | null;
+}
+
+export interface CreateTextResultInput {
+  title: string;
+  fileName: string;
+  format: TextResultFormat;
+}
+
+export interface ResultDocument {
+  result: ResultDetail;
+  format: TextResultFormat;
+  content: string;
+  contentHash: string;
+  sizeBytes: number;
+  editable: boolean;
+}
+
+export interface ResultRevisionSummary {
+  id: string;
+  contentHash: string;
+  source: 'legacy' | 'initial' | 'autosave' | 'patch' | 'restore';
+  summary: string | null;
+  createdAt: string;
+  isCurrent: boolean;
+}
+
+export interface ResultRevision extends ResultRevisionSummary {
+  content: string;
 }
 
 export interface WorkspaceFile {

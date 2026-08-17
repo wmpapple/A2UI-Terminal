@@ -1,0 +1,56 @@
+.stepBody {
+  min-height: 300px;
+  padding-top: 24px;
+}
+
+.intro {
+  margin: 0 0 18px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.goalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.goalOption {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.privacyCard {
+  padding: 18px;
+  border: 1px solid var(--border);
+  background: var(--panel-subtle);
+  border-radius: 14px;
+}
+
+.privacyList {
+  margin: 0 0 18px;
+  padding-left: 20px;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footerActions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .goalGrid {
+    grid-template-columns: 1fr;
+  }
+}

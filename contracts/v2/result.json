@@ -6,7 +6,7 @@
     "title": "会议纪要",
     "status": "ready",
     "storageKind": "managed_local",
-    "currentRevisionId": null,
+    "currentRevisionId": "550e8400-e29b-41d4-a716-446655440021",
     "a2uiSurfaceId": null,
     "createdAt": "2026-08-13 13:00:00",
     "updatedAt": "2026-08-13 13:00:00",
@@ -19,13 +19,49 @@
     "title": "会议纪要",
     "status": "ready",
     "storageKind": "managed_local",
-    "currentRevisionId": null,
+    "currentRevisionId": "550e8400-e29b-41d4-a716-446655440021",
     "a2uiSurfaceId": null,
     "createdAt": "2026-08-13 13:00:00",
     "updatedAt": "2026-08-13 13:00:00",
     "completedAt": null,
     "storageRef": "result://file/550e8400-e29b-41d4-a716-446655440020",
     "activeSessionId": null,
-    "managedState": null
+    "managedState": {
+      "format": "markdown"
+    }
+  },
+  "document": {
+    "result": {
+      "id": "550e8400-e29b-41d4-a716-446655440020",
+      "workspaceId": "550e8400-e29b-41d4-a716-446655440000",
+      "type": "document",
+      "title": "会议纪要",
+      "status": "ready",
+      "storageKind": "managed_local",
+      "currentRevisionId": "550e8400-e29b-41d4-a716-446655440021",
+      "a2uiSurfaceId": null,
+      "createdAt": "2026-08-13 13:00:00",
+      "updatedAt": "2026-08-13 13:00:00",
+      "completedAt": null,
+      "storageRef": "result://file/550e8400-e29b-41d4-a716-446655440020",
+      "activeSessionId": null,
+      "managedState": {
+        "format": "markdown"
+      }
+    },
+    "format": "markdown",
+    "content": "# 会议纪要\n\n",
+    "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sizeBytes": 18,
+    "editable": true
+  },
+  "revision": {
+    "id": "550e8400-e29b-41d4-a716-446655440021",
+    "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source": "initial",
+    "summary": "创建成果",
+    "createdAt": "2026-08-13 13:00:00",
+    "isCurrent": true,
+    "content": "# 会议纪要\n\n"
   }
 }

@@ -7,6 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 const openProfessionalWorkbench = async (page: import('@playwright/test').Page) => {
+  await skipOnboarding(page);
   const navigation = page.getByRole('navigation', { name: '主导航' });
   await navigation.getByRole('button', { name: /设置$/ }).click();
   await page.getByText('专业模式', { exact: true }).click();
@@ -14,8 +15,42 @@ const openProfessionalWorkbench = async (page: import('@playwright/test').Page) 
   await expect(page.getByTestId('workspace-layout')).toBeVisible();
 };
 
+const skipOnboarding = async (page: import('@playwright/test').Page) => {
+  const skip = page.getByRole('button', { name: '跳过引导' });
+  if (await skip.isVisible()) await skip.click();
+};
+
+test('completes the first-run guide and creates a local Result scaffold from Home', async ({
+  page,
+}) => {
+  const onboarding = page.getByRole('dialog', { name: '欢迎使用 A2UI 工作台' });
+  await expect(onboarding).toBeVisible();
+  await onboarding.getByRole('radio', { name: '整理一组资料' }).click();
+  await onboarding.getByRole('button', { name: '下一步', exact: true }).click();
+  await expect(onboarding.getByText(/已准备 4 项资料/)).toBeVisible();
+  await onboarding.getByRole('button', { name: '下一步', exact: true }).click();
+  await expect(onboarding.getByText(/匿名改进指标默认关闭/)).toBeVisible();
+  await onboarding.getByRole('checkbox').check();
+  await onboarding.getByRole('button', { name: '完成并进入首页' }).click();
+
+  await expect(page.getByRole('heading', { name: '今天想完成什么？' })).toBeVisible();
+  await expect(page.getByText('A2UI 调研纪要')).toBeVisible();
+  await page.getByRole('button', { name: /整理一组资料/ }).click();
+
+  const taskDialog = page.getByRole('dialog', { name: '创建本地成果草稿' });
+  await expect(taskDialog.getByText(/尚未调用 AI 生成正文/)).toBeVisible();
+  await taskDialog.getByRole('button', { name: /会议纪要/ }).click();
+  await taskDialog.getByLabel('请提供会议主题').fill('产品例会');
+  await taskDialog.getByRole('button', { name: '创建结构草稿' }).click();
+  await expect(taskDialog.getByText('本地结构草稿已创建')).toBeVisible();
+  await expect(taskDialog.getByText('会议纪要 - 产品例会')).toBeVisible();
+  await taskDialog.getByRole('button', { name: /去工作台继续/ }).click();
+  await expect(page).toHaveURL(/#\/workbench$/);
+});
+
 test('defaults to the simple navigation shell and persists professional mode', async ({ page }) => {
-  await expect(page.getByRole('heading', { name: '从成果开始' })).toBeVisible();
+  await skipOnboarding(page);
+  await expect(page.getByRole('heading', { name: '今天想完成什么？' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: '主导航' })).toBeVisible();
   await expect(page.getByRole('button', { name: '首页' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByText('简单模式', { exact: true })).toBeVisible();
@@ -89,6 +124,33 @@ test('completes context review and renders a trusted A2UI surface', async ({ pag
     .click();
   await expect(page.getByText('Research profile')).toBeVisible();
   await expect(page.getByText('协议 Inspector')).toHaveCount(0);
+
+  await page.getByRole('button', { name: '关闭' }).click();
+  await expect(page.getByRole('radio', { name: '编辑器' })).toBeChecked();
+  await expect(page.getByText('Research profile')).toHaveCount(0);
+
+  await page.getByText('交互成果', { exact: true }).click();
+  await expect(page.getByText('Research profile')).toBeVisible();
+
+  await page
+    .getByRole('button', { name: /永久删除/ })
+    .first()
+    .click();
+  const confirmation = page.getByText('永久删除当前交互成果？');
+  await expect(confirmation).toBeVisible();
+  await page.getByRole('button', { name: /取.*消/ }).click();
+  await expect(page.getByText('Research profile')).toBeVisible();
+
+  await page
+    .getByRole('button', { name: /永久删除/ })
+    .first()
+    .click();
+  await page
+    .getByRole('button', { name: /永久删除/ })
+    .last()
+    .click();
+  await expect(page.getByRole('radio', { name: '编辑器' })).toBeChecked();
+  await expect(page.getByText('Research profile')).toHaveCount(0);
 });
 
 test('keeps file changes behind review before applying the Web Mock patch', async ({ page }) => {
@@ -105,4 +167,37 @@ test('keeps file changes behind review before applying the Web Mock patch', asyn
   await page.getByRole('button', { name: /应用已选修改/ }).click();
   await expect(page.getByRole('radio', { name: '编辑器' })).toBeChecked();
   await expect(page.getByRole('button', { name: /撤销上次 Patch/ })).toBeVisible();
+});
+
+test('creates, saves, versions, copies, and reopens a text Result without chat', async ({
+  page,
+}) => {
+  await skipOnboarding(page);
+  await page.getByRole('button', { name: '新建文本成果' }).click();
+  const create = page.getByRole('dialog', { name: '新建文本成果' });
+  await create.getByLabel('成果标题').fill('S1.5 验收记录');
+  await create.getByLabel('本地文件名').fill('S1.5-验收记录.md');
+  await create.getByRole('button', { name: '创建并打开' }).click();
+
+  await expect(page).toHaveURL(/#\/workbench$/);
+  await expect(page.getByText('S1.5 验收记录', { exact: true })).toBeVisible();
+  await expect(page.getByText(/当前成果不会自动发送/)).toBeVisible();
+  const editor = page.getByRole('textbox', { name: '成果编辑器' });
+  await editor.fill('# S1.5 验收记录\n\n成果正文已保存。');
+  await expect(page.getByText('有未保存修改')).toBeVisible();
+  await expect(page.getByText('已保存', { exact: true })).toBeVisible({ timeout: 5000 });
+
+  await page.getByRole('button', { name: /历史版本/ }).click();
+  await expect(page.getByText('创建成果')).toBeVisible();
+  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: /另存副本/ }).click();
+  await expect(page.getByText('S1.5 验收记录 - 副本', { exact: true })).toBeVisible();
+
+  const navigation = page.getByRole('navigation', { name: '主导航' });
+  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await expect(page.getByText('S1.5 验收记录', { exact: true })).toBeVisible();
+  await expect(page.getByText('S1.5 验收记录 - 副本', { exact: true })).toBeVisible();
+  const original = page.getByRole('article').filter({ hasText: 'S1.5 验收记录' }).last();
+  await original.getByRole('button', { name: /继续处理/ }).click();
+  await expect(editor).toHaveValue('# S1.5 验收记录\n\n成果正文已保存。');
 });

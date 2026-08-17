@@ -1,6 +1,8 @@
 use a2ui_terminal_lib::a2ui::{A2uiProcessResult, SurfaceMessage};
 use a2ui_terminal_lib::commands::{ChatStreamEvent, ChatStreamResult};
-use a2ui_terminal_lib::domain::result::{ResultDetail, ResultSummary};
+use a2ui_terminal_lib::domain::result::{
+    ResultDetail, ResultDocument, ResultRevision, ResultSummary,
+};
 use a2ui_terminal_lib::domain::task::{TaskDetail, TaskRunResult, TaskTemplate};
 use a2ui_terminal_lib::error::{AppError, ProviderFailure};
 use a2ui_terminal_lib::patch::{DocumentPatch, PatchApplication, PatchReview};
@@ -60,6 +62,8 @@ fn rust_serde_matches_result_v2_fixture() {
     let result: Value = serde_json::from_str(RESULT_FIXTURE).unwrap();
     assert_round_trip::<ResultSummary>(&result["summary"]);
     assert_round_trip::<ResultDetail>(&result["detail"]);
+    assert_round_trip::<ResultDocument>(&result["document"]);
+    assert_round_trip::<ResultRevision>(&result["revision"]);
 }
 
 #[test]

@@ -21,6 +21,8 @@ import {
   isPatchReview,
   isWorkspaceDocument,
   isResultDetail,
+  isResultDocument,
+  isResultRevision,
   isResultSummary,
   isTaskDetail,
   isTaskRunResult,
@@ -53,6 +55,8 @@ describe('shared Rust/TypeScript contract fixtures', () => {
     expect(isAppErrorContract(error)).toBe(true);
     expect(isResultSummary(result.summary)).toBe(true);
     expect(isResultDetail(result.detail)).toBe(true);
+    expect(isResultDocument(result.document)).toBe(true);
+    expect(isResultRevision(result.revision)).toBe(true);
     expect(isTaskTemplate(task.template)).toBe(true);
     expect(isTaskDetail(task.task)).toBe(true);
     expect(isTaskRunResult(task.runResult)).toBe(true);

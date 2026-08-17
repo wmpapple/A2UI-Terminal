@@ -1,0 +1,54 @@
+.dropZone {
+  display: grid;
+  min-height: 150px;
+  padding: 24px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 55%, var(--panel));
+  border-radius: 16px;
+  text-align: center;
+  place-items: center;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    transform 120ms ease;
+}
+
+.dragging {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-2px);
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.icon {
+  color: var(--accent);
+  font-size: 28px;
+}
+
+.title {
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.description,
+.sourceSummary {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.sourceSummary {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.error {
+  margin-top: 10px;
+}

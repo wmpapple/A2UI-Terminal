@@ -29,6 +29,7 @@ beforeEach(() => {
 
 describe('desktop workspace state', () => {
   it('creates a standalone workspace for directly selected files', async () => {
+    useAppStore.setState({ centerView: 'surface' });
     const workspace = {
       id: 'standalone-1',
       name: '独立文件',
@@ -64,9 +65,11 @@ describe('desktop workspace state', () => {
     expect(useAppStore.getState().activePath).toBe('selected/file-1/notes.md');
     expect(useAppStore.getState().files[0].sourceId).toBe('file-1');
     expect(useAppStore.getState().workspaceEntries[0].name).toBe('notes.md');
+    expect(useAppStore.getState().centerView).toBe('editor');
   });
 
   it('holds a crash draft for confirmation without auto-saving it', async () => {
+    useAppStore.setState({ centerView: 'surface' });
     vi.mocked(desktopApi.listRecoveryDrafts).mockResolvedValue([
       {
         relativePath: 'src/main.ts',
@@ -115,6 +118,7 @@ describe('desktop workspace state', () => {
 
     await useAppStore.getState().restoreWorkspace('workspace-1');
     expect(useAppStore.getState().recoveryDraftSummaries).toHaveLength(1);
+    expect(useAppStore.getState().centerView).toBe('editor');
     await useAppStore.getState().openFile('src/main.ts');
 
     expect(useAppStore.getState().files[0]).toMatchObject({

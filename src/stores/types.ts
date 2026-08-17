@@ -111,6 +111,7 @@ export interface AppState {
   stopChat: () => Promise<void>;
   setActiveSurface: (surfaceId: string) => void;
   setActiveInspection: (inspectionId: string) => void;
+  deleteActiveA2uiSurface: (surfaceId?: string) => Promise<void>;
   executeA2uiAction: (componentId: string, eventName: string, payload: unknown) => Promise<void>;
 }
 

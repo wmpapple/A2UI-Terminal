@@ -71,4 +71,37 @@ describe('front-end application boundaries', () => {
     expect(preferences).not.toContain('platform/gateway');
     expect(preferences).not.toContain('platform/desktop');
   });
+
+  it('organizes the S1.4 home around Result and Task controllers rather than chat sessions', () => {
+    const homePage = sources['../features/home/components/HomePage.tsx'];
+    const homeStore = sources['../features/home/homeStore.ts'];
+    const homeController = sources['../features/home/homeController.ts'];
+
+    expect(homePage).toContain('useHomeStore');
+    expect(homePage).toContain('recentResults');
+    expect(homePage).not.toContain('sessions');
+    expect(homePage).not.toContain('sendChat');
+    expect(homeStore).toContain('homeController.createTask');
+    expect(homeStore).toContain('homeController.answerTask');
+    expect(homeStore).toContain('homeController.startTask');
+    expect(homeStore).not.toContain('platform/gateway');
+    expect(homeController).toContain('shared/platform/gateway');
+  });
+
+  it('keeps the S1.5 Result workbench behind its controller and separate from chat state', () => {
+    const resultStore = sources['../features/results/resultStore.ts'];
+    const resultController = sources['../features/results/resultController.ts'];
+    const resultWorkbench = sources['../features/results/components/ResultWorkbench.tsx'];
+    const resultAssistant = sources['../features/results/components/ResultAssistantPanel.tsx'];
+
+    expect(resultStore).toContain('resultController.create');
+    expect(resultStore).toContain('resultController.open');
+    expect(resultStore).toContain('resultController.save');
+    expect(resultStore).not.toContain('platform/gateway');
+    expect(resultStore).not.toContain('sessions');
+    expect(resultController).toContain('shared/platform/gateway');
+    expect(resultWorkbench).toContain('useResultStore');
+    expect(resultWorkbench).not.toContain('desktopApi');
+    expect(resultAssistant).toContain('resultAssistantContextNotice');
+  });
 });

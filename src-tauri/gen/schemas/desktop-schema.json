@@ -207,6 +207,18 @@
           "markdownDescription": "Enables the create_task command without any pre-configured scope."
         },
         {
+          "description": "Enables the create_text_result command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-text-result",
+          "markdownDescription": "Enables the create_text_result command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_a2ui_surface command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-a2ui-surface",
+          "markdownDescription": "Enables the delete_a2ui_surface command without any pre-configured scope."
+        },
+        {
           "description": "Enables the delete_provider_secret command without any pre-configured scope.",
           "type": "string",
           "const": "allow-delete-provider-secret",
@@ -217,6 +229,12 @@
           "type": "string",
           "const": "allow-discard-workspace-draft",
           "markdownDescription": "Enables the discard_workspace_draft command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the duplicate_result command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-duplicate-result",
+          "markdownDescription": "Enables the duplicate_result command without any pre-configured scope."
         },
         {
           "description": "Enables the execute_a2ui_action command without any pre-configured scope.",
@@ -291,6 +309,12 @@
           "markdownDescription": "Enables the list_recovery_drafts command without any pre-configured scope."
         },
         {
+          "description": "Enables the list_result_revisions command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-result-revisions",
+          "markdownDescription": "Enables the list_result_revisions command without any pre-configured scope."
+        },
+        {
           "description": "Enables the list_results command without any pre-configured scope.",
           "type": "string",
           "const": "allow-list-results",
@@ -327,6 +351,18 @@
           "markdownDescription": "Enables the read_document_version command without any pre-configured scope."
         },
         {
+          "description": "Enables the read_result_document command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-read-result-document",
+          "markdownDescription": "Enables the read_result_document command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the read_result_revision command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-read-result-revision",
+          "markdownDescription": "Enables the read_result_revision command without any pre-configured scope."
+        },
+        {
           "description": "Enables the read_workspace_file command without any pre-configured scope.",
           "type": "string",
           "const": "allow-read-workspace-file",
@@ -345,6 +381,12 @@
           "markdownDescription": "Enables the restore_document_version command without any pre-configured scope."
         },
         {
+          "description": "Enables the restore_result_revision command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-restore-result-revision",
+          "markdownDescription": "Enables the restore_result_revision command without any pre-configured scope."
+        },
+        {
           "description": "Enables the restore_workspace command without any pre-configured scope.",
           "type": "string",
           "const": "allow-restore-workspace",
@@ -361,6 +403,12 @@
           "type": "string",
           "const": "allow-save-provider-config",
           "markdownDescription": "Enables the save_provider_config command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_result_document command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-result-document",
+          "markdownDescription": "Enables the save_result_document command without any pre-configured scope."
         },
         {
           "description": "Enables the save_workspace_draft command without any pre-configured scope.",
@@ -465,6 +513,18 @@
           "markdownDescription": "Denies the create_task command without any pre-configured scope."
         },
         {
+          "description": "Denies the create_text_result command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-text-result",
+          "markdownDescription": "Denies the create_text_result command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_a2ui_surface command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-a2ui-surface",
+          "markdownDescription": "Denies the delete_a2ui_surface command without any pre-configured scope."
+        },
+        {
           "description": "Denies the delete_provider_secret command without any pre-configured scope.",
           "type": "string",
           "const": "deny-delete-provider-secret",
@@ -475,6 +535,12 @@
           "type": "string",
           "const": "deny-discard-workspace-draft",
           "markdownDescription": "Denies the discard_workspace_draft command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the duplicate_result command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-duplicate-result",
+          "markdownDescription": "Denies the duplicate_result command without any pre-configured scope."
         },
         {
           "description": "Denies the execute_a2ui_action command without any pre-configured scope.",
@@ -549,6 +615,12 @@
           "markdownDescription": "Denies the list_recovery_drafts command without any pre-configured scope."
         },
         {
+          "description": "Denies the list_result_revisions command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-result-revisions",
+          "markdownDescription": "Denies the list_result_revisions command without any pre-configured scope."
+        },
+        {
           "description": "Denies the list_results command without any pre-configured scope.",
           "type": "string",
           "const": "deny-list-results",
@@ -585,6 +657,18 @@
           "markdownDescription": "Denies the read_document_version command without any pre-configured scope."
         },
         {
+          "description": "Denies the read_result_document command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-read-result-document",
+          "markdownDescription": "Denies the read_result_document command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the read_result_revision command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-read-result-revision",
+          "markdownDescription": "Denies the read_result_revision command without any pre-configured scope."
+        },
+        {
           "description": "Denies the read_workspace_file command without any pre-configured scope.",
           "type": "string",
           "const": "deny-read-workspace-file",
@@ -603,6 +687,12 @@
           "markdownDescription": "Denies the restore_document_version command without any pre-configured scope."
         },
         {
+          "description": "Denies the restore_result_revision command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-restore-result-revision",
+          "markdownDescription": "Denies the restore_result_revision command without any pre-configured scope."
+        },
+        {
           "description": "Denies the restore_workspace command without any pre-configured scope.",
           "type": "string",
           "const": "deny-restore-workspace",
@@ -619,6 +709,12 @@
           "type": "string",
           "const": "deny-save-provider-config",
           "markdownDescription": "Denies the save_provider_config command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_result_document command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-result-document",
+          "markdownDescription": "Denies the save_result_document command without any pre-configured scope."
         },
         {
           "description": "Denies the save_workspace_draft command without any pre-configured scope.",

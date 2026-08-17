@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-duplicate-result"
+description = "Enables the duplicate_result command without any pre-configured scope."
+commands.allow = ["duplicate_result"]
+
+[[permission]]
+identifier = "deny-duplicate-result"
+description = "Denies the duplicate_result command without any pre-configured scope."
+commands.deny = ["duplicate_result"]

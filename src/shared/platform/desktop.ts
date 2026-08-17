@@ -21,7 +21,11 @@ import type {
   WorkspaceFileEntry,
   WorkspaceSummary,
   ResultDetail,
+  ResultDocument,
+  ResultRevision,
+  ResultRevisionSummary,
   ResultSummary,
+  CreateTextResultInput,
   TaskDetail,
   TaskRunResult,
   TaskTemplate,
@@ -93,6 +97,53 @@ export const desktopApi = {
   async getResult(resultId: string): Promise<ResultDetail> {
     requireDesktop();
     return invoke<ResultDetail>('get_result', { resultId });
+  },
+
+  async createTextResult(input: CreateTextResultInput): Promise<ResultDocument> {
+    requireDesktop();
+    return invoke<ResultDocument>('create_text_result', { input });
+  },
+
+  async readResultDocument(resultId: string): Promise<ResultDocument> {
+    requireDesktop();
+    return invoke<ResultDocument>('read_result_document', { resultId });
+  },
+
+  async saveResultDocument(
+    resultId: string,
+    content: string,
+    baseHash: string
+  ): Promise<ResultDocument> {
+    requireDesktop();
+    return invoke<ResultDocument>('save_result_document', {
+      input: { resultId, content, baseHash },
+    });
+  },
+
+  async listResultRevisions(resultId: string): Promise<ResultRevisionSummary[]> {
+    requireDesktop();
+    return invoke<ResultRevisionSummary[]>('list_result_revisions', { resultId });
+  },
+
+  async readResultRevision(resultId: string, revisionId: string): Promise<ResultRevision> {
+    requireDesktop();
+    return invoke<ResultRevision>('read_result_revision', { resultId, revisionId });
+  },
+
+  async restoreResultRevision(
+    resultId: string,
+    revisionId: string,
+    baseHash: string
+  ): Promise<ResultDocument> {
+    requireDesktop();
+    return invoke<ResultDocument>('restore_result_revision', {
+      input: { resultId, revisionId, baseHash },
+    });
+  },
+
+  async duplicateResult(resultId: string): Promise<ResultDocument> {
+    requireDesktop();
+    return invoke<ResultDocument>('duplicate_result', { resultId });
   },
 
   async listTaskTemplates(): Promise<TaskTemplate[]> {
@@ -354,6 +405,11 @@ export const desktopApi = {
   async listA2uiInspections(workspaceId: string): Promise<A2uiInspection[]> {
     requireDesktop();
     return invoke<A2uiInspection[]>('list_a2ui_inspections', { workspaceId });
+  },
+
+  async deleteA2uiSurface(workspaceId: string, surfaceId: string): Promise<boolean> {
+    requireDesktop();
+    return invoke<boolean>('delete_a2ui_surface', { workspaceId, surfaceId });
   },
 
   async executeA2uiAction(request: {

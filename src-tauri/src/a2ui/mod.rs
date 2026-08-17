@@ -242,6 +242,20 @@ pub fn list_inspections(
         .collect()
 }
 
+pub fn delete_surface(
+    storage: &Storage,
+    workspace_id: &str,
+    surface_id: &str,
+) -> Result<bool, AppError> {
+    if workspace_id.trim().is_empty() || workspace_id.chars().count() > 128 {
+        return Err(AppError::InvalidInput("工作区标识无效".into()));
+    }
+    if surface_id.trim().is_empty() || surface_id.chars().count() > 128 {
+        return Err(AppError::InvalidInput("Surface 标识无效".into()));
+    }
+    storage.delete_a2ui_surface(workspace_id, surface_id)
+}
+
 pub fn execute_action(
     storage: &Storage,
     request: ExecuteActionRequest,

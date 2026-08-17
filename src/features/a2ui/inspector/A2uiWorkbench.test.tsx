@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { I18nProvider } from '../../../app/i18n/I18nProvider';
 import { createMockA2ui } from '../../../shared/mock/workspace';
@@ -14,6 +14,8 @@ beforeEach(() => {
     activeInspectionId: mock.inspection.id,
     a2uiActionLoading: false,
     a2uiNotice: null,
+    centerView: 'surface',
+    runtimeMode: 'web-mock',
   });
 });
 
@@ -70,5 +72,42 @@ describe('A2uiWorkbench', () => {
     expect(screen.queryByText('协议 Inspector')).not.toBeInTheDocument();
     expect(screen.queryByText('Schema')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('协议消息')).not.toBeInTheDocument();
+  });
+
+  it('closes the current interaction result without deleting its history', () => {
+    render(
+      <I18nProvider>
+        <A2uiWorkbench showInspector={false} />
+      </I18nProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭' }));
+
+    expect(useAppStore.getState().centerView).toBe('editor');
+    expect(useAppStore.getState().a2uiSurfaces).toHaveLength(1);
+  });
+
+  it('requires confirmation before permanently deleting the current interaction result', async () => {
+    render(
+      <I18nProvider>
+        <A2uiWorkbench />
+      </I18nProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /永久删除/ }));
+    expect(screen.getByText('永久删除当前交互成果？')).toBeInTheDocument();
+    expect(screen.getByText(/此操作不可撤销/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Surface')).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: /取.*消/ }));
+    expect(useAppStore.getState().a2uiSurfaces).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /永久删除/ }));
+    const deleteButtons = screen.getAllByRole('button', { name: /永久删除/ });
+    fireEvent.click(deleteButtons.at(-1)!);
+
+    await waitFor(() => expect(useAppStore.getState().a2uiSurfaces).toHaveLength(0));
+    expect(useAppStore.getState().a2uiInspections).toHaveLength(0);
+    expect(useAppStore.getState().centerView).toBe('editor');
   });
 });

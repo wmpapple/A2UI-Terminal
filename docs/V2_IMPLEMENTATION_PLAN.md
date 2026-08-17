@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S1.3 已完成实现与自动验证，等待人工验收；尚未开始 S1.4**
+> 当前状态：**S1.5 大众版工作台外壳已完成实现与自动验证，等待用户人工验收；尚未开始 S2.1**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -216,7 +216,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S1.3 应用导航、默认简单模式与专业模式开关
 
-状态：`待人工验收`
+状态：`已完成`
 
 - 对应：WS-01、简单/专业模式、产品术语表。
 - 工作：首页/成果/模板/设置导航；专业模式偏好；保留 V1 文件树、会话、Inspector 和 Provider 参数。
@@ -224,7 +224,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S1.4 新手引导与首页
 
-状态：`待开始`
+状态：`已完成`
 
 - 对应：ONB-01、HOME-01/02。
 - 工作：三步引导、六类固定入口、统一拖入区、最近成果、可跳过逻辑。
@@ -233,7 +233,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S1.5 大众版工作台外壳
 
-状态：`待开始`
+状态：`待人工验收`
 
 - 对应：WS-01/02/04、EXP-03。
 - 工作：成果区 + AI 助手双栏；保存状态、版本、撤销、查看修改、导出入口；专业模式可展开文件树；首页/成果页提供用户主动新建文本成果入口，调用受控的 `create_text_result`，默认保存到“我的成果”。
@@ -426,23 +426,23 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 状态含义：`已有内核` 不等于 V2 产品验收通过。
 
-| 需求           | 实施步骤               | 当前基线                       | V2 验收状态 |
-| -------------- | ---------------------- | ------------------------------ | ----------- |
-| ONB-01         | S1.4                   | 无                             | 未开始      |
-| HOME-01/02     | S1.1、S1.4             | 只有会话/工作区                | 未开始      |
-| IMP-01/02      | S2.1、S2.2             | 文本/DOCX/PDF 部分支持         | 未开始      |
-| TASK-01/02     | S1.2                   | Task/内置模板基础已实现        | 已完成      |
-| WS-01/02/03/04 | S1.3、S1.5、S2.6、S2.7 | S1.3 双模式导航外壳待人工验收  | 部分完成    |
-| CTX-01/02/03   | S2.3                   | 显式上下文和敏感确认已有       | 未开始      |
-| CTX-05         | S2.4                   | 只有全文选择                   | 未开始      |
-| REV-01…04/06   | S2.5                   | document_patch 内核已有        | 未开始      |
-| OUT-01…04      | S2.7、S3.2…S3.4        | 文本+A2UI 内核                 | 未开始      |
-| EXP-01/02/03   | S2.8                   | 无成果导出                     | 未开始      |
-| RES-01         | S1.1                   | Result 基础聚合已实现          | 已完成      |
-| SEL-01         | S2.6                   | 只记录选区                     | 未开始      |
-| PRV-04         | S2.3/S4.2              | Provider 设置已有              | 未开始      |
-| ARC-03         | S0.4                   | 统一 compatible 传输层部分已有 | 未开始      |
-| A2UI-06        | S3.1                   | 私有 V1 测试已有               | 未开始      |
+| 需求           | 实施步骤               | 当前基线                         | V2 验收状态 |
+| -------------- | ---------------------- | -------------------------------- | ----------- |
+| ONB-01         | S1.4                   | 三步可跳过引导已实现             | 已完成      |
+| HOME-01/02     | S1.1、S1.4             | 六类首页与 Result 最近成果已实现 | 已完成      |
+| IMP-01/02      | S2.1、S2.2             | 文本/DOCX/PDF 部分支持           | 未开始      |
+| TASK-01/02     | S1.2                   | Task/内置模板基础已实现          | 已完成      |
+| WS-01/02/03/04 | S1.3、S1.5、S2.6、S2.7 | S1.5 成果双栏与操作入口已实现    | 部分完成    |
+| CTX-01/02/03   | S2.3                   | 显式上下文和敏感确认已有         | 未开始      |
+| CTX-05         | S2.4                   | 只有全文选择                     | 未开始      |
+| REV-01…04/06   | S2.5                   | document_patch 内核已有          | 未开始      |
+| OUT-01…04      | S2.7、S3.2…S3.4        | 文本+A2UI 内核                   | 未开始      |
+| EXP-01/02/03   | S1.5、S2.8             | 已有诚实导出入口，真实导出未实现 | 部分完成    |
+| RES-01         | S1.1                   | Result 基础聚合已实现            | 已完成      |
+| SEL-01         | S2.6                   | 只记录选区                       | 未开始      |
+| PRV-04         | S2.3/S4.2              | Provider 设置已有                | 未开始      |
+| ARC-03         | S0.4                   | 统一 compatible 传输层部分已有   | 未开始      |
+| A2UI-06        | S3.1                   | 私有 V1 测试已有                 | 未开始      |
 
 ## 6. 验证命令基线
 
@@ -505,10 +505,12 @@ npm run tauri build -- --debug --no-bundle
 | S0.4 Rust 边界拆分      | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收 |
 | S1.1 Result/schema v9   | 已完成     | LOG-0023 | 已通过用户人工验收           |
 | S1.2 Task/Template      | 已完成     | LOG-0026 | 已通过用户人工验收           |
-| S1.3 导航/双模式外壳    | 待人工验收 | LOG-0031 | 人工缺陷已修补，等待复验     |
-| S1.4…S4.8               | 待开始     | —        | 按第 4 节依赖推进            |
+| S1.3 导航/双模式外壳    | 已完成     | LOG-0032 | 已通过用户人工验收           |
+| S1.4 新手引导与首页     | 已完成     | LOG-0038 | 用户已完成最终人工验收       |
+| S1.5 大众版工作台外壳   | 待人工验收 | LOG-0040 | 自动门禁通过，等待用户验收   |
+| S2.1…S4.8               | 待开始     | —        | 按第 4 节依赖推进            |
 
-S1.2 已通过自动验证和用户人工验收。S1.3 已完成范围内实现与自动验证，当前停止在人工验收点；在用户明确验收通过前不得开始 S1.4 或其他后续步骤。
+S1.3、S1.4 已通过自动验证、缺陷修补和用户人工复验。S1.5 已完成范围内实现和自动验证，当前停止在人工验收点；用户明确验收前不得开始 S2.1 或其他后续步骤。
 
 ## 10. 连续变更账本
 
@@ -1010,6 +1012,168 @@ S1.2 已通过自动验证和用户人工验收。S1.3 已完成范围内实现�
 - 状态与证据：两项用户发现的 S1.3 缺陷均已修补并通过自动回归；S1.3 回到 `待人工验收`，不是 `已完成`。
 - 下一具体动作：请用户在正在运行的桌面开发实例中复验“选择文件”和“新对话”；明确验收前不得开始 S1.4。
 
+### LOG-0032 — S1.3 — ACCEPTED
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户验收：用户明确回复“**S1.3 验收通过**”。
+- 状态：S1.3 导航、默认简单模式、专业模式显示边界以及 LOG-0031 的“选择文件/新对话”修补由 `待人工验收` 转为 `已完成`；LOG-0027 至 LOG-0031 构成最终实现、验证与修补证据。
+- 下一具体动作：按依赖顺序进入 S1.4；S1.4 验收前禁止开始 S1.5。
+
+### LOG-0033 — S1.4 — START
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `7be6ef7`；保留已验收但尚未提交的 S1.1、S1.2、S1.3 累积工作树及此前验收修补。
+- 用户授权：S1.3 验收通过并要求开始下一阶段。
+- 目标与允许范围：只实现可跳过的三步新手引导、六类固定首页入口、统一拖入/选择资料入口、最近成果展示和 90 秒首次路径的 Web Mock 交互证据。
+- 模型与数据边界：O-08 仍开放，因此本阶段不伪造平台内置模型、试用额度或真实 AI 生成；首页可调用已验收的 Task/Template 本地草稿能力并清楚说明其输出不是 AI 正文。最近成果必须来自 Result Gateway/确定性 Web Mock，不得从会话标题推断。
+- 明确不做：不实现 S1.5 主动新建成果和大众版成果工作台，不实现新的导入格式、Context Manifest、真实 Provider 编排、统一 Review、导出、遥测或搜索；不得新增不透明内容采集或放宽文件授权。
+- 下一具体动作：审计现有 `ShellPage`、S1.2 Task/Result Gateway、Web Mock 能力和首页需求，确定不绕过 Orchestrator 的前端组织方式。
+
+### LOG-0034 — S1.4 — COMPLETE（待人工验收）/ CORRECTION LOG-0033
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 基线更正：LOG-0033 开始时沿用了旧账本中的 `7be6ef7`，随后独立核对发现实际 `main` HEAD 已为 `f3197f5f2836a54c223e6a5675eec1466bcf5a32`（`界面优化2.0`），且开始前工作树为干净状态。本记录按“账本只追加”规则更正，不回写 LOG-0033 历史文本。
+- PRD 回查：直接读取用户提供的 V2 DOCX，确认首页六类固定入口原文为“写一份文档、修改已有文件、整理一组资料、分析表格或数据、制作表单/清单/小工具、自由描述任务”，没有自行扩充一级分类。
+- 实际修改：
+  - 首次启动显示“选择目标 → 导入资料 → 确认隐私”三步引导；可从任意步骤跳过，完成状态仅以固定布尔值保存在本地，首页可随时重新打开引导。
+  - 首页替换 S1.3 占位页，提供严格六类任务卡、统一资料拖入/选择区、受控系统选择说明、高频模板任务弹窗和 Result 最近成果列表。
+  - “会议纪要、文档总结、周报、简历优化”复用 S1.2 版本化 Template 与 Task Orchestrator；必要问题由 Rust/Mock Task DTO 提供，完成后生成明确标注“尚未调用 AI”的本地结构草稿并刷新最近 Result。
+  - 新增独立 Home store/controller；React 页面不访问 Gateway，Home store 只缓存模板、Result 摘要和当前 Task 请求状态；Desktop 复用既有 Task/Result IPC，Web 使用确定性同合同 Mock。
+  - 最近成果按 Result 标题、类型、状态、更新时间展示，不读取或映射会话。表格分析与动态工具入口在能力未落地时显示明确阶段说明，不返回假成功；自由描述复用已验收工作台。
+  - 中英文补齐首页、引导、隐私、本地草稿、错误和阶段边界文案；加载失败提供显式重试。
+- 主要修改文件：`src/features/home/**`、`src/shared/mock/home.ts`、`src/app/onboardingPreferences.ts`、`AppShell.tsx`、i18n、测试 setup、架构边界测试、`e2e/web-mock.spec.ts` 和本阶段文档。
+- Migration / IPC / Capability：没有新增或修改 migration、Tauri command、event、Capability、权限、密钥路径、Provider 请求或远程服务；首页只调用已验收的 `list_results`、Task/Template 命令和既有受控资料选择动作。
+- 前端验证：
+  - `npm run check` 通过：Prettier、ESLint、TypeScript、27 个测试文件/84 项 Vitest 和生产构建全部成功。
+  - `npm run test:coverage` 通过：Statements 96.96%、Branches 83.82%、Functions 93.10%、Lines 98.80%。
+  - `npm run test:e2e` 通过：Chromium Web Mock 4/4；新增首次三步引导 → 隐私确认 → 首页六类 → 会议纪要 Task → 本地 Result 草稿 → 工作台路径，自动执行约 11 秒，低于 90 秒交互目标；原 S1.3 与 Review/A2UI 路径保持通过。
+- Rust 验证：隔离 `CARGO_TARGET_DIR=src-tauri/target/s1-4-acceptance` 下，`cargo fmt --check`、`cargo clippy --all-targets --all-features -- -D warnings` 和 `cargo test --all-features` 均通过；84 个库测试、5 个架构边界测试、1 个命令注册测试和 6 个合同测试全部成功。
+- 桌面验证：同一隔离目录的 `npm run tauri build -- --debug --no-bundle` 通过；`scripts/smoke-desktop.ps1` 启动通过，PID 2252 已退出且无残留验收进程。仅保留既有 Vite 主 chunk 体积提示和 Windows linker 信息警告。
+- 自动测试过程修正：首次 E2E 的“下一步”选择器同时匹配到含“下一步”文案的分析卡，改为精确匹配；引导覆盖层与首页存在同文案时改为限定 Dialog；首次 ESLint 拦截 effect 内同步重置 state，改为在完成/跳过动作中显式重置；全部最终门已重跑通过。
+- 安全与隐私：引导本地偏好只保存 `true`，不保存所选目标、正文、文件名、路径、Prompt、回复、Endpoint 或密钥；资料区不读取拖入对象内容，只进入既有受控选择动作；O-08 仍开放，未声明或模拟内置模型/额度可用。
+- 已知阶段边界：最近 Result 的专用重开/编辑由 S1.5 接管；当前后续入口进入共享工作台，不声称已加载对应托管文件。完整原生拖放、格式清单和 CSV/XLSX/图片支持属于 S2.1/S2.2；表格和动态工具卡只建立固定入口与诚实说明。
+- 人工验收：新增 [S1_4_MANUAL_ACCEPTANCE.md](S1_4_MANUAL_ACCEPTANCE.md)，覆盖 17 项功能、6 项安全/隐私检查、阶段边界和缺陷分级。
+- 状态与证据：S1.4 自动验收条件全部满足，转为 `待人工验收`，不是 `已完成`。
+- 下一具体动作：停止实施并等待用户明确回复“**S1.4 验收通过**”；在此之前禁止开始 S1.5 或任何后续步骤。
+
+### LOG-0035 — S1.4 — ACCEPTANCE FIX COMPLETE（待人工复验）
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户验收反馈：工作台持续显示此前生成的“用户信息表单”，用户询问为何旧组件一直存在；S1.4 尚未通过人工验收，未授权开始 S1.5。
+- 根因：A2UI Surface 按既有设计持久化在 SQLite 并于工作区恢复时载入；前端同时保留此前的 `centerView='surface'`，且 Surface 工作台没有明确关闭入口，导致历史 Surface 持续占用主视图。持久化本身用于历史恢复，不是重复生成；自动占用和缺少退出入口属于验收可用性缺陷。
+- 实际修补：
+  - A2UI 工作台增加“关闭”，只把中央视图切回编辑器，不删除 Surface 或 Inspection 历史。
+  - 选择工作区、恢复工作区、选择资料、打开文件和移除当前工作区后统一回到编辑器；已载入的 A2UI 历史仍可从“交互成果”重新查看。
+  - 不增加隐式删除；永久删除 Surface/Result 仍必须在后续生命周期设计中提供独立、显式并可确认的动作。
+- 修改文件：`src/features/a2ui/inspector/A2uiWorkbench.tsx`、`A2uiWorkbench.module.css`、`A2uiWorkbench.test.tsx`、`src/features/workspace/workspaceStore.ts`、`src/stores/desktopWorkspace.test.ts`、`e2e/web-mock.spec.ts`、`docs/ARCHITECTURE.md`、`docs/V2_ARCHITECTURE.md`、`docs/S1_4_MANUAL_ACCEPTANCE.md`、本实施账本。
+- Migration / IPC / Capability：无变化；没有新增删除命令、数据库迁移、权限、远程请求、遥测或内容处理路径。
+- 自动验证：
+  - 定向 Vitest：2 个文件/10 项通过，覆盖关闭保留历史和工作区恢复回编辑器。
+  - `npm run check` 最终通过：Prettier、ESLint、TypeScript、27 个测试文件/85 项 Vitest、生产构建全部成功。
+  - `npm run test:coverage` 通过：Statements 96.96%、Branches 83.82%、Functions 93.10%、Lines 98.80%。
+  - `npm run test:e2e` 最终通过：Chromium Web Mock 4/4；A2UI 路径验证“关闭 → 编辑器 → 重新打开交互成果”，历史没有被删除。
+  - E2E 首次新增断言直接点击 Ant Design 隐藏 radio input，因不可见超时；改为点击用户实际可见的“交互成果”标签后完整重跑通过。这是测试选择器修正，不是产品行为规避。
+- 未重复运行：Rust fmt/clippy/test 和桌面 build/smoke；本次仅修改前端视图状态、组件、测试和文档，没有改 Rust、IPC、Capability、migration 或原生配置，LOG-0034 的完整原生验证证据仍适用。
+- 安全、隐私与兼容性：关闭不删除任何本地数据；没有正文、路径、Prompt、回复或密钥外发。旧 SQLite Surface 保持兼容可读。回滚这些前端变更会恢复缺陷，但不会改变数据库内容。
+- 文档与验收：人工清单新增 S14-M18，把“旧 Surface 不自动占用、可关闭、历史可重开”列为阻断项；架构明确区分关闭与永久删除。
+- 状态与下一动作：S1.4 保持 `待人工验收`，当前等待用户复验；在用户明确回复“**S1.4 验收通过**”前不得开始 S1.5 或任何后续步骤。
+
+### LOG-0036 — S1.4 — ACCEPTANCE FIX START
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户授权：明确要求增加带确认的永久删除功能；这是对 LOG-0035“只关闭、不删除”边界的扩展，仍属于 S1.4 人工验收修补，不授权开始 S1.5。
+- 基线与工作树：`main` / `f3197f5f2836a54c223e6a5675eec1466bcf5a32`；保留尚未提交的 S1.4 实现与 LOG-0035 验收修补，修改前没有发现范围外新增差异。
+- 目标：在当前 A2UI 工作台提供危险样式的“永久删除”，执行前显示不可撤销确认；取消时零写入，确认后原子删除当前 Surface、同 Surface 协议检查、Action 事件以及自动关联的 A2UI Result，避免孤儿成果。
+- 安全边界：删除请求必须同时携带工作区 ID 与 Surface ID，Rust 复核归属；前端不得提交数据库行 ID；删除只影响 A2UI 应用记录，不触碰工作区真实文件、其他 Surface、其他 Result、会话正文或 Provider 数据。
+- 允许修改：A2UI application/storage、Tauri command 注册与最小 Capability、Desktop Gateway、A2UI store/UI/i18n、相关 Rust/TS/组件/E2E 测试和架构/验收/实施文档。
+- 明确不做：不新增 schema migration，不删除真实文件，不提供批量清空，不将永久删除伪装成关闭，不进入 S1.5 Result 工作台或后续阶段。
+- 下一具体动作：实现原子 Repository 操作和归属校验，再接入 IPC、前端确认与确定性回归测试。
+
+### LOG-0037 — S1.4 — ACCEPTANCE FIX COMPLETE（待人工复验）
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 目标与结果：完成用户明确要求的“带确认永久删除”。当前 Surface 既可非破坏性关闭，也可通过独立危险按钮永久删除；取消确认时零写入，确认成功后重启不会恢复该 Surface。
+- 前端行为：
+  - A2UI 工作台并列提供“永久删除”和“关闭”；删除按钮使用危险样式，确认层明确列出组件、协议检查、Action 事件、关联 Result、不可撤销和“不删除工作区真实文件”。
+  - 确认期间禁用 Surface/Inspection 切换并显示加载状态，避免删除目标漂移；取消不调用 store 删除动作。
+  - 成功删除后同步移除当前 Surface 及同 Surface Inspection；仍有历史时自动选择下一项，删除最后一项时回到编辑器。原生命令失败时不修改本地历史并显示错误。
+  - Web Mock 使用同一确认和状态机，但只删除确定性内存 fixture；Desktop 经 Gateway 调用最小原生命令。
+- Rust 与数据原子性：
+  - 新增 `delete_a2ui_surface(workspace_id, surface_id)`；只接受工作区和公开 Surface ID，不接收数据库行 ID 或绝对路径。
+  - application 层校验两个标识非空且不超过 128 字符；storage 在事务内先按二者复核归属，再删除自动关联的 A2UI Result、同 Surface `a2ui_messages` 与 `a2ui_surfaces`，`a2ui_events` 由已有外键级联删除。
+  - 目标不存在或不属于工作区时不删除；任一 SQL 失败则事务回滚。其他 Surface、其他 Result、会话正文、Provider 数据和真实文件不受影响。
+- 主要修改文件：`src/features/a2ui/a2uiController.ts`、`a2uiStore.ts`、`inspector/A2uiWorkbench.*`、`src/shared/platform/desktop.ts`、`src/stores/types.ts`、`src/stores/desktopA2ui.test.ts`、i18n、Web E2E、`src-tauri/src/a2ui/mod.rs`、`application/adapters.rs`、`storage/mod.rs`、`commands.rs`、`lib.rs`、`build.rs`、Capability、权限、命令注册测试及架构/验收/实施文档。
+- 生成文件：Tauri build script 更新 `src-tauri/gen/schemas/acl-manifests.json`、`capabilities.json`、`desktop-schema.json`、`windows-schema.json`；新增自动生成权限 `permissions/autogenerated/delete_a2ui_surface.toml`。
+- Migration / IPC / Capability：没有 schema migration；新增一个窄命令 `delete_a2ui_surface` 和主窗口单项 `allow-delete-a2ui-surface`，未开放批量清空、任意 SQL、文件删除、shell、网络或其他系统权限。既有 36 个 V1 命令注册保持不变。
+- 自动验证：
+  - 前端定向：A2UI 组件与 Desktop store 2 个文件/7 项通过，覆盖取消、确认、下一历史项、最后一项和原生失败保留。
+  - `npm run check` 通过：Prettier、ESLint、TypeScript、28 个测试文件/88 项 Vitest、生产构建全部成功。
+  - `npm run test:coverage` 通过：Statements 96.96%、Branches 83.82%、Functions 93.10%、Lines 98.80%。
+  - `npm run test:e2e` 最终通过：Chromium Web Mock 4/4；真实交互顺序覆盖“关闭 → 重开 → 删除确认 → 取消保留 → 再次确认 → 删除并回编辑器”。
+  - Rust 隔离目录下 `cargo fmt --check`、`cargo clippy --all-targets --all-features -- -D warnings`、`cargo test --all-features` 全部通过：85 个库测试、5 个架构边界、1 个命令注册和 6 个合同测试；新增存储测试证明工作区隔离及 Surface/Inspection/Event/Result 完整清理。
+  - `npm run tauri build -- --debug --no-bundle` 最终通过；隔离 APPDATA/LOCALAPPDATA 桌面启动冒烟通过，最终 PID 16700 已退出，无验收进程或临时数据残留。
+- 验证过程修正：定向 Rust 命令首次带 `--exact` 未匹配模块完整测试名，移除 `--exact` 后新增事务测试实际执行并通过；E2E 第二次打开确认时旧 Popconfirm 节点仍在 DOM，选择器改为显式区分首个触发按钮和最后一个确认按钮，完整 4/4 重跑通过。二者均为测试选择器修正，不掩盖产品失败。
+- 警告：仅保留既有 Vite 主 chunk 超 500 kB 提示和 Windows linker 信息消息；没有新增失败或安全降级。
+- 安全、隐私与回滚：没有内容外发、遥测、密钥或路径暴露。永久删除是用户明确确认后的不可恢复操作；取消或失败零删除。代码回滚不会恢复已由用户确认删除的数据，因此人工验收应使用可丢弃的测试 Surface。
+- 文档与验收：更新架构中的关闭/删除语义和原子范围；人工清单新增 S14-M19、最小权限与删除隔离检查。S1.4 转回 `待人工验收`，不是 `已完成`。
+- 下一具体动作：用户使用可丢弃 Surface 复验关闭、取消删除、确认删除和重启不恢复；明确回复“**S1.4 验收通过**”前不得开始 S1.5 或任何后续步骤。
+
+### LOG-0038 — S1.4 — ACCEPTED
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户验收：用户明确回复“**S1.4 验收通过**”。
+- 状态：S1.4 三步引导、六类首页、最近成果，以及 LOG-0035—LOG-0037 的 Surface 关闭与带确认永久删除修补由 `待人工验收` 转为 `已完成`。
+- 下一具体动作：按依赖顺序进入 S1.5；S1.5 验收前禁止开始 S2.1。
+
+### LOG-0039 — S1.5 — START
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `f3197f5f2836a54c223e6a5675eec1466bcf5a32`；保留已验收但尚未提交的 S1.1—S1.4 累积工作树及 S1.4 验收修补，不重置、不覆盖。
+- 用户授权：S1.4 验收通过并要求开始下一阶段。
+- 目标与允许范围：只实现大众成果工作台外壳、受控 UTF-8 Markdown/纯文本新建、Result 专用重开和保存、初始及后续版本、另存副本，以及撤销、查看修改、历史和导出入口的诚实状态；专业模式继续复用既有文件树。
+- 数据与安全边界：新成果只写入 Rust 管理的“我的成果”目录；Rust 必须拒绝绝对路径、路径穿越、非法扩展和静默覆盖；文件、Result 与初始 Revision 必须保持原子一致。前端不得获得托管目录绝对路径。
+- 明确不做：不实现 S2.1 导入批次或新增 Office/PDF/CSV/XLSX/图片解析，不提前实现 S2.5 AI `create_file` Review，不声称 S2.8 的真实多格式导出已经可用，不新增遥测或远程内容上传。
+- 下一具体动作：复核现有 Result、版本存储、Home 最近成果与工作台状态边界，确定最小前后端合同和前向 migration。
+
+### LOG-0040 — S1.5 — COMPLETE（待人工验收）
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 目标与结果：完成 S1.5 大众成果工作台外壳。首页和成果页均可在没有已有文件或聊天的情况下创建 Markdown/纯文本 Result；具体 Result 可独立重开、编辑、自动/手动保存、查看修改、撤销、查看/恢复历史和另存副本。导出与 AI 助手只开放诚实入口，不伪装 S2.3/S2.8 已完成。
+- Rust 与数据一致性：
+  - `create_text_result` 只接受标题、格式和单层相对文件名；拒绝绝对路径、目录分隔符、`..`、非法字符、Windows 保留名、格式不匹配扩展和同名覆盖。文件使用 `create_new` 与 `sync_all`，随后在单个 SQLite 事务中建立 Result 与初始 Revision；数据库失败时只补偿删除本次新建文件。
+  - 新建成果使用内部“我的成果”工作区和 `my-results` 目录；内部工作区不出现在最近工作区，前端只获得 Result ID 与 `result://` 不透明引用，不获得绝对路径。
+  - 托管保存复用 2 MB UTF-8、SHA-256 基础 Hash、30 天/每文件 100 条普通历史和失败回滚策略；外部变化返回 `FILE_CONFLICT` 并保留前端编辑缓冲区。旧 S1.2 托管草稿首次专用读取时惰性补录初始 Revision；新 Task 草稿创建时直接事务写入初始 Revision。
+  - 没有新增 schema 或 migration：schema v10 已能用 `results.current_revision_id` 与 `document_versions` 承载本阶段，避免建立第二套版本表。另存副本生成独立文件、Result 和初始 Revision，不覆盖原成果。
+- 前端与产品行为：
+  - 新增 Result controller/store、创建弹窗、成果列表、成果编辑器、版本抽屉和 AI 助手外壳；React 组件不直接调用 Gateway/Desktop，Result 状态不读取 Chat Session。
+  - `AppShell` 以具体 Result ID 打开专用双栏；简单模式显示成果区 + AI 助手，专业模式在同一状态上增加既有文件树。首页最近成果和 Task 完成动作不再进入无对象的通用工作台。
+  - 保存状态包括已保存、未保存、保存中、冲突和失败；约 1 秒自动保存仍可手动触发。查看修改对比当前已保存正文与编辑缓冲区；撤销使用上一历史版本且在存在未保存编辑时禁用；历史支持按需正文预览和恢复。
+  - 导出按钮明确说明真实 DOCX/PDF 等能力属于 S2.8，不创建外部文件；AI 助手明确说明成果不会自动发送，等待 S2.3 上下文确认和后续统一 Review。
+- 共享合同：扩展 `contracts/v2/result.json`，加入 `ResultDocument` 与 `ResultRevision` fixture；Rust serde 与 TypeScript guard 同时消费。Web Mock 实现同形的创建、Hash 保存、版本、恢复和复制合同，不访问桌面文件系统。
+- 主要修改文件：`contracts/v2/result.json`；`src-tauri/src/domain/result.rs`、`application/result.rs`、`application/task.rs`、`storage/mod.rs`、`commands.rs`、`lib.rs`、`build.rs`、`capabilities/main.json`、`tests/command_registration.rs`、`tests/contract_fixtures.rs`；`src/app/AppShell.tsx`、`src/app/i18n/messages.ts`、`src/features/home/components/HomePage.tsx`、`src/features/home/homeStore.ts`、`src/features/results/**`、`src/shared/mock/home.ts`、`src/shared/mock/home.test.ts`、`src/shared/platform/desktop.ts`、`src/shared/types/domain.ts`、`src/shared/contracts/guards.ts`、`src/shared/contracts/contracts.test.ts`、`src/stores/architecture.test.ts`、`e2e/web-mock.spec.ts`；`docs/ARCHITECTURE.md`、`docs/PRIVACY.md`、`docs/V2_ARCHITECTURE.md`、`docs/S1_5_MANUAL_ACCEPTANCE.md` 和本文。
+- 生成文件：Tauri build script 更新 `src-tauri/gen/schemas/acl-manifests.json`、`capabilities.json`、`desktop-schema.json`、`windows-schema.json`；新增 `permissions/autogenerated/create_text_result.toml`、`read_result_document.toml`、`save_result_document.toml`、`list_result_revisions.toml`、`read_result_revision.toml`、`restore_result_revision.toml`、`duplicate_result.toml`。
+- IPC / Capability：新增 7 个窄 Result 命令，总应用命令为 51 个；主窗口只增加对应 7 项 `allow-*` 权限。没有 Shell、任意路径文件 API、网络、批量导入、导出、归档或遥测权限。
+- 前端自动验证：
+  - `npm run check` 通过：Prettier、ESLint、TypeScript、30 个测试文件/95 项 Vitest 和生产构建全部成功。
+  - `npm run test:coverage` 通过：30 个文件/95 项测试；Statements 96.96%、Branches 83.82%、Functions 93.10%、Lines 98.80%。
+  - `npm run test:e2e` 通过：Chromium Web Mock 5/5；新增真实交互路径覆盖新建 → 自动保存 → 历史 → 另存副本 → 成果页重开，最终无组件弃用控制台错误。
+- Rust 与桌面验证：
+  - 隔离 `CARGO_TARGET_DIR=src-tauri/target/s1-5-acceptance` 下，`cargo fmt --check`、`cargo clippy --all-targets --all-features -- -D warnings` 和 `cargo test --all-features` 全部通过：88 个库测试、5 个架构边界、1 个命令注册和 6 个合同 fixture 测试。
+  - Result 合同 fixture 更新后单独重跑 6/6 通过；`npm run tauri build -- --debug --no-bundle` 通过；隔离 APPDATA/LOCALAPPDATA 的桌面启动冒烟通过，PID 26440 已退出。
+- 验证过程修正：首次在默认 Rust target 连续运行 Result/Task 定向测试时，Result 新增 3 项已通过，随后 Task 测试构建因既有开发实例占用 `a2ui-terminal.exe` 返回 Windows `os error 5`；未终止用户实例，改用隔离 target 后全量通过。首次隔离命令因工具调用的短超时被外部终止，使用正常超时重新执行后通过。前端首次门禁发现 1 个未使用解构变量并修正；Ant Design Drawer/List 弃用警告改用当前 API/原生列表，E2E 重跑无警告。
+- 安全、隐私、兼容与回滚：没有正文、文件名、路径、Prompt、回复或密钥外发，也没有新增遥测。用户取消新建零写入；同名、非法路径和冲突均拒绝覆盖。代码回滚不会自动删除已创建的托管成果；用户数据应保留，后续由正式生命周期/归档能力处理。
+- 人工验收：新增 [S1_5_MANUAL_ACCEPTANCE.md](S1_5_MANUAL_ACCEPTANCE.md)，包含 18 项功能和 8 项安全/隐私检查。S1.5 当前为 `待人工验收`，不是 `已完成`。
+- 下一具体动作：停止实施并等待用户明确回复“**S1.5 验收通过**”；在此之前不得开始 S2.1 或任何后续步骤。
+
 ### 新账本记录模板
 
 ```markdown
@@ -1086,14 +1250,14 @@ S1.2 已通过自动验证和用户人工验收。S1.3 已完成范围内实现�
 
 ## 12. 交接摘要
 
-截至 LOG-0031：
+截至 LOG-0040：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能已完成并验收 S1.1 Result/schema v9 与 S1.2 Task/Template/schema v10/本地草稿 Orchestrator；S1.3 导航、默认简单模式和专业模式显示边界完成实现，用户发现的简单模式“选择文件/新对话”缺失已在 LOG-0031 修补并通过全量自动回归，当前等待人工复验。S1.4 引导/首页业务能力、Export、Adaptive Context 和产品事件尚未开始。
+- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳和 S1.4 三步引导/六类首页/受控资料入口/Task 草稿路径/Result 最近成果。S1.5 专用成果工作台已完成实现和自动验证，当前等待人工验收；真实 Export、Adaptive Context 和产品事件尚未开始。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
-- S1.3 当前等待人工验收；不得提前实施 S1.4 或任何后续步骤。
-- 已明确补充新建边界：S1.5 提供用户主动新建文本成果；S2.5 提供 AI `create_file` Review，用户确认前零写入；首期不以完整 Office 格式兼容为目标。
+- S1.5 已落地用户主动新建 Markdown/纯文本成果、独立 Result 工作台、受控保存、版本历史、恢复和另存副本；AI `create_file` Review 仍归 S2.5，用户确认前零写入；首期不以完整 Office 格式兼容为目标。
+- 当前唯一活动动作是按 [S1_5_MANUAL_ACCEPTANCE.md](S1_5_MANUAL_ACCEPTANCE.md) 完成人工验收；用户明确通过前不得开始 S2.1 或任何后续步骤。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - 如果文档与实际代码不一致，先记录差异并修正文档状态；不要为了符合文档而破坏性改写用户代码。

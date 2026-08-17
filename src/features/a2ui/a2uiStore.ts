@@ -3,7 +3,10 @@ import { errorDetails, findA2uiNode, upsertA2uiSurface } from '../../stores/supp
 import type { AppGet, AppSet, AppState } from '../../stores/types';
 import { a2uiController } from './a2uiController';
 
-type A2uiActions = Pick<AppState, 'setActiveSurface' | 'setActiveInspection' | 'executeA2uiAction'>;
+type A2uiActions = Pick<
+  AppState,
+  'setActiveSurface' | 'setActiveInspection' | 'deleteActiveA2uiSurface' | 'executeA2uiAction'
+>;
 
 export const createA2uiStore = (set: AppSet, get: AppGet): A2uiActions => ({
   setActiveSurface: (activeSurfaceId) =>
@@ -23,6 +26,54 @@ export const createA2uiStore = (set: AppSet, get: AppGet): A2uiActions => ({
           ?.surfaceId ?? state.activeSurfaceId,
       centerView: 'surface',
     })),
+
+  deleteActiveA2uiSurface: async (surfaceId) => {
+    const state = get();
+    const surface = state.a2uiSurfaces.find(
+      (item) => item.surfaceId === (surfaceId ?? state.activeSurfaceId)
+    );
+    if (!surface || state.a2uiActionLoading) return;
+    set({ a2uiActionLoading: true, a2uiNotice: null });
+    try {
+      if (state.runtimeMode !== 'web-mock') {
+        const workspace = state.workspace;
+        if (!workspace) return;
+        await a2uiController.deleteSurface(workspace.id, surface.surfaceId);
+      }
+      set((current) => {
+        const a2uiSurfaces = current.a2uiSurfaces.filter(
+          (item) => item.surfaceId !== surface.surfaceId
+        );
+        const a2uiInspections = current.a2uiInspections.filter(
+          (inspection) => inspection.surfaceId !== surface.surfaceId
+        );
+        const currentSurfaceStillExists = a2uiSurfaces.some(
+          (item) => item.surfaceId === current.activeSurfaceId
+        );
+        const activeSurfaceId = currentSurfaceStillExists
+          ? current.activeSurfaceId
+          : (a2uiSurfaces[0]?.surfaceId ?? '');
+        const currentInspectionStillExists = a2uiInspections.some(
+          (inspection) => inspection.id === current.activeInspectionId
+        );
+        const activeInspectionId = currentInspectionStillExists
+          ? current.activeInspectionId
+          : (a2uiInspections.find((inspection) => inspection.surfaceId === activeSurfaceId)?.id ??
+            '');
+        return {
+          a2uiSurfaces,
+          a2uiInspections,
+          activeSurfaceId,
+          activeInspectionId,
+          centerView: a2uiSurfaces.length === 0 ? 'editor' : current.centerView,
+        };
+      });
+    } catch (error) {
+      set({ a2uiNotice: errorDetails(error).message });
+    } finally {
+      set({ a2uiActionLoading: false });
+    }
+  },
 
   executeA2uiAction: async (componentId, eventName, payload) => {
     const state = get();

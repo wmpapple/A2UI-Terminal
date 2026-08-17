@@ -112,6 +112,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
         activeSurfaceId: a2uiSurfaces[0]?.surfaceId ?? '',
         activeInspectionId: a2uiInspections[0]?.id ?? '',
         a2uiNotice: null,
+        centerView: 'editor',
       });
     } catch (error) {
       set({ workspaceError: errorDetails(error).message });
@@ -183,6 +184,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
           a2uiInspections,
           activeSurfaceId: a2uiSurfaces[0]?.surfaceId ?? '',
           activeInspectionId: a2uiInspections[0]?.id ?? '',
+          centerView: 'editor',
           files: [
             ...state.files.filter((file) => !selectedPaths.includes(file.path)),
             ...selectedFiles,
@@ -267,6 +269,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
         activeSurfaceId: a2uiSurfaces[0]?.surfaceId ?? '',
         activeInspectionId: a2uiInspections[0]?.id ?? '',
         a2uiNotice: null,
+        centerView: 'editor',
       });
     } catch (error) {
       set({ workspaceError: errorDetails(error).message });
@@ -308,6 +311,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
         activeSurfaceId: '',
         activeInspectionId: '',
         a2uiNotice: null,
+        centerView: 'editor',
       });
     } catch (error) {
       set({ workspaceError: errorDetails(error).message });
@@ -321,6 +325,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
       set((state) => ({
         activePath: path,
         selectedText: '',
+        centerView: 'editor',
         openPaths: state.openPaths.includes(path) ? state.openPaths : [...state.openPaths, path],
       }));
       return;
@@ -330,6 +335,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
       set((state) => ({
         activePath: path,
         selectedText: '',
+        centerView: 'editor',
         openPaths: state.openPaths.includes(path) ? state.openPaths : [...state.openPaths, path],
       }));
       return;
@@ -376,6 +382,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
             openPaths: [...state.openPaths, path],
             activePath: path,
             selectedText: '',
+            centerView: 'editor',
             dirtyPaths: state.dirtyPaths,
             saveStatusByPath: {
               ...state.saveStatusByPath,
