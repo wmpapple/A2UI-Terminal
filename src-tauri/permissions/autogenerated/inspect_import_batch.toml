@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-inspect-import-batch"
+description = "Enables the inspect_import_batch command without any pre-configured scope."
+commands.allow = ["inspect_import_batch"]
+
+[[permission]]
+identifier = "deny-inspect-import-batch"
+description = "Denies the inspect_import_batch command without any pre-configured scope."
+commands.deny = ["inspect_import_batch"]

@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S1.5 大众版工作台外壳已完成实现与自动验证，等待用户人工验收；尚未开始 S2.1**
+> 当前状态：**S1.5 已通过用户人工验收；S2.1 原生桌面拖放验收缺陷已修复并通过自动验证，等待用户重新人工验收；尚未开始 S2.2**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -233,7 +233,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S1.5 大众版工作台外壳
 
-状态：`待人工验收`
+状态：`已完成`
 
 - 对应：WS-01/02/04、EXP-03。
 - 工作：成果区 + AI 助手双栏；保存状态、版本、撤销、查看修改、导出入口；专业模式可展开文件树；首页/成果页提供用户主动新建文本成果入口，调用受控的 `create_text_result`，默认保存到“我的成果”。
@@ -243,10 +243,10 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S2.1 统一导入批次与格式能力
 
-状态：`待开始`
+状态：`待重新人工验收`
 
 - 对应：IMP-01/02、UX-08。
-- 工作：ImportBatch、文件清单、读取/编辑能力、大小与失败原因；复用系统选择器授权；先纳入现有文本/DOCX/PDF，再扩 P0 CSV/XLSX 基础数据和图片上下文。
+- 工作：ImportBatch、文件清单、读取/编辑能力、大小与失败原因；系统选择器和 Tauri 原生桌面拖放复用同一 Rust 检查/确认内核；先纳入现有文本/DOCX/PDF，再扩 P0 CSV/XLSX 基础数据和图片上下文。
 - 验收：隐藏/密钥/敏感路径不默认选择；不支持格式给出替代方式；恶意压缩包和超限 fixture 被拒绝。
 - 范围：首期不以完整复刻 Office/PDF 结构为目标；公式、宏、嵌入图表和扫描文档优先只读预览或上下文，不承诺无损回写。
 
@@ -426,23 +426,23 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 状态含义：`已有内核` 不等于 V2 产品验收通过。
 
-| 需求           | 实施步骤               | 当前基线                         | V2 验收状态 |
-| -------------- | ---------------------- | -------------------------------- | ----------- |
-| ONB-01         | S1.4                   | 三步可跳过引导已实现             | 已完成      |
-| HOME-01/02     | S1.1、S1.4             | 六类首页与 Result 最近成果已实现 | 已完成      |
-| IMP-01/02      | S2.1、S2.2             | 文本/DOCX/PDF 部分支持           | 未开始      |
-| TASK-01/02     | S1.2                   | Task/内置模板基础已实现          | 已完成      |
-| WS-01/02/03/04 | S1.3、S1.5、S2.6、S2.7 | S1.5 成果双栏与操作入口已实现    | 部分完成    |
-| CTX-01/02/03   | S2.3                   | 显式上下文和敏感确认已有         | 未开始      |
-| CTX-05         | S2.4                   | 只有全文选择                     | 未开始      |
-| REV-01…04/06   | S2.5                   | document_patch 内核已有          | 未开始      |
-| OUT-01…04      | S2.7、S3.2…S3.4        | 文本+A2UI 内核                   | 未开始      |
-| EXP-01/02/03   | S1.5、S2.8             | 已有诚实导出入口，真实导出未实现 | 部分完成    |
-| RES-01         | S1.1                   | Result 基础聚合已实现            | 已完成      |
-| SEL-01         | S2.6                   | 只记录选区                       | 未开始      |
-| PRV-04         | S2.3/S4.2              | Provider 设置已有                | 未开始      |
-| ARC-03         | S0.4                   | 统一 compatible 传输层部分已有   | 未开始      |
-| A2UI-06        | S3.1                   | 私有 V1 测试已有                 | 未开始      |
+| 需求           | 实施步骤               | 当前基线                              | V2 验收状态 |
+| -------------- | ---------------------- | ------------------------------------- | ----------- |
+| ONB-01         | S1.4                   | 三步可跳过引导已实现                  | 已完成      |
+| HOME-01/02     | S1.1、S1.4             | 六类首页与 Result 最近成果已实现      | 已完成      |
+| IMP-01/02      | S2.1、S2.2             | S2.1 批次/能力/安全已实现，适配器后续 | 部分完成    |
+| TASK-01/02     | S1.2                   | Task/内置模板基础已实现               | 已完成      |
+| WS-01/02/03/04 | S1.3、S1.5、S2.6、S2.7 | S1.5 成果双栏与操作入口已实现         | 部分完成    |
+| CTX-01/02/03   | S2.3                   | 显式上下文和敏感确认已有              | 未开始      |
+| CTX-05         | S2.4                   | 只有全文选择                          | 未开始      |
+| REV-01…04/06   | S2.5                   | document_patch 内核已有               | 未开始      |
+| OUT-01…04      | S2.7、S3.2…S3.4        | 文本+A2UI 内核                        | 未开始      |
+| EXP-01/02/03   | S1.5、S2.8             | 已有诚实导出入口，真实导出未实现      | 部分完成    |
+| RES-01         | S1.1                   | Result 基础聚合已实现                 | 已完成      |
+| SEL-01         | S2.6                   | 只记录选区                            | 未开始      |
+| PRV-04         | S2.3/S4.2              | Provider 设置已有                     | 未开始      |
+| ARC-03         | S0.4                   | 统一 compatible 传输层部分已有        | 未开始      |
+| A2UI-06        | S3.1                   | 私有 V1 测试已有                      | 未开始      |
 
 ## 6. 验证命令基线
 
@@ -507,10 +507,11 @@ npm run tauri build -- --debug --no-bundle
 | S1.2 Task/Template      | 已完成     | LOG-0026 | 已通过用户人工验收           |
 | S1.3 导航/双模式外壳    | 已完成     | LOG-0032 | 已通过用户人工验收           |
 | S1.4 新手引导与首页     | 已完成     | LOG-0038 | 用户已完成最终人工验收       |
-| S1.5 大众版工作台外壳   | 待人工验收 | LOG-0040 | 自动门禁通过，等待用户验收   |
-| S2.1…S4.8               | 待开始     | —        | 按第 4 节依赖推进            |
+| S1.5 大众版工作台外壳   | 已完成     | LOG-0041 | 用户已完成人工验收           |
+| S2.1 统一导入批次       | 待重新验收 | LOG-0045 | 原生拖放修复完成，等待复验   |
+| S2.2…S4.8               | 待开始     | —        | S2.1 验收前不得提前实施      |
 
-S1.3、S1.4 已通过自动验证、缺陷修补和用户人工复验。S1.5 已完成范围内实现和自动验证，当前停止在人工验收点；用户明确验收前不得开始 S2.1 或其他后续步骤。
+S1.1—S1.5 均已通过自动验证和用户人工验收。S2.1 已完成范围内实现及原生桌面拖放验收修复，当前停止在重新人工验收点；用户明确验收前不得开始 S2.2 或其他后续步骤。
 
 ## 10. 连续变更账本
 
@@ -1174,6 +1175,89 @@ S1.3、S1.4 已通过自动验证、缺陷修补和用户人工复验。S1.5 已
 - 人工验收：新增 [S1_5_MANUAL_ACCEPTANCE.md](S1_5_MANUAL_ACCEPTANCE.md)，包含 18 项功能和 8 项安全/隐私检查。S1.5 当前为 `待人工验收`，不是 `已完成`。
 - 下一具体动作：停止实施并等待用户明确回复“**S1.5 验收通过**”；在此之前不得开始 S2.1 或任何后续步骤。
 
+### LOG-0041 — S1.5 — ACCEPTED
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户验收：用户明确回复“**S1.5 验收通过**”。
+- 状态：S1.5 用户主动新建文本成果、独立 Result 工作台、保存/版本/恢复/另存副本与诚实导出/AI 入口由 `待人工验收` 转为 `已完成`。
+- 基线：验收后的 `main` / `775d4c2`（`大众版工作台外壳搭建`），开始 S2.1 前工作树干净。
+- 下一具体动作：按依赖顺序进入 S2.1；S2.1 验收前禁止开始 S2.2。
+
+### LOG-0042 — S2.1 — START
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 用户授权：S1.5 验收通过并要求开始下一阶段。
+- 基线 commit 与开始前工作树：`main` / `775d4c2`；工作树干净，不存在需要归属或保留的额外用户改动。
+- 目标与允许范围：只建立统一 ImportBatch、来源文件清单、格式能力/大小/失败原因和确认状态；复用 Rust 受控系统选择器与既有文本/DOCX/PDF 读取内核；在界面中诚实说明 CSV/XLSX/图片的当前能力和替代方式。
+- 安全边界：Rust 负责路径授权、敏感/隐藏路径排除、扩展名与内容类型识别、单文件/批次/压缩展开上限和 Zip Bomb 防护；React 不接触绝对路径。导入只建立授权引用，不修改来源文件、不调用 Provider、不发送内容、不执行宏或外部链接。
+- 明确不做：不提前实现 S2.2 的 CSV/XLSX 结构化解析与图片多模态适配，不实现 S2.3 Context Manifest，不建立检索索引，不新增遥测，不实现 Office/PDF 无损编辑或回写。
+- 预计修改：Import domain/application/repository、Tauri commands/Capability、共享 DTO/Gateway、Home 导入 UI、Web Mock、合同/安全/组件/E2E 测试，以及架构、隐私、实施和 S2.1 人工验收文档；若现有 schema 足以表达短生命周期批次则不制造无必要 migration。
+- 下一具体动作：审计现有 `select_context_files`、Workspace 授权根、DOCX/PDF 提取限制和 Home `SourceDropZone`，确定最小合同及是否需要持久化。
+
+### LOG-0043 — S2.1 — COMPLETE（待人工验收）
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者：Codex `/root`
+- 目标与结果：完成统一 ImportBatch、逐项能力/大小/失败原因/替代方式、确认前本地检查、取消零授权和确认时授权。首页选择/拖入路径进入显式确认页；专业模式旧入口继续兼容并复用同一 Import application 安全内核。S2.1 只把 UTF-8 白名单文本和只读 DOCX/PDF 文本层标为可确认；CSV/XLSX/图片被诚实识别为 S2.2 待适配，不能勾选、解析或发送。
+- Rust 与信任边界：
+  - 新增 `domain/import.rs`、`application/import.rs` 和进程内 `pending_imports`。待确认批次只保存于 Rust 内存，前端只得到随机 batch/item ID、文件名、扩展名、大小、能力、原因、替代方式和警告，不得到绝对路径。
+  - 新增 `select_import_sources`、`inspect_import_batch`、`confirm_import`；确认输入严格拒绝未知字段、重复/越权/不可读 item ID。取消会删除内存批次且不创建 Workspace；成功或取消后批次均失效。
+  - 系统选择后检查最多 20 项/100 MB；文本 2 MB、DOCX/PDF/XLSX 25 MB、图片 20 MB。确认前重新检查内容类型、大小和安全状态，阻止选择后替换/膨胀；多个确认文件先全部读取验证，再在单个 SQLite 事务中建立 `workspace_files` 引用。
+  - 敏感/隐藏策略统一进入 `security/path.rs`：点文件、Windows Hidden 属性、`.git`、`.ssh`、`secrets`、`.env*`、私钥、证书和常见凭据文件默认拒绝。既有聊天上下文路径校验复用该安全函数。
+  - DOCX/XLSX 包检查最多 2000 条、单条目 25 MB、总展开 100 MB、压缩比 100:1、必要结构和路径穿越；宏、外部关系、嵌入对象/图表只警告，绝不执行/访问。PDF 检查签名并预读文本层，扫描件给出 OCR/视觉替代说明；图片检查基本文件签名。
+  - `select_context_files` 仍保留原命令与 UX，但内部改走相同检查/重检/批量引用逻辑，避免专业模式绕过新信任边界。
+- 前端与 Web Mock：新增 `features/imports` controller/store/确认组件；只默认勾选 `ready + readable` 项，planned/rejected 项禁用，显示能力、原因、警告和替代方式。Home 拖放只触发受控系统选择器，不读取 DataTransfer 路径/内容。确认结果通过共享 Workspace store 接入现有文件/会话状态。Web Mock 使用确定性文本、DOCX、XLSX、图片和敏感文件 fixture，不触碰 Desktop API 或真实文件系统。
+- 合同、IPC 与权限：新增 `contracts/v2/import.json`、Rust serde 与 TypeScript guard；新增 3 个主窗口最小 Capability 及自动生成权限。应用命令总数由 51 增至 54；没有 shell、网络、任意文件系统、数据库查询或删除权限。
+- 数据库与兼容：schema 保持 v10，没有 migration；短生命周期批次不落库。只在用户确认后复用 v4 `workspace_files`，新增批量事务方法而不改变表结构。既有 Result、Task、会话、工作区、版本和 A2UI 数据未迁移、未重写。
+- 主要修改文件：`src-tauri/src/domain/import.rs`、`application/import.rs`、`security/path.rs`、`state.rs`、`commands.rs`、`workspace/mod.rs`、`application/workspace.rs`、`storage/mod.rs`、`lib.rs`、`build.rs`、Capability/生成权限/生成 schema/命令/架构/合同测试；`src/features/imports/**`、Home SourceDropZone、Workspace store/types、Desktop Gateway、Web Mock、i18n、合同 guards、组件/store/边界测试和 Web E2E；架构、隐私、实施及人工验收文档。
+- 自动验证：
+  - `npm run check` 通过：Prettier、ESLint、TypeScript、32 个测试文件/99 项 Vitest 和生产构建全部成功。
+  - `npm run test:coverage` 通过：32 个文件/99 项测试；Statements 96.96%、Branches 83.82%、Functions 93.10%、Lines 98.80%。
+  - `npm run test:e2e` 最终通过：Chromium Web Mock 6/6；新增路径覆盖能力清单、planned/rejected 禁选、取消、重新选择、确认只加入两个可读来源，最终无 Ant Design 弃用控制台错误。
+  - 隔离 `CARGO_TARGET_DIR=src-tauri/target/s2-1-acceptance` 下，Rust fmt、Clippy `-D warnings` 和全量测试通过：94 个库测试、5 个架构边界、1 个命令注册、7 个合同 fixture 和 doc tests。新增测试覆盖敏感/隐藏路径、无效 Office 包、Zip Bomb、取消零授权、确认越权、确认时重检和批次上限。
+  - `npm run tauri build -- --debug --no-bundle` 通过；隔离 APPDATA/LOCALAPPDATA 桌面启动冒烟通过，PID 13040 已退出且临时目录已清理。
+- 验证过程修正：首次隔离 Rust 定向测试因依赖首次编译超过短超时被终止，缓存后重跑暴露 Windows `tempfile` 的点目录祖先被误判为“所选隐藏文件”；策略收窄为所选文件名/Windows Hidden 属性，同时由敏感规则继续拦截 `.git/.ssh/secrets` 祖先，5 项新增测试最终通过。E2E 首次使用过严的精确可访问名称定位“选择资料”，第二次未兼容 Ant Design 中文按钮字间距；改为匹配用户可见名称后完整 6/6 通过。同步把已弃用 `maskClosable` 改为 Ant Design 6 `mask.closable`。一次格式命令误把 Rust 文件交给 Prettier，Prettier明确拒绝且未修改 Rust；随后使用 `cargo fmt` 并通过检查。
+- 安全、隐私与回滚：S2.1 不调用 Provider、不外发正文/图片/文件名/路径、不新增遥测、不修改来源文件。回滚代码不会删除已经由用户确认建立的本地授权记录，也不会删除来源文件；取消或检查失败不留下授权。清除所有本地数据会同时清空待确认内存批次。
+- 文档与人工验收：更新 `V2_ARCHITECTURE.md`、`ARCHITECTURE.md`、`PRIVACY.md` 和本账本；新增 [S2_1_MANUAL_ACCEPTANCE.md](S2_1_MANUAL_ACCEPTANCE.md)，包含 14 项功能与 10 项安全/隐私检查。S2.1 当前为 `待人工验收`，不是 `已完成`。
+- 下一具体动作：停止实施并等待用户明确回复“**S2.1 验收通过**”；在此之前不得开始 S2.2 或任何后续步骤。
+
+### LOG-0044 — S2.1 — ACCEPTANCE FAILED / NATIVE DROP FIX START
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `775d4c2`；保留 LOG-0042—LOG-0043 的未提交 S2.1 累积工作树，不覆盖或回退既有改动。
+- 用户人工反馈：从 Windows 桌面把文件拖入首页资料区不成功。
+- 复核结论：这是 S2.1 验收阻断缺陷。现有 React `drop` 处理只取消浏览器默认行为并重新打开系统选择器，没有接收 Tauri 原生桌面拖放事件中的实际文件；LOG-0043 与原人工验收项把该降级行为误记为可接受，本记录取代该结论。
+- 目标与允许范围：仅修复 S2.1 原生桌面拖放，使拖入资料区的文件由 Rust 侧检查并形成同一 `ImportBatch` 确认页；绝对路径继续只留在 Rust，前端只接收脱敏批次和错误；拖放不得绕过显式确认、敏感/隐藏路径、格式、大小、Zip Bomb 或确认时重检。
+- 明确不做：不开始 S2.2，不实现 CSV/XLSX/图片真实适配，不修改来源文件，不调用 Provider，不新增遥测或内容外发。
+- 下一具体动作：实现受控拖放目标注册、Rust 原生窗口拖放处理和脱敏事件桥接，补齐测试、架构说明与人工复验项后重新停在 S2.1 验收点。
+
+### LOG-0045 — S2.1 — NATIVE DROP FIX COMPLETE（待重新人工验收）
+
+- 时间：2026-08-17（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线与范围：延续 `main` / `775d4c2` 及 LOG-0042—LOG-0044 的未提交 S2.1 累积工作树；只修复 Windows 桌面原生拖放验收缺陷，没有开始 S2.2。
+- Rust 原生拖放：
+  - `tauri.conf.json` 显式保持 `dragDropEnabled=true`；`lib.rs` 通过 `on_webview_event` 接收 `DragDropEvent::Drop`。绝对路径不进入 IPC、事件 payload 或 React，只交给既有 `application::import::inspect_paths`。
+  - 新增严格 `ImportDropBounds`、`SetImportDropTargetInput`、内部 `ImportDropTarget` 和脱敏 `ImportDropOutcome`。目标 ID/Workspace ID、有限坐标、矩形方向和最多 8 个目标均由 Rust 校验；重叠目标选择面积最小的命中区域，区域外拖放被忽略。
+  - 原生检查移到后台线程，窗口事件循环不执行 DOCX/PDF 等重检查；同一时刻只允许一个原生拖放检查，并以 RAII 保证异常退出后释放忙碌状态。`clear_all_local_data` 递增导入世代并清空目标/批次，进行中的旧检查不能在清除后重新放回待确认路径。
+  - 新增 `set_import_drop_target` 最小命令/Capability/自动生成权限；应用命令总数由 54 增至 55。没有新增 shell、网络、任意文件系统、数据库查询或批量删除权限。
+- 前端链路：新增 `useImportDropTarget`，只注册可见资料区的逻辑坐标、随机目标 ID 和可选 Workspace ID，并监听 `import-drop-outcome`；事件先经 TypeScript guard，再进入 Import store 并打开同一个确认页。Desktop HTML `drop` 不再错误打开选择器；Web Mock 继续使用确定性 fallback 以支持浏览器自动化。首页文案已改为“拖入文件先进入读取范围确认”。
+- 合同与测试：新增 `contracts/v2/import-drop.json`、Rust serde round-trip、TypeScript guard、Import store 成功/失败事件测试、资料区 click/drop 分流测试、Web Mock drop E2E 和 Rust 架构边界测试；导入应用测试新增边界注册、最小命中、注销、非法标识/坐标和数量上限。
+- 数据与兼容：schema 仍为 v10，没有 migration；原生拖放与系统选择建立完全相同的短生命周期内存批次，确认前不持久化，取消/失败/应用退出/清除本地数据不建立授权。来源文件不修改、不复制，不调用 Provider，不发送内容或新增遥测。
+- 自动验证：
+  - `npm run check` 通过：Prettier、ESLint、TypeScript、32 个测试文件/101 项 Vitest 和生产构建全部成功。
+  - `npm run test:coverage` 通过：32 个文件/101 项测试；Statements 97.97%、Branches 83.82%、Functions 96.55%、Lines 98.80%。
+  - `npm run test:e2e` 通过：Chromium Web Mock 6/6；ImportBatch 用例由真实浏览器 `drop` 事件进入确认页，随后覆盖取消、选择器重开和只确认可读项。
+  - `cargo fmt --all -- --check` 与 `cargo clippy --all-targets --all-features -- -D warnings` 通过；隔离 `CARGO_TARGET_DIR=src-tauri/target/s2-1-native-drop-fix` 下 `cargo test --all-features` 通过 96 个库测试、6 个架构测试、1 个命令注册测试、7 个合同测试和 doc tests。
+  - 最终代码在隔离 target 下 `npm run tauri build -- --debug --no-bundle` 通过；隔离 APPDATA/LOCALAPPDATA 启动冒烟通过，PID 43340 已退出，临时目录已清理。
+- 验证过程修正：首次 `npm run check` 发现 Web Mock 三个占位参数触发 ESLint，显式消费参数后全量通过。覆盖率与 E2E 并行时，既有 `EditorPane` 版本历史异步用例因负载超时；单独复跑覆盖率 101/101 通过。默认 Rust target 的测试可执行文件被用户当前桌面实例占用并返回 Windows `os error 5`，未关闭用户进程，改用隔离 target 后全量通过。首次 Tauri 构建命令的 shell `PATH` 未含临时 Cargo 目录，补齐后构建通过；这些过程异常均未要求修改范围外业务代码。
+- 文档：已同步 `ARCHITECTURE.md`、`V2_ARCHITECTURE.md`、`PRIVACY.md`、本账本和 [S2_1_MANUAL_ACCEPTANCE.md](S2_1_MANUAL_ACCEPTANCE.md)。M09 现要求从 Windows 桌面/资源管理器拖入资料区时直接出现实际文件确认页，拖到区域外无批次；旧“拖入后打开选择器”预期已作废。
+- 状态与限制：自动化无法合成 Windows Shell 到 WebView2 的真实 OS 文件拖放，因此代码、合同、浏览器 fallback、桌面构建和启动门禁已完成，但 M09 必须由用户在真实桌面复验。S2.1 为 `待重新人工验收`，不是 `已完成`。
+- 下一具体动作：用户按更新后的 M09 从桌面拖入一个脱敏 UTF-8 测试文件并确认出现对应 ImportBatch；用户明确回复“**S2.1 验收通过**”前不得开始 S2.2 或任何后续步骤。
+
 ### 新账本记录模板
 
 ```markdown
@@ -1250,14 +1334,14 @@ S1.3、S1.4 已通过自动验证、缺陷修补和用户人工复验。S1.5 已
 
 ## 12. 交接摘要
 
-截至 LOG-0040：
+截至 LOG-0045：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳和 S1.4 三步引导/六类首页/受控资料入口/Task 草稿路径/Result 最近成果。S1.5 专用成果工作台已完成实现和自动验证，当前等待人工验收；真实 Export、Adaptive Context 和产品事件尚未开始。
+- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页和 S1.5 专用成果工作台。S2.1 ImportBatch、格式能力、导入安全和 Windows 原生桌面拖放修复已完成实现与自动验证，当前等待重新人工验收；S2.2 真实 CSV/XLSX/图片适配、Export、Adaptive Context 和产品事件尚未开始。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
-- S1.5 已落地用户主动新建 Markdown/纯文本成果、独立 Result 工作台、受控保存、版本历史、恢复和另存副本；AI `create_file` Review 仍归 S2.5，用户确认前零写入；首期不以完整 Office 格式兼容为目标。
-- 当前唯一活动动作是按 [S1_5_MANUAL_ACCEPTANCE.md](S1_5_MANUAL_ACCEPTANCE.md) 完成人工验收；用户明确通过前不得开始 S2.1 或任何后续步骤。
+- S2.1 已落地确认前内存批次、逐项格式能力/原因/替代方式、文本/DOCX/PDF 确认导入、敏感/隐藏排除、Office 压缩安全、确认时重检，以及 Rust 原生拖放坐标命中和脱敏事件桥接；CSV/XLSX/图片只做诚实能力说明，真实适配仍归 S2.2。
+- 当前唯一活动动作是按 [S2_1_MANUAL_ACCEPTANCE.md](S2_1_MANUAL_ACCEPTANCE.md) 复验 Windows 桌面原生拖入；用户明确通过前不得开始 S2.2 或任何后续步骤。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - 如果文档与实际代码不一致，先记录差异并修正文档状态；不要为了符合文档而破坏性改写用户代码。

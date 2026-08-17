@@ -1,8 +1,8 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S1.4 已验收，S1.5 已实现并待人工验收
+> 文档状态：V2 目标架构基线；S1.1—S1.5 已验收，S2.1 原生拖放修复已实现并待重新人工验收
 > 建立日期：2026-08-11  
-> 对照代码：`main` 分支 S1.5 工作树，HEAD `f3197f5`
+> 对照代码：`main` 分支 S2.1 工作树，基线 HEAD `775d4c2`
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
 > PRD SHA-256：`E56FD2303B6228C5FC7AB1936FB1C2B71229845D6780DFDA2ACE06D69347AA3C`
 
@@ -45,7 +45,7 @@ V2 的产品品类是“可信的 AI 成果工作台”。聊天是任务控制�
 - 桌面端：Tauri 2、Rust 2021、SQLite/rusqlite、Windows Credential Manager。
 - 测试：Vitest、Testing Library、Playwright、Rust unit/integration tests。
 - 正式支持 Windows；Web 运行时只允许确定性 Mock。
-- Tauri 主窗口通过 Capability 精确授权 51 个应用命令、updater 和 restart 权限；没有 Shell 权限。
+- Tauri 主窗口通过 Capability 精确授权 55 个应用命令、updater 和 restart 权限；没有 Shell 权限。
 - CSP 禁止远程脚本，当前因 Ant Design 运行时样式保留 `style-src 'unsafe-inline'`。
 
 ### 3.2 当前组件关系
@@ -56,7 +56,7 @@ React components
        └─ shared/platform/gateway.ts
             └─ shared/platform/desktop.ts（Tauri invoke/channel 适配）
                  └─ commands.rs（薄 IPC、对话框、Channel、取消注册表）
-                      └─ application/*（Provider/Chat/Revision/Workspace 用例编排）
+                      └─ application/*（Provider/Chat/Revision/Workspace/Import 用例编排）
                            ├─ repository/*（按领域包裹现有 Storage）
                            ├─ workspace/mod.rs（授权、读取、保存、版本、草稿）
                            ├─ ai/*（Provider、SSE、上下文校验）
@@ -71,6 +71,7 @@ React components
 `[CURRENT]`
 
 - 真实目录工作区和独立授权文件；路径规范化、白名单、越界防护。
+- S2.1 统一 ImportBatch：确认前能力检查、逐项选择、取消零授权、格式/大小/失败原因和 Zip Bomb 防护。
 - 文本文件受控读写；DOCX/PDF 只读正文提取；2 MB 文本和 25 MB 文档限制。
 - 250 ms 崩溃草稿、约 1 秒自动保存、SHA-256 冲突检测。
 - 普通保存、Patch 和恢复版本链；版本默认保留 30 天。
@@ -91,7 +92,7 @@ React components
 | -------- | ------------------------------------------------------------- | --------------------------------------------------------------- |
 | 成果     | Result 聚合、文本新建/重开/保存/版本/复制、成果 UI 和导出入口 | 尚无归档和真实多格式导出                                        |
 | 任务     | S1.2 已实现并验收本地 Task、结构化补问和草稿 Orchestrator     | 尚无任务首页、上下文 Manifest 和真实生成编排                    |
-| 导入     | 文本、DOCX、PDF；独立文件选择                                 | 未支持 CSV/XLSX、图片、统一导入批次、格式能力说明               |
+| 导入     | S2.1 ImportBatch、文本/DOCX/PDF 确认导入、格式能力与安全报告  | CSV/XLSX 结构化读取和图片多模态适配属于 S2.2                    |
 | 上下文   | 前端组装所选全文，Rust 做大小和敏感校验                       | 没有 Full/Retrieval/Hybrid 策略、检索索引、Context Pack         |
 | 审阅     | `document_patch` 有专用 Diff                                  | 普通保存、模板、选区助手、A2UI Action 尚未统一为 Review Request |
 | 成果类型 | 文本编辑器和 A2UI Surface                                     | 没有文档/表格/清单/表单/小工具统一类型系统                      |
@@ -373,7 +374,7 @@ v10 迁移额外保证：v9 Result 原样保留，内置模板以 `(id, version)
 
 ### 7.1 从首页到成果
 
-`[CURRENT — S1.4 ACCEPTED]` 首次启动使用三步可跳过引导解释目标、资料选择和隐私边界；本地只保存一个完成布尔值，不保存用户选择的目标或资料内容。首页严格保留 PRD 六类一级入口，不根据会话或推荐流增生分类。统一资料区复用受控系统选择动作；React 不接触绝对路径或文件系统。
+`[CURRENT — S2.1 PENDING RE-ACCEPTANCE]` 首次启动使用三步可跳过引导解释目标、资料选择和隐私边界；本地只保存一个完成布尔值，不保存用户选择的目标或资料内容。首页严格保留 PRD 六类一级入口，不根据会话或推荐流增生分类。统一资料区同时支持受控系统选择和 Tauri 原生桌面拖放；React 只注册逻辑坐标边界，不接触绝对路径或文件系统。
 
 首页的高频文档路径通过独立 Home store/controller 调用已验收的 Template、Task 与 Result Gateway。Desktop 最近成果来自 SQLite `results`；Web Mock 使用确定性同合同 fixture；两者都不从 Chat Session 推断成果。O-08 未关闭前，会议纪要、文档总结、周报和简历优化只创建明确标注“尚未调用 AI”的本地结构草稿。表格分析与动态工具入口只显示未开放原因，不模拟成功。
 
@@ -393,7 +394,7 @@ v10 迁移额外保证：v9 Result 原样保留，内置模板以 `(id, version)
 
 S1.2 已验收并开放上述流程的本地准备子集：创建 Task → 校验/补问 → 在“我的成果”目录生成明确标注“尚未调用 AI”的 Markdown 结构草稿 → 事务绑定 Result。它不调用 Provider，不代表真实正文生成；完整模型、Context 和 Review 链路仍受后续步骤及 O-08 约束。
 
-`[IMPLEMENTED — S1.5 PENDING ACCEPTANCE]` 主动新建流程、Result 专用重开和大众双栏工作台已落地。Result store/controller 不依赖聊天状态；中央编辑区提供保存状态、查看修改、撤销和历史，完成态保留另存副本与导出入口。右侧 AI 助手当前明确不自动发送成果，等 S2.3 Context Manifest 接通；导出入口明确说明真实多格式导出属于 S2.8，不返回假成功。
+`[CURRENT — S1.5 ACCEPTED]` 主动新建流程、Result 专用重开和大众双栏工作台已落地并通过人工验收。Result store/controller 不依赖聊天状态；中央编辑区提供保存状态、查看修改、撤销和历史，完成态保留另存副本与导出入口。右侧 AI 助手当前明确不自动发送成果，等 S2.3 Context Manifest 接通；导出入口明确说明真实多格式导出属于 S2.8，不返回假成功。
 
 用户主动新建不依赖 AI：
 
@@ -406,7 +407,31 @@ S1.2 已验收并开放上述流程的本地准备子集：创建 Task → 校�
   → 打开工作台继续编辑
 ```
 
-### 7.2 统一 Review Pipeline
+### 7.2 统一导入批次
+
+`[IMPLEMENTED — S2.1 PENDING RE-ACCEPTANCE]` 首页资料区不再把系统选择或原生拖入结果立即当作已授权上下文，而是建立短生命周期 `ImportBatch`：
+
+```text
+系统文件选择器
+  → Rust 规范化路径并检查批次/单文件上限
+  → 逐项识别能力、只返回文件名/大小/状态/原因/替代方式
+  → 用户逐项保留或取消
+  → 取消：删除内存批次，零 Workspace/File 授权
+  → 确认：重新检查文件，原子建立可读项的 workspace_files 授权
+  → 前端只获得虚拟路径、sourceId、正文和能力，不获得绝对路径
+```
+
+- `ImportBatch` 只保存在 Rust 进程内存，当前最多保留一个待确认批次；应用重启或新选择会使旧批次失效，不新增长期内容表或 schema migration。
+- 桌面拖放由 Tauri `on_webview_event` 在 Rust 侧接收；前端只通过 `set_import_drop_target` 注册最多 8 个可见资料区的逻辑坐标、目标 ID 和可选 Workspace ID。命中区域后，Rust 在线程中执行与系统选择相同的 `inspect_paths`，同一时刻只允许一个原生拖放检查。
+- Rust 只发出 `import-drop-outcome` 脱敏事件：事件含目标 ID、ImportBatch 或稳定错误，不含绝对路径。拖到注册区域外会被忽略；清除所有本地数据会递增导入世代、清空目标/批次，并阻止进行中的旧检查重新写回待确认内存。
+- 当前可确认能力是 UTF-8 白名单文本和只读 DOCX/PDF 文本层。文本上限 2 MB，文档上限 25 MB，单批最多 20 个文件且总计不超过 100 MB。
+- 隐藏属性/点文件、`.git`、`.ssh`、`secrets`、`.env`、私钥、证书和常见凭据路径直接拒绝，不进入默认授权范围。前端只能提交批次内的随机 item ID。
+- DOCX/XLSX 预检压缩条目数、单条目/总展开量、压缩比、路径穿越和必要结构；宏、外部关系、嵌入对象只报告且绝不执行或访问。PDF 检查签名并预读文本层；扫描文档明确提示后续 OCR/视觉能力。
+- CSV、XLSX 和 PNG/JPEG/GIF/WebP 已能被能力系统识别并给出安全上限、当前原因与替代方式，但 S2.1 不把它们标为可读取，也不建立授权。CSV/XLSX 结构化解析和保留原图的多模态来源适配严格属于 S2.2。
+- 确认前会再次检查文件，防止选择后替换或膨胀；确认的多个可读文件在单个 SQLite 事务中建立引用。来源文件只读，不复制、不修改，也不调用 Provider。
+- 专业模式既有 `select_context_files` 继续保留兼容命令，但其路径检查、Office/PDF 安全检查和确认时重检复用同一 Import application service，避免双重信任边界。
+
+### 7.3 统一 Review Pipeline
 
 ```text
 候选变更（聊天/选区/模板/A2UI）
@@ -425,7 +450,7 @@ S1.2 已验收并开放上述流程的本地准备子集：创建 Task → 校�
 
 创建文件同样遵守上述边界：用户主动点击“新建”并确认属于直接用户意图；聊天、模板或 A2UI 中由 AI 建议的新文件只能进入 `create_file` Review。审阅界面必须展示建议文件名、文本类型、目标位置说明和完整内容预览，并提供接受、拒绝与调整名称；接受前文件系统写入次数必须为零，重复应用同一 Review 必须幂等。
 
-### 7.3 自适应上下文
+### 7.4 自适应上下文
 
 `[TARGET]` Context Planner 根据格式、可提取性、文件数、字符数、任务和用户选择决定：
 
@@ -435,7 +460,7 @@ S1.2 已验收并开放上述流程的本地准备子集：创建 Task → 校�
 
 Planner 输出必须包含：策略、实际来源数、估算大小、排除原因、处理位置和敏感提示。用户能删除单项或缩小范围。检索索引只能覆盖用户授权内容，敏感排除路径默认不索引；任何索引正文默认留在本机。
 
-### 7.4 导出
+### 7.5 导出
 
 - 导出输入必须绑定 `resultId + revisionId`，确保与当前版本一致。
 - 文件选择由 Rust 系统对话框完成；前端不提交任意绝对目标路径。
@@ -444,7 +469,7 @@ Planner 输出必须包含：策略、实际来源数、估算大小、排除原
 - 导出失败记录稳定错误码和可重试状态，不记录成果正文到日志。
 - PDF/DOCX/XLSX 生成器需单独做依赖、字体、许可证和公式注入安全审查。
 
-### 7.5 表格、图片与复杂文档边界
+### 7.6 表格、图片与复杂文档边界
 
 `[DECISION]` V2 P0 支持 CSV/XLSX 基础数据。图片是可单独授权的上下文类型，系统应保留原始视觉信息供具备视觉能力的多模态模型理解，不以仅提取文本替代原图。
 
@@ -455,7 +480,7 @@ Planner 输出必须包含：策略、实际来源数、估算大小、排除原
 - 公式、宏、嵌入式图表和扫描文档首期优先提供只读预览或 AI 上下文能力；不承诺结构化编辑、公式语义保持或无损回写。
 - 宏和外部链接永不执行；CSV/XLSX 导出必须防止公式注入；压缩型格式继续受大小、展开量、条目数和 Zip Bomb 限制。
 
-### 7.6 A2UI 动态成果
+### 7.7 A2UI 动态成果
 
 - Rust 继续是唯一信任边界；前端只渲染已验证 Catalog。
 - V2 增加协议版本协商、能力声明和官方 conformance fixtures。
@@ -516,7 +541,7 @@ result:   list_results, get_result, create_text_result, read_result_document, sa
           list_result_revisions, read_result_revision, restore_result_revision, duplicate_result
           # S1.5 已实现并使用最小 Capability；archive_result 后续
 a2ui:    list_a2ui_surfaces, list_a2ui_inspections, delete_a2ui_surface, execute_a2ui_action  # 当前已实现并受最小 Capability 约束
-import:   select_import_sources, inspect_import_batch, confirm_import
+import:   select_import_sources, inspect_import_batch, set_import_drop_target, confirm_import  # S2.1 已实现并使用最小 Capability；S2.2 适配器后续
 context:  plan_context, confirm_context_manifest, list_context_packs, save_context_pack
 review:   get_review, decide_review_blocks, apply_review, discard_review
 export:   start_export, cancel_export, list_result_exports
@@ -592,22 +617,22 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 
 ## 14. 需求追踪摘要
 
-| PRD 能力      | 架构承载                                            | 状态                                      |
-| ------------- | --------------------------------------------------- | ----------------------------------------- |
-| ONB/HOME      | app routing、home feature、Result queries           | S1.4 Current                              |
-| IMP/TASK      | Import Service、Task Orchestrator、Template         | Task/内置模板 Current，Import Target      |
-| WS            | Result Workbench、typed editors、mode shell         | 文本 Result 外壳 Current，其余 Target     |
-| CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | 部分 Current，V2 Target                   |
-| REV-01…06     | Review Request + 现有 Patch/Revision 内核           | 内核 Current，统一入口 Target             |
-| OUT-01…06     | Result type adapters、A2UI、Action Policy           | A2UI 内核 Current，其余 Target            |
-| EXP-01…04     | Export Service、export jobs、format adapters        | 入口 Current，真实导出 Target             |
-| RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target |
-| SEL-01        | Selection controller → Review Pipeline              | Target                                    |
-| PRV-04/MDL-05 | Processing options、local probe                     | Target                                    |
-| SRCH-01       | 授权索引和 Search Service                           | P1 Target                                 |
-| ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                    |
-| A2UI-06       | capability negotiation + conformance CI             | Target                                    |
-| UX-08         | Import suggestions mapped to Result type            | P1 Target                                 |
+| PRD 能力      | 架构承载                                            | 状态                                                    |
+| ------------- | --------------------------------------------------- | ------------------------------------------------------- |
+| ONB/HOME      | app routing、home feature、Result queries           | S1.4 Current                                            |
+| IMP/TASK      | Import Service、Task Orchestrator、Template         | Task/模板 Current；ImportBatch S2.1 Implemented，待验收 |
+| WS            | Result Workbench、typed editors、mode shell         | 文本 Result 外壳 Current，其余 Target                   |
+| CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | 部分 Current，V2 Target                                 |
+| REV-01…06     | Review Request + 现有 Patch/Revision 内核           | 内核 Current，统一入口 Target                           |
+| OUT-01…06     | Result type adapters、A2UI、Action Policy           | A2UI 内核 Current，其余 Target                          |
+| EXP-01…04     | Export Service、export jobs、format adapters        | 入口 Current，真实导出 Target                           |
+| RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target               |
+| SEL-01        | Selection controller → Review Pipeline              | Target                                                  |
+| PRV-04/MDL-05 | Processing options、local probe                     | Target                                                  |
+| SRCH-01       | 授权索引和 Search Service                           | P1 Target                                               |
+| ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                                  |
+| A2UI-06       | capability negotiation + conformance CI             | Target                                                  |
+| UX-08         | Import suggestions mapped to Result type            | P1 Target                                               |
 
 完整实施顺序、逐步验收和变更记录见实施文档；这里的 `Target` 不代表已经承诺具体版本日期。
 

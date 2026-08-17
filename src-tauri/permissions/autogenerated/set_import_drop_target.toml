@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-import-drop-target"
+description = "Enables the set_import_drop_target command without any pre-configured scope."
+commands.allow = ["set_import_drop_target"]
+
+[[permission]]
+identifier = "deny-set-import-drop-target"
+description = "Denies the set_import_drop_target command without any pre-configured scope."
+commands.deny = ["set_import_drop_target"]

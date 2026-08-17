@@ -1,5 +1,6 @@
 use super::{ChatRequest, ContextSource, ContextSourceKind};
 use crate::error::AppError;
+use crate::security::is_sensitive_path;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::fmt::Write as _;
@@ -118,7 +119,7 @@ fn validate_source(source: &ContextSource) -> Result<(), AppError> {
             "上下文来源名称不能为空且不能超过 512 个字符".into(),
         ));
     }
-    if is_sensitive_path(label) {
+    if is_sensitive_path(std::path::Path::new(label)) {
         return Err(AppError::InvalidInput(format!(
             "敏感文件不能加入上下文：{label}"
         )));
@@ -129,21 +130,6 @@ fn validate_source(source: &ContextSource) -> Result<(), AppError> {
         }
     }
     Ok(())
-}
-
-pub fn is_sensitive_path(path: &str) -> bool {
-    let normalized = path.replace('\\', "/").to_ascii_lowercase();
-    let file_name = normalized.rsplit('/').next().unwrap_or(&normalized);
-    normalized.split('/').any(|part| part == "secrets")
-        || file_name == ".env"
-        || file_name.starts_with(".env.")
-        || matches!(
-            file_name,
-            "id_rsa" | "id_ed25519" | "credentials.json" | "service-account.json"
-        )
-        || [".pem", ".key", ".p12", ".pfx", ".crt", ".cer"]
-            .iter()
-            .any(|suffix| file_name.ends_with(suffix))
 }
 
 fn looks_sensitive(content: &str) -> bool {
@@ -175,8 +161,10 @@ fn sha256(bytes: &[u8]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_context_prompt, is_sensitive_path};
+    use super::build_context_prompt;
     use crate::ai::{ContextSource, ContextSourceKind};
+    use crate::security::is_sensitive_path;
+    use std::path::Path;
 
     #[test]
     fn excludes_common_secret_and_certificate_paths() {
@@ -187,9 +175,12 @@ mod tests {
             "certs/app.pfx",
             "id_rsa",
         ] {
-            assert!(is_sensitive_path(path), "accepted sensitive path {path}");
+            assert!(
+                is_sensitive_path(Path::new(path)),
+                "accepted sensitive path {path}"
+            );
         }
-        assert!(!is_sensitive_path("src/config.ts"));
+        assert!(!is_sensitive_path(Path::new("src/config.ts")));
     }
 
     #[test]

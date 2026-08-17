@@ -1,0 +1,45 @@
+{
+  "targetId": "ca4feeb9-949d-4986-90f5-7b33f858ebcd",
+  "batch": {
+    "id": "3a55746e-36b7-4fc2-8a9c-1b09ca0e8a65",
+    "status": "awaiting_confirmation",
+    "items": [
+      {
+        "id": "d835855e-88c4-49ba-81dd-c674402454e7",
+        "name": "meeting-notes.md",
+        "extension": "md",
+        "sizeBytes": 1280,
+        "capability": "editable_text",
+        "status": "ready",
+        "readable": true,
+        "editable": true,
+        "reasonCode": null,
+        "reason": null,
+        "alternative": null,
+        "warnings": []
+      },
+      {
+        "id": "023283ff-826b-4c24-a5eb-cf095bc9a6be",
+        "name": "sales.xlsx",
+        "extension": "xlsx",
+        "sizeBytes": 18432,
+        "capability": "planned_structured_data",
+        "status": "planned",
+        "readable": false,
+        "editable": false,
+        "reasonCode": "ADAPTER_NOT_READY",
+        "reason": "S2.2 将提供受控 XLSX 基础数据解析；公式和图表只读优先",
+        "alternative": "可先导出为 CSV，宏和外部链接不会执行或访问",
+        "warnings": []
+      }
+    ],
+    "totalSizeBytes": 19712,
+    "maxFiles": 20,
+    "maxBatchBytes": 104857600,
+    "canConfirm": true,
+    "failureCode": null,
+    "failureReason": null
+  },
+  "errorCode": null,
+  "errorMessage": null
+}

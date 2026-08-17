@@ -12,8 +12,17 @@ pub mod storage;
 pub mod workspace;
 
 use state::AppState;
+use std::sync::atomic::Ordering;
 use storage::Storage;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
+
+struct NativeImportDropGuard<'a>(&'a std::sync::atomic::AtomicBool);
+
+impl Drop for NativeImportDropGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -29,6 +38,83 @@ pub fn run() {
             storage.cleanup_expired_versions()?;
             app.manage(AppState::new(storage, managed_results_dir));
             Ok(())
+        })
+        .on_webview_event(|webview, event| {
+            let tauri::WebviewEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position }) =
+                event
+            else {
+                return;
+            };
+            let Some(state) = webview.try_state::<AppState>() else {
+                return;
+            };
+            let scale_factor = webview.window().scale_factor().unwrap_or(1.0);
+            let logical_position = position.to_logical::<f64>(scale_factor);
+            let target = {
+                let Ok(targets) = state.import_drop_targets.lock() else {
+                    return;
+                };
+                application::import::find_drop_target(
+                    &targets,
+                    logical_position.x,
+                    logical_position.y,
+                )
+            };
+            let Some(target) = target else {
+                return;
+            };
+            let target_id = target.target_id.clone();
+            if state
+                .native_import_drop_active
+                .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+                .is_err()
+            {
+                let outcome = domain::import::ImportDropOutcome::failure(
+                    target_id,
+                    &error::AppError::InvalidInput("正在检查上一批拖入文件，请稍候".into()),
+                );
+                let _ = webview.emit("import-drop-outcome", outcome);
+                return;
+            }
+            let webview = webview.clone();
+            let paths = paths.clone();
+            let import_drop_epoch = state.import_drop_epoch.load(Ordering::Acquire);
+            std::thread::spawn(move || {
+                let Some(state) = webview.try_state::<AppState>() else {
+                    return;
+                };
+                let _active_guard = NativeImportDropGuard(&state.native_import_drop_active);
+                let outcome =
+                    match application::import::inspect_paths(paths, target.workspace_id.clone()) {
+                        Ok(pending) => {
+                            let batch = pending.batch.clone();
+                            match state.pending_imports.lock() {
+                                Ok(mut pending_imports) => {
+                                    if state.import_drop_epoch.load(Ordering::Acquire)
+                                        != import_drop_epoch
+                                    {
+                                        domain::import::ImportDropOutcome::failure(
+                                            target_id,
+                                            &error::AppError::InvalidInput(
+                                                "本地数据已清除，本次拖入已取消".into(),
+                                            ),
+                                        )
+                                    } else {
+                                        pending_imports.clear();
+                                        pending_imports.insert(batch.id.clone(), pending);
+                                        domain::import::ImportDropOutcome::success(target_id, batch)
+                                    }
+                                }
+                                Err(_) => domain::import::ImportDropOutcome::failure(
+                                    target_id,
+                                    &error::AppError::StateUnavailable,
+                                ),
+                            }
+                        }
+                        Err(error) => domain::import::ImportDropOutcome::failure(target_id, &error),
+                    };
+                let _ = webview.emit("import-drop-outcome", outcome);
+            });
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_bootstrap_status,
@@ -48,6 +134,10 @@ pub fn run() {
             commands::discard_workspace_draft,
             commands::remove_workspace,
             commands::select_context_files,
+            commands::select_import_sources,
+            commands::inspect_import_batch,
+            commands::set_import_drop_target,
+            commands::confirm_import,
             commands::save_context_file,
             commands::list_document_versions,
             commands::read_document_version,

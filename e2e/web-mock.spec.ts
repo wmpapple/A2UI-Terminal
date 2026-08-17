@@ -201,3 +201,28 @@ test('creates, saves, versions, copies, and reopens a text Result without chat',
   await original.getByRole('button', { name: /继续处理/ }).click();
   await expect(editor).toHaveValue('# S1.5 验收记录\n\n成果正文已保存。');
 });
+
+test('reviews an ImportBatch before authorizing only currently readable sources', async ({
+  page,
+}) => {
+  await skipOnboarding(page);
+  await page.getByTestId('home-source-drop-zone').dispatchEvent('drop');
+  const review = page.getByRole('dialog', { name: '确认读取范围' });
+  await expect(review).toBeVisible();
+  await expect(review.getByText('meeting-notes.md')).toBeVisible();
+  await expect(review.getByText('research-report.docx')).toBeVisible();
+  await expect(review.getByText('表格适配待开放')).toBeVisible();
+  await expect(review.getByText('图片上下文待开放')).toBeVisible();
+  await expect(review.getByText('隐藏文件、密钥或敏感路径不会加入导入批次')).toBeVisible();
+  await expect(review.getByRole('checkbox', { name: /sales.xlsx/ })).toBeDisabled();
+  await expect(review.getByRole('checkbox', { name: /whiteboard.png/ })).toBeDisabled();
+  await expect(review.getByText(/确认前不建立授权/)).toBeVisible();
+
+  await review.getByRole('button', { name: /取.*消/ }).click();
+  await expect(review).toHaveCount(0);
+  await page.getByRole('button', { name: /选择资料/ }).click();
+  const confirmation = page.getByRole('dialog', { name: '确认读取范围' });
+  await confirmation.getByRole('button', { name: '确认加入资料' }).click();
+  await expect(confirmation).toHaveCount(0);
+  await expect(page.getByText(/已准备 6 项资料/)).toBeVisible();
+});

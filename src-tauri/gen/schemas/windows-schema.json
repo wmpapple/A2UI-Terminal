@@ -195,6 +195,12 @@
           "markdownDescription": "Enables the clear_all_local_data command without any pre-configured scope."
         },
         {
+          "description": "Enables the confirm_import command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-confirm-import",
+          "markdownDescription": "Enables the confirm_import command without any pre-configured scope."
+        },
+        {
           "description": "Enables the create_chat_session command without any pre-configured scope.",
           "type": "string",
           "const": "allow-create-chat-session",
@@ -265,6 +271,12 @@
           "type": "string",
           "const": "allow-get-task",
           "markdownDescription": "Enables the get_task command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the inspect_import_batch command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-inspect-import-batch",
+          "markdownDescription": "Enables the inspect_import_batch command without any pre-configured scope."
         },
         {
           "description": "Enables the list_a2ui_inspections command without any pre-configured scope.",
@@ -429,6 +441,12 @@
           "markdownDescription": "Enables the select_context_files command without any pre-configured scope."
         },
         {
+          "description": "Enables the select_import_sources command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-select-import-sources",
+          "markdownDescription": "Enables the select_import_sources command without any pre-configured scope."
+        },
+        {
           "description": "Enables the select_workspace command without any pre-configured scope.",
           "type": "string",
           "const": "allow-select-workspace",
@@ -439,6 +457,12 @@
           "type": "string",
           "const": "allow-set-active-provider",
           "markdownDescription": "Enables the set_active_provider command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_import_drop_target command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-import-drop-target",
+          "markdownDescription": "Enables the set_import_drop_target command without any pre-configured scope."
         },
         {
           "description": "Enables the set_provider_secret command without any pre-configured scope.",
@@ -499,6 +523,12 @@
           "type": "string",
           "const": "deny-clear-all-local-data",
           "markdownDescription": "Denies the clear_all_local_data command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the confirm_import command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-confirm-import",
+          "markdownDescription": "Denies the confirm_import command without any pre-configured scope."
         },
         {
           "description": "Denies the create_chat_session command without any pre-configured scope.",
@@ -571,6 +601,12 @@
           "type": "string",
           "const": "deny-get-task",
           "markdownDescription": "Denies the get_task command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the inspect_import_batch command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-inspect-import-batch",
+          "markdownDescription": "Denies the inspect_import_batch command without any pre-configured scope."
         },
         {
           "description": "Denies the list_a2ui_inspections command without any pre-configured scope.",
@@ -735,6 +771,12 @@
           "markdownDescription": "Denies the select_context_files command without any pre-configured scope."
         },
         {
+          "description": "Denies the select_import_sources command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-select-import-sources",
+          "markdownDescription": "Denies the select_import_sources command without any pre-configured scope."
+        },
+        {
           "description": "Denies the select_workspace command without any pre-configured scope.",
           "type": "string",
           "const": "deny-select-workspace",
@@ -745,6 +787,12 @@
           "type": "string",
           "const": "deny-set-active-provider",
           "markdownDescription": "Denies the set_active_provider command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_import_drop_target command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-import-drop-target",
+          "markdownDescription": "Denies the set_import_drop_target command without any pre-configured scope."
         },
         {
           "description": "Denies the set_provider_secret command without any pre-configured scope.",

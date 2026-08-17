@@ -6,6 +6,8 @@ import type {
   DocumentPatch,
   DocumentVersion,
   DocumentVersionSummary,
+  ImportBatch,
+  ImportDropOutcome,
   PatchApplication,
   PatchReview,
   ResultDetail,
@@ -92,6 +94,56 @@ const taskStatuses = new Set([
   'cancelled',
 ]);
 const templateFieldKinds = new Set(['short_text', 'select']);
+const importBatchStatuses = new Set(['awaiting_confirmation', 'blocked', 'confirmed', 'cancelled']);
+const importCapabilities = new Set([
+  'editable_text',
+  'read_only_text',
+  'planned_structured_data',
+  'planned_visual_context',
+  'unsupported',
+]);
+const importItemStatuses = new Set(['ready', 'planned', 'rejected']);
+
+const isImportItem = (value: unknown): boolean =>
+  isObject(value) &&
+  isString(value.id) &&
+  isString(value.name) &&
+  isString(value.extension) &&
+  isNumber(value.sizeBytes) &&
+  isString(value.capability) &&
+  importCapabilities.has(value.capability) &&
+  isString(value.status) &&
+  importItemStatuses.has(value.status) &&
+  isBoolean(value.readable) &&
+  isBoolean(value.editable) &&
+  isNullableString(value.reasonCode) &&
+  isNullableString(value.reason) &&
+  isNullableString(value.alternative) &&
+  isStringArray(value.warnings);
+
+export const isImportBatch = (value: unknown): value is ImportBatch =>
+  isObject(value) &&
+  isString(value.id) &&
+  isString(value.status) &&
+  importBatchStatuses.has(value.status) &&
+  Array.isArray(value.items) &&
+  value.items.length <= 20 &&
+  value.items.every(isImportItem) &&
+  isNumber(value.totalSizeBytes) &&
+  isNumber(value.maxFiles) &&
+  isNumber(value.maxBatchBytes) &&
+  isBoolean(value.canConfirm) &&
+  isNullableString(value.failureCode) &&
+  isNullableString(value.failureReason);
+
+export const isImportDropOutcome = (value: unknown): value is ImportDropOutcome =>
+  isObject(value) &&
+  isString(value.targetId) &&
+  (value.batch === null || isImportBatch(value.batch)) &&
+  isNullableString(value.errorCode) &&
+  isNullableString(value.errorMessage) &&
+  ((value.batch !== null && value.errorCode === null && value.errorMessage === null) ||
+    (value.batch === null && value.errorCode !== null && value.errorMessage !== null));
 
 export const isResultSummary = (value: unknown): value is ResultSummary =>
   isObject(value) &&

@@ -7,8 +7,8 @@ pub use path_guard::{
 
 use crate::error::AppError;
 use crate::storage::{
-    DocumentVersionMetadata, DocumentVersionRecord, DraftRow, Storage, WorkspaceFileRow,
-    WorkspaceRow,
+    DocumentVersionMetadata, DocumentVersionRecord, DraftRow, NewWorkspaceFileRow, Storage,
+    WorkspaceFileRow, WorkspaceRow,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -338,6 +338,44 @@ pub fn attach_selected_file(
     document.path = row.virtual_path;
     storage.touch_workspace(workspace_id)?;
     Ok(document)
+}
+
+pub fn attach_selected_files(
+    storage: &Storage,
+    workspace_id: &str,
+    paths: &[PathBuf],
+) -> Result<Vec<WorkspaceDocument>, AppError> {
+    require_workspace(storage, workspace_id)?;
+    let mut prepared = Vec::with_capacity(paths.len());
+    for path in paths {
+        let canonical = path.canonicalize()?;
+        let absolute_path = canonical.to_string_lossy().into_owned();
+        let source_id = Uuid::new_v4().to_string();
+        let document = read_selected_file(&canonical, &source_id)?;
+        prepared.push((canonical, absolute_path, source_id, document));
+    }
+    let inputs = prepared
+        .iter()
+        .map(
+            |(_, absolute_path, source_id, document)| NewWorkspaceFileRow {
+                source_id,
+                absolute_path,
+                virtual_path: &document.path,
+            },
+        )
+        .collect::<Vec<_>>();
+    let rows = storage.attach_workspace_files(workspace_id, &inputs)?;
+    let mut documents = Vec::with_capacity(rows.len());
+    for (row, (path, _, proposed_source_id, proposed)) in rows.into_iter().zip(prepared) {
+        let mut document = if row.source_id == proposed_source_id {
+            proposed
+        } else {
+            read_selected_file(&path, &row.source_id)?
+        };
+        document.path = row.virtual_path;
+        documents.push(document);
+    }
+    Ok(documents)
 }
 
 pub fn save_selected_file(

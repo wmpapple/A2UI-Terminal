@@ -1,4 +1,5 @@
 import { Channel, invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { getRuntimeMode } from './runtime';
 import type {
   A2uiActionResult,
@@ -26,6 +27,10 @@ import type {
   ResultRevisionSummary,
   ResultSummary,
   CreateTextResultInput,
+  ImportBatch,
+  ImportConfirmation,
+  ImportDropOutcome,
+  SetImportDropTargetInput,
   TaskDetail,
   TaskRunResult,
   TaskTemplate,
@@ -249,6 +254,41 @@ export const desktopApi = {
     requireDesktop();
     return invoke<SelectedWorkspaceFiles | null>('select_context_files', {
       workspaceId: workspaceId ?? null,
+    });
+  },
+
+  async selectImportSources(workspaceId?: string): Promise<ImportBatch | null> {
+    requireDesktop();
+    return invoke<ImportBatch | null>('select_import_sources', {
+      workspaceId: workspaceId ?? null,
+    });
+  },
+
+  async inspectImportBatch(batchId: string): Promise<ImportBatch> {
+    requireDesktop();
+    return invoke<ImportBatch>('inspect_import_batch', { batchId });
+  },
+
+  async setImportDropTarget(input: SetImportDropTargetInput): Promise<void> {
+    requireDesktop();
+    return invoke<void>('set_import_drop_target', { input });
+  },
+
+  async listenImportDropOutcomes(
+    handler: (outcome: ImportDropOutcome) => void
+  ): Promise<() => void> {
+    requireDesktop();
+    return listen<ImportDropOutcome>('import-drop-outcome', (event) => handler(event.payload));
+  },
+
+  async confirmImport(
+    batchId: string,
+    acceptedItemIds: string[],
+    confirmed: boolean
+  ): Promise<ImportConfirmation> {
+    requireDesktop();
+    return invoke<ImportConfirmation>('confirm_import', {
+      input: { batchId, acceptedItemIds, confirmed },
     });
   },
 

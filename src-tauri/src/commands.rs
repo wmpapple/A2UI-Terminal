@@ -5,7 +5,12 @@ use crate::a2ui::{
 use crate::ai::{ChatRequest, ProviderConfig, ProviderConfigView};
 pub use crate::application::chat::{ChatStreamEvent, ChatStreamResult};
 pub use crate::application::provider::{ProviderConnectionResult, SecretStatus};
-use crate::application::{adapters, chat, provider, revision, workspace as workspace_service};
+use crate::application::{
+    adapters, chat, import as import_service, provider, revision, workspace as workspace_service,
+};
+use crate::domain::import::{
+    ConfirmImportInput, ImportBatch, ImportConfirmation, SetImportDropTargetInput,
+};
 use crate::domain::result::{ResultDetail, ResultSummary};
 use crate::domain::task::{
     AnswerTaskInput, CreateTaskInput, TaskDetail, TaskRunResult, TaskTemplate,
@@ -155,6 +160,17 @@ pub fn clear_all_local_data(
     state.storage.clear_all()?;
     state
         .selected_files
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    state.import_drop_epoch.fetch_add(1, Ordering::AcqRel);
+    state
+        .pending_imports
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    state
+        .import_drop_targets
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .clear();
@@ -376,30 +392,143 @@ pub async fn select_context_files(
     if selected.is_empty() {
         return Ok(None);
     }
-    let workspace =
-        workspace_service::resolve_context_workspace(&state.storage, workspace_id.as_deref())?;
-    let mut documents = Vec::with_capacity(selected.len());
-    for selected_file in selected {
-        let path = selected_file
-            .into_path()
-            .map_err(|_| AppError::InvalidInput("Only local files are supported".into()))?
-            .canonicalize()?;
-        let document = workspace_service::attach_file(&state.storage, &workspace.id, &path)?;
-        let source_id = document
-            .source_id
-            .clone()
-            .ok_or_else(|| AppError::StateUnavailable)?;
+    let paths = selected
+        .into_iter()
+        .map(|file| {
+            file.into_path()
+                .map_err(|_| AppError::InvalidInput("Only local files are supported".into()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let pending = import_service::inspect_paths(paths, workspace_id)?;
+    let accepted_item_ids = pending
+        .batch
+        .items
+        .iter()
+        .filter(|item| item.readable)
+        .map(|item| item.id.clone())
+        .collect::<Vec<_>>();
+    if accepted_item_ids.is_empty() {
+        return Err(AppError::InvalidInput(
+            pending
+                .batch
+                .failure_reason
+                .clone()
+                .unwrap_or_else(|| "没有可读取的文件".into()),
+        ));
+    }
+    let result = import_service::confirm(
+        &state.storage,
+        &pending,
+        ConfirmImportInput {
+            batch_id: pending.batch.id.clone(),
+            accepted_item_ids,
+            confirmed: true,
+        },
+    )?;
+    for (source_id, path) in result.authorized_paths {
         state
             .selected_files
             .lock()
             .map_err(|_| AppError::StateUnavailable)?
             .insert(source_id, path);
-        documents.push(document);
     }
+    let workspace = result
+        .response
+        .workspace
+        .ok_or(AppError::StateUnavailable)?;
     Ok(Some(SelectedWorkspaceFiles {
         workspace,
-        documents,
+        documents: result.response.documents,
     }))
+}
+
+#[tauri::command]
+pub async fn select_import_sources(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    workspace_id: Option<String>,
+) -> Result<Option<ImportBatch>, AppError> {
+    let selected = app
+        .dialog()
+        .file()
+        .set_title("选择要检查的本地资料")
+        .blocking_pick_files();
+    let Some(selected) = selected else {
+        return Ok(None);
+    };
+    if selected.is_empty() {
+        return Ok(None);
+    }
+    let paths = selected
+        .into_iter()
+        .map(|file| {
+            file.into_path()
+                .map_err(|_| AppError::InvalidInput("只支持本地文件".into()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let pending = import_service::inspect_paths(paths, workspace_id)?;
+    let batch = pending.batch.clone();
+    let mut pending_imports = state
+        .pending_imports
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    pending_imports.clear();
+    pending_imports.insert(batch.id.clone(), pending);
+    Ok(Some(batch))
+}
+
+#[tauri::command]
+pub fn inspect_import_batch(
+    state: State<'_, AppState>,
+    batch_id: String,
+) -> Result<ImportBatch, AppError> {
+    state
+        .pending_imports
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .get(&batch_id)
+        .map(|pending| pending.batch.clone())
+        .ok_or_else(|| AppError::InvalidInput("导入批次不存在或已经失效".into()))
+}
+
+#[tauri::command]
+pub fn set_import_drop_target(
+    state: State<'_, AppState>,
+    input: SetImportDropTargetInput,
+) -> Result<(), AppError> {
+    let mut targets = state
+        .import_drop_targets
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    import_service::update_drop_target(&mut targets, input)
+}
+
+#[tauri::command]
+pub fn confirm_import(
+    state: State<'_, AppState>,
+    input: ConfirmImportInput,
+) -> Result<ImportConfirmation, AppError> {
+    let pending = state
+        .pending_imports
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .get(&input.batch_id)
+        .cloned()
+        .ok_or_else(|| AppError::InvalidInput("导入批次不存在或已经失效".into()))?;
+    let result = import_service::confirm(&state.storage, &pending, input)?;
+    for (source_id, path) in result.authorized_paths {
+        state
+            .selected_files
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?
+            .insert(source_id, path);
+    }
+    state
+        .pending_imports
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .remove(&pending.batch.id);
+    Ok(result.response)
 }
 
 #[tauri::command]

@@ -2,6 +2,9 @@ import { InboxOutlined, PaperClipOutlined } from '@ant-design/icons';
 import { Alert, Button } from 'antd';
 import { useState, type DragEvent } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
+import { ImportBatchModal } from '../../imports/components/ImportBatchModal';
+import { useImportStore } from '../../imports/importStore';
+import { useImportDropTarget } from '../../imports/useImportDropTarget';
 import { useAppStore } from '../../../stores/useAppStore';
 import styles from './SourceDropZone.module.css';
 
@@ -12,21 +15,28 @@ export function SourceDropZone() {
   const sourceCount = useAppStore((state) =>
     Math.max(state.files.length, state.workspaceEntries.length)
   );
-  const loading = useAppStore((state) => state.workspaceLoading);
+  const workspaceLoading = useAppStore((state) => state.workspaceLoading);
   const error = useAppStore((state) => state.workspaceError);
-  const selectContextFiles = useAppStore((state) => state.selectContextFiles);
+  const acceptImportedSelection = useAppStore((state) => state.acceptImportedSelection);
+  const importLoading = useImportStore((state) => state.loading);
+  const importError = useImportStore((state) => state.error);
+  const selectImportSources = useImportStore((state) => state.select);
+  const selectBrowserDropFallback = useImportStore((state) => state.selectBrowserDropFallback);
+  const clearImportError = useImportStore((state) => state.clearError);
   const clearWorkspaceError = useAppStore((state) => state.clearWorkspaceError);
+  const dropZoneRef = useImportDropTarget(workspace?.id);
 
-  const requestTrustedSelection = () => void selectContextFiles();
+  const requestTrustedSelection = () => void selectImportSources(workspace?.id);
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setDragging(false);
-    requestTrustedSelection();
+    void selectBrowserDropFallback(workspace?.id);
   };
 
   return (
     <div>
       <div
+        ref={dropZoneRef}
         className={`${styles.dropZone} ${dragging ? styles.dragging : ''}`}
         onDragEnter={(event) => {
           event.preventDefault();
@@ -48,7 +58,11 @@ export function SourceDropZone() {
                 .replace('{workspace}', workspace?.name ?? t('homeSelectedSources'))}
             </span>
           ) : null}
-          <Button icon={<PaperClipOutlined />} loading={loading} onClick={requestTrustedSelection}>
+          <Button
+            icon={<PaperClipOutlined />}
+            loading={workspaceLoading || importLoading}
+            onClick={requestTrustedSelection}
+          >
             {t('chooseSources')}
           </Button>
         </div>
@@ -63,6 +77,17 @@ export function SourceDropZone() {
           onClose={clearWorkspaceError}
         />
       ) : null}
+      {importError ? (
+        <Alert
+          className={styles.error}
+          type="error"
+          showIcon
+          closable
+          title={importError}
+          onClose={clearImportError}
+        />
+      ) : null}
+      <ImportBatchModal onConfirmed={acceptImportedSelection} />
     </div>
   );
 }

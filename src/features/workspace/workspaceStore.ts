@@ -1,6 +1,7 @@
 ﻿import type {
   A2uiInspection,
   A2uiSurface,
+  SelectedWorkspaceFiles,
   WorkspaceFile,
   WorkspaceFileEntry,
 } from '../../shared/types/domain';
@@ -15,6 +16,7 @@ type WorkspaceActions = Pick<
   | 'initializeWorkspace'
   | 'selectWorkspace'
   | 'selectContextFiles'
+  | 'acceptImportedSelection'
   | 'restoreWorkspace'
   | 'removeCurrentWorkspace'
   | 'openFile'
@@ -220,6 +222,100 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
     } finally {
       set({ workspaceLoading: false });
     }
+  },
+
+  acceptImportedSelection: async ({ workspace, documents }: SelectedWorkspaceFiles) => {
+    if (documents.length === 0) return;
+    const currentWorkspace = get().workspace;
+    const isWebMock = get().runtimeMode === 'web-mock';
+    const recentWorkspaces = isWebMock ? [workspace] : await workspaceController.listRecent();
+    const recoveryDraftSummaries = isWebMock
+      ? []
+      : await workspaceController.listRecoveryDrafts(workspace.id);
+    let sessions = get().sessions;
+    let activeSessionId = get().activeSessionId;
+    let a2uiSurfaces = get().a2uiSurfaces;
+    let a2uiInspections = get().a2uiInspections;
+    if (!isWebMock && (!currentWorkspace || currentWorkspace.id !== workspace.id)) {
+      sessions = await chatController.listSessions(workspace.id);
+      if (sessions.length === 0) {
+        sessions = [
+          await chatController.createSession(workspace.id, crypto.randomUUID(), '新对话'),
+        ];
+      }
+      activeSessionId = sessions[0].id;
+      const history = await loadA2uiHistory(workspace.id);
+      a2uiSurfaces = history.surfaces;
+      a2uiInspections = history.inspections;
+    }
+    const selectedFiles: WorkspaceFile[] = documents.map((document) => ({
+      path: document.path,
+      name: document.name,
+      language: document.language,
+      content: document.content,
+      contentHash: document.contentHash,
+      sizeBytes: document.sizeBytes,
+      editable: document.editable,
+      extracted: document.extracted,
+      sourceId: document.sourceId,
+    }));
+    const selectedRecoveryDrafts = Object.fromEntries(
+      documents
+        .filter((document) => document.draft)
+        .map((document) => [document.path, document.draft!])
+    );
+    set((state) => {
+      const selectedPaths = selectedFiles.map((file) => file.path);
+      const selectedEntries: WorkspaceFileEntry[] = selectedFiles.map((file) => ({
+        path: file.path,
+        name: file.name,
+        language: file.language,
+        sizeBytes: file.sizeBytes ?? 0,
+        readable: true,
+        editable: file.editable !== false,
+        extracted: file.extracted === true,
+        sourceId: file.sourceId,
+      }));
+      return {
+        workspace,
+        recentWorkspaces,
+        sessions,
+        activeSessionId,
+        a2uiSurfaces,
+        a2uiInspections,
+        activeSurfaceId: a2uiSurfaces[0]?.surfaceId ?? '',
+        activeInspectionId: a2uiInspections[0]?.id ?? '',
+        centerView: 'editor',
+        files: [
+          ...state.files.filter((file) => !selectedPaths.includes(file.path)),
+          ...selectedFiles,
+        ],
+        openPaths: [
+          ...state.openPaths.filter((path) => !selectedPaths.includes(path)),
+          ...selectedPaths,
+        ],
+        activePath: selectedPaths[0] ?? state.activePath,
+        workspaceEntries: [
+          ...state.workspaceEntries.filter((entry) => !selectedPaths.includes(entry.path)),
+          ...selectedEntries,
+        ],
+        saveStatusByPath: {
+          ...state.saveStatusByPath,
+          ...Object.fromEntries(selectedPaths.map((path) => [path, 'saved' as const])),
+          ...Object.fromEntries(
+            recoveryDraftSummaries.map((draft) => [
+              draft.relativePath,
+              draft.conflict ? ('conflict' as const) : ('draft' as const),
+            ])
+          ),
+        },
+        recoveryDraftSummaries,
+        recoveryDrafts:
+          currentWorkspace?.id === workspace.id
+            ? { ...state.recoveryDrafts, ...selectedRecoveryDrafts }
+            : selectedRecoveryDrafts,
+      };
+    });
   },
 
   restoreWorkspace: async (workspaceId) => {

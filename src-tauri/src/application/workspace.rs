@@ -92,6 +92,14 @@ pub fn attach_file(
     workspace::attach_selected_file(storage, workspace_id, path)
 }
 
+pub fn attach_files(
+    storage: &Storage,
+    workspace_id: &str,
+    paths: &[std::path::PathBuf],
+) -> Result<Vec<WorkspaceDocument>, AppError> {
+    workspace::attach_selected_files(storage, workspace_id, paths)
+}
+
 pub fn save_authorized_file(
     storage: &Storage,
     source_id: &str,

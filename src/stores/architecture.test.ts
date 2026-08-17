@@ -104,4 +104,21 @@ describe('front-end application boundaries', () => {
     expect(resultWorkbench).not.toContain('desktopApi');
     expect(resultAssistant).toContain('resultAssistantContextNotice');
   });
+
+  it('keeps the S2.1 ImportBatch trust boundary behind a controller and explicit confirmation', () => {
+    const importStore = sources['../features/imports/importStore.ts'];
+    const importController = sources['../features/imports/importController.ts'];
+    const importModal = sources['../features/imports/components/ImportBatchModal.tsx'];
+
+    expect(importStore).toContain('importController.select');
+    expect(importStore).toContain('importController.confirm');
+    expect(importStore).toContain('importController.cancel');
+    expect(importStore).toContain('importController.selectBrowserDropFallback');
+    expect(importStore).not.toContain('platform/gateway');
+    expect(importController).toContain('shared/platform/gateway');
+    expect(importController).toContain('setDropTarget');
+    expect(importController).toContain('listenForDrops');
+    expect(importModal).toContain('acceptedItemIds');
+    expect(importModal).not.toContain('desktopApi');
+  });
 });

@@ -35,6 +35,12 @@ const TASK_COMMANDS: [&str; 5] = [
     "get_task",
     "start_task",
 ];
+const IMPORT_COMMANDS: [&str; 4] = [
+    "select_import_sources",
+    "inspect_import_batch",
+    "set_import_drop_target",
+    "confirm_import",
+];
 
 #[test]
 fn native_commands_are_registered_and_allowed_for_the_main_window() {
@@ -75,6 +81,14 @@ fn native_commands_are_registered_and_allowed_for_the_main_window() {
     }
 
     for command in TASK_COMMANDS {
+        assert!(build_script.contains(&format!("\"{command}\"")));
+        assert!(runtime.contains(&format!("commands::{command},")));
+        assert!(permissions
+            .iter()
+            .any(|permission| permission == &format!("allow-{}", command.replace('_', "-"))));
+    }
+
+    for command in IMPORT_COMMANDS {
         assert!(build_script.contains(&format!("\"{command}\"")));
         assert!(runtime.contains(&format!("commands::{command},")));
         assert!(permissions

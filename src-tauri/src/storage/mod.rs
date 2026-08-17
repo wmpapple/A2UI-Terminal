@@ -58,6 +58,12 @@ pub struct WorkspaceFileRow {
     pub virtual_path: String,
 }
 
+pub struct NewWorkspaceFileRow<'a> {
+    pub source_id: &'a str,
+    pub absolute_path: &'a str,
+    pub virtual_path: &'a str,
+}
+
 fn workspace_file_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<WorkspaceFileRow> {
     Ok(WorkspaceFileRow {
         source_id: row.get(0)?,
@@ -987,6 +993,44 @@ impl Storage {
                 workspace_file_from_row,
             )
             .map_err(AppError::from)
+    }
+
+    pub fn attach_workspace_files(
+        &self,
+        workspace_id: &str,
+        files: &[NewWorkspaceFileRow<'_>],
+    ) -> Result<Vec<WorkspaceFileRow>, AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction()?;
+        let mut rows = Vec::with_capacity(files.len());
+        for file in files {
+            transaction.execute(
+                "INSERT INTO workspace_files(source_id, workspace_id, absolute_path, virtual_path)
+                 VALUES (?1, ?2, ?3, ?4)
+                 ON CONFLICT(workspace_id, absolute_path) DO NOTHING",
+                params![
+                    file.source_id,
+                    workspace_id,
+                    file.absolute_path,
+                    file.virtual_path
+                ],
+            )?;
+            rows.push(transaction.query_row(
+                "SELECT source_id, workspace_id, absolute_path, virtual_path
+                 FROM workspace_files WHERE workspace_id = ?1 AND absolute_path = ?2",
+                params![workspace_id, file.absolute_path],
+                workspace_file_from_row,
+            )?);
+        }
+        transaction.execute(
+            "UPDATE workspaces SET updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
+            [workspace_id],
+        )?;
+        transaction.commit()?;
+        Ok(rows)
     }
 
     pub fn workspace_files(&self, workspace_id: &str) -> Result<Vec<WorkspaceFileRow>, AppError> {

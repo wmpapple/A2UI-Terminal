@@ -83,6 +83,7 @@ fn application_services_do_not_depend_on_tauri() {
     for source in [
         include_str!("../src/application/adapters.rs"),
         include_str!("../src/application/chat.rs"),
+        include_str!("../src/application/import.rs"),
         include_str!("../src/application/provider.rs"),
         include_str!("../src/application/result.rs"),
         include_str!("../src/application/task.rs"),
@@ -115,4 +116,18 @@ fn safety_kernels_remain_outside_the_command_adapter() {
     assert!(adapters.contains("a2ui::process_message"));
     assert!(chat.contains("patch::parse_review"));
     assert!(chat.contains("a2ui::process_message"));
+}
+
+#[test]
+fn native_drop_paths_stay_inside_rust_and_emit_only_the_sanitized_outcome() {
+    let runtime = include_str!("../src/lib.rs");
+    let domain = include_str!("../src/domain/import.rs");
+
+    assert!(runtime.contains(".on_webview_event("));
+    assert!(runtime.contains("DragDropEvent::Drop"));
+    assert!(runtime.contains("application::import::inspect_paths("));
+    assert!(runtime.contains("ImportDropOutcome::success"));
+    assert!(runtime.contains("webview.emit(\"import-drop-outcome\", outcome)"));
+    assert!(!domain.contains("pub path:"));
+    assert!(!domain.contains("pub paths:"));
 }

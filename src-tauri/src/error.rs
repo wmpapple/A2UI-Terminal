@@ -101,7 +101,7 @@ impl AppError {
         }
     }
 
-    fn public_message(&self) -> String {
+    pub(crate) fn public_message(&self) -> String {
         match self {
             Self::InvalidInput(message) => message.clone(),
             _ => self.to_string(),

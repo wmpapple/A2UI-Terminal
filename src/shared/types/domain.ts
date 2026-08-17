@@ -145,6 +145,69 @@ export interface SelectedWorkspaceFiles {
   documents: WorkspaceDocument[];
 }
 
+export type ImportBatchStatus = 'awaiting_confirmation' | 'blocked' | 'confirmed' | 'cancelled';
+export type ImportCapability =
+  | 'editable_text'
+  | 'read_only_text'
+  | 'planned_structured_data'
+  | 'planned_visual_context'
+  | 'unsupported';
+export type ImportItemStatus = 'ready' | 'planned' | 'rejected';
+
+export interface ImportItem {
+  id: string;
+  name: string;
+  extension: string;
+  sizeBytes: number;
+  capability: ImportCapability;
+  status: ImportItemStatus;
+  readable: boolean;
+  editable: boolean;
+  reasonCode: string | null;
+  reason: string | null;
+  alternative: string | null;
+  warnings: string[];
+}
+
+export interface ImportBatch {
+  id: string;
+  status: ImportBatchStatus;
+  items: ImportItem[];
+  totalSizeBytes: number;
+  maxFiles: number;
+  maxBatchBytes: number;
+  canConfirm: boolean;
+  failureCode: string | null;
+  failureReason: string | null;
+}
+
+export interface ImportConfirmation {
+  batch: ImportBatch;
+  workspace: WorkspaceSummary | null;
+  documents: WorkspaceDocument[];
+}
+
+export interface ImportDropBounds {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+export interface SetImportDropTargetInput {
+  targetId: string;
+  enabled: boolean;
+  workspaceId: string | null;
+  bounds: ImportDropBounds | null;
+}
+
+export interface ImportDropOutcome {
+  targetId: string;
+  batch: ImportBatch | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+}
+
 export interface WorkspaceFileEntry {
   path: string;
   name: string;

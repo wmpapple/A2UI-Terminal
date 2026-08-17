@@ -13,6 +13,7 @@ import type {
   PatchReview,
   ProviderConfig,
   RecoveryDraftSummary,
+  SelectedWorkspaceFiles,
   WorkspaceDraft,
   WorkspaceFile,
   WorkspaceFileEntry,
@@ -65,6 +66,7 @@ export interface AppState {
   initializeProviders: () => Promise<void>;
   selectWorkspace: () => Promise<void>;
   selectContextFiles: () => Promise<void>;
+  acceptImportedSelection: (selection: SelectedWorkspaceFiles) => Promise<void>;
   restoreWorkspace: (workspaceId: string) => Promise<void>;
   removeCurrentWorkspace: () => Promise<void>;
   openFile: (path: string) => void | Promise<void>;
