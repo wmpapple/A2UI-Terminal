@@ -193,7 +193,7 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
                   className={styles.actionButton}
                   onClick={() => openAction(action)}
                 >
-                  <span className={styles.actionBody}>
+                  <span className={styles.actionBody} data-testid="home-action-content">
                     <span className={styles.actionIcon}>{action.icon}</span>
                     <span className={styles.actionText}>
                       <strong>{t(action.title)}</strong>

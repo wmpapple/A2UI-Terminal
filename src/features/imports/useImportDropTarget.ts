@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { importController } from './importController';
 import { useImportStore } from './importStore';
 
 export function useImportDropTarget(workspaceId?: string): RefObject<HTMLDivElement | null> {
   const elementRef = useRef<HTMLDivElement>(null);
-  const [targetId] = useState(() => crypto.randomUUID());
   const receiveDrop = useImportStore((state) => state.receiveDrop);
   const reportError = useImportStore((state) => state.reportError);
 
   useEffect(() => {
+    const targetId = crypto.randomUUID();
     let disposed = false;
     let unlisten: (() => void) | undefined;
     const element = elementRef.current;
@@ -64,7 +64,7 @@ export function useImportDropTarget(workspaceId?: string): RefObject<HTMLDivElem
         })
         .catch(() => undefined);
     };
-  }, [receiveDrop, reportError, targetId, workspaceId]);
+  }, [receiveDrop, reportError, workspaceId]);
 
   return elementRef;
 }

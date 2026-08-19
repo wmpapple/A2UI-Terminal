@@ -55,6 +55,19 @@ fn native_commands_are_registered_and_allowed_for_the_main_window() {
         .as_array()
         .expect("permissions array");
 
+    for permission in ["core:event:allow-listen", "core:event:allow-unlisten"] {
+        assert!(
+            permissions.iter().any(|value| value == permission),
+            "{permission} is required for the sanitized native-drop event bridge"
+        );
+    }
+    assert!(
+        permissions
+            .iter()
+            .all(|value| value != "core:event:allow-emit" && value != "core:event:allow-emit-to"),
+        "the frontend must not gain event emission permission for native file paths"
+    );
+
     for command in NATIVE_COMMANDS {
         assert!(
             build_script.contains(&format!("\"{command}\"")),

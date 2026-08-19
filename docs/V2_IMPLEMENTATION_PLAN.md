@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S1.5 已通过用户人工验收；S2.1 原生桌面拖放验收缺陷已修复并通过自动验证，等待用户重新人工验收；尚未开始 S2.2**
+> 当前状态：**S1.5 已通过用户人工验收；S2.1 桌面原生拖放 M09 已由用户复验通过，首页六个任务入口已统一对齐，等待用户确认整个 S2.1 验收；尚未开始 S2.2**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -496,22 +496,22 @@ npm run tauri build -- --debug --no-bundle
 
 > 更新规则：开始步骤前先改状态并记 START；完成后先写证据再标完成。
 
-| 步骤                    | 状态       | 最近记录 | 下一动作                     |
-| ----------------------- | ---------- | -------- | ---------------------------- |
-| DOC-0 架构与实施文档    | 已完成     | LOG-0003 | 已进入 S0.1                  |
-| S0.1 固化当前工作树基线 | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收 |
-| S0.2 合同 fixture       | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收 |
-| S0.3 前端边界拆分       | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收 |
-| S0.4 Rust 边界拆分      | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收 |
-| S1.1 Result/schema v9   | 已完成     | LOG-0023 | 已通过用户人工验收           |
-| S1.2 Task/Template      | 已完成     | LOG-0026 | 已通过用户人工验收           |
-| S1.3 导航/双模式外壳    | 已完成     | LOG-0032 | 已通过用户人工验收           |
-| S1.4 新手引导与首页     | 已完成     | LOG-0038 | 用户已完成最终人工验收       |
-| S1.5 大众版工作台外壳   | 已完成     | LOG-0041 | 用户已完成人工验收           |
-| S2.1 统一导入批次       | 待重新验收 | LOG-0045 | 原生拖放修复完成，等待复验   |
-| S2.2…S4.8               | 待开始     | —        | S2.1 验收前不得提前实施      |
+| 步骤                    | 状态       | 最近记录 | 下一动作                      |
+| ----------------------- | ---------- | -------- | ----------------------------- |
+| DOC-0 架构与实施文档    | 已完成     | LOG-0003 | 已进入 S0.1                   |
+| S0.1 固化当前工作树基线 | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收  |
+| S0.2 合同 fixture       | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收  |
+| S0.3 前端边界拆分       | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收  |
+| S0.4 Rust 边界拆分      | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收  |
+| S1.1 Result/schema v9   | 已完成     | LOG-0023 | 已通过用户人工验收            |
+| S1.2 Task/Template      | 已完成     | LOG-0026 | 已通过用户人工验收            |
+| S1.3 导航/双模式外壳    | 已完成     | LOG-0032 | 已通过用户人工验收            |
+| S1.4 新手引导与首页     | 已完成     | LOG-0038 | 用户已完成最终人工验收        |
+| S1.5 大众版工作台外壳   | 已完成     | LOG-0041 | 用户已完成人工验收            |
+| S2.1 统一导入批次       | 待整体验收 | LOG-0055 | M09 已通过，等待用户确认 S2.1 |
+| S2.2…S4.8               | 待开始     | —        | S2.1 验收前不得提前实施       |
 
-S1.1—S1.5 均已通过自动验证和用户人工验收。S2.1 已完成范围内实现及原生桌面拖放验收修复，当前停止在重新人工验收点；用户明确验收前不得开始 S2.2 或其他后续步骤。
+S1.1—S1.5 均已通过自动验证和用户人工验收。S2.1 已完成范围内实现、前端事件订阅 Capability、StrictMode 注册竞态及主窗口 `WindowEvent::DragDrop` 根因修复；桌面原生拖放 M09 已由用户复验通过，当前停止在 S2.1 整体验收点。用户明确验收前不得开始 S2.2 或其他后续步骤。
 
 ## 10. 连续变更账本
 
@@ -1258,6 +1258,129 @@ S1.1—S1.5 均已通过自动验证和用户人工验收。S2.1 已完成范围
 - 状态与限制：自动化无法合成 Windows Shell 到 WebView2 的真实 OS 文件拖放，因此代码、合同、浏览器 fallback、桌面构建和启动门禁已完成，但 M09 必须由用户在真实桌面复验。S2.1 为 `待重新人工验收`，不是 `已完成`。
 - 下一具体动作：用户按更新后的 M09 从桌面拖入一个脱敏 UTF-8 测试文件并确认出现对应 ImportBatch；用户明确回复“**S2.1 验收通过**”前不得开始 S2.2 或任何后续步骤。
 
+### LOG-0046 — S2.1 — SECOND ACCEPTANCE FAILURE / EVENT CAPABILITY FIX START
+
+- 时间：2026-08-18（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `f58fb30`；工作树干净，LOG-0045 的 S2.1 原生拖放实现已进入当前基线。
+- 用户人工反馈：从桌面拖入 CSV/XLSX 后完全无法进入确认页；这不是“表格适配待开放”的预期禁用状态，而是原生拖放结果没有到达界面。
+- 根因：主窗口 Capability 已授权自定义 `set_import_drop_target`，但遗漏 `@tauri-apps/api/event.listen` 和卸载监听所需的 `core:event:allow-listen` / `core:event:allow-unlisten`。Rust 可以接收路径并发出脱敏 `import-drop-outcome`，前端却无权订阅该事件，因此用户看到完全无响应。此前浏览器 Mock、Rust 单元测试、构建和启动冒烟均未执行真实 Capability 下的前端事件订阅，故未拦截该集成缺陷。
+- 目标与允许范围：仅补齐主窗口两个最小事件接收权限及权限回归测试，使 CSV/XLSX 等 planned 项也能正常进入 ImportBatch 确认页；不授予前端 emit 权限，不开始 S2.2，不让表格变为可读取/可勾选。
+- 下一具体动作：修改 Capability 和命令注册/架构测试，重新生成并验证 Tauri schema，执行前端、Rust、桌面构建与启动门禁后再次停在 S2.1 复验点。
+
+### LOG-0047 — S2.1 — EVENT CAPABILITY FIX COMPLETE（待重新人工验收）
+
+- 时间：2026-08-18（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线与范围：基于 `main` / `f58fb30` 修复 LOG-0046 已定位的集成缺陷；只恢复 S2.1 脱敏原生拖放结果的前端接收，不开始 S2.2，不实现 CSV/XLSX 结构化读取或图片多模态适配。
+- 实际修改：
+  - `src-tauri/capabilities/main.json` 为主窗口补充 `core:event:allow-listen` 与 `core:event:allow-unlisten`，使 `@tauri-apps/api/event.listen` 可订阅 Rust 发出的 `import-drop-outcome`；Tauri 构建同步更新 `src-tauri/gen/schemas/capabilities.json`。
+  - 未授予 `core:event:allow-emit` 或 `core:event:allow-emit-to`。前端只能接收经过合同校验的脱敏结果，不能借事件 API 发出原生路径或伪造拖放结果。
+  - `src-tauri/tests/command_registration.rs` 新增 Capability 正向/反向断言；`src/shared/contracts/contracts.test.ts` 新增 Desktop 模式事件订阅与脱敏 payload 转交回归测试，覆盖此前 Web Mock 没有触达的真实 API 分支。
+- 自动验证：
+  - `npm run check` 通过：Prettier、ESLint、TypeScript、32 个测试文件/102 项 Vitest 和生产构建全部成功。
+  - `npm run test:coverage` 通过：102/102；Statements 97.97%、Branches 85.29%、Functions 96.55%、Lines 98.80%。
+  - `npm run test:e2e` 通过：Chromium Web Mock 6/6。
+  - 隔离 `CARGO_TARGET_DIR=src-tauri/target/s2-1-event-capability-fix` 下，`cargo fmt --all -- --check`、`cargo clippy --all-targets --all-features -- -D warnings` 和 `cargo test --all-features` 通过：96 个库测试、6 个架构边界测试、1 个命令注册测试、7 个合同测试及 doc tests 均成功。
+  - 同一隔离 target 下 `npm run tauri build -- --debug --no-bundle` 成功，证明 Capability 名称和生成配置可被真实 Tauri 构建接受；`scripts/smoke-desktop.ps1` 启动冒烟通过，PID 38856 已由脚本正常关闭。
+- 安全、隐私与兼容：路径仍只进入 Rust；事件 payload 仍只有目标 ID、脱敏 ImportBatch 或稳定错误。未新增文件系统、网络、shell、数据库、事件发送或内容外发权限；schema 保持 v10，无 migration，来源文件保持只读。
+- 状态与剩余验证：自动化无法代替 Windows Shell 到 WebView2 的真实文件拖放，用户需完全退出旧桌面进程并用本次构建重新复验 M09。CSV/XLSX 应进入“确认读取范围”页面并显示已识别、适配待开放且不可勾选；不能再表现为无响应，也不能被误报为 S2.1 已可读取。
+- 下一具体动作：停止实施并等待用户按 [S2_1_MANUAL_ACCEPTANCE.md](S2_1_MANUAL_ACCEPTANCE.md) 复验；用户明确回复“**S2.1 验收通过**”前不得开始 S2.2 或任何后续步骤。
+
+### LOG-0048 — S2.1 — THIRD ACCEPTANCE FAILURE / DROP HIT-TEST FIX START
+
+- 时间：2026-08-18（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `f58fb30`；保留 LOG-0046—LOG-0047 的未提交最小 Capability 修复，不覆盖或回退既有改动。
+- 用户人工反馈：当前实际运行的是 2026-08-18 17:20 构建的 `npm run tauri dev` 开发版；从 Windows 桌面/资源管理器把 XLSX 拖到首页资料区后仍完全没有确认页或错误提示。
+- 已排除：不是未安装安装包，不是旧二进制，也不是 Windows UIPI 权限隔离。运行进程为 `src-tauri/target/debug/a2ui-terminal.exe`，应用、Node、Explorer 的完整性级别均为 Medium（8192）。
+- 当前判断：Capability 修复只恢复了前端接收权限，真实 Windows/WebView2 拖放仍可能在 CSS 逻辑坐标与原生坐标命中之间丢失。现有 Rust 代码在坐标未命中时静默忽略，因此表现与用户反馈一致，且自动化没有覆盖真实 OS 坐标差异。
+- 目标与允许范围：仅增强 S2.1 已注册资料区的原生命中容错；当当前窗口只有一个有效资料区目标时，窗口内原生文件拖放可回退到该目标，避免 DPI/标题栏/浏览器缩放差异造成静默丢弃。路径继续只在 Rust，前端只收脱敏结果；不开始 S2.2，不让 CSV/XLSX 变成可读取项。
+- 下一具体动作：提取并测试原生目标解析策略，接入窗口事件；执行前端、Rust、Tauri 构建与启动门禁，更新架构和人工复验说明后再次停在 S2.1。
+
+### LOG-0049 — S2.1 — STRICTMODE DROP TARGET RACE FIX COMPLETE（待重新人工验收）
+
+- 时间：2026-08-18（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 根因修正：继续检查后确认 LOG-0048 的坐标偏移只是候选，并非本次先行改动。实际可复现代码缺陷是 `src/main.tsx` 启用 React StrictMode，而 `useImportDropTarget` 在 Effect 双挂载期间复用同一个 `targetId`。注册和清理均为异步 IPC；旧 Effect 的 `enabled=false` 可能晚于新 Effect 的 `enabled=true` 到达 Rust，从而把当前资料区目标删除。之后原生 Drop 找不到目标并按安全策略静默忽略，完全符合用户在 `tauri dev` 中“无页面、无提示”的反馈。
+- 实际修改：`useImportDropTarget` 不再用组件级 state 跨 Effect 生命周期复用目标 ID，而是在每次 Effect 挂载时创建独立 UUID。每次清理只注销自身生命周期的旧目标；即使 StrictMode、HMR 或 Workspace 变化造成异步交错，也不能删除后续挂载的新目标。坐标范围、区域外忽略、路径只留 Rust 和脱敏事件合同均保持不变。
+- 回归测试：`SourceDropZone.test.tsx` 新增真实 `StrictMode` 包裹和非零 DOMRect，验证双挂载产生不同的 enabled 目标 ID，旧目标会被注销而最新目标不会被旧清理命中。定向测试 2/2 通过；旧实现会因 enabled 调用复用同一个 ID 而失败。
+- 自动验证：
+  - `npm run check` 通过：Prettier、ESLint、TypeScript、32 个测试文件/103 项 Vitest 和生产构建全部成功。
+  - `npm run test:coverage` 通过：103/103；Statements 97.97%、Branches 85.29%、Functions 96.55%、Lines 98.80%。
+  - `npm run test:e2e` 通过：Chromium Web Mock 6/6。
+  - 隔离 `CARGO_TARGET_DIR=src-tauri/target/s2-1-event-capability-fix` 下 `npm run tauri build -- --debug --no-bundle` 成功；`scripts/smoke-desktop.ps1` 启动冒烟通过，PID 35776 已由脚本正常关闭。Rust 业务代码未在本记录中修改，LOG-0047 的 fmt、Clippy 和全量 Rust 测试证据继续适用。
+- 安全、隐私与阶段边界：未扩大拖放区域、未接收前端路径、未新增 Capability、IPC、schema migration、遥测或网络权限。CSV/XLSX 仍只是 `planned_structured_data`，进入确认页后不可勾选；真实解析严格属于 S2.2。
+- 复验要求：完全停止旧 `npm run tauri dev` 进程并重新启动，进入首页，把脱敏 XLSX/CSV 放到资料区。预期出现“确认读取范围”页面并显示表格适配待开放；安装包不是前置条件。
+- 下一具体动作：停止实施并等待用户复验；用户明确回复“**S2.1 验收通过**”前不得开始 S2.2 或任何后续步骤。
+
+### LOG-0050 — S2.1 — FOURTH ACCEPTANCE FAILURE / NATIVE TARGET RESOLUTION START
+
+- 时间：2026-08-19（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线与工作树：`main` / `f58fb30`；保留 LOG-0046—LOG-0049 的 S2.1 修复工作树。
+- 用户人工反馈：网页版拖入可以进入确认流程，桌面版仍不能。该证据说明 Import store/Modal 和浏览器 Mock 路径可用，但不证明 Windows → WebView2 → Rust 原生路径、坐标命中和脱敏事件桥接可用。
+- 复核结论：桌面 Rust 链路只按一组逻辑坐标精确命中注册矩形，未命中时直接静默返回。Windows DPI、WebView2 客户区坐标或缩放差异仍可能让真实 Drop 落在 DOMRect 之外；网页版 fallback 不经过该分支，因此会呈现“网页可用、桌面无响应”。
+- 目标与允许范围：原生 Drop 仍优先精确命中最小目标；只有当前窗口恰好存在一个有效注册资料区时，允许坐标未命中回退到该唯一目标。多个目标时不猜测、不导入。绝对路径仍只在 Rust，CSV/XLSX 仍为 planned，不开始 S2.2。
+- 下一具体动作：实现独立可测试的原生目标解析函数、接入窗口事件并完成 Rust/前端/Tauri 桌面门禁；之后再次停在 S2.1 复验点。
+
+### LOG-0051 — S2.1 — NATIVE SINGLE-TARGET FALLBACK COMPLETE（待重新人工验收）
+
+- 时间：2026-08-19（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 实际修改：`application::import` 新增 `resolve_native_drop_target`。桌面原生 Drop 先沿用精确坐标命中并选最小区域；若未命中且当前窗口恰好只有一个有效资料区，则回退到该唯一目标，以吸收 Windows DPI/WebView2 客户区坐标差异。存在两个及以上目标时未命中仍返回 `None`，不猜测目标。`lib.rs` 原生事件入口改用该解析函数，路径检查、批次创建和脱敏事件逻辑不变。
+- 测试：新增 Rust 测试证明单目标坐标不一致时可以解析、增加第二个目标后相同坐标不会被猜测。定向测试通过；`cargo fmt --all -- --check`、`cargo clippy --all-targets --all-features -- -D warnings` 和 `cargo test --all-features` 全部通过：97 个库测试、6 个架构边界、1 个命令注册、7 个合同测试及 doc tests 均成功。
+- 前端与桌面构建：本记录未新增前端改动；LOG-0049 的 `npm run check`（103/103）、coverage 和 E2E 6/6 继续适用。本轮 `npm.cmd run tauri build -- --debug --no-bundle` 成功，生成 `src-tauri/target/s2-1-event-capability-fix/debug/a2ui-terminal.exe`。
+- 未通过的环境验证：桌面启动冒烟在当前 managed sandbox 中退出码 101；开启 backtrace 后确认失败发生于 setup 的 `local database operation failed`。当前会话只允许写入 `D:\A2UI` 和受控临时目录，桌面应用的 Windows app-data 写入被隔离；没有申请或绕过权限。本结果不标记为启动通过，需由用户重新启动 `tauri dev` 完成真实桌面复验。
+- 安全、隐私与产品边界：容错只在一个已由前端注册的有效目标存在时启用；没有目标时仍忽略，多目标时仍要求精确命中。绝对路径不进入 React/IPC/日志，确认仍不可绕过，来源文件仍只读。CSV/XLSX 仍只显示 planned/适配待开放，不读取或授权；未开始 S2.2。
+- 行为说明：首页只有一个资料区时，窗口内原生文件 Drop 会归入该资料区，即使 Windows 坐标与 DOMRect 不一致；这取代旧 M09 中“资料区外必定无批次”的严格预期。未来出现多个拖放目标时恢复精确区域语义。
+- 下一具体动作：用户完全停止并重新运行 `npm run tauri dev`，在桌面版拖入脱敏 CSV/XLSX；出现“确认读取范围”且项目不可勾选后，才可判定 M09 通过。用户明确回复“**S2.1 验收通过**”前不得开始 S2.2。
+
+### LOG-0052 — S2.1 — FIFTH ACCEPTANCE FAILURE / WRONG TAURI EVENT CHANNEL ROOT CAUSE
+
+- 时间：2026-08-19（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户人工反馈：补齐 Cargo 环境并重新启动桌面开发版后仍无法拖入；网页版继续可用。
+- 确定根因：审计本地实际依赖 `tauri-runtime-wry 2.11.4` 和 `tauri 2.11.5` 源码后确认，主窗口属于 `WebviewKind::WindowContent`。WRY 的 `DragDropEvent` 在该类型下被封装为 `WebviewMessage::SynthesizedWindowEvent`，随后转换成 `WindowEvent::DragDrop`；只有子 WebView 才产生 `WebviewEvent::DragDrop`。项目从 LOG-0045 起错误使用 Builder `.on_webview_event(...)`，所以主窗口原生 Drop 从未进入业务回调。前端权限、StrictMode 和坐标修复均位于错误回调之后，无法使桌面链路生效；浏览器 fallback 不经过该回调，因此网页版一直可用。
+- 修正范围：把主窗口拖放处理迁移到 `.on_window_event(...)`，继续只在 Rust 接收路径和发出脱敏 `import-drop-outcome`。撤销 LOG-0051 的单目标全窗口回退并恢复精确资料区命中，因为该回退是基于错误事件通道作出的次生补救，不再需要。
+- 下一具体动作：修改事件入口和架构边界测试，恢复精确命中测试/文档，执行前端、Rust、Tauri 构建与真实桌面启动门禁，再停在 S2.1 复验点。
+
+### LOG-0053 — S2.1 — WINDOW EVENT NATIVE DROP FIX COMPLETE（待重新人工验收）
+
+- 时间：2026-08-19（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 实际修改：`src-tauri/src/lib.rs` 将原生文件拖放入口从 `.on_webview_event` / `WebviewEvent::DragDrop` 迁移到 `.on_window_event` / `WindowEvent::DragDrop`。状态访问、DPI 转换、精确资料区命中、后台 `inspect_paths`、世代检查和脱敏 `import-drop-outcome` 均改由主 `Window` 句柄继续执行。
+- 根因证据：本地锁定依赖 `tauri-runtime-wry 2.11.4` 在 `WebviewKind::WindowContent` 分支产生 `SynthesizedWindowEvent::DragDrop`，运行时将其转换为 `WindowEvent::DragDrop`；`WebviewEvent::DragDrop` 分支只用于非 WindowContent 子 WebView。这解释了此前所有前后端测试与网页 fallback 通过、真实桌面主窗口始终无响应。
+- 撤销次生补救：删除 LOG-0051 新增的 `resolve_native_drop_target` 和单目标全窗口回退测试，重新使用 `find_drop_target` 精确命中；恢复拖到资料区外不建立批次。LOG-0051 保留为历史记录，但其当前行为结论由 LOG-0052—LOG-0053 明确取代。
+- 回归测试：`architecture_boundaries.rs` 现在强制要求 `.on_window_event`、`WindowEvent::DragDrop`、Rust 内部 `inspect_paths` 和 `window.emit("import-drop-outcome", outcome)`，并明确拒绝重新出现 `.on_webview_event`。定向架构测试通过。
+- 自动验证：
+  - `cargo fmt --all -- --check` 通过。
+  - `cargo clippy --all-targets --all-features -- -D warnings` 通过。
+  - `cargo test --all-features` 通过：96 个库测试、6 个架构边界、1 个命令注册、7 个合同测试及 doc tests 全部成功。
+  - `npm.cmd run tauri build -- --debug --no-bundle` 在隔离 `src-tauri/target/s2-1-event-capability-fix` 中成功；构建过程的 Vite 生产构建成功。
+  - `scripts/smoke-desktop.ps1` 使用隔离 APPDATA/LOCALAPPDATA 启动成功，PID 15840 已由脚本关闭。LOG-0051 在受限 sandbox 中的数据库写入失败属于当时环境限制，本轮 unrestricted 环境已完成同一门禁。
+  - 前端实现未在本记录中修改；LOG-0049 的 `npm run check` 103/103、coverage 与 E2E 6/6 证据继续适用。
+- 安全、隐私与边界：文件绝对路径仍只存在于 Rust 的 WindowEvent 和短生命周期待确认批次，不进入 IPC、React、日志或遥测。前端只订阅脱敏事件，仍无 emit 权限。资料区外 Drop 被忽略，CSV/XLSX 仍为 planned 且不可勾选；S2.2 未开始。
+- 下一具体动作：当前已有一个 2026-08-19 10:22 启动的 `src-tauri/target/debug/a2ui-terminal.exe` 旧进程；用户必须完全停止旧 `tauri dev` 后重新启动，才能加载本次 Rust 事件入口。随后在首页资料区拖入脱敏 CSV/XLSX，预期出现确认页但不可勾选。用户明确回复“**S2.1 验收通过**”前不得开始 S2.2。
+
+### LOG-0054 — S2.1 / HOME UI — NATIVE DROP RECHECK PASS / SIX-CARD ALIGNMENT START
+
+- 时间：2026-08-19（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户反馈：LOG-0053 后桌面原生拖放已经可用，M09 的“桌面拖入出现确认范围”阻断项复验通过；用户尚未明确回复整个“**S2.1 验收通过**”，因此阶段仍停在 S2.1，不开始 S2.2。
+- 新调整：用户要求首页“开始一项任务”的六个固定入口对齐。复核发现 Ant Design text Button 的 flex 主轴默认居中，导致宽度不同的“图标 + 文案”组合拥有不同起点。
+- 允许范围：只统一六张任务卡片内部图标和文案的左侧起点及可用宽度，不改变六类入口、文案、点击行为、响应式列数或任务能力状态。
+- 下一具体动作：修改 Home CSS，补充布局回归证据，运行前端门禁后记录完成状态；继续停在 S2.1 验收点。
+
+### LOG-0055 — S2.1 / HOME UI — SIX-CARD ALIGNMENT COMPLETE（待 S2.1 整体验收）
+
+- 时间：2026-08-19（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 实际修改：`HomePage.module.css` 将六个固定任务按钮的主轴改为左对齐，并让内部 `actionBody` 占满可用宽度；图标、标题和说明因此使用统一起点，不再因不同文案宽度而整体居中偏移。为文字容器补充 `min-width: 0`，保留窄屏收缩能力。未改变入口内容、卡片尺寸、网格列数、点击行为或能力状态。
+- 回归证据：`HomePage.tsx` 只增加布局测试定位标记；`web-mock.spec.ts` 新增六卡片几何回归，断言六个内容容器相对按钮的左右内边距完全一致。定向 Playwright 1/1 通过。
+- 自动验证：`npm.cmd run check` 通过，包括 Prettier、ESLint、TypeScript、32 个测试文件/103 项 Vitest 和生产构建；`npm.cmd run test:e2e` 通过，Chromium Web Mock 7/7。
+- 阶段与验收：用户已确认桌面原生拖放可以使用，因此 S21-M09 阻断项记录为通过；这不等同于用户已确认整个 S2.1。当前继续停在 S2.1 验收点，用户明确回复“**S2.1 验收通过**”前不得开始 S2.2。
+
 ### 新账本记录模板
 
 ```markdown
@@ -1334,14 +1457,14 @@ S1.1—S1.5 均已通过自动验证和用户人工验收。S2.1 已完成范围
 
 ## 12. 交接摘要
 
-截至 LOG-0045：
+截至 LOG-0055：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页和 S1.5 专用成果工作台。S2.1 ImportBatch、格式能力、导入安全和 Windows 原生桌面拖放修复已完成实现与自动验证，当前等待重新人工验收；S2.2 真实 CSV/XLSX/图片适配、Export、Adaptive Context 和产品事件尚未开始。
+- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页和 S1.5 专用成果工作台。S2.1 ImportBatch、格式能力、导入安全、事件订阅 Capability、StrictMode 目标注册竞态及主窗口 `WindowEvent::DragDrop` 根因修复已完成实现与自动验证，桌面原生拖放 M09 已由用户复验通过，当前等待 S2.1 整体人工验收；S2.2 真实 CSV/XLSX/图片适配、Export、Adaptive Context 和产品事件尚未开始。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
-- S2.1 已落地确认前内存批次、逐项格式能力/原因/替代方式、文本/DOCX/PDF 确认导入、敏感/隐藏排除、Office 压缩安全、确认时重检，以及 Rust 原生拖放坐标命中和脱敏事件桥接；CSV/XLSX/图片只做诚实能力说明，真实适配仍归 S2.2。
-- 当前唯一活动动作是按 [S2_1_MANUAL_ACCEPTANCE.md](S2_1_MANUAL_ACCEPTANCE.md) 复验 Windows 桌面原生拖入；用户明确通过前不得开始 S2.2 或任何后续步骤。
+- S2.1 已落地确认前内存批次、逐项格式能力/原因/替代方式、文本/DOCX/PDF 确认导入、敏感/隐藏排除、Office 压缩安全、确认时重检，以及主窗口 `WindowEvent::DragDrop` 精确目标命中和脱敏事件桥接；每次前端 Effect 生命周期使用独立目标 ID，旧异步清理不能误删当前资料区。主窗口只获得事件 listen/unlisten 权限，事件 emit 仍被拒绝。CSV/XLSX/图片只做诚实能力说明，真实适配仍归 S2.2。
+- Windows 桌面原生拖入 M09 已由用户复验通过，首页六个固定任务入口的内容起点也已统一并通过布局回归；当前唯一活动动作是等待用户明确确认整个 S2.1 验收。确认前不得开始 S2.2 或任何后续步骤。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - 如果文档与实际代码不一致，先记录差异并修正文档状态；不要为了符合文档而破坏性改写用户代码。

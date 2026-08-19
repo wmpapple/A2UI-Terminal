@@ -25,6 +25,8 @@
     "allow-select-import-sources",
     "allow-inspect-import-batch",
     "allow-set-import-drop-target",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
     "allow-confirm-import",
     "allow-save-context-file",
     "allow-list-document-versions",

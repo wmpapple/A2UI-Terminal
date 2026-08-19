@@ -1,7 +1,9 @@
 # S2.1 统一导入批次与格式能力人工验收
 
-> 状态：原生拖放缺陷已修复，待重新人工验收  
-> 对应计划：`V2_IMPLEMENTATION_PLAN.md` S2.1 / LOG-0042—LOG-0045  
+> 状态：主窗口原生拖放已迁移至正确的 Tauri WindowEvent 通道，待重新人工验收
+>
+> 对应计划：`V2_IMPLEMENTATION_PLAN.md` S2.1 / LOG-0042—LOG-0053
+>
 > 验收边界：只验收 ImportBatch、文本/DOCX/PDF 能力确认和导入安全；不验收 S2.2 的 CSV/XLSX 结构化解析或图片多模态理解。
 
 ## 1. 验收准备
@@ -69,10 +71,16 @@
 
 ### S21-M09 Windows 桌面原生拖入
 
-1. 从 Windows 桌面或资源管理器把一个 UTF-8 测试文件直接拖到首页资料区并放开。
-2. 取消确认页，再把同一文件拖到首页资料区之外并放开。
+1. 完全停止修复前的 `npm run tauri dev` 及桌面程序，重新运行当前工作树的 `npm run tauri dev`；无需先制作或安装安装包。
+2. 从 Windows 桌面或资源管理器把一个 UTF-8 测试文件直接拖到首页资料区并放开。
+3. 取消确认页，再分别把一个小型 `.csv` 和标准 `.xlsx` 拖到首页资料区。
+4. 取消确认页，再把同一文件拖到首页资料区之外并放开。
 
-预期：拖到资料区时不再弹出系统选择器，而是立即出现该实际文件的“确认读取范围”页面；仍需明确确认后才建立授权。拖到资料区之外不出现确认页、不建立批次。绝对路径只由 Rust 原生拖放事件接收，前端不读取浏览器 `DataTransfer` 路径或正文，也不能绕过格式、大小、敏感路径和确认时重检。
+预期：拖到资料区时不再弹出系统选择器，也不能完全无响应，而是立即出现该实际文件的“确认读取范围”页面；仍需明确确认后才建立授权。CSV/XLSX 也必须进入确认页，但应显示已识别、表格适配待开放且不可勾选，不能声称已读取。绝对路径只由 Rust 原生拖放事件接收，前端不读取浏览器 `DataTransfer` 路径或正文，也不能绕过格式、大小、敏感路径和确认时重检。
+
+预期补充：拖到资料区之外不出现确认页、不建立批次。主窗口必须通过 Tauri `WindowEvent::DragDrop` 接收原生事件；不得改回只适用于子 WebView 的 `WebviewEvent::DragDrop`。
+
+开发模式补充预期：React StrictMode 的挂载清理检查不得使资料区失去注册；旧 Effect 的异步注销只能删除旧目标，不能删除当前目标。开发版与安装版在原生拖放能力上应一致。
 
 ### S21-M10 批次摘要与限制
 
@@ -145,9 +153,11 @@ S2.1 不调用 Provider，不发送文档、Prompt、图片、文件名或路径
 - `select_import_sources`
 - `inspect_import_batch`
 - `set_import_drop_target`
+- `core:event:allow-listen`
+- `core:event:allow-unlisten`
 - `confirm_import`
 
-不得新增 shell、任意文件系统、网络、数据库查询或批量删除权限。
+不得新增 `core:event:allow-emit`、`core:event:allow-emit-to`、shell、任意文件系统、网络、数据库查询或批量删除权限。
 
 ### S21-S10 数据库兼容
 

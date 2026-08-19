@@ -94,6 +94,7 @@
   height: 100%;
   padding: 0;
   color: inherit;
+  justify-content: flex-start;
   text-align: left;
   white-space: normal;
 }
@@ -101,6 +102,8 @@
 .actionBody {
   display: flex;
   align-items: flex-start;
+  width: 100%;
+  min-width: 0;
   gap: 12px;
 }
 
@@ -119,6 +122,10 @@
 .actionText strong,
 .actionText span {
   display: block;
+}
+
+.actionText {
+  min-width: 0;
 }
 
 .actionText strong {

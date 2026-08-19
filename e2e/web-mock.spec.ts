@@ -20,6 +20,30 @@ const skipOnboarding = async (page: import('@playwright/test').Page) => {
   if (await skip.isVisible()) await skip.click();
 };
 
+test('aligns all six fixed task-card contents to the same inset', async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem('a2ui.onboarding-complete.v1', 'true'));
+  await page.reload();
+  const contents = page.getByTestId('home-action-content');
+  await expect(contents).toHaveCount(6);
+
+  const geometry = await contents.evaluateAll((elements) =>
+    elements.map((element) => {
+      const content = element.getBoundingClientRect();
+      const button = element.closest('button')?.getBoundingClientRect();
+      if (!button) throw new Error('task-card content must stay inside its button');
+      return {
+        leftInset: content.left - button.left,
+        rightInset: button.right - content.right,
+      };
+    })
+  );
+
+  const leftInsets = geometry.map(({ leftInset }) => leftInset);
+  const rightInsets = geometry.map(({ rightInset }) => rightInset);
+  expect(Math.max(...leftInsets) - Math.min(...leftInsets)).toBeLessThan(0.5);
+  expect(Math.max(...rightInsets) - Math.min(...rightInsets)).toBeLessThan(0.5);
+});
+
 test('completes the first-run guide and creates a local Result scaffold from Home', async ({
   page,
 }) => {

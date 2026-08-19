@@ -12,13 +12,13 @@
 
 ## 新手引导与首页
 
-首次引导只保存完成布尔值，不保存所选目标或资料。三步分别使用大众语言说明目标、资料选择和隐私；用户可跳过并从首页重开。首页一级分类严格固定为写文档、修改文件、整理资料、分析数据、制作表单/清单/小工具和自由描述六类。
+首次引导只保存完成布尔值，不保存所选目标或资料。三步分别使用大众语言说明目标、资料选择和隐私；用户可跳过并从首页重开。首页一级分类严格固定为写文档、修改文件、整理资料、分析数据、制作表单/清单/小工具和自由描述六类；六个任务卡片的图标与文案使用相同内容起点和可用宽度，不随文案长度整体居中偏移。
 
-Home 页面通过独立 Zustand store 缓存模板、最近 Result 摘要和当前 Task 请求状态，经 `homeController` 访问统一 Gateway；页面不直接调用 Desktop API。Desktop 数据来自 SQLite/Rust，Web Mock 使用确定性同合同 fixture。首页资料区支持受控系统选择器和 Tauri 原生桌面拖放：React 只向 Rust 注册资料区的逻辑坐标边界，桌面拖入的绝对路径由 Rust 原生事件接收和检查，前端只收到脱敏 ImportBatch 结果。O-08 未关闭前，文档模板只生成明确标注未调用 AI 的本地结构草稿；未实现的表格与动态工具入口只展示能力边界。
+Home 页面通过独立 Zustand store 缓存模板、最近 Result 摘要和当前 Task 请求状态，经 `homeController` 访问统一 Gateway；页面不直接调用 Desktop API。Desktop 数据来自 SQLite/Rust，Web Mock 使用确定性同合同 fixture。首页资料区支持受控系统选择器和 Tauri 原生桌面拖放：React 只向 Rust 注册资料区的逻辑坐标边界，桌面拖入的绝对路径由 Rust 原生事件接收和检查，前端只收到脱敏 ImportBatch 结果。主窗口仅授予事件 listen/unlisten 权限接收该结果，不授予前端事件 emit 权限。O-08 未关闭前，文档模板只生成明确标注未调用 AI 的本地结构草稿；未实现的表格与动态工具入口只展示能力边界。
 
 ## 统一导入批次
 
-`features/imports` 由独立 controller/store/确认组件和拖放目标 hook 组成。系统选择或原生拖入后，Rust 只向前端返回随机批次/文件标识、文件名、扩展名、大小、读取/编辑能力、失败原因、替代方式和安全警告；绝对路径只暂存在 Rust 内存。拖到已注册资料区之外不会建立批次；原生检查在线程中执行且同一时刻只允许一个批次，避免阻塞窗口事件循环或并发堆积。取消批次不会建立 Workspace 或文件授权；确认时 Rust 重新检查文件，只把用户保留且当前可读的项以单个 SQLite 事务写入 `workspace_files`。
+`features/imports` 由独立 controller/store/确认组件和拖放目标 hook 组成。每次拖放 Hook Effect 挂载使用独立目标 ID，避免 StrictMode/HMR 的旧异步清理误删当前资料区。主 `WindowContent` 的原生文件通过 Tauri `WindowEvent::DragDrop` 进入 Rust，不能使用子 WebView 的 `WebviewEvent::DragDrop`。系统选择或原生拖入后，Rust 只向前端返回随机批次/文件标识、文件名、扩展名、大小、读取/编辑能力、失败原因、替代方式和安全警告；绝对路径只暂存在 Rust 内存。原生 Drop 精确命中已注册资料区，区域外不建立批次；检查在线程中执行且同一时刻只允许一个批次。取消批次不会建立 Workspace 或文件授权；确认时 Rust 重新检查文件，只把用户保留且当前可读的项以单个 SQLite 事务写入 `workspace_files`。
 
 S2.1 当前可确认 UTF-8 白名单文本和只读 DOCX/PDF 文本层。CSV/XLSX/图片会显示为已识别但适配器待开放，不能被勾选或发送；结构化表格和原始视觉上下文属于 S2.2。单批最多 20 项/100 MB，文本 2 MB、DOCX/PDF 25 MB、图片 20 MB。隐藏/敏感/凭据路径、无效签名、超限文件、异常 Office 包、路径穿越条目和 Zip Bomb 会在授权前拒绝。宏、外部链接和嵌入对象不执行、不访问，也不承诺结构化编辑或无损回写。
 

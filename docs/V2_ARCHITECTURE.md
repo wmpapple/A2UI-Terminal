@@ -1,8 +1,8 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S1.5 已验收，S2.1 原生拖放修复已实现并待重新人工验收
+> 文档状态：V2 目标架构基线；S1.1—S1.5 已验收，S2.1 桌面原生拖放 M09 已复验通过并待整体验收
 > 建立日期：2026-08-11  
-> 对照代码：`main` 分支 S2.1 工作树，基线 HEAD `775d4c2`
+> 对照代码：`main` 分支 S2.1 工作树，基线 HEAD `f58fb30`
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
 > PRD SHA-256：`E56FD2303B6228C5FC7AB1936FB1C2B71229845D6780DFDA2ACE06D69347AA3C`
 
@@ -374,7 +374,7 @@ v10 迁移额外保证：v9 Result 原样保留，内置模板以 `(id, version)
 
 ### 7.1 从首页到成果
 
-`[CURRENT — S2.1 PENDING RE-ACCEPTANCE]` 首次启动使用三步可跳过引导解释目标、资料选择和隐私边界；本地只保存一个完成布尔值，不保存用户选择的目标或资料内容。首页严格保留 PRD 六类一级入口，不根据会话或推荐流增生分类。统一资料区同时支持受控系统选择和 Tauri 原生桌面拖放；React 只注册逻辑坐标边界，不接触绝对路径或文件系统。
+`[CURRENT — S2.1 PENDING ACCEPTANCE]` 首次启动使用三步可跳过引导解释目标、资料选择和隐私边界；本地只保存一个完成布尔值，不保存用户选择的目标或资料内容。首页严格保留 PRD 六类一级入口，不根据会话或推荐流增生分类；六个任务卡片内部使用统一内容起点与可用宽度，避免文案长度导致图标和文字基线错位。统一资料区同时支持受控系统选择和 Tauri 原生桌面拖放；React 只注册逻辑坐标边界，不接触绝对路径或文件系统。
 
 首页的高频文档路径通过独立 Home store/controller 调用已验收的 Template、Task 与 Result Gateway。Desktop 最近成果来自 SQLite `results`；Web Mock 使用确定性同合同 fixture；两者都不从 Chat Session 推断成果。O-08 未关闭前，会议纪要、文档总结、周报和简历优化只创建明确标注“尚未调用 AI”的本地结构草稿。表格分析与动态工具入口只显示未开放原因，不模拟成功。
 
@@ -409,7 +409,7 @@ S1.2 已验收并开放上述流程的本地准备子集：创建 Task → 校�
 
 ### 7.2 统一导入批次
 
-`[IMPLEMENTED — S2.1 PENDING RE-ACCEPTANCE]` 首页资料区不再把系统选择或原生拖入结果立即当作已授权上下文，而是建立短生命周期 `ImportBatch`：
+`[IMPLEMENTED — S2.1 PENDING ACCEPTANCE]` 首页资料区不再把系统选择或原生拖入结果立即当作已授权上下文，而是建立短生命周期 `ImportBatch`：
 
 ```text
 系统文件选择器
@@ -422,8 +422,8 @@ S1.2 已验收并开放上述流程的本地准备子集：创建 Task → 校�
 ```
 
 - `ImportBatch` 只保存在 Rust 进程内存，当前最多保留一个待确认批次；应用重启或新选择会使旧批次失效，不新增长期内容表或 schema migration。
-- 桌面拖放由 Tauri `on_webview_event` 在 Rust 侧接收；前端只通过 `set_import_drop_target` 注册最多 8 个可见资料区的逻辑坐标、目标 ID 和可选 Workspace ID。命中区域后，Rust 在线程中执行与系统选择相同的 `inspect_paths`，同一时刻只允许一个原生拖放检查。
-- Rust 只发出 `import-drop-outcome` 脱敏事件：事件含目标 ID、ImportBatch 或稳定错误，不含绝对路径。拖到注册区域外会被忽略；清除所有本地数据会递增导入世代、清空目标/批次，并阻止进行中的旧检查重新写回待确认内存。
+- 桌面拖放由 Tauri `on_window_event` / `WindowEvent::DragDrop` 在 Rust 主窗口侧接收；`WindowContent` 不得错误监听 `WebviewEvent::DragDrop`。前端只通过 `set_import_drop_target` 注册最多 8 个可见资料区的逻辑坐标、目标 ID 和可选 Workspace ID。每次 React Effect 生命周期使用独立目标 ID，使 StrictMode/HMR/Workspace 变化中的旧异步清理只能注销旧目标，不能误删当前资料区。Rust 精确命中面积最小的包含区域；区域外不建立批次。命中后在线程中执行与系统选择相同的 `inspect_paths`，同一时刻只允许一个原生拖放检查。
+- Rust 只发出 `import-drop-outcome` 脱敏事件：事件含目标 ID、ImportBatch 或稳定错误，不含绝对路径。主窗口 Capability 仅允许前端 `core:event:allow-listen` / `allow-unlisten` 以接收该结果，不授予 `allow-emit` 或 `allow-emit-to`；拖到注册区域外会被忽略。清除所有本地数据会递增导入世代、清空目标/批次，并阻止进行中的旧检查重新写回待确认内存。
 - 当前可确认能力是 UTF-8 白名单文本和只读 DOCX/PDF 文本层。文本上限 2 MB，文档上限 25 MB，单批最多 20 个文件且总计不超过 100 MB。
 - 隐藏属性/点文件、`.git`、`.ssh`、`secrets`、`.env`、私钥、证书和常见凭据路径直接拒绝，不进入默认授权范围。前端只能提交批次内的随机 item ID。
 - DOCX/XLSX 预检压缩条目数、单条目/总展开量、压缩比、路径穿越和必要结构；宏、外部关系、嵌入对象只报告且绝不执行或访问。PDF 检查签名并预读文本层；扫描文档明确提示后续 OCR/视觉能力。

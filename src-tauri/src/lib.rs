@@ -39,16 +39,16 @@ pub fn run() {
             app.manage(AppState::new(storage, managed_results_dir));
             Ok(())
         })
-        .on_webview_event(|webview, event| {
-            let tauri::WebviewEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position }) =
+        .on_window_event(|window, event| {
+            let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, position }) =
                 event
             else {
                 return;
             };
-            let Some(state) = webview.try_state::<AppState>() else {
+            let Some(state) = window.try_state::<AppState>() else {
                 return;
             };
-            let scale_factor = webview.window().scale_factor().unwrap_or(1.0);
+            let scale_factor = window.scale_factor().unwrap_or(1.0);
             let logical_position = position.to_logical::<f64>(scale_factor);
             let target = {
                 let Ok(targets) = state.import_drop_targets.lock() else {
@@ -73,14 +73,14 @@ pub fn run() {
                     target_id,
                     &error::AppError::InvalidInput("正在检查上一批拖入文件，请稍候".into()),
                 );
-                let _ = webview.emit("import-drop-outcome", outcome);
+                let _ = window.emit("import-drop-outcome", outcome);
                 return;
             }
-            let webview = webview.clone();
+            let window = window.clone();
             let paths = paths.clone();
             let import_drop_epoch = state.import_drop_epoch.load(Ordering::Acquire);
             std::thread::spawn(move || {
-                let Some(state) = webview.try_state::<AppState>() else {
+                let Some(state) = window.try_state::<AppState>() else {
                     return;
                 };
                 let _active_guard = NativeImportDropGuard(&state.native_import_drop_active);
@@ -113,7 +113,7 @@ pub fn run() {
                         }
                         Err(error) => domain::import::ImportDropOutcome::failure(target_id, &error),
                     };
-                let _ = webview.emit("import-drop-outcome", outcome);
+                let _ = window.emit("import-drop-outcome", outcome);
             });
         })
         .invoke_handler(tauri::generate_handler![

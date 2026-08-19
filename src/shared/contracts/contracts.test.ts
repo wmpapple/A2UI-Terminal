@@ -34,7 +34,10 @@ import {
 } from './guards';
 import { desktopApi } from '../platform/desktop';
 
-const { invokeMock } = vi.hoisted(() => ({ invokeMock: vi.fn() }));
+const { invokeMock, listenMock } = vi.hoisted(() => ({
+  invokeMock: vi.fn(),
+  listenMock: vi.fn(),
+}));
 
 vi.mock('@tauri-apps/api/core', () => ({
   Channel: class {
@@ -42,6 +45,8 @@ vi.mock('@tauri-apps/api/core', () => ({
   },
   invoke: invokeMock,
 }));
+
+vi.mock('@tauri-apps/api/event', () => ({ listen: listenMock }));
 
 describe('shared Rust/TypeScript contract fixtures', () => {
   it('accepts the five domain response fixtures and stable error envelope', () => {
@@ -107,5 +112,29 @@ describe('shared Rust/TypeScript contract fixtures', () => {
       configurable: true,
       value: tauriIpc,
     });
+  });
+
+  it('subscribes to the sanitized native-drop event in Desktop mode', async () => {
+    const tauriInternals = window.__TAURI_INTERNALS__;
+    const stopListening = vi.fn();
+    listenMock.mockResolvedValue(stopListening);
+    Object.defineProperty(window, '__TAURI_INTERNALS__', {
+      configurable: true,
+      value: {},
+    });
+
+    try {
+      const handler = vi.fn();
+      await expect(desktopApi.listenImportDropOutcomes(handler)).resolves.toBe(stopListening);
+      expect(listenMock).toHaveBeenCalledWith('import-drop-outcome', expect.any(Function));
+      const listener = listenMock.mock.calls[0][1] as (event: { payload: unknown }) => void;
+      listener({ payload: importDrop });
+      expect(handler).toHaveBeenCalledWith(importDrop);
+    } finally {
+      Object.defineProperty(window, '__TAURI_INTERNALS__', {
+        configurable: true,
+        value: tauriInternals,
+      });
+    }
   });
 });

@@ -123,11 +123,13 @@ fn native_drop_paths_stay_inside_rust_and_emit_only_the_sanitized_outcome() {
     let runtime = include_str!("../src/lib.rs");
     let domain = include_str!("../src/domain/import.rs");
 
-    assert!(runtime.contains(".on_webview_event("));
+    assert!(runtime.contains(".on_window_event("));
+    assert!(runtime.contains("WindowEvent::DragDrop"));
+    assert!(!runtime.contains(".on_webview_event("));
     assert!(runtime.contains("DragDropEvent::Drop"));
     assert!(runtime.contains("application::import::inspect_paths("));
     assert!(runtime.contains("ImportDropOutcome::success"));
-    assert!(runtime.contains("webview.emit(\"import-drop-outcome\", outcome)"));
+    assert!(runtime.contains("window.emit(\"import-drop-outcome\", outcome)"));
     assert!(!domain.contains("pub path:"));
     assert!(!domain.contains("pub paths:"));
 }
