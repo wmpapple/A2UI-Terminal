@@ -1083,6 +1083,30 @@ impl Storage {
             .optional()?)
     }
 
+    pub fn revoke_workspace_file(
+        &self,
+        workspace_id: &str,
+        source_id: &str,
+    ) -> Result<bool, AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction()?;
+        let removed = transaction.execute(
+            "DELETE FROM workspace_files WHERE workspace_id = ?1 AND source_id = ?2",
+            params![workspace_id, source_id],
+        )? > 0;
+        if removed {
+            transaction.execute(
+                "UPDATE workspaces SET updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
+                [workspace_id],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(removed)
+    }
+
     pub fn workspace(&self, workspace_id: &str) -> Result<Option<WorkspaceRow>, AppError> {
         let connection = self
             .connection

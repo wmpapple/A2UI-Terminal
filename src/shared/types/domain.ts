@@ -147,11 +147,7 @@ export interface SelectedWorkspaceFiles {
 
 export type ImportBatchStatus = 'awaiting_confirmation' | 'blocked' | 'confirmed' | 'cancelled';
 export type ImportCapability =
-  | 'editable_text'
-  | 'read_only_text'
-  | 'planned_structured_data'
-  | 'planned_visual_context'
-  | 'unsupported';
+  'editable_text' | 'read_only_text' | 'structured_data' | 'visual_context' | 'unsupported';
 export type ImportItemStatus = 'ready' | 'planned' | 'rejected';
 
 export interface ImportItem {
@@ -185,6 +181,84 @@ export interface ImportConfirmation {
   batch: ImportBatch;
   workspace: WorkspaceSummary | null;
   documents: WorkspaceDocument[];
+  sources: DocumentSource[];
+}
+
+export type DocumentSourceKind = 'text' | 'table' | 'image';
+export type DocumentSourceCapability =
+  'editable_text' | 'read_only_text' | 'structured_data' | 'visual_context';
+
+export interface TableLimits {
+  maxSheets: number;
+  maxRowsPerSheet: number;
+  maxColumnsPerSheet: number;
+  maxCellsTotal: number;
+  maxCellChars: number;
+}
+
+export interface TableSourceSummary {
+  sheetNames: string[];
+  rowCount: number;
+  columnCount: number;
+  cellCount: number;
+  formulaCellCount: number;
+  formulaInjectionRiskCellCount: number;
+  limits: TableLimits;
+}
+
+export interface ImageSourceSummary {
+  width: number;
+  height: number;
+  animated: boolean;
+  originalPreserved: boolean;
+  localPreviewAvailable: boolean;
+  visualModelRequired: boolean;
+}
+
+export interface DocumentSource {
+  id: string;
+  workspaceId: string;
+  name: string;
+  extension: string;
+  kind: DocumentSourceKind;
+  capability: DocumentSourceCapability;
+  mimeType: string;
+  sizeBytes: number;
+  contentHash: string;
+  editable: boolean;
+  warnings: string[];
+  table: TableSourceSummary | null;
+  image: ImageSourceSummary | null;
+}
+
+export interface TableCell {
+  value: string;
+  formula: boolean;
+  formulaInjectionRisk: boolean;
+}
+
+export interface TableSheet {
+  name: string;
+  rows: TableCell[][];
+}
+
+export interface TableSourceContent {
+  sheets: TableSheet[];
+  limits: TableLimits;
+}
+
+export interface DocumentSourceContent {
+  source: DocumentSource;
+  textContent: string | null;
+  tableContent: TableSourceContent | null;
+  imageDataUrl: string | null;
+  visualModelAvailable: boolean;
+  notice: string;
+}
+
+export interface RevokeDocumentSourceResult {
+  revoked: boolean;
+  originalFileDeleted: false;
 }
 
 export interface ImportDropBounds {

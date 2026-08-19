@@ -7,8 +7,8 @@ import styles from './ImportBatchModal.module.css';
 const capabilityKeys: Record<ImportCapability, Parameters<ReturnType<typeof useI18n>['t']>[0]> = {
   editable_text: 'importCapabilityEditableText',
   read_only_text: 'importCapabilityReadOnlyText',
-  planned_structured_data: 'importCapabilityPlannedTable',
-  planned_visual_context: 'importCapabilityPlannedImage',
+  structured_data: 'importCapabilityTable',
+  visual_context: 'importCapabilityImage',
   unsupported: 'importCapabilityUnsupported',
 };
 
@@ -35,7 +35,7 @@ export function ImportBatchModal({ onConfirmed }: ImportBatchModalProps) {
 
   const confirmSelection = async () => {
     const result = await confirm();
-    if (result?.workspace && result.documents.length > 0) {
+    if (result?.workspace) {
       await onConfirmed({ workspace: result.workspace, documents: result.documents });
     }
   };

@@ -226,7 +226,7 @@ test('creates, saves, versions, copies, and reopens a text Result without chat',
   await expect(editor).toHaveValue('# S1.5 验收记录\n\n成果正文已保存。');
 });
 
-test('reviews an ImportBatch before authorizing only currently readable sources', async ({
+test('reviews and locally previews text, table, and image sources before any AI send', async ({
   page,
 }) => {
   await skipOnboarding(page);
@@ -235,18 +235,60 @@ test('reviews an ImportBatch before authorizing only currently readable sources'
   await expect(review).toBeVisible();
   await expect(review.getByText('meeting-notes.md')).toBeVisible();
   await expect(review.getByText('research-report.docx')).toBeVisible();
-  await expect(review.getByText('表格适配待开放')).toBeVisible();
-  await expect(review.getByText('图片上下文待开放')).toBeVisible();
+  await expect(review.getByText('基础表格数据（只读）')).toBeVisible();
+  await expect(review.getByText('原始视觉来源（只读）')).toBeVisible();
   await expect(review.getByText('隐藏文件、密钥或敏感路径不会加入导入批次')).toBeVisible();
-  await expect(review.getByRole('checkbox', { name: /sales.xlsx/ })).toBeDisabled();
-  await expect(review.getByRole('checkbox', { name: /whiteboard.png/ })).toBeDisabled();
+  await expect(review.getByRole('checkbox', { name: /sales.xlsx/ })).toBeEnabled();
+  await expect(review.getByRole('checkbox', { name: /whiteboard.png/ })).toBeEnabled();
   await expect(review.getByText(/确认前不建立授权/)).toBeVisible();
 
   await review.getByRole('button', { name: /取.*消/ }).click();
   await expect(review).toHaveCount(0);
+
+  // Confirm a table in one batch, then an image in a later batch. The second
+  // confirmation must append to the workspace sources instead of replacing them.
   await page.getByRole('button', { name: /选择资料/ }).click();
-  const confirmation = page.getByRole('dialog', { name: '确认读取范围' });
-  await confirmation.getByRole('button', { name: '确认加入资料' }).click();
-  await expect(confirmation).toHaveCount(0);
-  await expect(page.getByText(/已准备 6 项资料/)).toBeVisible();
+  const firstConfirmation = page.getByRole('dialog', { name: '确认读取范围' });
+  await firstConfirmation.getByRole('checkbox', { name: /meeting-notes.md/ }).uncheck();
+  await firstConfirmation.getByRole('checkbox', { name: /research-report.docx/ }).uncheck();
+  await firstConfirmation.getByRole('checkbox', { name: /whiteboard.png/ }).uncheck();
+  await firstConfirmation.getByRole('button', { name: '确认加入资料' }).click();
+  await expect(firstConfirmation).toHaveCount(0);
+
+  const tableSource = page.getByRole('article').filter({ hasText: 'sales.xlsx' });
+  await expect(tableSource).toBeVisible();
+
+  await page.getByRole('button', { name: /选择资料/ }).click();
+  const secondConfirmation = page.getByRole('dialog', { name: '确认读取范围' });
+  await secondConfirmation.getByRole('checkbox', { name: /meeting-notes.md/ }).uncheck();
+  await secondConfirmation.getByRole('checkbox', { name: /research-report.docx/ }).uncheck();
+  await secondConfirmation.getByRole('checkbox', { name: /sales.xlsx/ }).uncheck();
+  await secondConfirmation.getByRole('button', { name: '确认加入资料' }).click();
+  await expect(secondConfirmation).toHaveCount(0);
+
+  const imageSource = page.getByRole('article').filter({ hasText: 'whiteboard.png' });
+  await expect(tableSource).toBeVisible();
+  await expect(imageSource).toBeVisible();
+  await expect(page.getByText('仅保留在本机，尚未发送给 AI')).toBeVisible();
+  await tableSource.getByRole('button', { name: '本地预览' }).click();
+  await expect(page.getByRole('dialog', { name: /本地预览 · sales.xlsx/ })).toContainText(
+    '表格仅在本机受控解析'
+  );
+  await expect(page.getByText('=2+2')).toBeVisible();
+  await page.getByRole('button', { name: 'Close' }).click();
+  await imageSource.getByRole('button', { name: '本地预览' }).click();
+  await expect(page.getByRole('dialog', { name: /本地预览 · whiteboard.png/ })).toContainText(
+    '尚未发送给 AI'
+  );
+  await page.getByRole('button', { name: 'Close' }).click();
+
+  await imageSource.getByRole('button', { name: '移除' }).click();
+  await expect(page.getByText('取消读取 whiteboard.png？')).toBeVisible();
+  await page.getByRole('button', { name: '暂不移除' }).click();
+  await expect(imageSource).toBeVisible();
+
+  await imageSource.getByRole('button', { name: '移除' }).click();
+  await page.getByRole('button', { name: '取消授权' }).click();
+  await expect(imageSource).toHaveCount(0);
+  await expect(tableSource).toBeVisible();
 });

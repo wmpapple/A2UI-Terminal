@@ -229,6 +229,77 @@ describe('desktop workspace state', () => {
     expect(useAppStore.getState().saveStatusByPath['selected/file-1/notes.md']).toBe('saved');
   });
 
+  it('forgets revoked source content from open files and saved context selections', () => {
+    const path = 'selected/file-1/notes.md';
+    useAppStore.setState({
+      files: [
+        {
+          path,
+          name: 'notes.md',
+          language: 'markdown',
+          content: '# Local copy',
+          contentHash: 'hash',
+          sourceId: 'file-1',
+        },
+      ],
+      workspaceEntries: [
+        {
+          path,
+          name: 'notes.md',
+          language: 'markdown',
+          sizeBytes: 12,
+          readable: true,
+          editable: true,
+          extracted: false,
+          sourceId: 'file-1',
+        },
+      ],
+      openPaths: [path],
+      activePath: path,
+      dirtyPaths: [path],
+      selectedText: 'Local copy',
+      saveStatusByPath: { [path]: 'dirty' },
+      contextBySession: {
+        'session-1': {
+          selection: false,
+          currentFile: false,
+          recentMessages: false,
+          recentMessageCount: 0,
+          projectFiles: [path, 'retained.md'],
+        },
+      },
+      versionHistoryPath: path,
+      documentVersions: [
+        {
+          id: 'version-1',
+          relativePath: path,
+          contentHash: 'hash',
+          source: 'initial',
+          summary: null,
+          versionKind: 'snapshot',
+          createdAt: '2026-08-19',
+          isCurrent: true,
+        },
+      ],
+    });
+
+    useAppStore.getState().forgetAuthorizedSource('file-1');
+
+    expect(useAppStore.getState()).toMatchObject({
+      files: [],
+      workspaceEntries: [],
+      openPaths: [],
+      activePath: '',
+      dirtyPaths: [],
+      selectedText: '',
+      documentVersions: [],
+      versionHistoryPath: '',
+    });
+    expect(useAppStore.getState().contextBySession['session-1'].projectFiles).toEqual([
+      'retained.md',
+    ]);
+  });
+
   it('loads persistent history and restores a selected version with the current hash', async () => {
     const version = {
       id: 'version-1',

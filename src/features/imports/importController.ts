@@ -19,4 +19,8 @@ export const importController = {
   confirm: (batchId: string, acceptedItemIds: string[]) =>
     gateway().confirmImport(batchId, acceptedItemIds, true),
   cancel: (batchId: string) => gateway().confirmImport(batchId, [], false),
+  listSources: (workspaceId: string) => gateway().listDocumentSources(workspaceId),
+  readSource: (sourceId: string) => gateway().readDocumentSource(sourceId),
+  revokeSource: (workspaceId: string, sourceId: string) =>
+    gateway().revokeDocumentSource(workspaceId, sourceId),
 };

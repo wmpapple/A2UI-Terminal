@@ -8,6 +8,7 @@ pub use crate::application::provider::{ProviderConnectionResult, SecretStatus};
 use crate::application::{
     adapters, chat, import as import_service, provider, revision, workspace as workspace_service,
 };
+use crate::document_source::{DocumentSource, DocumentSourceContent};
 use crate::domain::import::{
     ConfirmImportInput, ImportBatch, ImportConfirmation, SetImportDropTargetInput,
 };
@@ -93,6 +94,13 @@ pub struct SelectedWorkspaceFiles {
 pub struct RemoveWorkspaceResult {
     removed: bool,
     project_files_deleted: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RevokeDocumentSourceResult {
+    revoked: bool,
+    original_file_deleted: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -529,6 +537,35 @@ pub fn confirm_import(
         .map_err(|_| AppError::StateUnavailable)?
         .remove(&pending.batch.id);
     Ok(result.response)
+}
+
+#[tauri::command]
+pub fn list_document_sources(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> Result<Vec<DocumentSource>, AppError> {
+    crate::document_source::list(&state.storage, &workspace_id)
+}
+
+#[tauri::command]
+pub fn read_document_source(
+    state: State<'_, AppState>,
+    source_id: String,
+) -> Result<DocumentSourceContent, AppError> {
+    crate::document_source::read(&state.storage, &source_id)
+}
+
+#[tauri::command]
+pub fn revoke_document_source(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    source_id: String,
+) -> Result<RevokeDocumentSourceResult, AppError> {
+    crate::document_source::revoke(&state.storage, &workspace_id, &source_id)?;
+    Ok(RevokeDocumentSourceResult {
+        revoked: true,
+        original_file_deleted: false,
+    })
 }
 
 #[tauri::command]

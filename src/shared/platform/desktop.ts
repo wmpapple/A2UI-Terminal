@@ -30,6 +30,9 @@ import type {
   ImportBatch,
   ImportConfirmation,
   ImportDropOutcome,
+  DocumentSource,
+  DocumentSourceContent,
+  RevokeDocumentSourceResult,
   SetImportDropTargetInput,
   TaskDetail,
   TaskRunResult,
@@ -289,6 +292,27 @@ export const desktopApi = {
     requireDesktop();
     return invoke<ImportConfirmation>('confirm_import', {
       input: { batchId, acceptedItemIds, confirmed },
+    });
+  },
+
+  async listDocumentSources(workspaceId: string): Promise<DocumentSource[]> {
+    requireDesktop();
+    return invoke<DocumentSource[]>('list_document_sources', { workspaceId });
+  },
+
+  async readDocumentSource(sourceId: string): Promise<DocumentSourceContent> {
+    requireDesktop();
+    return invoke<DocumentSourceContent>('read_document_source', { sourceId });
+  },
+
+  async revokeDocumentSource(
+    workspaceId: string,
+    sourceId: string
+  ): Promise<RevokeDocumentSourceResult> {
+    requireDesktop();
+    return invoke<RevokeDocumentSourceResult>('revoke_document_source', {
+      workspaceId,
+      sourceId,
     });
   },
 

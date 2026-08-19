@@ -9,6 +9,7 @@ import result from '../../../contracts/v2/result.json';
 import task from '../../../contracts/v2/task.json';
 import importBatch from '../../../contracts/v2/import.json';
 import importDrop from '../../../contracts/v2/import-drop.json';
+import documentSource from '../../../contracts/v2/document-source.json';
 import {
   isA2uiProcessResult,
   isA2uiSurfaceProtocol,
@@ -17,6 +18,8 @@ import {
   isChatStreamEvent,
   isChatStreamResult,
   isDocumentPatch,
+  isDocumentSource,
+  isDocumentSourceContent,
   isDocumentVersion,
   isDocumentVersionSummary,
   isImportBatch,
@@ -71,6 +74,8 @@ describe('shared Rust/TypeScript contract fixtures', () => {
     expect(isTaskRunResult(task.runResult)).toBe(true);
     expect(isImportBatch(importBatch)).toBe(true);
     expect(isImportDropOutcome(importDrop)).toBe(true);
+    expect(isDocumentSource(documentSource.source)).toBe(true);
+    expect(isDocumentSourceContent(documentSource)).toBe(true);
   });
 
   it('allows additive fields on trusted Rust responses for forward compatibility', () => {

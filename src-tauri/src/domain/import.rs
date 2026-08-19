@@ -1,3 +1,4 @@
+use crate::document_source::DocumentSource;
 use crate::error::AppError;
 use crate::workspace::{WorkspaceDocument, WorkspaceSummary};
 use serde::{Deserialize, Serialize};
@@ -17,8 +18,8 @@ pub enum ImportBatchStatus {
 pub enum ImportCapability {
     EditableText,
     ReadOnlyText,
-    PlannedStructuredData,
-    PlannedVisualContext,
+    StructuredData,
+    VisualContext,
     Unsupported,
 }
 
@@ -75,6 +76,7 @@ pub struct ImportConfirmation {
     pub batch: ImportBatch,
     pub workspace: Option<WorkspaceSummary>,
     pub documents: Vec<WorkspaceDocument>,
+    pub sources: Vec<DocumentSource>,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq)]

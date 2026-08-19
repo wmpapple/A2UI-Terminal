@@ -21,14 +21,14 @@
       "name": "sales.xlsx",
       "extension": "xlsx",
       "sizeBytes": 18432,
-      "capability": "planned_structured_data",
-      "status": "planned",
-      "readable": false,
+      "capability": "structured_data",
+      "status": "ready",
+      "readable": true,
       "editable": false,
-      "reasonCode": "ADAPTER_NOT_READY",
-      "reason": "S2.2 将提供受控 XLSX 基础数据解析；公式和图表只读优先",
-      "alternative": "可先导出为 CSV，宏和外部链接不会执行或访问",
-      "warnings": []
+      "reasonCode": null,
+      "reason": null,
+      "alternative": null,
+      "warnings": ["只读基础数据；公式不计算，宏不执行，外部链接不访问"]
     }
   ],
   "totalSizeBytes": 19712,

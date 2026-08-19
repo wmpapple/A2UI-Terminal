@@ -19,6 +19,7 @@ type WorkspaceActions = Pick<
   | 'acceptImportedSelection'
   | 'restoreWorkspace'
   | 'removeCurrentWorkspace'
+  | 'forgetAuthorizedSource'
   | 'openFile'
   | 'closeFile'
   | 'updateFile'
@@ -225,7 +226,6 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
   },
 
   acceptImportedSelection: async ({ workspace, documents }: SelectedWorkspaceFiles) => {
-    if (documents.length === 0) return;
     const currentWorkspace = get().workspace;
     const isWebMock = get().runtimeMode === 'web-mock';
     const recentWorkspaces = isWebMock ? [workspace] : await workspaceController.listRecent();
@@ -415,6 +415,54 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
       set({ workspaceLoading: false });
     }
   },
+
+  forgetAuthorizedSource: (sourceId) =>
+    set((state) => {
+      const removedPaths = new Set([
+        ...state.files.filter((file) => file.sourceId === sourceId).map((file) => file.path),
+        ...state.workspaceEntries
+          .filter((entry) => entry.sourceId === sourceId)
+          .map((entry) => entry.path),
+      ]);
+      if (removedPaths.size === 0) return state;
+      const openPaths = state.openPaths.filter((path) => !removedPaths.has(path));
+      const saveStatusByPath = { ...state.saveStatusByPath };
+      const recoveryDrafts = { ...state.recoveryDrafts };
+      for (const path of removedPaths) {
+        delete saveStatusByPath[path];
+        delete recoveryDrafts[path];
+      }
+      const clearingHistory = removedPaths.has(state.versionHistoryPath);
+      return {
+        workspaceEntries: state.workspaceEntries.filter((entry) => entry.sourceId !== sourceId),
+        files: state.files.filter((file) => file.sourceId !== sourceId),
+        openPaths,
+        activePath: removedPaths.has(state.activePath)
+          ? (openPaths.at(-1) ?? '')
+          : state.activePath,
+        dirtyPaths: state.dirtyPaths.filter((path) => !removedPaths.has(path)),
+        saveStatusByPath,
+        recoveryDrafts,
+        recoveryDraftSummaries: state.recoveryDraftSummaries.filter(
+          (draft) => !removedPaths.has(draft.relativePath)
+        ),
+        contextBySession: Object.fromEntries(
+          Object.entries(state.contextBySession).map(([sessionId, context]) => [
+            sessionId,
+            {
+              ...context,
+              projectFiles: context.projectFiles.filter((path) => !removedPaths.has(path)),
+            },
+          ])
+        ),
+        selectedText: removedPaths.has(state.activePath) ? '' : state.selectedText,
+        documentVersions: clearingHistory ? [] : state.documentVersions,
+        versionPreview: clearingHistory ? null : state.versionPreview,
+        versionHistoryPath: clearingHistory ? '' : state.versionHistoryPath,
+        versionHistoryLoading: clearingHistory ? false : state.versionHistoryLoading,
+        versionHistoryError: clearingHistory ? null : state.versionHistoryError,
+      };
+    }),
 
   openFile: (path) => {
     if (get().runtimeMode === 'web-mock') {

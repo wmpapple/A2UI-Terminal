@@ -1,5 +1,6 @@
 use a2ui_terminal_lib::a2ui::{A2uiProcessResult, SurfaceMessage};
 use a2ui_terminal_lib::commands::{ChatStreamEvent, ChatStreamResult};
+use a2ui_terminal_lib::document_source::DocumentSourceContent;
 use a2ui_terminal_lib::domain::import::{ImportBatch, ImportDropOutcome};
 use a2ui_terminal_lib::domain::result::{
     ResultDetail, ResultDocument, ResultRevision, ResultSummary,
@@ -23,6 +24,7 @@ const RESULT_FIXTURE: &str = include_str!("../../contracts/v2/result.json");
 const TASK_FIXTURE: &str = include_str!("../../contracts/v2/task.json");
 const IMPORT_FIXTURE: &str = include_str!("../../contracts/v2/import.json");
 const IMPORT_DROP_FIXTURE: &str = include_str!("../../contracts/v2/import-drop.json");
+const DOCUMENT_SOURCE_FIXTURE: &str = include_str!("../../contracts/v2/document-source.json");
 
 fn assert_round_trip<T>(value: &Value)
 where
@@ -83,6 +85,8 @@ fn rust_serde_matches_import_v2_fixture() {
     assert_round_trip::<ImportBatch>(&import);
     let import_drop: Value = serde_json::from_str(IMPORT_DROP_FIXTURE).unwrap();
     assert_round_trip::<ImportDropOutcome>(&import_drop);
+    let document_source: Value = serde_json::from_str(DOCUMENT_SOURCE_FIXTURE).unwrap();
+    assert_round_trip::<DocumentSourceContent>(&document_source);
 }
 
 #[test]

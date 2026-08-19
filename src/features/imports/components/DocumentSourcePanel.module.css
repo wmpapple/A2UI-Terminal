@@ -1,0 +1,97 @@
+.panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.heading,
+.source {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.heading {
+  justify-content: space-between;
+  color: var(--text-muted);
+}
+
+.sources {
+  display: grid;
+  gap: 8px;
+}
+
+.source {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.sourceIcon {
+  color: var(--accent);
+  font-size: 18px;
+}
+
+.sourceBody {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.sourceBody strong,
+.sourceBody span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sourceBody span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.imagePreview {
+  display: block;
+  max-width: 100%;
+  max-height: 520px;
+  margin: 16px auto 0;
+  object-fit: contain;
+}
+
+.previewNotice,
+.tableWrap {
+  margin-top: 16px;
+}
+
+.tableWrap {
+  max-height: 520px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.tableWrap table {
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+.tableWrap caption {
+  padding: 8px;
+  text-align: left;
+  color: var(--text-muted);
+}
+
+.tableWrap td {
+  max-width: 260px;
+  padding: 6px 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.riskCell {
+  background: #fff7e6;
+  color: #ad4e00;
+}

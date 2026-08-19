@@ -4,6 +4,8 @@ import type {
   ChatStreamEvent,
   ChatStreamResult,
   DocumentPatch,
+  DocumentSource,
+  DocumentSourceContent,
   DocumentVersion,
   DocumentVersionSummary,
   ImportBatch,
@@ -98,11 +100,84 @@ const importBatchStatuses = new Set(['awaiting_confirmation', 'blocked', 'confir
 const importCapabilities = new Set([
   'editable_text',
   'read_only_text',
-  'planned_structured_data',
-  'planned_visual_context',
+  'structured_data',
+  'visual_context',
   'unsupported',
 ]);
 const importItemStatuses = new Set(['ready', 'planned', 'rejected']);
+const documentSourceKinds = new Set(['text', 'table', 'image']);
+const documentSourceCapabilities = new Set([
+  'editable_text',
+  'read_only_text',
+  'structured_data',
+  'visual_context',
+]);
+
+const isTableLimits = (value: unknown): boolean =>
+  isObject(value) &&
+  isNumber(value.maxSheets) &&
+  isNumber(value.maxRowsPerSheet) &&
+  isNumber(value.maxColumnsPerSheet) &&
+  isNumber(value.maxCellsTotal) &&
+  isNumber(value.maxCellChars);
+
+export const isDocumentSource = (value: unknown): value is DocumentSource =>
+  isObject(value) &&
+  isString(value.id) &&
+  isString(value.workspaceId) &&
+  isString(value.name) &&
+  isString(value.extension) &&
+  isString(value.kind) &&
+  documentSourceKinds.has(value.kind) &&
+  isString(value.capability) &&
+  documentSourceCapabilities.has(value.capability) &&
+  isString(value.mimeType) &&
+  isNumber(value.sizeBytes) &&
+  isString(value.contentHash) &&
+  isBoolean(value.editable) &&
+  isStringArray(value.warnings) &&
+  (value.table === null ||
+    (isObject(value.table) &&
+      isStringArray(value.table.sheetNames) &&
+      isNumber(value.table.rowCount) &&
+      isNumber(value.table.columnCount) &&
+      isNumber(value.table.cellCount) &&
+      isNumber(value.table.formulaCellCount) &&
+      isNumber(value.table.formulaInjectionRiskCellCount) &&
+      isTableLimits(value.table.limits))) &&
+  (value.image === null ||
+    (isObject(value.image) &&
+      isNumber(value.image.width) &&
+      isNumber(value.image.height) &&
+      isBoolean(value.image.animated) &&
+      isBoolean(value.image.originalPreserved) &&
+      isBoolean(value.image.localPreviewAvailable) &&
+      isBoolean(value.image.visualModelRequired)));
+
+const isTableCell = (value: unknown): boolean =>
+  isObject(value) &&
+  isString(value.value) &&
+  isBoolean(value.formula) &&
+  isBoolean(value.formulaInjectionRisk);
+
+export const isDocumentSourceContent = (value: unknown): value is DocumentSourceContent =>
+  isObject(value) &&
+  isDocumentSource(value.source) &&
+  isNullableString(value.textContent) &&
+  (value.tableContent === null ||
+    (isObject(value.tableContent) &&
+      Array.isArray(value.tableContent.sheets) &&
+      value.tableContent.sheets.every(
+        (sheet) =>
+          isObject(sheet) &&
+          isString(sheet.name) &&
+          Array.isArray(sheet.rows) &&
+          sheet.rows.every((row) => Array.isArray(row) && row.every(isTableCell))
+      ) &&
+      isTableLimits(value.tableContent.limits))) &&
+  isNullableString(value.imageDataUrl) &&
+  isBoolean(value.visualModelAvailable) &&
+  isString(value.notice);
 
 const isImportItem = (value: unknown): boolean =>
   isObject(value) &&

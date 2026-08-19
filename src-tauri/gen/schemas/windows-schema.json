@@ -297,6 +297,12 @@
           "markdownDescription": "Enables the list_chat_sessions command without any pre-configured scope."
         },
         {
+          "description": "Enables the list_document_sources command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-document-sources",
+          "markdownDescription": "Enables the list_document_sources command without any pre-configured scope."
+        },
+        {
           "description": "Enables the list_document_versions command without any pre-configured scope.",
           "type": "string",
           "const": "allow-list-document-versions",
@@ -357,6 +363,12 @@
           "markdownDescription": "Enables the provider_secret_status command without any pre-configured scope."
         },
         {
+          "description": "Enables the read_document_source command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-read-document-source",
+          "markdownDescription": "Enables the read_document_source command without any pre-configured scope."
+        },
+        {
           "description": "Enables the read_document_version command without any pre-configured scope.",
           "type": "string",
           "const": "allow-read-document-version",
@@ -403,6 +415,12 @@
           "type": "string",
           "const": "allow-restore-workspace",
           "markdownDescription": "Enables the restore_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the revoke_document_source command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-revoke-document-source",
+          "markdownDescription": "Enables the revoke_document_source command without any pre-configured scope."
         },
         {
           "description": "Enables the save_context_file command without any pre-configured scope.",
@@ -627,6 +645,12 @@
           "markdownDescription": "Denies the list_chat_sessions command without any pre-configured scope."
         },
         {
+          "description": "Denies the list_document_sources command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-document-sources",
+          "markdownDescription": "Denies the list_document_sources command without any pre-configured scope."
+        },
+        {
           "description": "Denies the list_document_versions command without any pre-configured scope.",
           "type": "string",
           "const": "deny-list-document-versions",
@@ -687,6 +711,12 @@
           "markdownDescription": "Denies the provider_secret_status command without any pre-configured scope."
         },
         {
+          "description": "Denies the read_document_source command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-read-document-source",
+          "markdownDescription": "Denies the read_document_source command without any pre-configured scope."
+        },
+        {
           "description": "Denies the read_document_version command without any pre-configured scope.",
           "type": "string",
           "const": "deny-read-document-version",
@@ -733,6 +763,12 @@
           "type": "string",
           "const": "deny-restore-workspace",
           "markdownDescription": "Denies the restore_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the revoke_document_source command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-revoke-document-source",
+          "markdownDescription": "Denies the revoke_document_source command without any pre-configured scope."
         },
         {
           "description": "Denies the save_context_file command without any pre-configured scope.",

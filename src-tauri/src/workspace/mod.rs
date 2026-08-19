@@ -675,6 +675,7 @@ fn summary_from_row(row: &WorkspaceRow) -> WorkspaceSummary {
 fn selected_file_entry(row: &WorkspaceFileRow) -> WorkspaceFileEntry {
     let path = Path::new(&row.absolute_path);
     let extracted = is_supported_document_path(path);
+    let text_source = is_supported_text_path(path);
     let metadata = fs::metadata(path).ok();
     let size_bytes = metadata.as_ref().map_or(0, fs::Metadata::len);
     let size_limit = if extracted {
@@ -691,8 +692,8 @@ fn selected_file_entry(row: &WorkspaceFileRow) -> WorkspaceFileEntry {
             .to_string(),
         language: language_for_path(path).to_string(),
         size_bytes,
-        readable: metadata.is_some() && size_bytes <= size_limit,
-        editable: !extracted,
+        readable: metadata.is_some() && (text_source || extracted) && size_bytes <= size_limit,
+        editable: text_source,
         extracted,
         source_id: Some(row.source_id.clone()),
     }
@@ -754,6 +755,9 @@ fn language_for_path(path: &Path) -> &'static str {
         Some("toml") => "toml",
         Some("docx") => "word",
         Some("pdf") => "pdf",
+        Some("csv") => "csv",
+        Some("xlsx") => "spreadsheet",
+        Some("png") | Some("jpg") | Some("jpeg") | Some("gif") | Some("webp") => "image",
         _ => "text",
     }
 }

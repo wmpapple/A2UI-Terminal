@@ -2,6 +2,7 @@ pub mod a2ui;
 pub mod ai;
 pub mod application;
 pub mod commands;
+pub mod document_source;
 pub mod domain;
 pub mod error;
 pub mod patch;
@@ -138,6 +139,9 @@ pub fn run() {
             commands::inspect_import_batch,
             commands::set_import_drop_target,
             commands::confirm_import,
+            commands::list_document_sources,
+            commands::read_document_source,
+            commands::revoke_document_source,
             commands::save_context_file,
             commands::list_document_versions,
             commands::read_document_version,

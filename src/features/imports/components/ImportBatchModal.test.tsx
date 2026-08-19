@@ -24,18 +24,18 @@ const batch: ImportBatch = {
       warnings: [],
     },
     {
-      id: 'planned',
+      id: 'table',
       name: 'table.xlsx',
       extension: 'xlsx',
       sizeBytes: 20,
-      capability: 'planned_structured_data',
-      status: 'planned',
-      readable: false,
+      capability: 'structured_data',
+      status: 'ready',
+      readable: true,
       editable: false,
-      reasonCode: 'ADAPTER_NOT_READY',
-      reason: 'S2.2 将提供受控解析',
-      alternative: '可先导出 CSV',
-      warnings: [],
+      reasonCode: null,
+      reason: null,
+      alternative: null,
+      warnings: ['公式不计算，外部链接不访问'],
     },
   ],
   totalSizeBytes: 30,
@@ -50,7 +50,7 @@ describe('ImportBatchModal', () => {
   beforeEach(() => {
     useImportStore.setState({
       batch,
-      acceptedItemIds: ['ready'],
+      acceptedItemIds: ['ready', 'table'],
       loading: false,
       error: null,
     });
@@ -75,6 +75,7 @@ describe('ImportBatchModal', () => {
           sourceId: 'source-1',
         },
       ],
+      sources: [],
     });
     useImportStore.setState({ confirm });
     render(
@@ -84,9 +85,9 @@ describe('ImportBatchModal', () => {
     );
 
     expect(screen.getByText('可读取和编辑')).toBeInTheDocument();
-    expect(screen.getByText('表格适配待开放')).toBeInTheDocument();
-    expect(screen.getByText(/可先导出 CSV/)).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: /table.xlsx/ })).toBeDisabled();
+    expect(screen.getByText('基础表格数据（只读）')).toBeInTheDocument();
+    expect(screen.getByText(/公式不计算/)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /table.xlsx/ })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: '确认加入资料' }));
     await waitFor(() => expect(onConfirmed).toHaveBeenCalledOnce());
   });

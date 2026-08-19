@@ -1,11 +1,12 @@
 use crate::application::workspace as workspace_service;
+use crate::document_source::{self, DocumentSourceKind};
 use crate::domain::import::{
     ConfirmImportInput, ImportBatch, ImportBatchStatus, ImportCapability, ImportConfirmation,
     ImportDropTarget, ImportItem, ImportItemStatus, SetImportDropTargetInput,
 };
 use crate::error::AppError;
 use crate::security::{is_hidden_path, is_sensitive_path};
-use crate::storage::Storage;
+use crate::storage::{NewWorkspaceFileRow, Storage, WorkspaceFileRow};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::Read;
@@ -39,6 +40,20 @@ pub struct PendingImportBatch {
 pub struct ConfirmedImport {
     pub response: ImportConfirmation,
     pub authorized_paths: Vec<(String, PathBuf)>,
+}
+
+struct AttachedImportSources {
+    documents: Vec<crate::workspace::WorkspaceDocument>,
+    sources: Vec<crate::document_source::DocumentSource>,
+    authorized_paths: Vec<(String, PathBuf)>,
+}
+
+struct PreparedAttachedSource {
+    absolute_path: String,
+    proposed_source_id: String,
+    virtual_path: String,
+    source: crate::document_source::DocumentSource,
+    document: Option<crate::workspace::WorkspaceDocument>,
 }
 
 pub fn update_drop_target(
@@ -165,6 +180,7 @@ pub fn confirm(
                 batch,
                 workspace: None,
                 documents: Vec::new(),
+                sources: Vec::new(),
             },
             authorized_paths: Vec::new(),
         });
@@ -223,19 +239,7 @@ pub fn confirm(
     }
     let workspace =
         workspace_service::resolve_context_workspace(storage, pending.workspace_id.as_deref())?;
-    let paths = confirmed_sources
-        .iter()
-        .map(|source| source.path.clone())
-        .collect::<Vec<_>>();
-    let documents = workspace_service::attach_files(storage, &workspace.id, &paths)?;
-    let mut authorized_paths = Vec::with_capacity(documents.len());
-    for (source, document) in confirmed_sources.into_iter().zip(&documents) {
-        let source_id = document
-            .source_id
-            .clone()
-            .ok_or(AppError::StateUnavailable)?;
-        authorized_paths.push((source_id, source.path.clone()));
-    }
+    let attached = attach_confirmed_sources(storage, &workspace.id, &confirmed_sources)?;
     let mut batch = pending.batch.clone();
     batch.status = ImportBatchStatus::Confirmed;
     batch.can_confirm = false;
@@ -243,8 +247,78 @@ pub fn confirm(
         response: ImportConfirmation {
             batch,
             workspace: Some(workspace),
-            documents,
+            documents: attached.documents,
+            sources: attached.sources,
         },
+        authorized_paths: attached.authorized_paths,
+    })
+}
+
+fn attach_confirmed_sources(
+    storage: &Storage,
+    workspace_id: &str,
+    confirmed_sources: &[&PendingImportSource],
+) -> Result<AttachedImportSources, AppError> {
+    let mut prepared = Vec::with_capacity(confirmed_sources.len());
+    for source in confirmed_sources {
+        let canonical = source.path.canonicalize()?;
+        let absolute_path = canonical.to_string_lossy().into_owned();
+        let source_id = Uuid::new_v4().to_string();
+        let name = canonical
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or("selected-file");
+        let virtual_path = format!("selected/{source_id}/{name}");
+        let proposed_row = WorkspaceFileRow {
+            source_id: source_id.clone(),
+            workspace_id: workspace_id.to_string(),
+            absolute_path: absolute_path.clone(),
+            virtual_path: virtual_path.clone(),
+        };
+        let described = document_source::describe_authorized_source(&proposed_row)?;
+        let document = if described.kind == DocumentSourceKind::Text {
+            Some(crate::workspace::read_selected_file(
+                &canonical, &source_id,
+            )?)
+        } else {
+            None
+        };
+        prepared.push(PreparedAttachedSource {
+            absolute_path,
+            proposed_source_id: source_id,
+            virtual_path,
+            source: described,
+            document,
+        });
+    }
+    let inputs = prepared
+        .iter()
+        .map(|prepared| NewWorkspaceFileRow {
+            source_id: &prepared.proposed_source_id,
+            absolute_path: &prepared.absolute_path,
+            virtual_path: &prepared.virtual_path,
+        })
+        .collect::<Vec<_>>();
+    let rows = storage.attach_workspace_files(workspace_id, &inputs)?;
+    let mut documents = Vec::new();
+    let mut sources = Vec::with_capacity(rows.len());
+    let mut authorized_paths = Vec::with_capacity(rows.len());
+    for (row, prepared) in rows.into_iter().zip(prepared) {
+        let path = PathBuf::from(&row.absolute_path);
+        let mut source = prepared.source;
+        source.id = row.source_id.clone();
+        source.workspace_id = row.workspace_id.clone();
+        if let Some(mut document) = prepared.document {
+            document.source_id = Some(row.source_id.clone());
+            document.path = row.virtual_path.clone();
+            documents.push(document);
+        }
+        authorized_paths.push((row.source_id.clone(), path));
+        sources.push(source);
+    }
+    Ok(AttachedImportSources {
+        documents,
+        sources,
         authorized_paths,
     })
 }
@@ -416,42 +490,35 @@ fn inspect_source(path: &Path, item_id: &str) -> Result<ImportItem, AppError> {
                 .push("PDF 仅提取文本层；扫描页、公式和版式不会无损复刻".into());
             Ok(item)
         }
-        "csv" => planned(
+        "csv" => inspect_table(
+            path,
             base(
-                ImportCapability::PlannedStructuredData,
-                ImportItemStatus::Planned,
-                false,
+                ImportCapability::StructuredData,
+                ImportItemStatus::Ready,
+                true,
                 false,
             ),
-            MAX_TEXT_BYTES,
-            "S2.2 将提供受控 CSV 基础数据解析",
-            "当前可先另存为 UTF-8 文本查看，或等待下一阶段表格适配",
         ),
         "xlsx" => {
             let item = base(
-                ImportCapability::PlannedStructuredData,
-                ImportItemStatus::Planned,
-                false,
+                ImportCapability::StructuredData,
+                ImportItemStatus::Ready,
+                true,
                 false,
             );
             let item = inspect_zip_document(path, item, "xl/workbook.xml")?;
             if item.status == ImportItemStatus::Rejected {
                 Ok(item)
             } else {
-                planned(
-                    item,
-                    MAX_DOCUMENT_BYTES,
-                    "S2.2 将提供受控 XLSX 基础数据解析；公式和图表只读优先",
-                    "可先导出为 CSV，宏和外部链接不会执行或访问",
-                )
+                inspect_table(path, item)
             }
         }
         "png" | "jpg" | "jpeg" | "gif" | "webp" => inspect_image(
             path,
             base(
-                ImportCapability::PlannedVisualContext,
-                ImportItemStatus::Planned,
-                false,
+                ImportCapability::VisualContext,
+                ImportItemStatus::Ready,
+                true,
                 false,
             ),
         ),
@@ -480,21 +547,42 @@ fn has_hidden_attribute(_: &fs::Metadata) -> bool {
     false
 }
 
-fn planned(
-    item: ImportItem,
-    limit: u64,
-    reason: &str,
-    alternative: &str,
-) -> Result<ImportItem, AppError> {
+fn inspect_table(path: &Path, mut item: ImportItem) -> Result<ImportItem, AppError> {
+    let limit = if item.extension == "csv" {
+        document_source::MAX_CSV_BYTES
+    } else {
+        document_source::MAX_XLSX_BYTES
+    };
     if item.size_bytes > limit {
         return Ok(too_large(item, limit));
     }
-    Ok(ImportItem {
-        reason_code: Some("ADAPTER_NOT_READY".into()),
-        reason: Some(reason.into()),
-        alternative: Some(alternative.into()),
-        ..item
-    })
+    match document_source::validate_table(path) {
+        Ok(summary) => {
+            item.warnings.push(format!(
+                "基础数据读取上限：{} 个工作表、每表 {} 行/{} 列、共 {} 个单元格、单元格 {} 字符",
+                summary.limits.max_sheets,
+                summary.limits.max_rows_per_sheet,
+                summary.limits.max_columns_per_sheet,
+                summary.limits.max_cells_total,
+                summary.limits.max_cell_chars
+            ));
+            item.warnings
+                .push("只读基础数据；公式不计算，宏不执行，外部链接不访问".into());
+            if summary.formula_injection_risk_cell_count > 0 {
+                item.warnings.push(format!(
+                    "检测到 {} 个公式或公式注入风险单元格；原值保留，未来导出必须转义",
+                    summary.formula_injection_risk_cell_count
+                ));
+            }
+            Ok(item)
+        }
+        Err(error) => Ok(rejected(
+            item,
+            "TABLE_PARSE_FAILED",
+            &error.public_message(),
+            "请缩小表格或使用可信应用重新保存为 UTF-8 CSV / 标准 XLSX",
+        )),
+    }
 }
 
 fn inspect_image(path: &Path, item: ImportItem) -> Result<ImportItem, AppError> {
@@ -519,12 +607,24 @@ fn inspect_image(path: &Path, item: ImportItem) -> Result<ImportItem, AppError> 
             "请使用有效 PNG、JPEG、GIF 或 WebP 文件",
         ));
     }
-    planned(
-        item,
-        MAX_IMAGE_BYTES,
-        "S2.2 将保留原始视觉信息并作为可单独授权的多模态上下文",
-        "当前不会只提取文字来假装理解图片，也不会把图片发送给模型",
-    )
+    match document_source::validate_image(path) {
+        Ok(summary) => {
+            let mut item = item;
+            item.warnings.push(format!(
+                "原始视觉信息将按 {}×{} 保留；不使用 OCR 文本假装理解图片",
+                summary.width, summary.height
+            ));
+            item.warnings
+                .push("当前未连接视觉模型；图片不会发送，后续发送前仍需确认上下文范围".into());
+            Ok(item)
+        }
+        Err(error) => Ok(rejected(
+            item,
+            "IMAGE_METADATA_INVALID",
+            &error.public_message(),
+            "请使用尺寸不超过 32768 像素边长和 4000 万像素的有效图片",
+        )),
+    }
 }
 
 fn inspect_zip_document(
@@ -668,17 +768,16 @@ mod tests {
     use std::io::Write;
 
     #[test]
-    fn reports_ready_planned_sensitive_and_unsupported_sources_without_paths() {
+    fn reports_ready_table_image_sensitive_and_unsupported_sources_without_paths() {
         let directory = tempfile::tempdir().unwrap();
         fs::write(directory.path().join("notes.md"), "# notes").unwrap();
         fs::write(directory.path().join("data.csv"), "name,value\na,1\n").unwrap();
         fs::write(directory.path().join(".env"), "API_KEY=secret").unwrap();
         fs::write(directory.path().join("tool.exe"), b"MZ").unwrap();
-        fs::write(
-            directory.path().join("image.png"),
-            [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0],
-        )
-        .unwrap();
+        let mut png = vec![137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82];
+        png.extend_from_slice(&640_u32.to_be_bytes());
+        png.extend_from_slice(&480_u32.to_be_bytes());
+        fs::write(directory.path().join("image.png"), png).unwrap();
         let pending = inspect_paths(
             ["notes.md", "data.csv", ".env", "tool.exe", "image.png"]
                 .map(|name| directory.path().join(name))
@@ -697,7 +796,7 @@ mod tests {
                 .iter()
                 .filter(|item| item.status == ImportItemStatus::Ready)
                 .count(),
-            1
+            3
         );
         assert_eq!(
             pending
@@ -706,7 +805,7 @@ mod tests {
                 .iter()
                 .filter(|item| item.status == ImportItemStatus::Planned)
                 .count(),
-            2
+            0
         );
         let serialized = serde_json::to_string(&pending.batch).unwrap();
         assert!(!serialized.contains(directory.path().to_string_lossy().as_ref()));
@@ -780,10 +879,42 @@ mod tests {
         )
         .unwrap();
         assert_eq!(confirmed.response.documents.len(), 1);
+        assert_eq!(confirmed.response.sources.len(), 1);
         assert_eq!(confirmed.authorized_paths.len(), 1);
         assert!(!confirmed.response.documents[0]
             .path
             .contains(directory.path().to_string_lossy().as_ref()));
+    }
+
+    #[test]
+    fn confirms_table_only_batch_as_a_persistent_document_source_without_fake_text() {
+        let storage = Storage::open_in_memory().unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let table = directory.path().join("data.csv");
+        fs::write(&table, "name,value\nAlice,10\n").unwrap();
+        let pending = inspect_paths(vec![table], None).unwrap();
+        let confirmed = confirm(
+            &storage,
+            &pending,
+            ConfirmImportInput {
+                batch_id: pending.batch.id.clone(),
+                accepted_item_ids: vec![pending.batch.items[0].id.clone()],
+                confirmed: true,
+            },
+        )
+        .unwrap();
+
+        assert!(confirmed.response.documents.is_empty());
+        assert_eq!(confirmed.response.sources.len(), 1);
+        assert_eq!(
+            confirmed.response.sources[0].kind,
+            crate::document_source::DocumentSourceKind::Table
+        );
+        let workspace_id = &confirmed.response.workspace.unwrap().id;
+        let persisted = crate::document_source::list(&storage, workspace_id).unwrap();
+        assert_eq!(persisted.len(), 1);
+        let content = crate::document_source::read(&storage, &persisted[0].id).unwrap();
+        assert_eq!(content.table_content.unwrap().sheets[0].rows.len(), 2);
     }
 
     #[test]

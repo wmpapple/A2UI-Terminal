@@ -69,6 +69,7 @@ export interface AppState {
   acceptImportedSelection: (selection: SelectedWorkspaceFiles) => Promise<void>;
   restoreWorkspace: (workspaceId: string) => Promise<void>;
   removeCurrentWorkspace: () => Promise<void>;
+  forgetAuthorizedSource: (sourceId: string) => void;
   openFile: (path: string) => void | Promise<void>;
   closeFile: (path: string) => void;
   updateFile: (path: string, content: string) => void;

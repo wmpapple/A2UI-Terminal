@@ -1,8 +1,9 @@
 import { InboxOutlined, PaperClipOutlined } from '@ant-design/icons';
 import { Alert, Button } from 'antd';
-import { useState, type DragEvent } from 'react';
+import { useEffect, useState, type DragEvent } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { ImportBatchModal } from '../../imports/components/ImportBatchModal';
+import { DocumentSourcePanel } from '../../imports/components/DocumentSourcePanel';
 import { useImportStore } from '../../imports/importStore';
 import { useImportDropTarget } from '../../imports/useImportDropTarget';
 import { useAppStore } from '../../../stores/useAppStore';
@@ -12,19 +13,27 @@ export function SourceDropZone() {
   const { t } = useI18n();
   const [dragging, setDragging] = useState(false);
   const workspace = useAppStore((state) => state.workspace);
-  const sourceCount = useAppStore((state) =>
+  const workspaceSourceCount = useAppStore((state) =>
     Math.max(state.files.length, state.workspaceEntries.length)
   );
   const workspaceLoading = useAppStore((state) => state.workspaceLoading);
   const error = useAppStore((state) => state.workspaceError);
   const acceptImportedSelection = useAppStore((state) => state.acceptImportedSelection);
+  const forgetAuthorizedSource = useAppStore((state) => state.forgetAuthorizedSource);
   const importLoading = useImportStore((state) => state.loading);
   const importError = useImportStore((state) => state.error);
   const selectImportSources = useImportStore((state) => state.select);
   const selectBrowserDropFallback = useImportStore((state) => state.selectBrowserDropFallback);
   const clearImportError = useImportStore((state) => state.clearError);
+  const authorizedSourceCount = useImportStore((state) => state.sources.length);
+  const loadSources = useImportStore((state) => state.loadSources);
   const clearWorkspaceError = useAppStore((state) => state.clearWorkspaceError);
   const dropZoneRef = useImportDropTarget(workspace?.id);
+  const sourceCount = Math.max(workspaceSourceCount, authorizedSourceCount);
+
+  useEffect(() => {
+    if (workspace?.id) void loadSources(workspace.id);
+  }, [loadSources, workspace?.id]);
 
   const requestTrustedSelection = () => void selectImportSources(workspace?.id);
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
@@ -88,6 +97,7 @@ export function SourceDropZone() {
         />
       ) : null}
       <ImportBatchModal onConfirmed={acceptImportedSelection} />
+      <DocumentSourcePanel onSourceRemoved={forgetAuthorizedSource} />
     </div>
   );
 }

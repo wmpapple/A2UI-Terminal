@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S1.5 已通过用户人工验收；S2.1 桌面原生拖放 M09 已由用户复验通过，首页六个任务入口已统一对齐，等待用户确认整个 S2.1 验收；尚未开始 S2.2**
+> 当前状态：**S2.1 已通过用户人工验收；S2.2 多批资料累积与单项取消授权两项验收缺陷均已修复并通过自动验证，等待用户重新人工验收；尚未开始 S2.3**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -243,7 +243,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S2.1 统一导入批次与格式能力
 
-状态：`待重新人工验收`
+状态：`已验收`
 
 - 对应：IMP-01/02、UX-08。
 - 工作：ImportBatch、文件清单、读取/编辑能力、大小与失败原因；系统选择器和 Tauri 原生桌面拖放复用同一 Rust 检查/确认内核；先纳入现有文本/DOCX/PDF，再扩 P0 CSV/XLSX 基础数据和图片上下文。
@@ -252,7 +252,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S2.2 表格与图片读取适配
 
-状态：`待开始`
+状态：`待人工验收`
 
 - 对应：IMP-01、TASK-01。
 - 工作：CSV/XLSX 基础数据受控解析；图片保留原始视觉信息并作为可授权的多模态来源；建立统一 DocumentSource 接口。
@@ -496,22 +496,23 @@ npm run tauri build -- --debug --no-bundle
 
 > 更新规则：开始步骤前先改状态并记 START；完成后先写证据再标完成。
 
-| 步骤                    | 状态       | 最近记录 | 下一动作                      |
-| ----------------------- | ---------- | -------- | ----------------------------- |
-| DOC-0 架构与实施文档    | 已完成     | LOG-0003 | 已进入 S0.1                   |
-| S0.1 固化当前工作树基线 | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收  |
-| S0.2 合同 fixture       | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收  |
-| S0.3 前端边界拆分       | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收  |
-| S0.4 Rust 边界拆分      | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收  |
-| S1.1 Result/schema v9   | 已完成     | LOG-0023 | 已通过用户人工验收            |
-| S1.2 Task/Template      | 已完成     | LOG-0026 | 已通过用户人工验收            |
-| S1.3 导航/双模式外壳    | 已完成     | LOG-0032 | 已通过用户人工验收            |
-| S1.4 新手引导与首页     | 已完成     | LOG-0038 | 用户已完成最终人工验收        |
-| S1.5 大众版工作台外壳   | 已完成     | LOG-0041 | 用户已完成人工验收            |
-| S2.1 统一导入批次       | 待整体验收 | LOG-0055 | M09 已通过，等待用户确认 S2.1 |
-| S2.2…S4.8               | 待开始     | —        | S2.1 验收前不得提前实施       |
+| 步骤                    | 状态       | 最近记录 | 下一动作                                  |
+| ----------------------- | ---------- | -------- | ----------------------------------------- |
+| DOC-0 架构与实施文档    | 已完成     | LOG-0003 | 已进入 S0.1                               |
+| S0.1 固化当前工作树基线 | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收              |
+| S0.2 合同 fixture       | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收              |
+| S0.3 前端边界拆分       | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收              |
+| S0.4 Rust 边界拆分      | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收              |
+| S1.1 Result/schema v9   | 已完成     | LOG-0023 | 已通过用户人工验收                        |
+| S1.2 Task/Template      | 已完成     | LOG-0026 | 已通过用户人工验收                        |
+| S1.3 导航/双模式外壳    | 已完成     | LOG-0032 | 已通过用户人工验收                        |
+| S1.4 新手引导与首页     | 已完成     | LOG-0038 | 用户已完成最终人工验收                    |
+| S1.5 大众版工作台外壳   | 已完成     | LOG-0041 | 用户已完成人工验收                        |
+| S2.1 统一导入批次       | 已验收     | LOG-0056 | 用户已明确验收通过                        |
+| S2.2 表格与图片读取适配 | 待人工验收 | LOG-0062 | 取消授权闭环完成，等待用户按 M09/M10 复验 |
+| S2.3…S4.8               | 待开始     | —        | S2.2 验收前不得提前实施                   |
 
-S1.1—S1.5 均已通过自动验证和用户人工验收。S2.1 已完成范围内实现、前端事件订阅 Capability、StrictMode 注册竞态及主窗口 `WindowEvent::DragDrop` 根因修复；桌面原生拖放 M09 已由用户复验通过，当前停止在 S2.1 整体验收点。用户明确验收前不得开始 S2.2 或其他后续步骤。
+S1.1—S2.1 均已通过自动验证和用户人工验收。S2.2 已完成范围内实现；用户发现的多批资料显示覆盖和无法单项取消授权两项缺陷均已修复并通过自动验证。当前唯一动作是按 [S2_2_MANUAL_ACCEPTANCE.md](S2_2_MANUAL_ACCEPTANCE.md) 的 M09/M10 等待用户重新验收；不得提前实现 S2.3 Context Manifest、Provider 发送或其他后续步骤。
 
 ## 10. 连续变更账本
 
@@ -1381,6 +1382,124 @@ S1.1—S1.5 均已通过自动验证和用户人工验收。S2.1 已完成范围
 - 自动验证：`npm.cmd run check` 通过，包括 Prettier、ESLint、TypeScript、32 个测试文件/103 项 Vitest 和生产构建；`npm.cmd run test:e2e` 通过，Chromium Web Mock 7/7。
 - 阶段与验收：用户已确认桌面原生拖放可以使用，因此 S21-M09 阻断项记录为通过；这不等同于用户已确认整个 S2.1。当前继续停在 S2.1 验收点，用户明确回复“**S2.1 验收通过**”前不得开始 S2.2。
 
+### LOG-0056 — S2.1 — ACCEPTED
+
+- 时间：2026-08-19 10:50（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户验收：用户明确回复“**S2.1 验收通过，开始下阶段**”，S2.1 的统一导入批次、系统选择、桌面原生拖放、能力确认和首页六卡片对齐整体验收通过。
+- 验收基线：`main` / `ab7d964`；验收后 `git status --short` 为空，工作树干净。
+- 状态变化：S2.1 从 `待重新人工验收` 更新为 `已验收`。历史 LOG-0044—LOG-0055 继续保留问题、修复和自动验证证据。
+- 下一具体动作：允许开始 S2.2；S2.2 完成并经用户验收前不得开始 S2.3。
+
+### LOG-0057 — S2.2 — START
+
+- 时间：2026-08-19 10:50（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `ab7d964`；工作树干净。
+- 目标与允许范围：实现统一 `DocumentSource`；受控读取 CSV/XLSX 基础数据；把图片原始字节保留为用户确认后才能读取的本地视觉来源；补齐明确的行列/单元格/大小上限、公式与宏只读、外部链接不访问，以及视觉能力不可用时的诚实提示。
+- 阶段边界：不实现 S2.3 Context Manifest，不把任何图片、表格或正文发送给 Provider；不承诺 Office/PDF 结构复刻、公式计算、宏执行、嵌入图表编辑、OCR 或无损回写；导出实现仍属于 S2.8，本阶段只建立可复用的公式注入风险标记与安全约束。
+- Migration / IPC / Capability：尚待审计后确定；不得为读取适配增加网络、Shell、前端路径访问或事件 emit 权限。
+- 下一具体动作：审计现有 ImportBatch、Workspace 授权、存储、前端 Gateway/Mock 和合同 fixture，确定最小增量接口后实施并验证。
+
+### LOG-0058 — S2.2 — COMPLETE（待人工验收）
+
+- 时间：2026-08-19 11:29（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线与阶段边界：从干净基线 `main` / `ab7d964` 开始；只完成 S2.2 本地读取、持久化授权和预览，未实现 S2.3 Context Manifest、Provider 表格/图片发送、OCR、公式计算、Office 无损回写或 S2.8 导出。
+- 实际修改：
+  - 新增统一 `document_source` 模块和 `DocumentSource` / `DocumentSourceContent` 合同，将持久化授权来源与文本 `WorkspaceDocument` 解耦。文本继续进入编辑器；CSV/XLSX/图片只使用不透明 `sourceId` 和脱敏来源元数据。
+  - CSV 支持 UTF-8、引号、逗号与跨行字段；XLSX 支持工作表名称、共享/内联字符串、布尔/数值、公式缓存值。公式不执行或重算，外部链接不访问；公式与 `= + - @` 起始文本统一标记公式注入风险，并提供供 S2.8 使用的转义函数。
+  - 表格明确限制 32 个工作表、每表 10000 行/256 列、总计 100000 个网格单元格、单元格 32768 字符；CSV 2 MB、XLSX 25 MB，继续继承 Office Zip Bomb、路径穿越、宏和嵌入对象检查。
+  - PNG/JPEG/GIF/WebP 保留原始文件，只读取签名、尺寸和动画元数据；限制 20 MB、32768 像素边长和 4000 万像素。8 MB 内可返回本机 `data:` 预览，更大图片仍保留来源但不跨 IPC 复制。当前视觉模型能力明确为不可用且内容未发送。
+  - ImportBatch 将表格/图片从 planned 改为可确认只读能力；确认时仍重新检查文件，并在一个事务中写入 `workspace_files`。只含表格或图片的批次不再因 `documents=[]` 被前端丢弃。
+  - 首页新增“已授权的本地资料”与本地表格/图片预览；持续显示“仅保留在本机，尚未发送给 AI”。Web Mock 与共享 Import fixture 同步升级。
+- 修改文件：新增 `src-tauri/src/document_source.rs`、`DocumentSourcePanel.tsx/.module.css` 和 [S2_2_MANUAL_ACCEPTANCE.md](S2_2_MANUAL_ACCEPTANCE.md)；更新 Import domain/application、commands/lib/build/capability/permissions、Workspace 条目语义、Rust/TS 合同与 fixture、Gateway/Mock/store/UI/E2E、两份架构文档和本实施账本。
+- 依赖、Migration / IPC / Capability：新增 `csv 1.4.0` 和 `base64 0.22.1`；无 schema migration。新增只读 `list_document_sources`、`read_document_source` 两个 IPC 及其最小 Capability。未新增网络、Shell、文件系统插件、事件 emit 或任意路径输入权限。
+- 自动验证：
+  - `npm.cmd run check` 通过：Prettier、ESLint、TypeScript、32 个测试文件/103 项 Vitest、生产构建全部成功。
+  - `npm.cmd run test:coverage` 通过：103/103；Statements 97.97%、Branches 85.29%、Functions 96.55%、Lines 98.80%。
+  - `npm.cmd run test:e2e` 通过：Chromium Web Mock 7/7，覆盖表格/图片确认、本地预览和未发送提示。
+  - `cargo fmt --all -- --check`、`cargo clippy --all-targets --all-features --offline -- -D warnings` 通过。
+  - `cargo test --all-features --offline` 通过：101 个库测试、6 个架构边界、1 个命令注册、7 个合同测试及 doc tests 全部成功。
+  - `npm.cmd run tauri build -- --debug --no-bundle` 通过，生成 `src-tauri/target/debug/a2ui-terminal.exe`；`scripts/smoke-desktop.ps1` 隔离 APPDATA/LOCALAPPDATA 启动通过，最终复验 PID 42208 已由脚本关闭。
+- 安全、隐私与兼容：ImportBatch/桌面拖放事件仍不含路径、表格正文或图片字节；读取命令只接受已持久化的随机 `sourceId` 并由 Rust 反查授权路径。图片本地预览不是模型输入；S2.3 前没有发送通道。旧文本/DOCX/PDF 导入和编辑器合同保持兼容；Import V2 fixture 的 planned 能力正式升级为 S2.2 ready 能力。
+- ADR / 开放问题：ADR-013 已落地到读取层。O-04 的读取范围、公式风险标记和 OCR 边界关闭；真正 CSV/XLSX 导出转义仍由 S2.8 验收，不能因本阶段有辅助函数就宣称导出完成。
+- 状态与证据：S2.2 标记为 `待人工验收`；验收步骤见 [S2_2_MANUAL_ACCEPTANCE.md](S2_2_MANUAL_ACCEPTANCE.md)。
+- 下一具体动作：停止实施并等待用户人工验收。用户明确回复“**S2.2 验收通过**”前不得开始 S2.3。
+
+### LOG-0059 — S2.2 — ACCEPTANCE DEFECT FIX START
+
+- 时间：2026-08-19（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户验收反馈：在同一工作区第二次“加入资料”后，首页“已授权的本地资料”只显示第二批，第一批看似被顶替。
+- 根因：Desktop SQLite `workspace_files` 使用追加写入和 `(workspace_id, absolute_path)` 去重，没有删除第一批；但前端 `importStore.confirm` 用 `confirmation.sources` 直接覆盖现有 `sources`。Web Mock 同样用本批来源覆盖模拟授权集合。因此 Desktop 主要是显示状态丢失，Web Mock 则连模拟持久化集合也被替换。
+- 预期行为：同一工作区分批加入时累积；同一来源重复加入时去重；切换工作区时只显示目标工作区来源；只有明确移除资料才删除。待确认 `ImportBatch` 仍只保留一个属于既有安全设计，不等于覆盖已确认来源。
+- 允许范围：确认成功后从 Rust/Mock 重新读取该工作区完整来源，以后端授权事实为准；读取失败时不能把已经成功的确认伪装为失败，并应保留安全的本地合并结果；Web Mock 累积并按来源 ID 去重；补两批导入回归测试和验收项。
+- 阶段边界：不新增删除来源、不改变 SQLite schema、不开始 S2.3 Context Manifest 或 Provider 发送。
+- 下一具体动作：修改 import store 与 Web Mock，补单元/E2E 回归并执行 S2.2 门禁。
+
+### LOG-0060 — S2.2 — MULTI-BATCH SOURCE RETENTION FIX COMPLETE（待重新人工验收）
+
+- 时间：2026-08-19 13:47（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 修复结论：同一工作区第二次确认资料后，第一批来源继续显示；重复加入同一来源仍按持久化授权去重。Desktop 原有 SQLite 数据没有被删除，本次修复的是前端完整列表恢复；Web Mock 则同步修正为真实的累积授权语义。
+- 实际修改：
+  - `importStore.confirm` 在确认成功后先按 `sourceId` 合并当前批作为即时兜底，再调用 `list_document_sources(workspaceId)` 重新读取该工作区的完整授权事实，不再以 `confirmation.sources` 覆盖列表。
+  - 完整列表刷新失败时，确认仍按成功返回，界面保留两批合并结果并显示“资料已加入，但完整列表刷新失败”；不会诱导用户重复确认或误以为授权失败。
+  - Web Mock 的授权集合改为按 `workspaceId + sourceId` 累积去重，查询时严格隔离工作区。
+  - E2E 最后一项改为先单独确认 XLSX、再单独确认图片，并断言两项同时保留后分别完成本地预览。
+- 修改文件：`src/features/imports/importStore.ts`、`importStore.test.ts`、`src/shared/mock/imports.ts`、`e2e/web-mock.spec.ts`、[ARCHITECTURE.md](ARCHITECTURE.md)、[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)、[S2_2_MANUAL_ACCEPTANCE.md](S2_2_MANUAL_ACCEPTANCE.md) 和本实施账本。
+- Migration / IPC / Capability / 依赖：本缺陷修复没有新增或变更 schema、IPC、Capability、依赖、网络、Shell 或 Provider 通道；既有 `workspace_files` 追加及去重规则保持不变。
+- 自动验证：
+  - 定向 `importStore` 回归 6/6，通过完整列表恢复和刷新失败合并兜底两条新用例。
+  - `npm run check` 通过：Prettier、ESLint、TypeScript、32 个测试文件/105 项 Vitest 和生产构建全部成功。
+  - `npm run test:coverage` 通过：105/105；Statements 97.97%、Branches 85.29%、Functions 96.55%、Lines 98.80%。
+  - `npm run test:e2e` 通过：Chromium Web Mock 7/7；两次独立确认后的来源保留已有页面级回归。
+  - `cargo fmt --all -- --check` 与 `cargo clippy --all-targets --all-features --offline -- -D warnings` 通过。首次 Rust 测试因旧调试应用 PID 18796 锁定 EXE 被 Windows 拒绝；精确关闭该项目进程后重跑成功，不是代码或测试失败。
+  - `cargo test --all-features --offline` 通过：101 个库测试、6 个架构边界、1 个命令注册、7 个合同测试及 doc tests 全部成功。
+  - `npm run tauri build -- --debug --no-bundle` 通过；隔离 APPDATA/LOCALAPPDATA 的桌面启动烟测通过，PID 18252 已由脚本关闭。
+- 人工复验：按 [S2_2_MANUAL_ACCEPTANCE.md](S2_2_MANUAL_ACCEPTANCE.md) M09 在同一工作区先确认 A、再确认 B，确认 A/B 同时存在；重复加入 A 不产生第二项；重启后 A/B 都保留。
+- 阶段状态：S2.2 仍为 `待人工验收`。用户明确回复“**S2.2 验收通过**”前不得开始 S2.3。
+- 下一具体动作：停止实施并等待用户完成 M09 复验。
+
+### LOG-0061 — S2.2 — SOURCE AUTHORIZATION REVOCATION FIX START
+
+- 时间：2026-08-19 14:10（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户验收反馈：已授权本地资料只有“本地预览”，没有单项取消授权；用户确认补齐该能力。
+- 缺口与产品结论：确认页“取消”只作用于尚未持久化的 `ImportBatch`，不能撤销已经写入 `workspace_files` 的授权。以“已授权的本地资料”为产品语义时，用户必须能够随时撤销单项授权；删除整个工作区或清空全部数据不是可接受替代方案。
+- 目标与允许范围：每个来源提供“移除”动作和二次确认；新增只接受 `workspaceId + sourceId` 的 Rust 撤销命令；只删除该工作区内对应 `workspace_files` 授权记录，不删除磁盘原文件、不影响其他工作区；成功后关闭相关预览并刷新完整来源列表。
+- 安全与错误语义：Rust 必须同时校验工作区和来源归属，跨工作区或不存在 ID 返回稳定的“来源不存在或未授权”，不能仅凭前端 ID 删除；删除原文件、目录或内容均不在范围内。Web Mock 保持同样的隔离语义。
+- 阶段边界：不新增批量移除、不删除工作区、不实现 S2.3 Context Manifest、Provider 发送或历史上下文清理；若未来模型任务已经生成不可变上下文快照，其清理策略仍归后续阶段。
+- Migration / IPC / Capability：预计无需 schema migration；将新增一个最小写入 IPC/Capability，具体名称和合同在实现中确定并记录。
+- 验证要求：Rust 覆盖撤销持久化、原文件保留、跨工作区隔离和重复撤销；前端覆盖确认/取消、成功刷新、失败保留；E2E 覆盖移除一项后另一项仍存在。
+- 下一具体动作：审计 storage/command 注册、Gateway 合同和现有确认组件，实施最小闭环。
+
+### LOG-0062 — S2.2 — SOURCE AUTHORIZATION REVOCATION FIX COMPLETE（待重新人工验收）
+
+- 时间：2026-08-19 14:40（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 实际修改：
+  - “已授权的本地资料”每项新增“移除”按钮和二次确认。文案明确应用将停止读取并关闭已打开资料，不删除设备原文件，已生成成果和历史记录不会自动删除；用户可选择“暂不移除”。
+  - 新增 `revoke_document_source(workspaceId, sourceId)`；Rust 在同一条删除条件中校验工作区和来源归属，只删除 `workspace_files` 授权记录，成功响应固定为 `revoked=true`、`originalFileDeleted=false`。跨工作区、未知和重复撤销返回“资料来源不存在或未获当前工作区授权”。
+  - 撤销成功后前端先安全移除本地来源，再重新读取完整工作区来源。刷新失败不会把已撤销来源加回来，并提示“授权已取消，但完整列表刷新失败”。对应预览、已打开文本、未保存前端状态、版本预览和会话中的文件上下文选择会从当前界面关闭/移除。
+  - Web Mock 使用相同的 `workspaceId + sourceId` 隔离删除语义；E2E 先验证“暂不移除”保持来源，再确认撤销图片并断言表格仍存在。
+- 修改文件：Rust storage/document source/command/注册/Capability，TS domain/Gateway/controller/store/workspace state，资料面板/中英文文案，单元与 E2E，以及 [ARCHITECTURE.md](ARCHITECTURE.md)、[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)、[S2_2_MANUAL_ACCEPTANCE.md](S2_2_MANUAL_ACCEPTANCE.md) 和本账本。
+- Migration / IPC / Capability / 依赖：无 schema migration、无新依赖；新增一个最小写入 IPC `revoke_document_source` 和 `allow-revoke-document-source` 主窗口权限。未新增任意路径输入、网络、Shell、事件 emit 或 Provider 权限。
+- 自动验证：
+  - 定向前端状态测试 2 文件/17 项通过；新增撤销成功、刷新失败、撤销拒绝、清理已打开文本/上下文选择，以及撤销后拒绝旧并发预览结果覆盖。
+  - `npm run check` 通过：Prettier、ESLint、TypeScript、32 个测试文件/110 项 Vitest 和生产构建全部成功。
+  - `npm run test:coverage` 通过：110/110；Statements 97.97%、Branches 85.29%、Functions 96.55%、Lines 98.80%。
+  - `npm run test:e2e` 通过：Chromium Web Mock 7/7，最后一项覆盖多批累积、本地预览、取消移除和确认撤销。
+  - Rust 定向撤销测试验证跨工作区拒绝、重复撤销拒绝、授权记录删除及原文件内容保持；`cargo fmt --all -- --check`、`cargo clippy --all-targets --all-features --offline -- -D warnings` 通过。
+  - `cargo test --all-features --offline` 通过：102 个库测试、6 个架构边界、1 个命令注册、7 个合同测试及 doc tests 全部成功。
+  - 最终 `npm run tauri build -- --debug --no-bundle` 通过；隔离 APPDATA/LOCALAPPDATA 的桌面启动烟测通过，PID 20552 已由脚本关闭。
+- 验证过程记录：首次完整 E2E 中开发服务器首次启动使首页用例超时，撤销用例也暴露复用引导页“上一步”文案导致定位失败；改为独立“暂不移除”文案后定向 1/1、完整 7/7 均通过。首次完整 Rust 测试因用户运行中的本仓库调试 EXE PID 35808 锁定目标文件被 Windows 拒绝；精确关闭该进程后全量通过，不是代码失败。
+- 安全、隐私与兼容：命令不接受绝对路径，也不调用文件删除 API；其他工作区及其他来源不受影响。已生成 Result/历史属于应用内派生记录，不因撤销源文件读取授权自动删除，界面在确认前明确披露。旧 ImportBatch、读取和预览合同保持兼容。
+- 人工复验：按 [S2_2_MANUAL_ACCEPTANCE.md](S2_2_MANUAL_ACCEPTANCE.md) M09 验证多批累积，再按 M10 验证取消确认、单项撤销、原文件保留、其他来源保留和重启后不恢复授权。
+- 阶段状态：S2.2 仍为 `待人工验收`。用户明确回复“**S2.2 验收通过**”前不得开始 S2.3。
+- 下一具体动作：停止实施并等待用户完成 M09/M10 复验。
+
 ### 新账本记录模板
 
 ```markdown
@@ -1429,16 +1548,16 @@ S1.1—S1.5 均已通过自动验证和用户人工验收。S2.1 已完成范围
 
 ### 开放问题
 
-| ID   | 问题                                                   | 所需负责人     | 最晚关闭点      | 状态                                 |
-| ---- | ------------------------------------------------------ | -------------- | --------------- | ------------------------------------ |
-| O-01 | 首次无需 Key 的内置模型/额度/本地方案                  | 产品           | —               | 产品决策关闭；技术项转 O-08          |
-| O-02 | 托管本地成果默认目录和命名/迁移                        | 产品           | —               | 产品决策关闭                         |
-| O-03 | DOCX/PDF/XLSX 导出库、字体、许可证                     | 架构/法务      | S2.8            | 开放                                 |
-| O-04 | XLSX 公式、CSV 注入、图片 OCR 范围                     | 产品/安全      | —               | 产品范围关闭；安全验证留在 S2.2/S2.8 |
-| O-05 | 本地检索、Embedding、索引清理策略                      | 架构/隐私      | S2.4            | 开放                                 |
-| O-06 | 指标上传接收端、保留期、聚合方式和删除机制             | 产品/隐私      | S4.3            | 部分开放                             |
-| O-07 | “A2UI 工作台”的版本号、安装包标识和升级兼容策略        | 产品/发布      | S4.8            | 部分开放                             |
-| O-08 | 内置试用模型供应、服务端鉴权、额度、滥用控制和失败降级 | 商业/后端/隐私 | S1.4 真实生成前 | 开放                                 |
+| ID   | 问题                                                   | 所需负责人     | 最晚关闭点      | 状态                                        |
+| ---- | ------------------------------------------------------ | -------------- | --------------- | ------------------------------------------- |
+| O-01 | 首次无需 Key 的内置模型/额度/本地方案                  | 产品           | —               | 产品决策关闭；技术项转 O-08                 |
+| O-02 | 托管本地成果默认目录和命名/迁移                        | 产品           | —               | 产品决策关闭                                |
+| O-03 | DOCX/PDF/XLSX 导出库、字体、许可证                     | 架构/法务      | S2.8            | 开放                                        |
+| O-04 | XLSX 公式、CSV 注入、图片 OCR 范围                     | 产品/安全      | —               | 读取范围与风险标记已关闭；导出转义留在 S2.8 |
+| O-05 | 本地检索、Embedding、索引清理策略                      | 架构/隐私      | S2.4            | 开放                                        |
+| O-06 | 指标上传接收端、保留期、聚合方式和删除机制             | 产品/隐私      | S4.3            | 部分开放                                    |
+| O-07 | “A2UI 工作台”的版本号、安装包标识和升级兼容策略        | 产品/发布      | S4.8            | 部分开放                                    |
+| O-08 | 内置试用模型供应、服务端鉴权、额度、滥用控制和失败降级 | 商业/后端/隐私 | S1.4 真实生成前 | 开放                                        |
 
 ### ADR 新增模板
 
@@ -1457,14 +1576,14 @@ S1.1—S1.5 均已通过自动验证和用户人工验收。S2.1 已完成范围
 
 ## 12. 交接摘要
 
-截至 LOG-0055：
+截至 LOG-0062：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页和 S1.5 专用成果工作台。S2.1 ImportBatch、格式能力、导入安全、事件订阅 Capability、StrictMode 目标注册竞态及主窗口 `WindowEvent::DragDrop` 根因修复已完成实现与自动验证，桌面原生拖放 M09 已由用户复验通过，当前等待 S2.1 整体人工验收；S2.2 真实 CSV/XLSX/图片适配、Export、Adaptive Context 和产品事件尚未开始。
+- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页、S1.5 专用成果工作台和 S2.1 ImportBatch/系统选择/桌面原生拖放。S2.2 CSV/XLSX/图片读取适配、多批累积和单项取消授权已完成实现与自动验证，当前等待用户重新人工验收；Context Manifest、Provider 多模态发送、Export、Adaptive Context 和产品事件尚未开始。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
-- S2.1 已落地确认前内存批次、逐项格式能力/原因/替代方式、文本/DOCX/PDF 确认导入、敏感/隐藏排除、Office 压缩安全、确认时重检，以及主窗口 `WindowEvent::DragDrop` 精确目标命中和脱敏事件桥接；每次前端 Effect 生命周期使用独立目标 ID，旧异步清理不能误删当前资料区。主窗口只获得事件 listen/unlisten 权限，事件 emit 仍被拒绝。CSV/XLSX/图片只做诚实能力说明，真实适配仍归 S2.2。
-- Windows 桌面原生拖入 M09 已由用户复验通过，首页六个固定任务入口的内容起点也已统一并通过布局回归；当前唯一活动动作是等待用户明确确认整个 S2.1 验收。确认前不得开始 S2.2 或任何后续步骤。
+- S2.2 已建立统一 `DocumentSource`、CSV/XLSX 受限结构化读取、公式/注入风险标记、图片原始视觉来源和 8 MB 内本地预览。表格/图片不伪造成文本编辑文档，路径仍不进入前端；两个只读 sourceId IPC 加一个工作区隔离的撤销授权 IPC，没有 schema migration 或网络/Shell/emit 权限。同一工作区确认批次累积且重复来源去重；单项撤销只删除授权记录、保留磁盘原文件和既有成果/历史。两项验收缺陷已在 LOG-0059—LOG-0062 修复，等待 M09/M10 人工复验。
+- 当前唯一活动动作是按 [S2_2_MANUAL_ACCEPTANCE.md](S2_2_MANUAL_ACCEPTANCE.md) M09/M10 等待用户重新验收。用户明确回复“**S2.2 验收通过**”前不得开始 S2.3；即使图片可本地预览，也不得描述为视觉模型已理解或已经发送。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - 如果文档与实际代码不一致，先记录差异并修正文档状态；不要为了符合文档而破坏性改写用户代码。

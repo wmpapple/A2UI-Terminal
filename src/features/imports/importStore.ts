@@ -1,13 +1,38 @@
 import { create } from 'zustand';
-import type { ImportBatch, ImportConfirmation, ImportDropOutcome } from '../../shared/types/domain';
+import type {
+  DocumentSource,
+  DocumentSourceContent,
+  ImportBatch,
+  ImportConfirmation,
+  ImportDropOutcome,
+} from '../../shared/types/domain';
 import { errorDetails } from '../../stores/support';
 import { importController } from './importController';
+
+const mergeWorkspaceSources = (
+  existing: DocumentSource[],
+  incoming: DocumentSource[],
+  workspaceId: string
+): DocumentSource[] => {
+  const merged = new Map<string, DocumentSource>();
+  for (const source of existing) {
+    if (source.workspaceId === workspaceId) merged.set(source.id, source);
+  }
+  for (const source of incoming) {
+    if (source.workspaceId === workspaceId) merged.set(source.id, source);
+  }
+  return [...merged.values()];
+};
 
 interface ImportState {
   batch: ImportBatch | null;
   acceptedItemIds: string[];
   loading: boolean;
   error: string | null;
+  sources: DocumentSource[];
+  sourceContent: DocumentSourceContent | null;
+  sourceLoading: boolean;
+  revokingSourceId: string | null;
   select: (workspaceId?: string) => Promise<void>;
   selectBrowserDropFallback: (workspaceId?: string) => Promise<void>;
   receiveDrop: (outcome: ImportDropOutcome) => void;
@@ -16,6 +41,10 @@ interface ImportState {
   confirm: () => Promise<ImportConfirmation | null>;
   cancel: () => Promise<void>;
   clearError: () => void;
+  loadSources: (workspaceId: string) => Promise<void>;
+  previewSource: (sourceId: string) => Promise<void>;
+  revokeSource: (workspaceId: string, sourceId: string) => Promise<boolean>;
+  closeSourcePreview: () => void;
 }
 
 export const useImportStore = create<ImportState>((set, get) => ({
@@ -23,6 +52,10 @@ export const useImportStore = create<ImportState>((set, get) => ({
   acceptedItemIds: [],
   loading: false,
   error: null,
+  sources: [],
+  sourceContent: null,
+  sourceLoading: false,
+  revokingSourceId: null,
 
   select: async (workspaceId) => {
     if (get().loading) return;
@@ -93,7 +126,22 @@ export const useImportStore = create<ImportState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const confirmation = await importController.confirm(batch.id, acceptedItemIds);
-      set({ batch: null, acceptedItemIds: [] });
+      const workspaceId = confirmation.workspace?.id;
+      set((state) => ({
+        batch: null,
+        acceptedItemIds: [],
+        sources: workspaceId
+          ? mergeWorkspaceSources(state.sources, confirmation.sources, workspaceId)
+          : state.sources,
+      }));
+      if (workspaceId) {
+        try {
+          const sources = await importController.listSources(workspaceId);
+          set({ sources });
+        } catch (error) {
+          set({ error: `资料已加入，但完整列表刷新失败：${errorDetails(error).message}` });
+        }
+      }
       return confirmation;
     } catch (error) {
       set({ error: errorDetails(error).message });
@@ -118,4 +166,55 @@ export const useImportStore = create<ImportState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  loadSources: async (workspaceId) => {
+    try {
+      const sources = await importController.listSources(workspaceId);
+      set({ sources });
+    } catch (error) {
+      set({ error: errorDetails(error).message });
+    }
+  },
+
+  previewSource: async (sourceId) => {
+    set({ sourceLoading: true, error: null });
+    try {
+      const sourceContent = await importController.readSource(sourceId);
+      set((state) =>
+        state.sources.some((source) => source.id === sourceId) ? { sourceContent } : state
+      );
+    } catch (error) {
+      set({ error: errorDetails(error).message });
+    } finally {
+      set({ sourceLoading: false });
+    }
+  },
+
+  revokeSource: async (workspaceId, sourceId) => {
+    if (get().revokingSourceId) return false;
+    set({ revokingSourceId: sourceId, error: null });
+    try {
+      await importController.revokeSource(workspaceId, sourceId);
+      set((state) => ({
+        sources: state.sources.filter(
+          (source) => source.workspaceId !== workspaceId || source.id !== sourceId
+        ),
+        sourceContent: state.sourceContent?.source.id === sourceId ? null : state.sourceContent,
+      }));
+      try {
+        const sources = await importController.listSources(workspaceId);
+        set({ sources });
+      } catch (error) {
+        set({ error: `授权已取消，但完整列表刷新失败：${errorDetails(error).message}` });
+      }
+      return true;
+    } catch (error) {
+      set({ error: errorDetails(error).message });
+      return false;
+    } finally {
+      set({ revokingSourceId: null });
+    }
+  },
+
+  closeSourcePreview: () => set({ sourceContent: null }),
 }));

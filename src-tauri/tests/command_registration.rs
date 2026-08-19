@@ -35,11 +35,14 @@ const TASK_COMMANDS: [&str; 5] = [
     "get_task",
     "start_task",
 ];
-const IMPORT_COMMANDS: [&str; 4] = [
+const IMPORT_COMMANDS: [&str; 7] = [
     "select_import_sources",
     "inspect_import_batch",
     "set_import_drop_target",
     "confirm_import",
+    "list_document_sources",
+    "read_document_source",
+    "revoke_document_source",
 ];
 
 #[test]

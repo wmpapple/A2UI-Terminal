@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-read-document-source"
+description = "Enables the read_document_source command without any pre-configured scope."
+commands.allow = ["read_document_source"]
+
+[[permission]]
+identifier = "deny-read-document-source"
+description = "Denies the read_document_source command without any pre-configured scope."
+commands.deny = ["read_document_source"]

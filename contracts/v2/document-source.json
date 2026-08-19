@@ -1,0 +1,62 @@
+{
+  "source": {
+    "id": "f97f0916-a85e-4b53-885a-60098770ab24",
+    "workspaceId": "30f77822-8d46-45fd-b571-7e3fcab612d2",
+    "name": "sales.xlsx",
+    "extension": "xlsx",
+    "kind": "table",
+    "capability": "structured_data",
+    "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "sizeBytes": 18432,
+    "contentHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "editable": false,
+    "warnings": [
+      "表格按基础数据读取，不承诺公式、格式、图表或宏的无损回写",
+      "导出时必须对公式注入风险单元格进行转义"
+    ],
+    "table": {
+      "sheetNames": ["Sales"],
+      "rowCount": 2,
+      "columnCount": 2,
+      "cellCount": 4,
+      "formulaCellCount": 1,
+      "formulaInjectionRiskCellCount": 1,
+      "limits": {
+        "maxSheets": 32,
+        "maxRowsPerSheet": 10000,
+        "maxColumnsPerSheet": 256,
+        "maxCellsTotal": 100000,
+        "maxCellChars": 32768
+      }
+    },
+    "image": null
+  },
+  "textContent": null,
+  "tableContent": {
+    "sheets": [
+      {
+        "name": "Sales",
+        "rows": [
+          [
+            { "value": "Month", "formula": false, "formulaInjectionRisk": false },
+            { "value": "Total", "formula": false, "formulaInjectionRisk": false }
+          ],
+          [
+            { "value": "January", "formula": false, "formulaInjectionRisk": false },
+            { "value": "10", "formula": true, "formulaInjectionRisk": true }
+          ]
+        ]
+      }
+    ],
+    "limits": {
+      "maxSheets": 32,
+      "maxRowsPerSheet": 10000,
+      "maxColumnsPerSheet": 256,
+      "maxCellsTotal": 100000,
+      "maxCellChars": 32768
+    }
+  },
+  "imageDataUrl": null,
+  "visualModelAvailable": false,
+  "notice": "表格仅在本机受控解析；公式不会计算，外部链接不会访问。"
+}
