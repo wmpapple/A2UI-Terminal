@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-confirm-context-manifest"
+description = "Enables the confirm_context_manifest command without any pre-configured scope."
+commands.allow = ["confirm_context_manifest"]
+
+[[permission]]
+identifier = "deny-confirm-context-manifest"
+description = "Denies the confirm_context_manifest command without any pre-configured scope."
+commands.deny = ["confirm_context_manifest"]

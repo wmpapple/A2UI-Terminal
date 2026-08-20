@@ -3,6 +3,7 @@ import type {
   ChatSession,
   ChatStreamEvent,
   ChatStreamResult,
+  ContextManifest,
   DocumentPatch,
   DocumentSource,
   DocumentSourceContent,
@@ -112,6 +113,39 @@ const documentSourceCapabilities = new Set([
   'structured_data',
   'visual_context',
 ]);
+const processingLocations = new Set(['local', 'cloud']);
+const contextManifestStatuses = new Set(['awaiting_confirmation', 'confirmed']);
+
+const isContextManifestSource = (value: unknown): boolean =>
+  isObject(value) &&
+  isString(value.kind) &&
+  isString(value.label) &&
+  isNullableString(value.contentHash) &&
+  isNumber(value.sizeBytes) &&
+  isNumber(value.characterCount) &&
+  isNullableString(value.exclusionReason);
+
+export const isContextManifest = (value: unknown): value is ContextManifest =>
+  isObject(value) &&
+  isString(value.id) &&
+  isString(value.workspaceId) &&
+  isString(value.sessionId) &&
+  isString(value.providerId) &&
+  isString(value.processingLocation) &&
+  processingLocations.has(value.processingLocation) &&
+  isString(value.status) &&
+  contextManifestStatuses.has(value.status) &&
+  Array.isArray(value.includedSources) &&
+  value.includedSources.every(isContextManifestSource) &&
+  Array.isArray(value.excludedSources) &&
+  value.excludedSources.every(isContextManifestSource) &&
+  isNumber(value.characterCount) &&
+  isNumber(value.estimatedTokens) &&
+  isBoolean(value.sensitiveWarning) &&
+  isBoolean(value.requiresSensitiveConfirmation) &&
+  isString(value.createdAt) &&
+  isString(value.expiresAt) &&
+  isNullableString(value.confirmedAt);
 
 const isTableLimits = (value: unknown): boolean =>
   isObject(value) &&

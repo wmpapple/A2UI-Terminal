@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S2.1 已通过用户人工验收；S2.2 多批资料累积与单项取消授权两项验收缺陷均已修复并通过自动验证，等待用户重新人工验收；尚未开始 S2.3**
+> 当前状态：**S2.2 已于 2026-08-20 通过用户人工验收；S2.3 Context Manifest 与持续隐私可见性已完成实现并等待人工验收；尚未开始 S2.4**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -252,7 +252,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S2.2 表格与图片读取适配
 
-状态：`待人工验收`
+状态：`已验收`
 
 - 对应：IMP-01、TASK-01。
 - 工作：CSV/XLSX 基础数据受控解析；图片保留原始视觉信息并作为可授权的多模态来源；建立统一 DocumentSource 接口。
@@ -261,7 +261,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S2.3 Context Manifest 与持续隐私可见性
 
-状态：`待开始`
+状态：`待人工验收`
 
 - 对应：CTX-01/02/03、PRV-04。
 - 工作：请求前不可变 Manifest、具体来源、排除项、本机/云端、一次确认；Rust 不再信任前端自行组合的结论。
@@ -281,8 +281,8 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 状态：`待开始`
 
 - 对应：REV-01…06。
-- 工作：Review schema、来源适配、语义块决定、应用状态机；现有 document_patch 接入而不是重写；新增 `create_file` Review payload 和可信应用适配器，模型只能建议受限名称、文本类型、完整候选内容与不透明目标作用域。
-- 验收：聊天、选区、模板、A2UI 的 AI 写入均能证明经过统一入口；部分接受/拒绝；并发冲突三种大众选项；所有 AI 文件修改 100% 可恢复。以“生成出游文档”且没有选中现有文件为合同/E2E 场景：必须展示创建审阅，接受前磁盘零写入，拒绝后无文件，接受后只创建一个文件/Result/Revision；重复应用幂等，名称冲突不静默覆盖，绝对路径/路径穿越/非文本扩展名被 Rust 拒绝。
+- 工作：Review schema、来源适配、语义块决定、应用状态机；现有 document_patch 接入而不是重写；新增 `create_file` Review payload 和可信应用适配器，模型只能建议受限名称、文本类型、完整候选内容与不透明目标作用域；为已授权、已存在的零字节 UTF-8 文本文件增加不依赖伪造锚点的安全首次写入 Review 语义。
+- 验收：聊天、选区、模板、A2UI 的 AI 写入均能证明经过统一入口；部分接受/拒绝；并发冲突三种大众选项；所有 AI 文件修改 100% 可恢复。以“生成出游文档”且没有选中现有文件为合同/E2E 场景：必须展示创建审阅，接受前磁盘零写入，拒绝后无文件，接受后只创建一个文件/Result/Revision；重复应用幂等，名称冲突不静默覆盖，绝对路径/路径穿越/非文本扩展名被 Rust 拒绝。另以“向已授权的空白 Markdown 文件写入首段内容”为合同/E2E 场景：必须展示完整内容审阅，接受前零写入；拒绝保持零字节；接受前 Rust 重新确认目标仍获授权、可编辑、Hash 与零字节基线一致，接受后只产生一次写入和可撤销版本；文件已被外部写入时必须报冲突，撤销后恢复为空文件。
 
 #### S2.6 选区助手
 
@@ -496,23 +496,24 @@ npm run tauri build -- --debug --no-bundle
 
 > 更新规则：开始步骤前先改状态并记 START；完成后先写证据再标完成。
 
-| 步骤                    | 状态       | 最近记录 | 下一动作                                  |
-| ----------------------- | ---------- | -------- | ----------------------------------------- |
-| DOC-0 架构与实施文档    | 已完成     | LOG-0003 | 已进入 S0.1                               |
-| S0.1 固化当前工作树基线 | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收              |
-| S0.2 合同 fixture       | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收              |
-| S0.3 前端边界拆分       | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收              |
-| S0.4 Rust 边界拆分      | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收              |
-| S1.1 Result/schema v9   | 已完成     | LOG-0023 | 已通过用户人工验收                        |
-| S1.2 Task/Template      | 已完成     | LOG-0026 | 已通过用户人工验收                        |
-| S1.3 导航/双模式外壳    | 已完成     | LOG-0032 | 已通过用户人工验收                        |
-| S1.4 新手引导与首页     | 已完成     | LOG-0038 | 用户已完成最终人工验收                    |
-| S1.5 大众版工作台外壳   | 已完成     | LOG-0041 | 用户已完成人工验收                        |
-| S2.1 统一导入批次       | 已验收     | LOG-0056 | 用户已明确验收通过                        |
-| S2.2 表格与图片读取适配 | 待人工验收 | LOG-0062 | 取消授权闭环完成，等待用户按 M09/M10 复验 |
-| S2.3…S4.8               | 待开始     | —        | S2.2 验收前不得提前实施                   |
+| 步骤                                   | 状态       | 最近记录 | 下一动作                                 |
+| -------------------------------------- | ---------- | -------- | ---------------------------------------- |
+| DOC-0 架构与实施文档                   | 已完成     | LOG-0003 | 已进入 S0.1                              |
+| S0.1 固化当前工作树基线                | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收             |
+| S0.2 合同 fixture                      | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收             |
+| S0.3 前端边界拆分                      | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收             |
+| S0.4 Rust 边界拆分                     | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收             |
+| S1.1 Result/schema v9                  | 已完成     | LOG-0023 | 已通过用户人工验收                       |
+| S1.2 Task/Template                     | 已完成     | LOG-0026 | 已通过用户人工验收                       |
+| S1.3 导航/双模式外壳                   | 已完成     | LOG-0032 | 已通过用户人工验收                       |
+| S1.4 新手引导与首页                    | 已完成     | LOG-0038 | 用户已完成最终人工验收                   |
+| S1.5 大众版工作台外壳                  | 已完成     | LOG-0041 | 用户已完成人工验收                       |
+| S2.1 统一导入批次                      | 已验收     | LOG-0056 | 用户已明确验收通过                       |
+| S2.2 表格与图片读取适配                | 已验收     | LOG-0063 | 用户已明确验收通过                       |
+| S2.3 Context Manifest 与持续隐私可见性 | 待人工验收 | LOG-0069 | 空文件限制已准确提示并纳入 S2.5 能力计划 |
+| S2.4…S4.8                              | 待开始     | —        | S2.3 验收前不得提前实施                  |
 
-S1.1—S2.1 均已通过自动验证和用户人工验收。S2.2 已完成范围内实现；用户发现的多批资料显示覆盖和无法单项取消授权两项缺陷均已修复并通过自动验证。当前唯一动作是按 [S2_2_MANUAL_ACCEPTANCE.md](S2_2_MANUAL_ACCEPTANCE.md) 的 M09/M10 等待用户重新验收；不得提前实现 S2.3 Context Manifest、Provider 发送或其他后续步骤。
+S1.1—S2.2 均已通过自动验证和用户人工验收。S2.3 已完成实现与自动验证，当前唯一活动动作是按 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) 等待用户人工验收；不得提前实现 S2.4 检索、Embedding、索引或其他后续步骤。
 
 ## 10. 连续变更账本
 
@@ -1500,6 +1501,105 @@ S1.1—S2.1 均已通过自动验证和用户人工验收。S2.2 已完成范围
 - 阶段状态：S2.2 仍为 `待人工验收`。用户明确回复“**S2.2 验收通过**”前不得开始 S2.3。
 - 下一具体动作：停止实施并等待用户完成 M09/M10 复验。
 
+### LOG-0063 — S2.2 — ACCEPTED
+
+- 时间：2026-08-20 11:39（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户验收：用户明确回复“**S2.2 验收通过，开始下一阶段**”；CSV/XLSX、图片本地视觉来源、多批累积、单项撤销授权及其安全边界整体验收通过。
+- 验收基线：`main` / `72a0e88`（`s2.2阶段完成`）；验收开始前 `git status --short` 为空，工作树干净。
+- 状态变化：S2.2 从 `待人工验收` 更新为 `已验收`。LOG-0057—LOG-0062 继续保留实现、缺陷修复和自动验证证据。
+- 下一具体动作：允许开始 S2.3；S2.3 完成并经用户验收前不得开始 S2.4。
+
+### LOG-0064 — S2.3 — START
+
+- 时间：2026-08-20 11:39（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `72a0e88`；工作树干净。
+- 目标与允许范围：建立由 Rust 生成和复核的不可变 Context Manifest；明确列出本次请求包含的来源、排除项、处理位置（本机/云端）、敏感提示和内容 Hash；用户一次确认后请求必须绑定该 Manifest，切换 Provider 时旧确认立即失效。
+- 安全与隐私：未选来源不得进入请求；敏感内容发送到云端必须可取消；持久审计只保存来源类型、显示名、字符/字节数和 Hash 等元数据，不保存正文、Prompt、AI 回复、图片内容或绝对路径。Rust 不再信任前端自行拼装的上下文结论。
+- 阶段边界：不实现 S2.4 Full/Retrieval/Hybrid 策略、chunk、Embedding、索引或搜索；不扩大 Provider/文件/网络权限；图片真实多模态发送若现有 Provider 合同不能安全承载，只能在 Manifest 中诚实标记不可发送，不得伪装理解。
+- Migration / IPC / Capability：待审计现有上下文审计/聊天合同后决定，优先复用现有表和稳定 Provider 请求边界；所有新增命令必须使用最小 Capability。
+- 下一具体动作：审计前端 ContextReview、chat store/controller、Rust ChatRequest/context validation、Provider 配置与审计存储，确定最小增量合同。
+
+### LOG-0065 — S2.3 — COMPLETE / PENDING ACCEPTANCE
+
+- 时间：2026-08-20 12:22（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线与阶段边界：从干净 `main` / `72a0e88` 开始；只完成 S2.3 不可变 Manifest、持续处理位置、敏感确认和请求绑定。没有实现 S2.4 Full/Retrieval/Hybrid、chunk、Embedding、索引、搜索或 Context Pack，也没有接通成果专用 AI/统一 Review、图片多模态字节发送、导出或遥测。
+- 可信链路：新增 `plan_context → confirm_context_manifest → stream_chat(contextManifestId)`。Rust 从 `sourceId` 反查工作区授权并复读文本/表格，独立计算 included/excluded、字符/字节数、Hash、处理位置和敏感状态；选区是唯一允许的短期前端正文来源。前端不再向 `ChatRequest` 发送 `contextSources`、`recentMessageCount` 或 `sensitiveConfirmed` 结论。
+- 不可变与失效：待确认正文只保存在 Rust 进程内存，10 分钟过期；确认后一次消费。消费时重新绑定工作区、会话、Prompt Hash、Provider ID 和包含 Kind/Endpoint/Model/Temperature/Proxy 的 Provider 指纹。切换 Provider 或修改配置后，前端立即隐藏旧清单，Rust 仍会拒绝任何异常提交的旧 ID；清除本地数据同时清空待确认清单。
+- 来源行为：未选择文件正文不会跨前端 Manifest IPC，Rust 对未选项不读文件，只记录无 Hash 的“用户未选择”原因。表格复用 S2.2 受限解析并以结构化 JSON 文本加入。当前文本 Provider 合同没有可信视觉字段，图片保留 Rust 复核的原始 Hash/大小并明确排除为“图片未发送”，没有 OCR、静默丢弃或伪造理解。
+- 处理位置和敏感确认：只有精确 `localhost`、`127.0.0.1`、`[::1]` 主机判为本机；相似域名仍按云端。简单/专业模式输入区和确认弹窗持续显示本机/云端。云端 Prompt、来源或最近消息疑似含 Secret 时必须额外勾选；取消零消息、零 Provider 请求。
+- 持久审计与数据：没有 schema migration。实际请求继续写入现有 `context_snapshots`，以 Manifest ID 作为快照 ID，`sources_json` 只保存清单元数据、Hash、排除原因、处理位置、状态和时间，不保存文件上下文正文、Prompt 正文、Endpoint、API Key、图片内容或绝对路径。用户消息正文仍按既有会话策略本地保存。
+- UI 与 Web Mock：上下文弹窗改为“选择预览 → 生成 Rust 发送清单 → 确认并发送”；同时列出“将发送/不会发送”。已授权 DocumentSource 可进入选择，撤销来源会同步清除会话保存的 `documentSourceIds`。Web Mock 使用同形两步交互和确定性元数据，但不调用桌面 IPC。
+- 共享合同：新增 `contracts/v2/context-manifest.json`、Rust serde fixture、TypeScript guard/fixture 测试；`ChatRequest` 破坏性变化在 V2 阶段同步更新 Rust/TypeScript/Web Mock/测试。新增 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) 的 M01—M09 验收矩阵。
+- 主要修改文件：`src-tauri/src/ai/context.rs`、`ai/mod.rs`、`application/context.rs`、`application/chat.rs`、`commands.rs`、`state.rs`、`repository/chat.rs`、`storage/mod.rs`；`src/features/context/**`、`features/chat/**`、`features/workspace/workspaceStore.ts`、`shared/types/domain.ts`、`shared/platform/desktop.ts`、`stores/types.ts`、i18n 与相关测试；`contracts/v2/context-manifest.json`、架构/隐私/合同/人工验收文档和本文。
+- IPC / Capability：新增 2 个窄命令，总应用命令 55 个；主窗口只新增 `allow-plan-context`、`allow-confirm-context-manifest`。Tauri 自动生成 2 个权限 TOML 和 4 个 schema/ACL 文件。没有新增数据库表、Shell、任意文件、事件 emit、遥测或额外网络权限。
+- 前端验证：`npm run check` 通过，包含 Prettier、ESLint、TypeScript、33 个测试文件/113 项 Vitest 与生产构建；`npm run test:coverage` 113/113 通过，Statements 97.97%、Branches 84.72%、Functions 96.55%、Lines 98.80%；`npm run test:e2e` 最终 Chromium Web Mock 7/7 通过。
+- Rust/桌面验证：`cargo fmt --all -- --check`、`cargo clippy --all-targets --all-features -- -D warnings`、`cargo test --all-features` 全部通过：104 个库测试、6 个架构边界、1 个命令注册、8 个合同测试和 doc tests；`npm run tauri build -- --debug --no-bundle` 通过；隔离 APPDATA/LOCALAPPDATA 桌面启动冒烟通过，PID 26752 已由脚本关闭。
+- 验证过程修正：首次 `cargo` 因未在 PATH 中发现，改用本机 stable toolchain 绝对路径；首次定向 cargo 命令在依赖编译期间被工具超时终止，延长超时后通过。新增 Provider 指纹测试首次 Clippy/test 编译发现测试变量所有权已移动，补充测试内 `clone` 后严格门禁通过。首次 Tauri build 同样因 npm 子进程 PATH 缺少 cargo 失败，显式加入 stable toolchain 后构建/冒烟通过。首次 E2E 的无关首页布局用例在首次 dev server 加载的 `beforeEach` 超时，另外 6 条（包括两步 Manifest）通过；生产构建预热后完整重跑 7/7 通过。
+- 回滚与兼容：回滚代码不会删除授权文件、消息、Result 或历史；进程退出会自然丢弃未消费清单。旧前端 `ChatRequest` 不能绕过新 Rust DTO，必须同步升级；现有已持久化 `context_snapshots` 行保持可读，新的 `sources_json` 是向前兼容的元数据对象。图片继续只读保留，未获得任何 Provider 发送能力。
+- 阶段状态：S2.3 从 `进行中` 转为 `待人工验收`，不是 `已验收`。当前工作树包含本阶段实现和文档，未创建 Git commit。
+- 下一具体动作：停止实施并等待用户按 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) 验收并明确回复“**S2.3 验收通过**”；在此之前不得开始 S2.4。
+
+### LOG-0066 — S2.3 — CORRECTION / PENDING ACCEPTANCE
+
+- 时间：2026-08-20 14:25（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户反馈与目标：用户指出同一对话每次发送都主动打开清单会造成打断；调整为每个对话只在首次发送时主动弹出，后续需要修改时只提示用户自行点击入口，不允许主动抢占式弹窗。阶段仍为 S2.3 验收修正，不开始 S2.4。
+- 实际修改：`ChatPanel` 以会话维度记录已确认的范围与 Provider 指纹。首次发送继续走“生成发送清单 → 确认并发送”；后续范围未变化时仍为新 Prompt 后台调用 `plan_context`、确认并消费新的 Manifest ID，不复用旧 Manifest。按钮改为“修改发送清单”，状态显示“本会话已沿用”。
+- 变化提示：当前文件、已选文件内容、来源范围或 Provider 指纹变化后，状态显示“发送范围有变化”；文件指纹同时包含磁盘基准 Hash 和当前内存正文摘要，因此未保存编辑也不会被旧 `contentHash` 掩盖。点击发送只出现提示并保留 Prompt，零弹窗、零 Provider 请求。用户主动点击“修改发送清单”后才进入检查/保存或可信清单确认流程。重试消息遵循相同策略，不再固定主动打开弹窗。
+- 敏感保护：后台 Manifest 若新发现云端敏感内容，不会自动传入用户同意，也不会主动弹窗；只保留待确认 Manifest 并提示用户点击“修改发送清单”。用户主动打开后仍需查看 Rust 清单并勾选敏感确认。Rust 的 10 分钟过期、一次消费、Prompt/Provider/工作区/会话绑定和元数据审计均未放宽。
+- 修改文件：`src/features/chat/components/ChatPanel.tsx`、`ChatPanel.test.tsx`、`src/features/context/contextSnapshot.ts`、`contextSnapshot.test.ts`、`src/app/i18n/messages.ts`、`e2e/web-mock.spec.ts`；同步更新 `docs/S2_3_MANUAL_ACCEPTANCE.md`、`docs/ARCHITECTURE.md`、`docs/V2_ARCHITECTURE.md`、`docs/PRIVACY.md` 和本文。
+- Migration / IPC / Capability：无数据库 migration、无 Rust/IPC/Capability/Provider 合同变化；没有新增网络、文件、事件或遥测权限。
+- 自动验证：`npm run format:check`、`npm run lint`、`npm run typecheck`、`npm run test -- --maxWorkers=1` 和 `npm run build` 全部通过，包含 33 个测试文件/117 项 Vitest；最终代码以 `npx vitest run --coverage --maxWorkers=1` 117/117 复核，Statements 97.97%、Branches 84.72%、Functions 96.55%、Lines 98.80%；`npm run test:e2e` Chromium 7/7。新增组件回归覆盖首次弹窗、后续静默 Manifest、范围变化只提示、未保存正文变化以及后台敏感清单绝不自动确认；A2UI E2E 在同一对话发送第二条消息并确认不再出现弹窗。
+- 验证过程修正：首轮 `npm run check` 只发现新增 E2E 文件需 Prettier，格式化后继续；第二轮发现 React Compiler 不接受 Effect 内同步补写确认状态，改为已有会话首次继续发送时建立内存基线后通过。并行覆盖率首轮有 7 个无关 UI 用例统一触发 5 秒资源超时；新增敏感测试后并行 `npm run check` 又有 3 个旧 UI 用例受机器负载影响超时，因此以相同格式、Lint、类型、测试、构建门禁按单 Worker完整重跑 117/117，覆盖率也为 117/117。首轮 E2E 的新增第二次发送选择器同时命中“修改发送清单”和“发送”，收紧为带图标的完整可访问名称后，定向及完整 7/7 均通过。
+- 兼容与回滚：已有含用户消息的会话视为已完成首次清单交互，打开后不会补弹；该会话第一次继续发送时建立当前范围基线。回滚仅恢复前端弹窗策略，不影响已保存消息、授权来源、审计快照或待确认 Manifest；无数据清理。
+- 状态与下一动作：S2.3 继续保持 `待人工验收`。按修订后的 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) 复验；用户明确回复“**S2.3 验收通过**”前不得开始 S2.4。
+
+### LOG-0067 — S2.3 — CORRECTION / PENDING ACCEPTANCE
+
+- 时间：2026-08-20 16:05（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户反馈与目标：用户从云端 Provider 切换到本机 loopback Provider 后，返回工作台没有看到“发送范围有变化”。修复该验收缺口，阶段继续停留在 S2.3，不开始 S2.4。
+- 根因：会话已审核的范围与 Provider 指纹保存在 `ChatPanel` 组件局部状态中；进入设置页会卸载该组件，返回工作台重新挂载后旧指纹丢失，界面把新 Provider 错当成当前基线。
+- 实际修改：把 `contextReviewKeyBySession` 迁移到 Zustand 工作区应用状态，由 `chatStore` 提供按会话写入动作。该状态可跨设置页导航和 `ChatPanel` 重新挂载保留，并在打开、恢复或移除工作区时清空，避免跨工作区继承。
+- 用户可见结果：设置中切换 Provider 后返回工作台，处理位置立即按新端点显示，并保留旧审核基线以显示“发送范围有变化”；此时点击“发送”只提示用户点击“修改发送清单”，不会主动打开弹窗或调用 Provider。旧 Rust Manifest 仍因 Provider 指纹不匹配而不可用，必须由用户主动重新生成。
+- 修改文件：`src/stores/types.ts`、`src/stores/useAppStore.ts`、`src/features/chat/chatStore.ts`、`src/features/workspace/workspaceStore.ts`、`src/features/chat/components/ChatPanel.tsx`、`ChatPanel.test.tsx`；同步更新 `docs/S2_3_MANUAL_ACCEPTANCE.md`、`docs/ARCHITECTURE.md`、`docs/V2_ARCHITECTURE.md` 和本文。
+- Migration / IPC / Capability：无数据库 migration、无 Rust/IPC/Capability/Provider 合同变化；没有新增网络、文件、事件或遥测权限。
+- 自动验证：新增组件回归模拟“建立云端审核基线 → 卸载工作台 → 切换 loopback Provider → 重新挂载”，确认同时显示“本机处理”和“发送范围有变化”。`npm run format:check`、`npm run lint`、`npm run typecheck`、`npx vitest run --coverage --maxWorkers=1`、`npm run build`、`npm run test:e2e` 全部通过；33 个测试文件/118 项 Vitest 全通过，Statements 97.97%、Branches 84.72%、Functions 96.55%、Lines 98.80%，Chromium Web Mock 7/7。
+- 安全、隐私、兼容和回滚：没有放宽 Rust 的一次消费、Prompt/Provider/工作区/会话绑定或敏感确认规则；仅延长前端会话审核指纹在同一工作区、同一应用进程内的生命周期，不持久化文档内容、Prompt、API Key 或 Provider Endpoint。回滚只需恢复该前端状态归属，不涉及用户数据清理。
+- 状态与下一动作：S2.3 继续保持 `待人工验收`。请按 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) M04 复验；用户明确回复“**S2.3 验收通过**”前不得开始 S2.4。
+
+### LOG-0068 — S2.3 — CORRECTION / PENDING ACCEPTANCE
+
+- 时间：2026-08-20 16:18（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户反馈与证据：用户复验截图显示切换到 loopback 后处理位置已变为“本机处理”，但审核状态仍错误显示“本会话已沿用”，没有显示“发送范围有变化”。阶段继续停留在 S2.3，不开始 S2.4。
+- 二次根因：LOG-0067 的回归用例先在新版本中发送一次并建立了审核指纹，只覆盖“已有基线跨路由保留”。用户实际会话已有历史消息，但可能来自升级前或热更新前，`contextReviewKeyBySession` 尚无基线；`ChatPanel` 的兼容分支把“有历史消息但无基线”直接视为已审核，因此 Provider 变化后仍显示沿用。
+- 实际修改：新增 `invalidateContextReviewsForProviderChange` 会话状态动作。成功保存当前活动 Provider 且 Endpoint/Model/Proxy/Temperature 确有变化后，或成功切换活动 Provider 后，`providerStore` 显式把所有已有用户消息的会话标记为 Provider 配置已变化；空会话不标记。对于已有消息但尚无审核基线的历史会话，再次保存当前活动 Provider 也会保守触发复核；已有有效基线时，仅替换 API Key 不误触发。确认新清单后仍以当前真实指纹替换失效标记。
+- 用户可见结果：无论会话是否已有新版本审核基线，从云端改为 loopback 并返回工作台后都显示“本机处理”与“发送范围有变化”，不再显示“本会话已沿用”；发送仍只提示用户点击“修改发送清单”，不会主动弹窗或请求 Provider。
+- 修改文件：`src/stores/types.ts`、`src/features/chat/chatStore.ts`、`src/features/settings/providerStore.ts`、新增 `providerStore.test.ts`、`src/features/chat/components/ChatPanel.test.tsx`；同步更新 `docs/S2_3_MANUAL_ACCEPTANCE.md`、`docs/ARCHITECTURE.md`、`docs/V2_ARCHITECTURE.md` 和本文。
+- Migration / IPC / Capability：无数据库 migration、无 Rust/IPC/Capability/Provider 合同变化；没有新增网络、文件、事件或遥测权限。
+- 自动验证：定向 2 个测试文件/16 项用例通过；新增覆盖活动 Provider 同 ID 配置修改、切换不同 Provider、无基线历史会话再次保存时失效、已有有效基线时仅替换密钥不失效，以及已有消息但无审核基线的跨路由 UI。完整 `npm run format:check`、`npm run lint`、`npm run typecheck`、`npx vitest run --coverage --maxWorkers=1`、`npm run build`、`npm run test:e2e` 全部通过；34 个测试文件/122 项 Vitest 全通过，Statements 97.97%、Branches 84.72%、Functions 96.55%、Lines 98.80%，Chromium Web Mock 7/7。
+- 安全、隐私、兼容和回滚：失效策略更保守，不放宽 Rust Manifest 的一次消费、Prompt/Provider/工作区/会话绑定或敏感确认；不记录 Endpoint、API Key、Prompt 或正文到失效标记。回滚仅移除 Provider 成功变更后的前端失效事件，无数据清理。
+- 状态与下一动作：S2.3 继续保持 `待人工验收`。加载本次修正后，请重新保存一次当前活动 Provider 或切换一次活动 Provider，再按 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) M04 复验；用户明确回复“**S2.3 验收通过**”前不得开始 S2.4。
+
+### LOG-0069 — S2.3 — CORRECTION / PENDING ACCEPTANCE
+
+- 时间：2026-08-20 17:21（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户反馈与决策：用户已正确授权并勾选零字节 `exclude.md`，但 AI 写入失败并显示误导性的“Patch 锚点或内容超过限制”。用户接受分层方案：S2.3 只修准确提示与无意义重试，真正的安全首次写入能力明确排入 S2.5；阶段不进入 S2.4。
+- 根因确认：只读文件元数据显示目标确为零字节。授权选择只决定 AI 可读取范围；现有 `document_patch` 仍要求非空、唯一锚点，零字节文件没有合法锚点。旧校验把“锚点为空”和大小超限合并为同一错误，聊天层又对所有候选 Patch 失败自动请求模型重试一次，前端还展示手动“重试”，因此用户既收到错误原因，也承担不可能成功的重复调用。
+- S2.3 实际修改：Rust 在读取可信目标后识别零字节文件，返回专用原因“目标文件为空，当前版本暂不支持 AI 直接写入；请先手动添加并保存一行内容后重试”，同时把非空文件的空锚点单独归类为“Patch 锚点不能为空”，保留原大小上限。聊天应用层对已知零字节能力限制跳过后台第二次 Provider 请求，其他可修复 Patch 错误仍保留一次自动重试。前端显示“目标已成功授权但为空”的专用说明，并隐藏该错误下必然重复失败的手动“重试”按钮；原文件零写入。
+- S2.5 计划固化：统一 Review Pipeline 新增“已授权、已存在的零字节 UTF-8 文本文件首次写入”场景，不通过放宽锚点实现。接受前完整内容可见且零写入；Rust 应用时复核授权、可编辑类型、零字节基线 Hash 和当前仍为空；外部变化报冲突，拒绝保持零字节，接受只写一次并建立可撤销版本，撤销恢复为空。
+- 修改文件：`src-tauri/src/patch/mod.rs`、`src-tauri/src/application/chat.rs`、`src/app/i18n/messages.ts`、`src/features/chat/components/ChatPanel.tsx`、`ChatPanel.test.tsx`；更新 `docs/S2_3_MANUAL_ACCEPTANCE.md`、`docs/V2_ARCHITECTURE.md` 和本文。
+- Migration / IPC / Capability：无 schema migration、无 IPC/Capability/Provider 合同变化；没有新增文件写入、网络、事件或遥测权限。S2.5 仅更新计划，未实现 Review schema、空文件写入或 `create_file`。
+- 自动验证：前端 `npm run format:check`、`npm run lint`、`npm run typecheck`、`npx vitest run --coverage --maxWorkers=1`、`npm run build`、`npm run test:e2e` 全部通过；34 个测试文件/123 项 Vitest 全通过，Statements 97.97%、Branches 84.72%、Functions 96.55%、Lines 98.80%，Chromium Web Mock 7/7。Rust 定向用例验证零字节专用错误、零写入和跳过后台重试；`cargo fmt --all -- --check`、`cargo clippy --lib --all-features -- -D warnings`、`cargo test --lib --all-features` 通过，106/106。
+- 验证环境说明：尝试重跑三个 Rust 集成测试目标时，正在运行的桌面开发实例锁定 `target/debug/a2ui-terminal.exe`，Cargo 在链接测试目标前因 Windows `os error 5` 停止；未关闭用户正在使用的应用。相关集成测试文件和 IPC/Capability/合同未修改，此前 S2.3 的 6 个架构边界、1 个命令注册、8 个合同测试已通过；用户退出桌面实例后可补跑全目标门禁。
+- 安全、隐私、兼容和回滚：没有接受空锚点、没有把空字符串当作全文件替换，也没有新增写入捷径；零字节限制由可信 Rust 文件读取结果决定，不依赖前端声明。回滚只恢复原错误分类/重试展示，不涉及用户数据迁移或清理。
+- 状态与下一动作：S2.3 继续保持 `待人工验收`。按 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) M10 复验专用提示和零写入；用户明确回复“**S2.3 验收通过**”前不得开始 S2.4，S2.5 能力不得提前实施。
+
 ### 新账本记录模板
 
 ```markdown
@@ -1576,14 +1676,16 @@ S1.1—S2.1 均已通过自动验证和用户人工验收。S2.2 已完成范围
 
 ## 12. 交接摘要
 
-截至 LOG-0062：
+截至 LOG-0069：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页、S1.5 专用成果工作台和 S2.1 ImportBatch/系统选择/桌面原生拖放。S2.2 CSV/XLSX/图片读取适配、多批累积和单项取消授权已完成实现与自动验证，当前等待用户重新人工验收；Context Manifest、Provider 多模态发送、Export、Adaptive Context 和产品事件尚未开始。
+- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页、S1.5 专用成果工作台、S2.1 ImportBatch/系统选择/桌面原生拖放和 S2.2 CSV/XLSX/图片读取适配。S2.3 Context Manifest 已完成实现与自动验证，当前等待用户人工验收；S2.4 Adaptive Context、Provider 图片多模态发送、统一 Review、Export 和产品事件尚未开始。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
-- S2.2 已建立统一 `DocumentSource`、CSV/XLSX 受限结构化读取、公式/注入风险标记、图片原始视觉来源和 8 MB 内本地预览。表格/图片不伪造成文本编辑文档，路径仍不进入前端；两个只读 sourceId IPC 加一个工作区隔离的撤销授权 IPC，没有 schema migration 或网络/Shell/emit 权限。同一工作区确认批次累积且重复来源去重；单项撤销只删除授权记录、保留磁盘原文件和既有成果/历史。两项验收缺陷已在 LOG-0059—LOG-0062 修复，等待 M09/M10 人工复验。
-- 当前唯一活动动作是按 [S2_2_MANUAL_ACCEPTANCE.md](S2_2_MANUAL_ACCEPTANCE.md) M09/M10 等待用户重新验收。用户明确回复“**S2.2 验收通过**”前不得开始 S2.3；即使图片可本地预览，也不得描述为视觉模型已理解或已经发送。
+- S2.2 已建立统一 `DocumentSource`、CSV/XLSX 受限结构化读取、公式/注入风险标记、图片原始视觉来源、8 MB 内本地预览、多批累积和工作区隔离的单项撤销，且已于 2026-08-20 通过用户验收。
+- S2.3 通用聊天每次请求必须经过 Rust 生成清单和一次性 Manifest ID 消费。每个对话仅首次发送主动弹窗并由用户确认；后续范围与 Provider 未变化时后台生成/确认新 Manifest，范围变化只提示点击“修改发送清单”，新敏感风险仍要求用户主动打开并明确确认。会话审核指纹保存在工作区应用状态中，跨设置页导航与工作台重新挂载保留，并在工作区切换/清除时重置；Provider 成功改配或切换时显式失效所有已有消息会话，因此无基线历史会话也能显示变化。Rust 复读已授权文本/表格、冻结最近消息并独立计算来源/排除项/Hash/本机云端/敏感结论；Provider/Prompt/范围变化拒绝旧清单。当前文本合同不能发送图片，图片在清单中明确排除；没有 schema migration 或 S2.4 检索实现。
+- S2.3 对已授权零字节文本目标只提供准确能力限制：Rust 明确识别空文件，跳过不可能成功的后台模型重试，前端隐藏手动重试且保持零写入。真正的安全首次写入已作为显式合同/E2E 场景排入 S2.5，当前没有放宽非空锚点或实现写入。
+- 当前唯一活动动作是按 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) M01—M10 等待用户验收。用户明确回复“**S2.3 验收通过**”前不得开始 S2.4。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - 如果文档与实际代码不一致，先记录差异并修正文档状态；不要为了符合文档而破坏性改写用户代码。

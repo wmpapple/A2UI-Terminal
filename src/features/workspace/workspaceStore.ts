@@ -109,6 +109,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
         sessions,
         activeSessionId: sessions[0].id,
         contextBySession: {},
+        contextReviewKeyBySession: {},
         chatError: null,
         a2uiSurfaces,
         a2uiInspections,
@@ -359,6 +360,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
         sessions,
         activeSessionId: sessions[0].id,
         contextBySession: {},
+        contextReviewKeyBySession: {},
         chatError: null,
         a2uiSurfaces,
         a2uiInspections,
@@ -400,6 +402,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
         sessions: [],
         activeSessionId: '',
         contextBySession: {},
+        contextReviewKeyBySession: {},
         chatRequestId: null,
         chatError: null,
         a2uiSurfaces: [],
@@ -424,7 +427,10 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
           .filter((entry) => entry.sourceId === sourceId)
           .map((entry) => entry.path),
       ]);
-      if (removedPaths.size === 0) return state;
+      const contextContainsSource = Object.values(state.contextBySession).some((context) =>
+        context.documentSourceIds?.includes(sourceId)
+      );
+      if (removedPaths.size === 0 && !contextContainsSource) return state;
       const openPaths = state.openPaths.filter((path) => !removedPaths.has(path));
       const saveStatusByPath = { ...state.saveStatusByPath };
       const recoveryDrafts = { ...state.recoveryDrafts };
@@ -452,6 +458,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
             {
               ...context,
               projectFiles: context.projectFiles.filter((path) => !removedPaths.has(path)),
+              documentSourceIds: (context.documentSourceIds ?? []).filter((id) => id !== sourceId),
             },
           ])
         ),

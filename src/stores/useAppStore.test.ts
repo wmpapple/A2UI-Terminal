@@ -70,17 +70,7 @@ describe('workspace review flow', () => {
   });
 
   it('routes an A2UI request to the trusted Web Mock runtime and records actions', async () => {
-    await useAppStore.getState().sendChat(
-      'Create an A2UI form',
-      {
-        selection: false,
-        currentFile: false,
-        recentMessages: false,
-        recentMessageCount: 0,
-        projectFiles: [],
-      },
-      true
-    );
+    await useAppStore.getState().sendChat('Create an A2UI form', 'web-manifest');
     expect(useAppStore.getState().centerView).toBe('surface');
     expect(useAppStore.getState().a2uiSurfaces[0]?.surfaceId).toBe('web-mock-form');
     await useAppStore.getState().executeA2uiAction('name', 'change', 'Grace');

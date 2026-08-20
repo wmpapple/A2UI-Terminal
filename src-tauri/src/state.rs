@@ -1,3 +1,4 @@
+use crate::ai::PendingContextManifest;
 use crate::application::import::PendingImportBatch;
 use crate::domain::import::ImportDropTarget;
 use crate::storage::Storage;
@@ -16,6 +17,7 @@ pub struct AppState {
     pub native_import_drop_active: AtomicBool,
     pub import_drop_epoch: AtomicU64,
     pub active_requests: Mutex<HashMap<String, Arc<AtomicBool>>>,
+    pub pending_context_manifests: Mutex<HashMap<String, PendingContextManifest>>,
 }
 
 impl AppState {
@@ -29,6 +31,7 @@ impl AppState {
             native_import_drop_active: AtomicBool::new(false),
             import_drop_epoch: AtomicU64::new(0),
             active_requests: Mutex::new(HashMap::new()),
+            pending_context_manifests: Mutex::new(HashMap::new()),
         }
     }
 }

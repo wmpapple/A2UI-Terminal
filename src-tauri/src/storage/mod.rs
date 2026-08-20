@@ -779,6 +779,7 @@ impl Storage {
         assistant_message_id: &str,
         provider_id: &str,
         prompt: &str,
+        context_snapshot_id: &str,
         sources_json: &str,
         character_count: usize,
         estimated_tokens: usize,
@@ -817,7 +818,7 @@ impl Storage {
               estimated_tokens, has_sensitive_warning)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
-                uuid::Uuid::new_v4().to_string(),
+                context_snapshot_id,
                 session_id,
                 request_id,
                 sources_json,
@@ -3399,6 +3400,7 @@ mod tests {
                 "550e8400-e29b-41d4-a716-446655440004",
                 "openai",
                 "完整用户消息",
+                "550e8400-e29b-41d4-a716-446655440005",
                 r#"[{"label":"src/main.ts","contentHash":"hash"}]"#,
                 12,
                 5,

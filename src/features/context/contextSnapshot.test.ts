@@ -44,7 +44,15 @@ describe('context snapshot', () => {
         recentMessageCount: 3,
         projectFiles: [],
       },
-      files: [{ path: 'a.ts', name: 'a.ts', language: 'ts', content: 'version one' }],
+      files: [
+        {
+          path: 'a.ts',
+          name: 'a.ts',
+          language: 'ts',
+          content: 'version one',
+          contentHash: 'unchanged-disk-hash',
+        },
+      ],
       activePath: 'a.ts',
       selectedText: '',
     };

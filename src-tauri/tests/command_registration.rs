@@ -44,6 +44,7 @@ const IMPORT_COMMANDS: [&str; 7] = [
     "read_document_source",
     "revoke_document_source",
 ];
+const CONTEXT_COMMANDS: [&str; 2] = ["plan_context", "confirm_context_manifest"];
 
 #[test]
 fn native_commands_are_registered_and_allowed_for_the_main_window() {
@@ -105,6 +106,14 @@ fn native_commands_are_registered_and_allowed_for_the_main_window() {
     }
 
     for command in IMPORT_COMMANDS {
+        assert!(build_script.contains(&format!("\"{command}\"")));
+        assert!(runtime.contains(&format!("commands::{command},")));
+        assert!(permissions
+            .iter()
+            .any(|permission| permission == &format!("allow-{}", command.replace('_', "-"))));
+    }
+
+    for command in CONTEXT_COMMANDS {
         assert!(build_script.contains(&format!("\"{command}\"")));
         assert!(runtime.contains(&format!("commands::{command},")));
         assert!(permissions

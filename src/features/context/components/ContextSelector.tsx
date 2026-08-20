@@ -1,8 +1,13 @@
 import { Alert, Checkbox, Divider, Modal, Progress, Select, Tag } from 'antd';
 import { useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
-import type { ContextSelection } from '../../../shared/types/domain';
+import type {
+  ContextManifest,
+  ContextSelection,
+  ProcessingLocation,
+} from '../../../shared/types/domain';
 import { useAppStore } from '../../../stores/useAppStore';
+import { useImportStore } from '../../imports/importStore';
 import {
   buildContextSnapshot,
   isSensitivePath,
@@ -15,8 +20,19 @@ interface Props {
   prompt: string;
   initialSelection: ContextSelection;
   confirmText?: string;
+  manifest?: ContextManifest | null;
+  planning?: boolean;
+  error?: string | null;
+  processingLocation?: ProcessingLocation;
+  reviewOnly?: boolean;
   onCancel: () => void;
-  onConfirm: (selection: ContextSelection, sensitiveConfirmed: boolean) => void;
+  onPlan?: (selection: ContextSelection) => void;
+  onInvalidateManifest?: () => void;
+  onConfirm: (
+    selection: ContextSelection,
+    manifestId: string | null,
+    sensitiveConfirmed: boolean
+  ) => void;
 }
 
 export function ContextSelector({
@@ -24,7 +40,14 @@ export function ContextSelector({
   prompt,
   initialSelection,
   confirmText,
+  manifest,
+  planning = false,
+  error,
+  processingLocation = 'cloud',
+  reviewOnly = false,
   onCancel,
+  onPlan,
+  onInvalidateManifest,
   onConfirm,
 }: Props) {
   const { t } = useI18n();
@@ -33,6 +56,10 @@ export function ContextSelector({
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const activePath = useAppStore((state) => state.activePath);
   const selectedText = useAppStore((state) => state.selectedText);
+  const workspace = useAppStore((state) => state.workspace);
+  const documentSources = useImportStore((state) => state.sources).filter(
+    (source) => source.workspaceId === workspace?.id
+  );
   const [sensitiveConfirmed, setSensitiveConfirmed] = useState(false);
   const [selection, setSelection] = useState<ContextSelection>(() =>
     normalizeContextSelection(initialSelection, selectedText)
@@ -54,25 +81,58 @@ export function ContextSelector({
     [activePath, files, prompt, recentMessages, selectedText, selection]
   );
 
+  const updateSelection = (next: ContextSelection) => {
+    setSelection(next);
+    setSensitiveConfirmed(false);
+    onInvalidateManifest?.();
+  };
   const setFlag = (key: 'selection' | 'currentFile' | 'recentMessages', checked: boolean) =>
-    setSelection((current) => ({ ...current, [key]: checked }));
-  const requiresSensitiveConfirmation = snapshot.warnings.some((warning) =>
-    warning.includes('possible secret')
-  );
+    updateSelection({ ...selection, [key]: checked });
+  const requiresSensitiveConfirmation = manifest
+    ? manifest.requiresSensitiveConfirmation
+    : snapshot.warnings.some((warning) => warning.includes('possible secret'));
+  const handleOk = () => {
+    if (reviewOnly) {
+      onConfirm(selection, null, true);
+    } else if (!manifest) {
+      onPlan?.(selection);
+    } else {
+      onConfirm(
+        selection,
+        manifest.id,
+        sensitiveConfirmed || !manifest.requiresSensitiveConfirmation
+      );
+    }
+  };
 
   return (
     <Modal
       open={open}
       title={t('contextTitle')}
-      okText={confirmText ?? t('confirmAndSend')}
+      okText={
+        reviewOnly
+          ? (confirmText ?? t('saveContextSelection'))
+          : manifest
+            ? t('confirmAndSend')
+            : t('buildSendManifest')
+      }
       cancelText={t('cancel')}
       onCancel={onCancel}
-      onOk={() => onConfirm(selection, sensitiveConfirmed || !requiresSensitiveConfirmation)}
-      okButtonProps={{ disabled: requiresSensitiveConfirmation && !sensitiveConfirmed }}
+      onOk={handleOk}
+      confirmLoading={planning}
+      okButtonProps={{
+        disabled: Boolean(manifest && requiresSensitiveConfirmation && !sensitiveConfirmed),
+      }}
       width={660}
     >
       <div className={styles.body}>
-        <Alert type="info" showIcon title={t('privacyHint')} />
+        <Alert
+          type={processingLocation === 'cloud' ? 'warning' : 'info'}
+          showIcon
+          title={t(processingLocation === 'cloud' ? 'cloudProcessing' : 'localProcessing')}
+          description={t('privacyHint')}
+        />
+        {error && <Alert type="error" showIcon title={error} />}
         <div className={styles.options}>
           <Checkbox
             disabled={selectedText.length === 0}
@@ -106,17 +166,13 @@ export function ContextSelector({
               value: count,
               label: t('recentMessageCountValue').replace('{count}', String(count)),
             }))}
-            onChange={(recentMessageCount) =>
-              setSelection((current) => ({ ...current, recentMessageCount }))
-            }
+            onChange={(recentMessageCount) => updateSelection({ ...selection, recentMessageCount })}
           />
         </div>
         <Divider>{t('projectFiles')}</Divider>
         <Checkbox.Group
           value={selection.projectFiles}
-          onChange={(paths) =>
-            setSelection((current) => ({ ...current, projectFiles: paths as string[] }))
-          }
+          onChange={(paths) => updateSelection({ ...selection, projectFiles: paths as string[] })}
           className={styles.fileOptions}
         >
           {files
@@ -127,7 +183,34 @@ export function ContextSelector({
               </Checkbox>
             ))}
         </Checkbox.Group>
-        <Divider>{t('finalSendList')}</Divider>
+        {documentSources.length > 0 && (
+          <>
+            <Divider>{t('authorizedSources')}</Divider>
+            <Checkbox.Group
+              value={selection.documentSourceIds ?? []}
+              onChange={(sourceIds) =>
+                updateSelection({ ...selection, documentSourceIds: sourceIds as string[] })
+              }
+              className={styles.fileOptions}
+            >
+              {documentSources.map((source) => (
+                <Checkbox value={source.id} key={source.id}>
+                  {source.name}{' '}
+                  <Tag>
+                    {t(
+                      source.kind === 'table'
+                        ? 'sourceKindTable'
+                        : source.kind === 'image'
+                          ? 'sourceKindImage'
+                          : 'sourceKindText'
+                    )}
+                  </Tag>
+                </Checkbox>
+              ))}
+            </Checkbox.Group>
+          </>
+        )}
+        <Divider>{t(manifest ? 'finalSendList' : 'selectionPreview')}</Divider>
         <div className={styles.sourceList}>
           {snapshot.sources.length === 0 && !selection.recentMessages ? (
             <Tag>{t('noFileContext')}</Tag>
@@ -145,7 +228,7 @@ export function ContextSelector({
             </Tag>
           )}
         </div>
-        {snapshot.warnings.length > 0 && (
+        {!manifest && snapshot.warnings.length > 0 && (
           <Alert
             type="warning"
             showIcon
@@ -153,7 +236,32 @@ export function ContextSelector({
             description={snapshot.warnings.join('\n')}
           />
         )}
-        {requiresSensitiveConfirmation && (
+        {manifest && (
+          <div className={styles.manifest}>
+            <Divider>{t('trustedManifest')}</Divider>
+            <strong>{t('includedSources')}</strong>
+            <div className={styles.manifestList}>
+              {manifest.includedSources.length === 0 ? (
+                <Tag>{t('noFileContext')}</Tag>
+              ) : (
+                manifest.includedSources.map((source) => (
+                  <Tag color="green" key={`${source.kind}:${source.label}`}>
+                    {source.label} · {source.characterCount.toLocaleString()} chars
+                  </Tag>
+                ))
+              )}
+            </div>
+            <strong>{t('excludedSources')}</strong>
+            <div className={styles.manifestExcluded}>
+              {manifest.excludedSources.map((source) => (
+                <span key={`${source.kind}:${source.label}`}>
+                  {source.label}: {source.exclusionReason}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        {manifest && requiresSensitiveConfirmation && (
           <Checkbox
             checked={sensitiveConfirmed}
             onChange={(event) => setSensitiveConfirmed(event.target.checked)}
@@ -163,14 +271,21 @@ export function ContextSelector({
         )}
         <div className={styles.tokens}>
           <span>
-            {t('contextCharacters').replace('{count}', snapshot.characterCount.toLocaleString())}
+            {t('contextCharacters').replace(
+              '{count}',
+              (manifest?.characterCount ?? snapshot.characterCount).toLocaleString()
+            )}
           </span>
           <strong>
-            {t('tokenEstimate')}: {snapshot.estimatedTokens.toLocaleString()}
+            {t('tokenEstimate')}:{' '}
+            {(manifest?.estimatedTokens ?? snapshot.estimatedTokens).toLocaleString()}
           </strong>
         </div>
         <Progress
-          percent={Math.min(100, Math.round((snapshot.estimatedTokens / 128000) * 100))}
+          percent={Math.min(
+            100,
+            Math.round(((manifest?.estimatedTokens ?? snapshot.estimatedTokens) / 128000) * 100)
+          )}
           showInfo={false}
           size="small"
         />

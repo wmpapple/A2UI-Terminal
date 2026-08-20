@@ -13,6 +13,8 @@
 | Revision  | `revision.json`  | `DocumentVersionSummary`、`DocumentVersion`          |
 | Error     | `error.json`     | 稳定错误码、公开消息、重试和 HTTP 元数据             |
 
+V2 增量合同位于 `contracts/v2/`。S2.3 新增 `context-manifest.json`，固定 Rust 返回的来源元数据、排除原因、处理位置、敏感确认和确认状态；fixture 只含虚构标签与 Hash，不含正文、Prompt、Endpoint 或绝对路径。
+
 Fixture 使用固定、虚构、无密钥内容；不得放入真实路径、文档正文、Prompt、AI 回复或凭据。
 
 ## 未知字段策略

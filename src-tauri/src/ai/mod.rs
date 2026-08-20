@@ -2,7 +2,12 @@ mod client;
 mod context;
 
 pub use client::{stream_chat, test_connection, StreamChunk};
-pub use context::{build_context_prompt, validate_chat_request, ContextSnapshotSource};
+pub use context::{
+    build_context_prompt, confirm_context_manifest, consume_context_manifest,
+    plan_context_manifest, ConfirmContextManifestInput, ConfirmedContextManifest, ContextCandidate,
+    ContextManifest, ContextManifestInput, ContextManifestSource, ContextManifestStatus,
+    PendingContextManifest, ProcessingLocation,
+};
 
 use crate::error::AppError;
 use crate::security::validate_provider_id;
@@ -68,9 +73,7 @@ pub struct ChatRequest {
     pub session_id: String,
     pub provider_id: String,
     pub prompt: String,
-    pub recent_message_count: u32,
-    pub context_sources: Vec<ContextSource>,
-    pub sensitive_confirmed: bool,
+    pub context_manifest_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

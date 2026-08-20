@@ -1,5 +1,6 @@
 pub mod adapters;
 pub mod chat;
+pub mod context;
 pub mod import;
 pub mod provider;
 pub mod result;

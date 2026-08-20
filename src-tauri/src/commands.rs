@@ -2,11 +2,15 @@ use crate::a2ui::{
     A2uiInspectionView, A2uiProcessResult, A2uiSurfaceView, ActionExecutionResult,
     ExecuteActionRequest, ProcessA2uiRequest,
 };
-use crate::ai::{ChatRequest, ProviderConfig, ProviderConfigView};
+use crate::ai::{
+    ChatRequest, ConfirmContextManifestInput, ContextManifest, ContextManifestInput,
+    ProviderConfig, ProviderConfigView,
+};
 pub use crate::application::chat::{ChatStreamEvent, ChatStreamResult};
 pub use crate::application::provider::{ProviderConnectionResult, SecretStatus};
 use crate::application::{
-    adapters, chat, import as import_service, provider, revision, workspace as workspace_service,
+    adapters, chat, context, import as import_service, provider, revision,
+    workspace as workspace_service,
 };
 use crate::document_source::{DocumentSource, DocumentSourceContent};
 use crate::domain::import::{
@@ -174,6 +178,11 @@ pub fn clear_all_local_data(
     state.import_drop_epoch.fetch_add(1, Ordering::AcqRel);
     state
         .pending_imports
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    state
+        .pending_context_manifests
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .clear();
@@ -665,12 +674,43 @@ pub fn create_chat_session(
 }
 
 #[tauri::command]
+pub fn plan_context(
+    state: State<'_, AppState>,
+    input: ContextManifestInput,
+) -> Result<ContextManifest, AppError> {
+    let mut manifests = state
+        .pending_context_manifests
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    context::plan(&state.storage, &mut manifests, input)
+}
+
+#[tauri::command]
+pub fn confirm_context_manifest(
+    state: State<'_, AppState>,
+    input: ConfirmContextManifestInput,
+) -> Result<ContextManifest, AppError> {
+    let mut manifests = state
+        .pending_context_manifests
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    context::confirm(&mut manifests, input)
+}
+
+#[tauri::command]
 pub async fn stream_chat(
     state: State<'_, AppState>,
     request: ChatRequest,
     on_event: Channel<ChatStreamEvent>,
 ) -> Result<ChatStreamResult, AppError> {
     let request_id = request.request_id.clone();
+    let manifest = {
+        let mut manifests = state
+            .pending_context_manifests
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        crate::ai::consume_context_manifest(&state.storage, &mut manifests, &request)?
+    };
     let cancellation = Arc::new(AtomicBool::new(false));
     state
         .active_requests
@@ -678,7 +718,7 @@ pub async fn stream_chat(
         .map_err(|_| AppError::StateUnavailable)?
         .insert(request_id.clone(), cancellation.clone());
 
-    let result = chat::stream(&state.storage, request, cancellation, |event| {
+    let result = chat::stream(&state.storage, request, manifest, cancellation, |event| {
         on_event
             .send(event)
             .map_err(|_| AppError::StreamReceiverClosed)

@@ -7,6 +7,17 @@ type ProviderActions = Pick<
   'initializeProviders' | 'saveProvider' | 'selectProvider' | 'deleteProviderKey' | 'testProvider'
 >;
 
+const providerReviewFingerprint = (config: AppState['providerConfigs'][number] | undefined) =>
+  config
+    ? JSON.stringify([
+        config.id,
+        config.endpoint,
+        config.model,
+        config.proxyUrl,
+        config.temperature,
+      ])
+    : '';
+
 export const createProviderStore = (set: AppSet, get: AppGet): ProviderActions => ({
   initializeProviders: async () => {
     if (get().runtimeMode === 'web-mock') return;
@@ -25,10 +36,22 @@ export const createProviderStore = (set: AppSet, get: AppGet): ProviderActions =
   },
   saveProvider: async (config, secret) => {
     if (get().runtimeMode === 'web-mock') return;
+    const stateBeforeSave = get();
+    const previousConfig = stateBeforeSave.providerConfigs.find((item) => item.id === config.id);
+    const hasUnbaselinedSentSession = stateBeforeSave.sessions.some(
+      (session) =>
+        session.messages.some((chatMessage) => chatMessage.role === 'user') &&
+        !stateBeforeSave.contextReviewKeyBySession[session.id]
+    );
+    const invalidatesActiveProviderReview =
+      config.id === stateBeforeSave.activeProviderId &&
+      (providerReviewFingerprint(previousConfig) !== providerReviewFingerprint(config) ||
+        hasUnbaselinedSentSession);
     set({ providerLoading: true, providerError: null });
     try {
       await providerController.save(config, secret?.trim() || undefined);
       await get().initializeProviders();
+      if (invalidatesActiveProviderReview) get().invalidateContextReviewsForProviderChange();
     } catch (error) {
       const details = errorDetails(error);
       set({ providerError: details.message });
@@ -39,6 +62,7 @@ export const createProviderStore = (set: AppSet, get: AppGet): ProviderActions =
   },
   selectProvider: async (providerId) => {
     if (get().runtimeMode === 'web-mock') return;
+    const invalidatesProviderReview = providerId !== get().activeProviderId;
     try {
       await providerController.select(providerId);
       set((state) => ({
@@ -48,6 +72,7 @@ export const createProviderStore = (set: AppSet, get: AppGet): ProviderActions =
           active: config.id === providerId,
         })),
       }));
+      if (invalidatesProviderReview) get().invalidateContextReviewsForProviderChange();
     } catch (error) {
       set({ providerError: errorDetails(error).message });
     }

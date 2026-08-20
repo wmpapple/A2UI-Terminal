@@ -10,6 +10,8 @@ const MAX_CHANGES: usize = 50;
 const MAX_ANCHOR_BYTES: usize = 256 * 1024;
 const MAX_CONTENT_BYTES: usize = 1024 * 1024;
 const MAX_RESULT_BYTES: usize = 2 * 1024 * 1024;
+pub(crate) const EMPTY_FILE_PATCH_UNSUPPORTED_MESSAGE: &str =
+    "目标文件为空，当前版本暂不支持 AI 直接写入；请先手动添加并保存一行内容后重试";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -328,9 +330,10 @@ fn validate_header(patch: &DocumentPatch, workspace_id: &str) -> Result<(), AppE
                 "修改理由不能为空且不能超过 500 字".into(),
             ));
         }
-        if change.anchor.before.is_empty()
-            || change.anchor.before.len() > MAX_ANCHOR_BYTES
-            || change.content.len() > MAX_CONTENT_BYTES
+        if change.anchor.before.is_empty() {
+            return Err(AppError::InvalidInput("Patch 锚点不能为空".into()));
+        }
+        if change.anchor.before.len() > MAX_ANCHOR_BYTES || change.content.len() > MAX_CONTENT_BYTES
         {
             return Err(AppError::InvalidInput("Patch 锚点或内容超过限制".into()));
         }
@@ -358,6 +361,11 @@ fn canonicalize_model_hashes(
             hash.clone()
         } else {
             let document = read_patch_document(storage, workspace_id, &change.path)?;
+            if document.content.is_empty() {
+                return Err(AppError::InvalidInput(
+                    EMPTY_FILE_PATCH_UNSUPPORTED_MESSAGE.into(),
+                ));
+            }
             let hash = document.content_hash;
             hashes.insert(change.path.clone(), hash.clone());
             hash
@@ -794,6 +802,21 @@ mod tests {
 
         assert_eq!(review.changes[0].before, "curl http://localhost:8000\n```");
         assert!(review.patch.changes[0].anchor.before_hash.is_some());
+    }
+
+    #[test]
+    fn reports_the_known_empty_file_limitation_without_writing() {
+        let (dir, storage, workspace_id) = setup("empty.md", "");
+        let proposal = patch(&workspace_id, "empty.md", "", "# First content\n");
+        let raw = serde_json::to_string(&proposal).unwrap();
+
+        let error = parse_review(&storage, &workspace_id, &raw).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            format!("invalid input: {EMPTY_FILE_PATCH_UNSUPPORTED_MESSAGE}")
+        );
+        assert_eq!(fs::read_to_string(dir.path().join("empty.md")).unwrap(), "");
     }
 
     #[test]

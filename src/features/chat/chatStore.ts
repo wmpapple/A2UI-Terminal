@@ -1,5 +1,4 @@
 ﻿import { TextStreamBuffer } from './textStreamBuffer';
-import { buildContextSnapshot } from '../context/contextSnapshot';
 import { createMockA2ui } from '../../shared/mock/workspace';
 import type { ChatMessage } from '../../shared/types/domain';
 import { errorDetails, locallyStoppedChatRequests, upsertA2uiSurface } from '../../stores/support';
@@ -14,6 +13,8 @@ type ChatActions = Pick<
   | 'updateMessage'
   | 'setSelectedText'
   | 'setSessionContext'
+  | 'setSessionContextReviewKey'
+  | 'invalidateContextReviewsForProviderChange'
   | 'addFileToContext'
   | 'addFile'
   | 'sendChat'
@@ -72,6 +73,23 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
     set((state) => ({
       contextBySession: { ...state.contextBySession, [sessionId]: context },
     })),
+  setSessionContextReviewKey: (sessionId, reviewKey) =>
+    set((state) => ({
+      contextReviewKeyBySession: {
+        ...state.contextReviewKeyBySession,
+        [sessionId]: reviewKey,
+      },
+    })),
+  invalidateContextReviewsForProviderChange: () =>
+    set((state) => {
+      const contextReviewKeyBySession = { ...state.contextReviewKeyBySession };
+      state.sessions.forEach((session) => {
+        if (session.messages.some((chatMessage) => chatMessage.role === 'user')) {
+          contextReviewKeyBySession[session.id] = 'provider-configuration-changed';
+        }
+      });
+      return { contextReviewKeyBySession };
+    }),
   addFileToContext: (sessionId, path) =>
     set((state) => {
       const current = state.contextBySession[sessionId] ?? {
@@ -96,7 +114,7 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
         : [...state.files, file],
     })),
 
-  sendChat: async (prompt, context, sensitiveConfirmed) => {
+  sendChat: async (prompt, contextManifestId) => {
     const state = get();
     const workspace = state.workspace;
     if (state.runtimeMode === 'desktop' && !workspace) {
@@ -105,14 +123,6 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
     }
     const session = state.sessions.find((item) => item.id === state.activeSessionId);
     if (!session || !prompt.trim() || state.chatRequestId) return;
-    const snapshot = buildContextSnapshot({
-      selection: context,
-      files: state.files,
-      activePath: state.activePath,
-      selectedText: state.selectedText,
-      recentMessages: session.messages,
-      prompt,
-    });
     const requestId = crypto.randomUUID();
     const userMessageId = crypto.randomUUID();
     const assistantMessageId = crypto.randomUUID();
@@ -219,9 +229,7 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
           sessionId: session.id,
           providerId,
           prompt: prompt.trim(),
-          recentMessageCount: context.recentMessages ? context.recentMessageCount : 0,
-          contextSources: snapshot.sources,
-          sensitiveConfirmed,
+          contextManifestId,
         },
         (event) => {
           if (event.type === 'delta') {

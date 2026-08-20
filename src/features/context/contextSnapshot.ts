@@ -19,6 +19,7 @@ export const normalizeContextSelection = (
   ...selection,
   selection: selection.selection && selectedText.length > 0,
   projectFiles: selection.projectFiles.filter((path) => !isSensitivePath(path)),
+  documentSourceIds: selection.documentSourceIds ?? [],
 });
 
 const contentFingerprint = (value: string): string => {
@@ -50,7 +51,7 @@ export const contextReviewFingerprint = ({
   ];
   const fileVersions = [...new Set(selectedPaths)].sort().map((path) => {
     const file = files.find((item) => item.path === path);
-    return [path, file?.contentHash ?? contentFingerprint(file?.content ?? '')];
+    return [path, file?.contentHash ?? null, contentFingerprint(file?.content ?? '')];
   });
   return JSON.stringify({
     selection: normalized.selection,
@@ -58,6 +59,7 @@ export const contextReviewFingerprint = ({
     recentMessages: normalized.recentMessages,
     recentMessageCount: normalized.recentMessageCount,
     projectFiles: [...normalized.projectFiles].sort(),
+    documentSourceIds: [...(normalized.documentSourceIds ?? [])].sort(),
     activePath: normalized.currentFile || normalized.selection ? activePath : '',
     selectedText: normalized.selection ? contentFingerprint(selectedText) : '',
     fileVersions,

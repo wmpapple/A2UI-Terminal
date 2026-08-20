@@ -1,5 +1,7 @@
 use crate::a2ui::{self, A2uiProcessResult, ProcessA2uiRequest};
-use crate::ai::{self, ChatRequest, ContextSourceKind, ProviderMessage};
+use crate::ai::{
+    self, ChatRequest, ConfirmedContextManifest, ContextSource, ContextSourceKind, ProviderMessage,
+};
 use crate::error::AppError;
 use crate::patch::{self, PatchReview};
 use crate::repository::chat::{ChatRepository, StartChatRequest};
@@ -92,20 +94,20 @@ pub fn create_session(
 pub async fn stream<F>(
     storage: &Storage,
     request: ChatRequest,
+    manifest: ConfirmedContextManifest,
     cancellation: Arc<AtomicBool>,
     mut emit: F,
 ) -> Result<ChatStreamResult, AppError>
 where
     F: FnMut(ChatStreamEvent) -> Result<(), AppError>,
 {
-    let validated = ai::validate_chat_request(&request)?;
     let provider_id = validate_provider_id(&request.provider_id)?;
     let config = ProviderRepository::new(storage)
         .find(&provider_id)?
         .ok_or_else(|| AppError::InvalidInput("Provider 不存在".into()))?;
     let repository = ChatRepository::new(storage);
     let sources_json =
-        serde_json::to_string(&validated.sources).map_err(|_| AppError::StateUnavailable)?;
+        serde_json::to_string(&manifest.view).map_err(|_| AppError::StateUnavailable)?;
     let start_request = || {
         repository.start_request(StartChatRequest {
             workspace_id: &request.workspace_id,
@@ -115,13 +117,14 @@ where
             assistant_message_id: &request.assistant_message_id,
             provider_id: &provider_id,
             prompt: request.prompt.trim(),
+            context_snapshot_id: &manifest.view.id,
             sources_json: &sources_json,
-            character_count: validated.character_count,
-            estimated_tokens: validated.estimated_tokens,
-            has_sensitive_warning: validated.has_sensitive_warning,
+            character_count: manifest.view.character_count,
+            estimated_tokens: manifest.view.estimated_tokens,
+            has_sensitive_warning: manifest.view.sensitive_warning,
         })
     };
-    if requests_unsupported_file_creation(&request) {
+    if requests_unsupported_file_creation(&request, &manifest.sources) {
         start_request()?;
         repository.update_assistant(
             &request.assistant_message_id,
@@ -153,17 +156,16 @@ where
         ));
     }
     let api_key = SecretStore::get(&provider_id)?;
-    let history = repository.recent_messages(&request.session_id, request.recent_message_count)?;
     start_request()?;
 
     let mut messages = vec![ProviderMessage {
         role: "system".into(),
         content: semantic_patch_system_prompt(&request.workspace_id),
     }];
-    messages.extend(history);
+    messages.extend(manifest.history);
     messages.push(ProviderMessage {
         role: "user".into(),
-        content: ai::build_context_prompt(&request.prompt, &request.context_sources),
+        content: ai::build_context_prompt(&request.prompt, &manifest.sources),
     });
 
     let mut partial = String::new();
@@ -198,7 +200,7 @@ where
         Ok(first_content) => {
             let mut content = first_content;
             let mut patch_result = patch::parse_review(storage, &request.workspace_id, &content);
-            if patch_result.is_err() && patch::looks_like_patch_candidate(&content) {
+            if should_retry_invalid_patch(&content, &patch_result) {
                 let mut retry_messages = messages.clone();
                 retry_messages.push(ProviderMessage {
                     role: "user".into(),
@@ -438,8 +440,8 @@ fn claims_unverified_file_completion(raw: &str) -> bool {
         })
 }
 
-fn requests_unsupported_file_creation(request: &ChatRequest) -> bool {
-    let has_editable_context = request.context_sources.iter().any(|source| {
+fn requests_unsupported_file_creation(request: &ChatRequest, sources: &[ContextSource]) -> bool {
+    let has_editable_context = sources.iter().any(|source| {
         matches!(
             source.kind,
             ContextSourceKind::Selection
@@ -526,12 +528,32 @@ If neither a safe patch nor a safe A2UI Surface is appropriate, answer with ordi
     )
 }
 
+fn should_retry_invalid_patch(content: &str, patch_result: &Result<PatchReview, AppError>) -> bool {
+    if !patch::looks_like_patch_candidate(content) {
+        return false;
+    }
+    match patch_result {
+        Ok(_) => false,
+        Err(AppError::InvalidInput(message))
+            if message == patch::EMPTY_FILE_PATCH_UNSUPPORTED_MESSAGE =>
+        {
+            false
+        }
+        Err(_) => true,
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{claims_unverified_file_completion, requests_unsupported_file_creation};
+    use super::{
+        claims_unverified_file_completion, requests_unsupported_file_creation,
+        should_retry_invalid_patch,
+    };
     use crate::ai::{ChatRequest, ContextSource, ContextSourceKind};
+    use crate::error::AppError;
+    use crate::patch::{PatchReview, EMPTY_FILE_PATCH_UNSUPPORTED_MESSAGE};
 
-    fn chat_request(prompt: &str, context_sources: Vec<ContextSource>) -> ChatRequest {
+    fn chat_request(prompt: &str) -> ChatRequest {
         ChatRequest {
             request_id: uuid::Uuid::new_v4().to_string(),
             user_message_id: uuid::Uuid::new_v4().to_string(),
@@ -540,10 +562,32 @@ mod tests {
             session_id: uuid::Uuid::new_v4().to_string(),
             provider_id: "test-provider".into(),
             prompt: prompt.into(),
-            recent_message_count: 0,
-            context_sources,
-            sensitive_confirmed: true,
+            context_manifest_id: uuid::Uuid::new_v4().to_string(),
         }
+    }
+
+    #[test]
+    fn skips_model_retry_for_the_known_empty_file_patch_limitation() {
+        let empty_file_error: Result<PatchReview, AppError> = Err(AppError::InvalidInput(
+            EMPTY_FILE_PATCH_UNSUPPORTED_MESSAGE.into(),
+        ));
+        assert!(!should_retry_invalid_patch(
+            r#"{"type":"document_patch"}"#,
+            &empty_file_error
+        ));
+
+        let malformed_patch: Result<PatchReview, AppError> =
+            Err(AppError::InvalidInput("Patch Schema 无效".into()));
+        assert!(should_retry_invalid_patch(
+            r#"{"type":"document_patch"}"#,
+            &malformed_patch
+        ));
+
+        let conflict: Result<PatchReview, AppError> = Err(AppError::FileConflict);
+        assert!(should_retry_invalid_patch(
+            r#"{"type":"document_patch"}"#,
+            &conflict
+        ));
     }
 
     #[test]
@@ -580,7 +624,7 @@ mod tests {
             "Draft a travel guide document",
         ] {
             assert!(
-                requests_unsupported_file_creation(&chat_request(prompt, vec![])),
+                requests_unsupported_file_creation(&chat_request(prompt), &[]),
                 "missed creation request: {prompt}"
             );
         }
@@ -591,7 +635,7 @@ mod tests {
             "为什么没生成文件？",
         ] {
             assert!(
-                !requests_unsupported_file_creation(&chat_request(prompt, vec![])),
+                !requests_unsupported_file_creation(&chat_request(prompt), &[]),
                 "blocked a question: {prompt}"
             );
         }
@@ -602,9 +646,9 @@ mod tests {
             content: "# Travel\n".into(),
             base_hash: None,
         };
-        assert!(!requests_unsupported_file_creation(&chat_request(
-            "生成出游文档",
-            vec![editable]
-        )));
+        assert!(!requests_unsupported_file_creation(
+            &chat_request("生成出游文档"),
+            &[editable]
+        ));
     }
 }

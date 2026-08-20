@@ -25,3 +25,20 @@
   color: var(--text-strong);
   font-variant-numeric: tabular-nums;
 }
+.manifest {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.manifestList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.manifestExcluded {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}

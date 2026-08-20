@@ -50,6 +50,7 @@ export interface AppState {
   patchError: string | null;
   selectedText: string;
   contextBySession: Record<string, ContextSelection>;
+  contextReviewKeyBySession: Record<string, string>;
   providerConfigs: ProviderConfig[];
   activeProviderId: string;
   providerLoading: boolean;
@@ -100,17 +101,15 @@ export interface AppState {
   undoLastPatch: () => Promise<void>;
   setSelectedText: (text: string) => void;
   setSessionContext: (sessionId: string, context: ContextSelection) => void;
+  setSessionContextReviewKey: (sessionId: string, reviewKey: string) => void;
+  invalidateContextReviewsForProviderChange: () => void;
   addFileToContext: (sessionId: string, path: string) => void;
   addFile: (file: WorkspaceFile) => void;
   saveProvider: (config: ProviderConfig, secret?: string) => Promise<void>;
   selectProvider: (providerId: string) => Promise<void>;
   deleteProviderKey: (providerId: string) => Promise<void>;
   testProvider: (providerId: string) => Promise<number>;
-  sendChat: (
-    prompt: string,
-    context: ContextSelection,
-    sensitiveConfirmed: boolean
-  ) => Promise<void>;
+  sendChat: (prompt: string, contextManifestId: string) => Promise<void>;
   stopChat: () => Promise<void>;
   setActiveSurface: (surfaceId: string) => void;
   setActiveInspection: (inspectionId: string) => void;

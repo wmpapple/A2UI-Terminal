@@ -266,6 +266,7 @@ describe('desktop workspace state', () => {
           recentMessages: false,
           recentMessageCount: 0,
           projectFiles: [path, 'retained.md'],
+          documentSourceIds: ['file-1', 'retained-source'],
         },
       },
       versionHistoryPath: path,
@@ -297,6 +298,9 @@ describe('desktop workspace state', () => {
     });
     expect(useAppStore.getState().contextBySession['session-1'].projectFiles).toEqual([
       'retained.md',
+    ]);
+    expect(useAppStore.getState().contextBySession['session-1'].documentSourceIds).toEqual([
+      'retained-source',
     ]);
   });
 

@@ -43,17 +43,7 @@ describe('desktop chat state', () => {
     const stream = vi.spyOn(desktopApi, 'streamChat');
     useAppStore.setState({ workspace: null });
 
-    await useAppStore.getState().sendChat(
-      'Hello',
-      {
-        selection: false,
-        currentFile: true,
-        recentMessages: false,
-        recentMessageCount: 3,
-        projectFiles: [],
-      },
-      true
-    );
+    await useAppStore.getState().sendChat('Hello', 'manifest-1');
 
     expect(stream).not.toHaveBeenCalled();
     expect(useAppStore.getState().sessions[0].messages).toEqual([]);
@@ -61,7 +51,7 @@ describe('desktop chat state', () => {
     expect(useAppStore.getState().chatError).toBe('请先打开工作区');
   });
 
-  it('streams a response and sends only explicitly selected file context', async () => {
+  it('streams a response bound only to the confirmed context manifest', async () => {
     const stream = vi
       .spyOn(desktopApi, 'streamChat')
       .mockImplementation(async (request, onEvent) => {
@@ -85,21 +75,11 @@ describe('desktop chat state', () => {
         };
       });
 
-    await useAppStore.getState().sendChat(
-      'Explain this file',
-      {
-        selection: false,
-        currentFile: true,
-        recentMessages: false,
-        recentMessageCount: 3,
-        projectFiles: [],
-      },
-      true
-    );
+    await useAppStore.getState().sendChat('Explain this file', 'manifest-2');
 
     const request = stream.mock.calls[0][0];
-    expect(request.contextSources.map((source) => source.label)).toEqual(['src/main.ts']);
-    expect(JSON.stringify(request)).not.toContain('not selected');
+    expect(request.contextManifestId).toBe('manifest-2');
+    expect(JSON.stringify(request)).not.toContain('selected file');
     expect(useAppStore.getState().sessions[0].messages.at(-1)).toMatchObject({
       content: 'Hello',
       status: 'complete',
@@ -157,17 +137,7 @@ describe('desktop chat state', () => {
       };
     });
 
-    await useAppStore.getState().sendChat(
-      'Hello',
-      {
-        selection: false,
-        currentFile: false,
-        recentMessages: false,
-        recentMessageCount: 0,
-        projectFiles: [],
-      },
-      true
-    );
+    await useAppStore.getState().sendChat('Hello', 'manifest-3');
 
     expect(useAppStore.getState().chatError).toContain('HTTP 429');
     expect(useAppStore.getState().sessions[0].messages.at(-1)).toMatchObject({
@@ -200,17 +170,7 @@ describe('desktop chat state', () => {
       };
     });
 
-    await useAppStore.getState().sendChat(
-      'Create a form',
-      {
-        selection: false,
-        currentFile: false,
-        recentMessages: false,
-        recentMessageCount: 0,
-        projectFiles: [],
-      },
-      true
-    );
+    await useAppStore.getState().sendChat('Create a form', 'manifest-4');
 
     const surfaces = useAppStore.getState().a2uiSurfaces;
     expect(surfaces).toHaveLength(2);

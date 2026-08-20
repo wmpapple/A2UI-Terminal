@@ -7,6 +7,8 @@ import type {
   A2uiProcessResult,
   A2uiSurface,
   ChatRequest,
+  ContextManifest,
+  ContextManifestInput,
   ChatSession,
   ChatStreamEvent,
   ChatStreamResult,
@@ -423,6 +425,21 @@ export const desktopApi = {
     const channel = new Channel<ChatStreamEvent>();
     channel.onmessage = onEvent;
     return invoke<ChatStreamResult>('stream_chat', { request, onEvent: channel });
+  },
+
+  async planContext(input: ContextManifestInput): Promise<ContextManifest> {
+    requireDesktop();
+    return invoke<ContextManifest>('plan_context', { input });
+  },
+
+  async confirmContextManifest(
+    manifestId: string,
+    sensitiveCloudConfirmed: boolean
+  ): Promise<ContextManifest> {
+    requireDesktop();
+    return invoke<ContextManifest>('confirm_context_manifest', {
+      input: { manifestId, sensitiveCloudConfirmed },
+    });
   },
 
   async stopChat(requestId: string): Promise<boolean> {

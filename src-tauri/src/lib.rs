@@ -152,6 +152,8 @@ pub fn run() {
             commands::test_provider_connection,
             commands::list_chat_sessions,
             commands::create_chat_session,
+            commands::plan_context,
+            commands::confirm_context_manifest,
             commands::stream_chat,
             commands::stop_chat,
             commands::validate_document_patch,

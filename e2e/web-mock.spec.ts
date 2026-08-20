@@ -127,15 +127,21 @@ test('defaults to the simple navigation shell and persists professional mode', a
 test('completes context review and renders a trusted A2UI surface', async ({ page }) => {
   await openProfessionalWorkbench(page);
   await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('Create an A2UI form');
-  await page.getByRole('button', { name: '发送' }).click();
+  await page.getByRole('button', { name: /send 发送$/ }).click();
 
   const review = page.getByRole('dialog', { name: '发送前确认上下文' });
   await expect(review).toBeVisible();
+  await review.getByRole('button', { name: '生成发送清单' }).click();
   await review.getByRole('button', { name: '确认并发送' }).click();
 
   await expect(page.getByText('A2UI 安全运行时')).toBeVisible();
   await expect(page.getByText('协议 Inspector')).toBeVisible();
   await expect(page.getByText('Research profile')).toBeVisible();
+
+  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('Create another A2UI form');
+  await page.getByRole('button', { name: /send 发送$/ }).click();
+  await expect(review).toBeHidden();
+  await expect(page.getByText('Create another A2UI form', { exact: true })).toBeVisible();
 
   await page
     .getByRole('navigation', { name: '主导航' })
@@ -180,11 +186,10 @@ test('completes context review and renders a trusted A2UI surface', async ({ pag
 test('keeps file changes behind review before applying the Web Mock patch', async ({ page }) => {
   await openProfessionalWorkbench(page);
   await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('Update the sample count');
-  await page.getByRole('button', { name: '发送' }).click();
-  await page
-    .getByRole('dialog', { name: '发送前确认上下文' })
-    .getByRole('button', { name: '确认并发送' })
-    .click();
+  await page.getByRole('button', { name: /send 发送$/ }).click();
+  const contextReview = page.getByRole('dialog', { name: '发送前确认上下文' });
+  await contextReview.getByRole('button', { name: '生成发送清单' }).click();
+  await contextReview.getByRole('button', { name: '确认并发送' }).click();
 
   await expect(page.getByRole('region', { name: '审阅中心' })).toBeVisible();
   await expect(page.getByText('已通过 Rust 校验')).toBeVisible();

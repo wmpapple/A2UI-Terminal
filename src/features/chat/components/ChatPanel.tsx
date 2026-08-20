@@ -10,15 +10,18 @@ import { Alert, Button, Input, message, Select, Tag, Tooltip } from 'antd';
 import MarkdownIt from 'markdown-it';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
-import type { ContextSelection } from '../../../shared/types/domain';
+import type { ContextManifest, ContextSelection } from '../../../shared/types/domain';
 import { useAppStore } from '../../../stores/useAppStore';
 import { ContextSelector } from '../../context/components/ContextSelector';
+import { contextReviewFingerprint, normalizeContextSelection } from '../../context/contextSnapshot';
 import {
-  buildContextSnapshot,
-  contextReviewFingerprint,
-  normalizeContextSelection,
-  requiresContextReview,
-} from '../../context/contextSnapshot';
+  buildContextManifestInput,
+  createWebMockManifest,
+  processingLocationForProvider,
+} from '../../context/contextManifest';
+import { useImportStore } from '../../imports/importStore';
+import { chatController } from '../chatController';
+import { errorDetails } from '../../../stores/support';
 import styles from './ChatPanel.module.css';
 
 const defaultContext: ContextSelection = {
@@ -152,6 +155,8 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const activePath = useAppStore((state) => state.activePath);
   const files = useAppStore((state) => state.files);
+  const workspace = useAppStore((state) => state.workspace);
+  const runtimeMode = useAppStore((state) => state.runtimeMode);
   const selectedText = useAppStore((state) => state.selectedText);
   const providerConfigs = useAppStore((state) => state.providerConfigs);
   const activeProviderId = useAppStore((state) => state.activeProviderId);
@@ -164,16 +169,21 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
   const sendChat = useAppStore((state) => state.sendChat);
   const stopChat = useAppStore((state) => state.stopChat);
   const contextBySession = useAppStore((state) => state.contextBySession);
+  const contextReviewKeyBySession = useAppStore((state) => state.contextReviewKeyBySession);
   const setSessionContext = useAppStore((state) => state.setSessionContext);
+  const setSessionContextReviewKey = useAppStore((state) => state.setSessionContextReviewKey);
   const addFileToContext = useAppStore((state) => state.addFileToContext);
   const addFile = useAppStore((state) => state.addFile);
+  const documentSources = useImportStore((state) => state.sources);
+  const loadDocumentSources = useImportStore((state) => state.loadSources);
   const [prompt, setPrompt] = useState('');
   const [contextOpen, setContextOpen] = useState(false);
   const [contextIntent, setContextIntent] = useState<'review' | 'send'>('send');
-  const [reviewedContextBySession, setReviewedContextBySession] = useState<Record<string, string>>(
-    {}
-  );
   const [dragging, setDragging] = useState(false);
+  const [plannedManifest, setPlannedManifest] = useState<ContextManifest | null>(null);
+  const [plannedProviderKey, setPlannedProviderKey] = useState('');
+  const [manifestLoading, setManifestLoading] = useState(false);
+  const [manifestError, setManifestError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) ?? sessions[0],
@@ -181,6 +191,16 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
   );
   const savedContext = contextBySession[activeSessionId];
   const activeProvider = providerConfigs.find((config) => config.id === activeProviderId);
+  const processingLocation = processingLocationForProvider(activeProvider);
+  const providerKey = JSON.stringify([
+    activeProviderId,
+    activeProvider?.endpoint,
+    activeProvider?.model,
+    activeProvider?.proxyUrl,
+    activeProvider?.temperature,
+  ]);
+  const visibleManifest = plannedProviderKey === providerKey ? plannedManifest : null;
+  const visibleManifestError = plannedProviderKey === providerKey ? manifestError : null;
   const effectiveContext = useMemo(
     () => normalizeContextSelection(savedContext ?? defaultContext, selectedText),
     [savedContext, selectedText]
@@ -190,44 +210,126 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
       contextReviewFingerprint({ selection: effectiveContext, files, activePath, selectedText }),
     [activePath, effectiveContext, files, selectedText]
   );
-  const contextReviewed = reviewedContextBySession[activeSessionId] === currentContextFingerprint;
+  const currentContextReviewKey = JSON.stringify([providerKey, currentContextFingerprint]);
+  const reviewedContextKey = contextReviewKeyBySession[activeSessionId];
+  const sessionHasSentMessage =
+    activeSession?.messages.some((chatMessage) => chatMessage.role === 'user') ?? false;
+  const hasReviewedContext = Boolean(reviewedContextKey) || sessionHasSentMessage;
+  const contextReviewed = hasReviewedContext
+    ? reviewedContextKey
+      ? reviewedContextKey === currentContextReviewKey
+      : true
+    : false;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: chatRequestId ? 'auto' : 'smooth' });
   }, [activeSession?.messages, chatRequestId]);
 
-  const sendNow = (request: string, selection: ContextSelection, sensitiveConfirmed: boolean) => {
+  useEffect(() => {
+    if (workspace?.id && runtimeMode === 'desktop') void loadDocumentSources(workspace.id);
+  }, [loadDocumentSources, runtimeMode, workspace?.id]);
+
+  const sendNow = (request: string, selection: ContextSelection, manifestId: string) => {
     setSessionContext(activeSessionId, selection);
     setPrompt('');
-    void sendChat(request, selection, sensitiveConfirmed);
+    void sendChat(request, manifestId);
   };
 
-  const requestSend = () => {
-    if (!prompt.trim() || chatRequestId || !activeSession) return;
-    const request = prompt.trim();
-    const snapshot = buildContextSnapshot({
-      selection: effectiveContext,
+  const createContextManifest = async (request: string, selection: ContextSelection) => {
+    if (!activeSession) return null;
+    const normalized = normalizeContextSelection(selection, selectedText);
+    const workspaceId = workspace?.id ?? 'web-mock-workspace';
+    const input = buildContextManifestInput({
+      workspaceId,
+      sessionId: activeSession.id,
+      providerId: activeProviderId,
+      prompt: request,
+      selection: normalized,
       files,
+      documentSources: documentSources.filter((source) => source.workspaceId === workspaceId),
       activePath,
       selectedText,
-      recentMessages: activeSession.messages,
-      prompt: request,
     });
-    if (
-      !requiresContextReview(
-        reviewedContextBySession[activeSessionId],
-        currentContextFingerprint,
-        snapshot.warnings
-      )
-    ) {
-      sendNow(request, effectiveContext, true);
-      return;
-    }
-    setContextIntent('send');
-    setContextOpen(true);
+    return runtimeMode === 'web-mock'
+      ? createWebMockManifest(input, processingLocation)
+      : chatController.planContext(input);
   };
 
-  const confirmContext = (selection: ContextSelection, sensitiveConfirmed: boolean) => {
+  const sendWithReviewedContext = async (request: string) => {
+    const normalized = normalizeContextSelection(effectiveContext, selectedText);
+    setManifestLoading(true);
+    setManifestError(null);
+    try {
+      const manifest = await createContextManifest(request, normalized);
+      if (!manifest) return;
+      if (manifest.requiresSensitiveConfirmation) {
+        setPlannedManifest(manifest);
+        setPlannedProviderKey(providerKey);
+        message.info(t('sensitiveContextChangePrompt'));
+        return;
+      }
+      if (runtimeMode === 'desktop') {
+        await chatController.confirmContext(manifest.id, false);
+      }
+      sendNow(request, normalized, manifest.id);
+    } catch (error) {
+      const details = errorDetails(error);
+      setManifestError(details.message);
+      message.error(details.message);
+    } finally {
+      setManifestLoading(false);
+    }
+  };
+
+  const requestSend = (requestOverride?: string) => {
+    const request = (requestOverride ?? prompt).trim();
+    if (!request || chatRequestId || manifestLoading || !activeSession) return;
+    if (!hasReviewedContext) {
+      setContextIntent('send');
+      setPlannedManifest(null);
+      setPlannedProviderKey('');
+      setManifestError(null);
+      setContextOpen(true);
+      return;
+    }
+    if (!contextReviewed) {
+      message.info(t('contextChangePrompt'));
+      return;
+    }
+    if (visibleManifest?.requiresSensitiveConfirmation) {
+      message.info(t('sensitiveContextChangePrompt'));
+      return;
+    }
+    if (!reviewedContextKey && sessionHasSentMessage) {
+      setSessionContextReviewKey(activeSessionId, currentContextReviewKey);
+    }
+    void sendWithReviewedContext(request);
+  };
+
+  const planContext = async (selection: ContextSelection) => {
+    if (!activeSession || !prompt.trim()) return;
+    const normalized = normalizeContextSelection(selection, selectedText);
+    setManifestLoading(true);
+    setManifestError(null);
+    setPlannedProviderKey(providerKey);
+    try {
+      const manifest = await createContextManifest(prompt.trim(), normalized);
+      if (!manifest) return;
+      setSessionContext(activeSessionId, normalized);
+      setPlannedManifest(manifest);
+      setPlannedProviderKey(providerKey);
+    } catch (error) {
+      setManifestError(errorDetails(error).message);
+    } finally {
+      setManifestLoading(false);
+    }
+  };
+
+  const confirmContext = async (
+    selection: ContextSelection,
+    manifestId: string | null,
+    sensitiveConfirmed: boolean
+  ) => {
     const normalized = normalizeContextSelection(selection, selectedText);
     const fingerprint = contextReviewFingerprint({
       selection: normalized,
@@ -236,14 +338,28 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
       selectedText,
     });
     setSessionContext(activeSessionId, normalized);
-    setReviewedContextBySession((current) => ({
-      ...current,
-      [activeSessionId]: fingerprint,
-    }));
-    setContextOpen(false);
-    if (contextIntent === 'review') return;
+    setSessionContextReviewKey(activeSessionId, JSON.stringify([providerKey, fingerprint]));
+    if (contextIntent === 'review' || !manifestId) {
+      setContextOpen(false);
+      return;
+    }
     const request = prompt.trim();
-    if (request) sendNow(request, normalized, sensitiveConfirmed);
+    if (!request) return;
+    setManifestLoading(true);
+    setManifestError(null);
+    try {
+      if (runtimeMode === 'desktop') {
+        await chatController.confirmContext(manifestId, sensitiveConfirmed);
+      }
+      setContextOpen(false);
+      setPlannedManifest(null);
+      setPlannedProviderKey('');
+      sendNow(request, normalized, manifestId);
+    } catch (error) {
+      setManifestError(errorDetails(error).message);
+    } finally {
+      setManifestLoading(false);
+    }
   };
 
   const retryMessage = (messageIndex: number) => {
@@ -253,8 +369,7 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
       .find((item) => item.role === 'user');
     if (!previous) return;
     setPrompt(previous.content);
-    setContextIntent('send');
-    setContextOpen(true);
+    requestSend(previous.content);
   };
 
   const addDroppedFiles = async (fileList: FileList) => {
@@ -328,6 +443,7 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
             chatMessage.role === 'assistant' && /a2ui_(surface|update)/i.test(chatMessage.content);
           const patchFailed = chatMessage.errorCode === 'PATCH_VALIDATION_FAILED';
           const patchFailureReason = validationFailureReason(chatMessage.protocolError);
+          const emptyFilePatchUnsupported = patchFailureReason?.startsWith('目标文件为空');
           const a2uiFailed = chatMessage.errorCode === 'A2UI_VALIDATION_FAILED';
           const unverifiedCompletionClaim =
             chatMessage.errorCode === 'UNVERIFIED_FILE_COMPLETION_CLAIM' ||
@@ -390,7 +506,13 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
                     description={
                       patchFailed ? (
                         <div>
-                          <div>{t('patchValidationFailedDescription')}</div>
+                          <div>
+                            {t(
+                              emptyFilePatchUnsupported
+                                ? 'emptyFilePatchUnsupportedDescription'
+                                : 'patchValidationFailedDescription'
+                            )}
+                          </div>
                           {patchFailureReason ? (
                             <div className={styles.validationDetail}>
                               <strong>{t('validationFailureReason')}</strong>
@@ -431,7 +553,7 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
               )}
               {(chatMessage.status === 'error' ||
                 chatMessage.status === 'stopped' ||
-                patchFailed ||
+                (patchFailed && !emptyFilePatchUnsupported) ||
                 a2uiFailed) && (
                 <Button
                   size="small"
@@ -469,18 +591,36 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
             size="small"
             icon={<AppstoreOutlined />}
             onClick={() => {
-              setContextIntent('review');
+              const needsTrustedSendReview = Boolean(
+                prompt.trim() &&
+                (!contextReviewed || visibleManifest?.requiresSensitiveConfirmation)
+              );
+              setContextIntent(needsTrustedSendReview ? 'send' : 'review');
+              if (!visibleManifest?.requiresSensitiveConfirmation) {
+                setPlannedManifest(null);
+                setPlannedProviderKey('');
+              }
+              setManifestError(null);
               setContextOpen(true);
             }}
           >
-            {t('context')}
+            {t(hasReviewedContext ? 'modifySendList' : 'context')}
           </Button>
           {activePath && <Tag color="blue">{activePath}</Tag>}
           {(savedContext?.projectFiles ?? []).map((path) => (
             <Tag key={path}>{path}</Tag>
           ))}
           <Tag color={contextReviewed ? 'green' : 'orange'}>
-            {t(contextReviewed ? 'contextSaved' : 'contextRequired')}
+            {t(
+              contextReviewed
+                ? 'contextSaved'
+                : hasReviewedContext
+                  ? 'contextChanged'
+                  : 'contextRequired'
+            )}
+          </Tag>
+          <Tag color={processingLocation === 'local' ? 'green' : 'gold'}>
+            {t(processingLocation === 'local' ? 'localProcessing' : 'cloudProcessing')}
           </Tag>
           <Tooltip title={t('dropFilesHint')}>
             <span className={styles.dropHint}>
@@ -508,8 +648,9 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
           <Button
             type="primary"
             icon={<SendOutlined />}
-            disabled={!prompt.trim()}
-            onClick={requestSend}
+            disabled={!prompt.trim() || manifestLoading}
+            loading={manifestLoading && !contextOpen}
+            onClick={() => requestSend()}
           >
             {t('send')}
           </Button>
@@ -521,7 +662,18 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
           prompt={prompt}
           initialSelection={effectiveContext}
           confirmText={contextIntent === 'review' ? t('saveContextSelection') : undefined}
+          manifest={visibleManifest}
+          planning={manifestLoading}
+          error={visibleManifestError}
+          processingLocation={processingLocation}
+          reviewOnly={contextIntent === 'review'}
           onCancel={() => setContextOpen(false)}
+          onPlan={(selection) => void planContext(selection)}
+          onInvalidateManifest={() => {
+            setPlannedManifest(null);
+            setPlannedProviderKey('');
+            setManifestError(null);
+          }}
           onConfirm={confirmContext}
         />
       )}

@@ -382,9 +382,56 @@ export interface ChatRequest {
   sessionId: string;
   providerId: string;
   prompt: string;
+  contextManifestId: string;
+}
+
+export type ProcessingLocation = 'local' | 'cloud';
+export type ContextManifestStatus = 'awaiting_confirmation' | 'confirmed';
+
+export interface ContextCandidate {
+  kind: ContextSourceKind;
+  label: string;
+  selected: boolean;
+  sourceId?: string;
+  content?: string;
+  baseHash?: string;
+}
+
+export interface ContextManifestInput {
+  workspaceId: string;
+  sessionId: string;
+  providerId: string;
+  prompt: string;
+  candidates: ContextCandidate[];
+  includeRecentMessages: boolean;
   recentMessageCount: number;
-  contextSources: ContextSource[];
-  sensitiveConfirmed: boolean;
+}
+
+export interface ContextManifestSource {
+  kind: string;
+  label: string;
+  contentHash: string | null;
+  sizeBytes: number;
+  characterCount: number;
+  exclusionReason: string | null;
+}
+
+export interface ContextManifest {
+  id: string;
+  workspaceId: string;
+  sessionId: string;
+  providerId: string;
+  processingLocation: ProcessingLocation;
+  status: ContextManifestStatus;
+  includedSources: ContextManifestSource[];
+  excludedSources: ContextManifestSource[];
+  characterCount: number;
+  estimatedTokens: number;
+  sensitiveWarning: boolean;
+  requiresSensitiveConfirmation: boolean;
+  createdAt: string;
+  expiresAt: string;
+  confirmedAt: string | null;
 }
 
 export type ChatStreamEvent =
@@ -421,6 +468,7 @@ export interface ContextSelection {
   recentMessages: boolean;
   recentMessageCount: number;
   projectFiles: string[];
+  documentSourceIds?: string[];
 }
 
 export type PatchOperation = 'replace' | 'insert_before' | 'insert_after' | 'delete';

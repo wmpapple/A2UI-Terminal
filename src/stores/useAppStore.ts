@@ -50,6 +50,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   patchError: null,
   selectedText: '',
   contextBySession: {},
+  contextReviewKeyBySession: {},
   providerConfigs: [],
   activeProviderId: 'siliconflow',
   providerLoading: false,

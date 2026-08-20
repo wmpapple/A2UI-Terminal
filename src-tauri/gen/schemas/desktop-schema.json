@@ -195,6 +195,12 @@
           "markdownDescription": "Enables the clear_all_local_data command without any pre-configured scope."
         },
         {
+          "description": "Enables the confirm_context_manifest command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-confirm-context-manifest",
+          "markdownDescription": "Enables the confirm_context_manifest command without any pre-configured scope."
+        },
+        {
           "description": "Enables the confirm_import command without any pre-configured scope.",
           "type": "string",
           "const": "allow-confirm-import",
@@ -349,6 +355,12 @@
           "type": "string",
           "const": "allow-list-workspace-files",
           "markdownDescription": "Enables the list_workspace_files command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the plan_context command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-plan-context",
+          "markdownDescription": "Enables the plan_context command without any pre-configured scope."
         },
         {
           "description": "Enables the process_a2ui_message command without any pre-configured scope.",
@@ -543,6 +555,12 @@
           "markdownDescription": "Denies the clear_all_local_data command without any pre-configured scope."
         },
         {
+          "description": "Denies the confirm_context_manifest command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-confirm-context-manifest",
+          "markdownDescription": "Denies the confirm_context_manifest command without any pre-configured scope."
+        },
+        {
           "description": "Denies the confirm_import command without any pre-configured scope.",
           "type": "string",
           "const": "deny-confirm-import",
@@ -697,6 +715,12 @@
           "type": "string",
           "const": "deny-list-workspace-files",
           "markdownDescription": "Denies the list_workspace_files command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the plan_context command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-plan-context",
+          "markdownDescription": "Denies the plan_context command without any pre-configured scope."
         },
         {
           "description": "Denies the process_a2ui_message command without any pre-configured scope.",

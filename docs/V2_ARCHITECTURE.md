@@ -1,8 +1,8 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S2.1 已验收，S2.2 已实现并等待人工验收
+> 文档状态：V2 目标架构基线；S1.1—S2.2 已验收，S2.3 已实现并等待人工验收
 > 建立日期：2026-08-11  
-> 对照代码：`main` 分支 S2.2 工作树，开始基线 HEAD `ab7d964`
+> 对照代码：`main` 分支 S2.3 工作树，开始基线 HEAD `72a0e88`
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
 > PRD SHA-256：`E56FD2303B6228C5FC7AB1936FB1C2B71229845D6780DFDA2ACE06D69347AA3C`
 
@@ -93,7 +93,7 @@ React components
 | 成果     | Result 聚合、文本新建/重开/保存/版本/复制、成果 UI 和导出入口   | 尚无归档和真实多格式导出                                        |
 | 任务     | S1.2 已实现并验收本地 Task、结构化补问和草稿 Orchestrator       | 尚无任务首页、上下文 Manifest 和真实生成编排                    |
 | 导入     | ImportBatch、文本/DOCX/PDF、CSV/XLSX 基础数据和图片本地视觉来源 | Context Manifest 与 Provider 多模态发送属于 S2.3                |
-| 上下文   | 前端组装所选全文，Rust 做大小和敏感校验                         | 没有 Full/Retrieval/Hybrid 策略、检索索引、Context Pack         |
+| 上下文   | Rust 不可变 Manifest、来源/排除项、处理位置、一次确认和请求绑定 | 没有 Full/Retrieval/Hybrid 策略、检索索引、Context Pack         |
 | 审阅     | `document_patch` 有专用 Diff                                    | 普通保存、模板、选区助手、A2UI Action 尚未统一为 Review Request |
 | 成果类型 | 文本编辑器和 A2UI Surface                                       | 没有文档/表格/清单/表单/小工具统一类型系统                      |
 | 导出     | 无成果级导出服务                                                | 无 DOCX/PDF/富文本、CSV/XLSX、JSON 导出与导出审计               |
@@ -308,6 +308,12 @@ ContextPack（可复用授权集合）
 - Context Pack 只是引用集合；挂载后仍必须在请求前展开为具体来源并确认。
 - 删除 Context Pack 不删除原文件。
 
+`[IMPLEMENTED — S2.3 PENDING ACCEPTANCE]` 通用工作台每次请求执行 `plan_context → confirm_context_manifest → stream_chat(contextManifestId)`。Rust 用已授权 `sourceId` 复读文本/表格并独立生成 included/excluded 元数据；选区是唯一允许的短期前端正文来源。待确认正文只在 Rust 进程内存保留 10 分钟，确认后一次消费；工作区、会话、Prompt Hash、Provider ID 或 Provider 配置指纹任一变化都会拒绝旧清单。SQLite 继续复用 `context_snapshots` 保存实际请求清单的元数据/Hash，不新增长期正文表。
+
+交互层采用“单对话一次主动弹窗、逐请求一次性 Manifest”：首次发送主动展示清单；后续范围和 Provider 未变化时在后台生成并确认新的 Manifest，不复用旧 ID。已确认的范围/Provider 指纹属于工作区级会话状态，跨工作台与设置页导航保留，切换/移除工作区时清空。Provider store 在活动 Provider 的 Endpoint/Model/Temperature/Proxy 被保存修改或活动 Provider 被切换后，显式失效所有已有消息会话；该事件规则同时覆盖尚无新版本确认指纹的历史会话。范围、文件内容或 Provider 变化时只提示用户点击“修改发送清单”，不主动弹窗且不调用 Provider。后台 Manifest 新发现敏感内容时不得代替用户确认，只保留待确认清单并提示用户主动打开后明确确认。
+
+处理位置仅把精确 loopback 主机判为 `local`，其余均为 `cloud`。云端疑似敏感内容要求额外确认。当前 OpenAI-Compatible 文本发送合同没有可信图片字段，因此图片会保留原始 Hash 并明确列入排除项；表格由 Rust 受限解析后以结构化 JSON 文本加入上下文。S2.3 没有实现检索、chunk、Embedding、索引、Context Pack 或成果专用 Review 链路。
+
 ### 5.5 Template
 
 Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字段 Schema、默认结构、成果类型、系统规则、上下文规则、风险声明和兼容范围。个人模板不得保存用户敏感原文。
@@ -409,7 +415,7 @@ S1.2 已验收并开放上述流程的本地准备子集：创建 Task → 校�
 
 ### 7.2 统一导入批次
 
-`[IMPLEMENTED — S2.1 ACCEPTED / S2.2 PENDING ACCEPTANCE]` 首页资料区不再把系统选择或原生拖入结果立即当作已授权上下文，而是建立短生命周期 `ImportBatch`：
+`[IMPLEMENTED — S2.1 / S2.2 ACCEPTED]` 首页资料区不再把系统选择或原生拖入结果立即当作已授权上下文，而是建立短生命周期 `ImportBatch`：
 
 ```text
 系统文件选择器
@@ -454,6 +460,8 @@ S1.2 已验收并开放上述流程的本地准备子集：创建 Task → 校�
 
 创建文件同样遵守上述边界：用户主动点击“新建”并确认属于直接用户意图；聊天、模板或 A2UI 中由 AI 建议的新文件只能进入 `create_file` Review。审阅界面必须展示建议文件名、文本类型、目标位置说明和完整内容预览，并提供接受、拒绝与调整名称；接受前文件系统写入次数必须为零，重复应用同一 Review 必须幂等。
 
+已存在的零字节 UTF-8 文本文件不是 `create_file`，但同样不能通过放宽 Patch 非空锚点规则直接写入。S2.5 必须提供专用首次写入 Review 语义：候选内容完整可见，接受前零写入；Rust 在应用时重新验证来源授权、可编辑类型、零字节基线 Hash 和当前仍为空，外部变化按冲突处理；接受后建立可撤销版本，拒绝或失败保持原文件为零字节。
+
 ### 7.4 自适应上下文
 
 `[TARGET]` Context Planner 根据格式、可提取性、文件数、字符数、任务和用户选择决定：
@@ -475,7 +483,7 @@ Planner 输出必须包含：策略、实际来源数、估算大小、排除原
 
 ### 7.6 表格、图片与复杂文档边界
 
-`[IMPLEMENTED — S2.2 PENDING ACCEPTANCE]` V2 P0 支持 CSV/XLSX 基础数据。图片是可单独授权的上下文类型，系统保留原始视觉信息供未来具备视觉能力的多模态模型理解，不以仅提取文本替代原图。
+`[IMPLEMENTED — S2.2 ACCEPTED / S2.3 PENDING ACCEPTANCE]` V2 P0 支持 CSV/XLSX 基础数据。图片是可单独授权的上下文类型，系统保留原始视觉信息供未来具备视觉能力的多模态模型理解，不以仅提取文本替代原图。
 
 - 图片是否发送、发送给本地还是云端模型，必须与其他来源一样进入 Context Manifest 并由用户确认。
 - Provider 不支持视觉输入时必须明确说明，不得静默丢弃图片或伪造理解结果。
@@ -547,7 +555,7 @@ result:   list_results, get_result, create_text_result, read_result_document, sa
 a2ui:    list_a2ui_surfaces, list_a2ui_inspections, delete_a2ui_surface, execute_a2ui_action  # 当前已实现并受最小 Capability 约束
 import:   select_import_sources, inspect_import_batch, set_import_drop_target, confirm_import,
           list_document_sources, read_document_source  # S2.2 已实现并使用最小 Capability
-context:  plan_context, confirm_context_manifest, list_context_packs, save_context_pack
+context:  plan_context, confirm_context_manifest  # S2.3 已实现并使用最小 Capability；Pack 后续
 review:   get_review, decide_review_blocks, apply_review, discard_review
 export:   start_export, cancel_export, list_result_exports
 template: list_templates, save_personal_template, archive_personal_template
@@ -622,22 +630,22 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 
 ## 14. 需求追踪摘要
 
-| PRD 能力      | 架构承载                                            | 状态                                        |
-| ------------- | --------------------------------------------------- | ------------------------------------------- |
-| ONB/HOME      | app routing、home feature、Result queries           | S1.4 Current                                |
-| IMP/TASK      | Import Service、DocumentSource、Task/Template       | Task/模板与 S2.1 Current；S2.2 已实现待验收 |
-| WS            | Result Workbench、typed editors、mode shell         | 文本 Result 外壳 Current，其余 Target       |
-| CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | 部分 Current，V2 Target                     |
-| REV-01…06     | Review Request + 现有 Patch/Revision 内核           | 内核 Current，统一入口 Target               |
-| OUT-01…06     | Result type adapters、A2UI、Action Policy           | A2UI 内核 Current，其余 Target              |
-| EXP-01…04     | Export Service、export jobs、format adapters        | 入口 Current，真实导出 Target               |
-| RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target   |
-| SEL-01        | Selection controller → Review Pipeline              | Target                                      |
-| PRV-04/MDL-05 | Processing options、local probe                     | Target                                      |
-| SRCH-01       | 授权索引和 Search Service                           | P1 Target                                   |
-| ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                      |
-| A2UI-06       | capability negotiation + conformance CI             | Target                                      |
-| UX-08         | Import suggestions mapped to Result type            | P1 Target                                   |
+| PRD 能力      | 架构承载                                            | 状态                                              |
+| ------------- | --------------------------------------------------- | ------------------------------------------------- |
+| ONB/HOME      | app routing、home feature、Result queries           | S1.4 Current                                      |
+| IMP/TASK      | Import Service、DocumentSource、Task/Template       | Task/模板与 S2.1 Current；S2.2 已实现待验收       |
+| WS            | Result Workbench、typed editors、mode shell         | 文本 Result 外壳 Current，其余 Target             |
+| CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | Manifest/local-cloud Current；Planner/Pack Target |
+| REV-01…06     | Review Request + 现有 Patch/Revision 内核           | 内核 Current，统一入口 Target                     |
+| OUT-01…06     | Result type adapters、A2UI、Action Policy           | A2UI 内核 Current，其余 Target                    |
+| EXP-01…04     | Export Service、export jobs、format adapters        | 入口 Current，真实导出 Target                     |
+| RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target         |
+| SEL-01        | Selection controller → Review Pipeline              | Target                                            |
+| PRV-04/MDL-05 | Processing options、local probe                     | Target                                            |
+| SRCH-01       | 授权索引和 Search Service                           | P1 Target                                         |
+| ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                            |
+| A2UI-06       | capability negotiation + conformance CI             | Target                                            |
+| UX-08         | Import suggestions mapped to Result type            | P1 Target                                         |
 
 完整实施顺序、逐步验收和变更记录见实施文档；这里的 `Target` 不代表已经承诺具体版本日期。
 

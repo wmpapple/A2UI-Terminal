@@ -34,6 +34,8 @@ fn main() {
         "test_provider_connection",
         "list_chat_sessions",
         "create_chat_session",
+        "plan_context",
+        "confirm_context_manifest",
         "stream_chat",
         "stop_chat",
         "validate_document_patch",
