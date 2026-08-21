@@ -496,22 +496,22 @@ npm run tauri build -- --debug --no-bundle
 
 > 更新规则：开始步骤前先改状态并记 START；完成后先写证据再标完成。
 
-| 步骤                                   | 状态       | 最近记录 | 下一动作                                 |
-| -------------------------------------- | ---------- | -------- | ---------------------------------------- |
-| DOC-0 架构与实施文档                   | 已完成     | LOG-0003 | 已进入 S0.1                              |
-| S0.1 固化当前工作树基线                | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收             |
-| S0.2 合同 fixture                      | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收             |
-| S0.3 前端边界拆分                      | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收             |
-| S0.4 Rust 边界拆分                     | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收             |
-| S1.1 Result/schema v9                  | 已完成     | LOG-0023 | 已通过用户人工验收                       |
-| S1.2 Task/Template                     | 已完成     | LOG-0026 | 已通过用户人工验收                       |
-| S1.3 导航/双模式外壳                   | 已完成     | LOG-0032 | 已通过用户人工验收                       |
-| S1.4 新手引导与首页                    | 已完成     | LOG-0038 | 用户已完成最终人工验收                   |
-| S1.5 大众版工作台外壳                  | 已完成     | LOG-0041 | 用户已完成人工验收                       |
-| S2.1 统一导入批次                      | 已验收     | LOG-0056 | 用户已明确验收通过                       |
-| S2.2 表格与图片读取适配                | 已验收     | LOG-0063 | 用户已明确验收通过                       |
-| S2.3 Context Manifest 与持续隐私可见性 | 待人工验收 | LOG-0069 | 空文件限制已准确提示并纳入 S2.5 能力计划 |
-| S2.4…S4.8                              | 待开始     | —        | S2.3 验收前不得提前实施                  |
+| 步骤                                   | 状态       | 最近记录 | 下一动作                                     |
+| -------------------------------------- | ---------- | -------- | -------------------------------------------- |
+| DOC-0 架构与实施文档                   | 已完成     | LOG-0003 | 已进入 S0.1                                  |
+| S0.1 固化当前工作树基线                | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收                 |
+| S0.2 合同 fixture                      | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收                 |
+| S0.3 前端边界拆分                      | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收                 |
+| S0.4 Rust 边界拆分                     | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收                 |
+| S1.1 Result/schema v9                  | 已完成     | LOG-0023 | 已通过用户人工验收                           |
+| S1.2 Task/Template                     | 已完成     | LOG-0026 | 已通过用户人工验收                           |
+| S1.3 导航/双模式外壳                   | 已完成     | LOG-0032 | 已通过用户人工验收                           |
+| S1.4 新手引导与首页                    | 已完成     | LOG-0038 | 用户已完成最终人工验收                       |
+| S1.5 大众版工作台外壳                  | 已完成     | LOG-0041 | 用户已完成人工验收                           |
+| S2.1 统一导入批次                      | 已验收     | LOG-0056 | 用户已明确验收通过                           |
+| S2.2 表格与图片读取适配                | 已验收     | LOG-0063 | 用户已明确验收通过                           |
+| S2.3 Context Manifest 与持续隐私可见性 | 待人工验收 | LOG-0070 | Prompt 失效与代码结构整改完成，等待 M11 复验 |
+| S2.4…S4.8                              | 待开始     | —        | S2.3 验收前不得提前实施                      |
 
 S1.1—S2.2 均已通过自动验证和用户人工验收。S2.3 已完成实现与自动验证，当前唯一活动动作是按 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) 等待用户人工验收；不得提前实现 S2.4 检索、Embedding、索引或其他后续步骤。
 
@@ -1600,6 +1600,21 @@ S1.1—S2.2 均已通过自动验证和用户人工验收。S2.3 已完成实现
 - 安全、隐私、兼容和回滚：没有接受空锚点、没有把空字符串当作全文件替换，也没有新增写入捷径；零字节限制由可信 Rust 文件读取结果决定，不依赖前端声明。回滚只恢复原错误分类/重试展示，不涉及用户数据迁移或清理。
 - 状态与下一动作：S2.3 继续保持 `待人工验收`。按 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) M10 复验专用提示和零写入；用户明确回复“**S2.3 验收通过**”前不得开始 S2.4，S2.5 能力不得提前实施。
 
+### LOG-0070 — S2.3 — CODE QUALITY CORRECTION / PENDING ACCEPTANCE
+
+- 时间：2026-08-21 09:51（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户授权与边界：用户在代码工程质量审查后明确授权开始整改。本次只修复 S2.3 清单一致性并做等价结构重构，不开始 S2.4 检索、Embedding、索引、Context Pack 或其他后续产品能力；开始前 `main` / `5bde83c`，工作树干净。
+- 缺陷根因与修复：前端待确认 Manifest 原来只绑定 Provider 指纹。后台发现敏感清单后，如果用户先修改 Prompt，旧清单仍可能显示；Rust 最终会以 Prompt Hash 拒绝，但用户要到提交后才看到错误。现在 `plannedManifestKey` 同时绑定 Provider 指纹、上下文指纹和 Prompt 内容指纹，Prompt 编辑会主动清除旧清单；发送覆盖 Prompt 时也按实际请求重新比对。Manifest 规划期间输入框暂时不可编辑，避免规划请求与可见文字产生歧义。新增回归验证旧敏感 Manifest 永不确认，系统只确认并发送新 Prompt 对应的新 Manifest ID。
+- 前端结构整改：原约 682 行 `ChatPanel` 拆为 133 行组合层、`useChatContextFlow` 清单编排 Hook、`ChatMessageList` 协议/Markdown 呈现和 `ChatComposer` 输入/拖放交互。组件继续只调用 store/hook，Manifest 流程继续只通过 `chatController` 进入 Gateway；新增前端架构测试限制 `ChatPanel < 220` 行并固定依赖方向。没有改变用户可见的首次弹窗、后续非抢占提示、重试、拖放、Patch 或 A2UI 行为。
+- Rust 架构守卫整改：`application_services_do_not_depend_on_tauri` 不再手工枚举 8 个文件，改为扫描 `src/application/*.rs` 全目录，因此新加入的 `application/context.rs` 和未来模块都会自动受“不得依赖 Tauri State/Channel”的边界保护。当前生产 Rust 行为没有变化。
+- 大模块处置：`storage/mod.rs` 和 `document_source.rs` 的物理拆分会同时触及持久化、安全解析和大量历史测试，不在尚待人工验收的 S2.3 修正中冒险实施；本次先消除真实一致性缺陷和现有架构测试盲区。后续应在 S2.3 验收后的独立重构基线中按领域逐步拆分，每步保持 schema、IPC 和行为不变。
+- 修改文件：新增 `src/features/chat/useChatContextFlow.ts`、`components/ChatMessageList.tsx`、`components/ChatComposer.tsx`；重构 `components/ChatPanel.tsx`，更新 `ChatPanel.test.tsx`、`features/context/contextSnapshot.ts`、`stores/architecture.test.ts`、`src-tauri/tests/architecture_boundaries.rs`；同步更新 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md)、[ARCHITECTURE.md](ARCHITECTURE.md)、[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md) 和本文。
+- Migration / IPC / Capability / 隐私：无数据库 migration、无 IPC、Capability、Provider 合同、网络、文件写入或遥测权限变化；没有新增正文持久化。前端内容指纹只存在当前进程内存，不进入审计或网络请求。
+- 自动验证：`npm run format:check`、`npm run lint`、`npm run typecheck`、`npx vitest run --maxWorkers=1`、`npm run build` 全部通过，34 个测试文件/125 项 Vitest；覆盖率 125/125，Statements 97.97%、Branches 84.72%、Functions 96.55%、Lines 98.80%；Chromium Web Mock E2E 7/7。Rust `cargo fmt --all -- --check`、全目标全 feature Clippy `-D warnings`、`cargo test --all-features` 全部通过：106 个库测试、6 个自动目录架构边界、1 个命令注册、8 个合同测试和 doc tests。测试链接时只有 MSVC 输出“正在创建导入库”的环境性 `linker_messages` 提示，不是代码诊断；严格 Clippy 无警告。
+- 构建观察：生产构建继续提示主 JS chunk 约 1.22 MB（gzip 约 399 KB）。编辑器和历史抽屉已有懒加载；进一步按页面拆包属于独立性能整改，不与本次 S2.3 安全修正混做。
+- 状态与下一动作：S2.3 继续保持 `待人工验收`。新增人工检查见 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) M11；用户明确回复“**S2.3 验收通过**”前不得开始 S2.4。
+
 ### 新账本记录模板
 
 ```markdown
@@ -1676,7 +1691,7 @@ S1.1—S2.2 均已通过自动验证和用户人工验收。S2.3 已完成实现
 
 ## 12. 交接摘要
 
-截至 LOG-0069：
+截至 LOG-0070：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
@@ -1684,8 +1699,9 @@ S1.1—S2.2 均已通过自动验证和用户人工验收。S2.3 已完成实现
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
 - S2.2 已建立统一 `DocumentSource`、CSV/XLSX 受限结构化读取、公式/注入风险标记、图片原始视觉来源、8 MB 内本地预览、多批累积和工作区隔离的单项撤销，且已于 2026-08-20 通过用户验收。
-- S2.3 通用聊天每次请求必须经过 Rust 生成清单和一次性 Manifest ID 消费。每个对话仅首次发送主动弹窗并由用户确认；后续范围与 Provider 未变化时后台生成/确认新 Manifest，范围变化只提示点击“修改发送清单”，新敏感风险仍要求用户主动打开并明确确认。会话审核指纹保存在工作区应用状态中，跨设置页导航与工作台重新挂载保留，并在工作区切换/清除时重置；Provider 成功改配或切换时显式失效所有已有消息会话，因此无基线历史会话也能显示变化。Rust 复读已授权文本/表格、冻结最近消息并独立计算来源/排除项/Hash/本机云端/敏感结论；Provider/Prompt/范围变化拒绝旧清单。当前文本合同不能发送图片，图片在清单中明确排除；没有 schema migration 或 S2.4 检索实现。
+- S2.3 通用聊天每次请求必须经过 Rust 生成清单和一次性 Manifest ID 消费。每个对话仅首次发送主动弹窗并由用户确认；后续范围与 Provider 未变化时后台生成/确认新 Manifest，范围变化只提示点击“修改发送清单”，新敏感风险仍要求用户主动打开并明确确认。会话审核指纹保存在工作区应用状态中，跨设置页导航与工作台重新挂载保留，并在工作区切换/清除时重置；Provider 成功改配或切换时显式失效所有已有消息会话，因此无基线历史会话也能显示变化。前端待确认清单同时绑定 Provider、上下文和 Prompt 指纹，Prompt 编辑会主动清除旧清单；Rust 继续以 Prompt Hash 作最终拒绝。Rust 复读已授权文本/表格、冻结最近消息并独立计算来源/排除项/Hash/本机云端/敏感结论；Provider/Prompt/范围变化拒绝旧清单。当前文本合同不能发送图片，图片在清单中明确排除；没有 schema migration 或 S2.4 检索实现。
+- S2.3 代码质量整改已把 `ChatPanel` 收敛为组合层，将 Context Manifest 编排、消息协议呈现和输入/拖放拆为独立模块；前端架构测试固定该依赖方向。Rust 应用层边界测试改为自动扫描整个 `src/application` 目录，不再漏掉新增 `context.rs`。大规模 Storage/DocumentSource 物理拆分留待 S2.3 验收后的独立重构基线。
 - S2.3 对已授权零字节文本目标只提供准确能力限制：Rust 明确识别空文件，跳过不可能成功的后台模型重试，前端隐藏手动重试且保持零写入。真正的安全首次写入已作为显式合同/E2E 场景排入 S2.5，当前没有放宽非空锚点或实现写入。
-- 当前唯一活动动作是按 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) M01—M10 等待用户验收。用户明确回复“**S2.3 验收通过**”前不得开始 S2.4。
+- 当前唯一活动动作是按 [S2_3_MANUAL_ACCEPTANCE.md](S2_3_MANUAL_ACCEPTANCE.md) M01—M11 等待用户验收。用户明确回复“**S2.3 验收通过**”前不得开始 S2.4。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - 如果文档与实际代码不一致，先记录差异并修正文档状态；不要为了符合文档而破坏性改写用户代码。

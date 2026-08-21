@@ -310,7 +310,9 @@ ContextPack（可复用授权集合）
 
 `[IMPLEMENTED — S2.3 PENDING ACCEPTANCE]` 通用工作台每次请求执行 `plan_context → confirm_context_manifest → stream_chat(contextManifestId)`。Rust 用已授权 `sourceId` 复读文本/表格并独立生成 included/excluded 元数据；选区是唯一允许的短期前端正文来源。待确认正文只在 Rust 进程内存保留 10 分钟，确认后一次消费；工作区、会话、Prompt Hash、Provider ID 或 Provider 配置指纹任一变化都会拒绝旧清单。SQLite 继续复用 `context_snapshots` 保存实际请求清单的元数据/Hash，不新增长期正文表。
 
-交互层采用“单对话一次主动弹窗、逐请求一次性 Manifest”：首次发送主动展示清单；后续范围和 Provider 未变化时在后台生成并确认新的 Manifest，不复用旧 ID。已确认的范围/Provider 指纹属于工作区级会话状态，跨工作台与设置页导航保留，切换/移除工作区时清空。Provider store 在活动 Provider 的 Endpoint/Model/Temperature/Proxy 被保存修改或活动 Provider 被切换后，显式失效所有已有消息会话；该事件规则同时覆盖尚无新版本确认指纹的历史会话。范围、文件内容或 Provider 变化时只提示用户点击“修改发送清单”，不主动弹窗且不调用 Provider。后台 Manifest 新发现敏感内容时不得代替用户确认，只保留待确认清单并提示用户主动打开后明确确认。
+交互层采用“单对话一次主动弹窗、逐请求一次性 Manifest”：首次发送主动展示清单；后续范围和 Provider 未变化时在后台生成并确认新的 Manifest，不复用旧 ID。前端待确认清单同时绑定 Provider 指纹、上下文指纹和 Prompt 内容指纹，任一输入变化即从界面失效；Rust Prompt Hash 继续作为最终拒绝边界。已确认的范围/Provider 指纹属于工作区级会话状态，跨工作台与设置页导航保留，切换/移除工作区时清空。Provider store 在活动 Provider 的 Endpoint/Model/Temperature/Proxy 被保存修改或活动 Provider 被切换后，显式失效所有已有消息会话；该事件规则同时覆盖尚无新版本确认指纹的历史会话。范围、文件内容或 Provider 变化时只提示用户点击“修改发送清单”，不主动弹窗且不调用 Provider。后台 Manifest 新发现敏感内容时不得代替用户确认，只保留待确认清单并提示用户主动打开后明确确认。
+
+前端聊天区域按职责拆为 `ChatPanel` 组合层、`useChatContextFlow` 上下文编排、`ChatMessageList` 协议呈现和 `ChatComposer` 输入/拖放交互。React 组件不直接调用 Desktop Gateway，Context Manifest 编排只通过 `chatController` 进入平台边界；架构测试限制组合层规模并检查这一依赖方向。
 
 处理位置仅把精确 loopback 主机判为 `local`，其余均为 `cloud`。云端疑似敏感内容要求额外确认。当前 OpenAI-Compatible 文本发送合同没有可信图片字段，因此图片会保留原始 Hash 并明确列入排除项；表格由 Rust 受限解析后以结构化 JSON 文本加入上下文。S2.3 没有实现检索、chunk、Embedding、索引、Context Pack 或成果专用 Review 链路。
 

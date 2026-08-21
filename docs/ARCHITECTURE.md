@@ -31,7 +31,7 @@ S2.2 当前可确认 UTF-8 白名单文本、只读 DOCX/PDF 文本层、CSV/XLS
 ## Provider 与会话流
 
 1. 设置页只读写 Endpoint、Model、Temperature 和无凭据代理地址；API Key 通过独立 IPC 写入 Windows Credential Manager。
-2. 每个对话首次发送前必须生成并展示 Rust Context Manifest，再由用户确认。后续请求仍逐次生成并消费绑定新 Prompt 的 Manifest；已确认范围与 Provider 未变化且没有新敏感风险时后台完成，不再主动弹窗。会话确认指纹保存在工作区级应用状态，设置页导航导致聊天组件卸载时不得丢失；切换工作区或清除工作区状态时必须重置。保存活动 Provider 的 Endpoint/Model/Temperature/Proxy 变化或切换活动 Provider 时，Provider store 必须显式失效所有已有消息会话，包括尚无新版本确认指纹的历史会话。范围、文件内容或 Provider 变化时只提示用户点击“修改发送清单”，不得抢占式弹窗或调用 Provider；新敏感风险必须在用户主动打开后明确确认。
+2. 每个对话首次发送前必须生成并展示 Rust Context Manifest，再由用户确认。后续请求仍逐次生成并消费绑定新 Prompt 的 Manifest；已确认范围与 Provider 未变化且没有新敏感风险时后台完成，不再主动弹窗。前端待确认清单绑定 Provider、上下文和 Prompt 三类指纹，任一输入变化立即失效；Rust Prompt Hash 继续负责最终拒绝。会话确认指纹保存在工作区级应用状态，设置页导航导致聊天组件卸载时不得丢失；切换工作区或清除工作区状态时必须重置。保存活动 Provider 的 Endpoint/Model/Temperature/Proxy 变化或切换活动 Provider 时，Provider store 必须显式失效所有已有消息会话，包括尚无新版本确认指纹的历史会话。范围、文件内容或 Provider 变化时只提示用户点击“修改发送清单”，不得抢占式弹窗或调用 Provider；新敏感风险必须在用户主动打开后明确确认。
 3. Rust 使用 `sourceId` 反查文件授权并重新读取文本/表格，独立计算字符数、Hash、排除原因与本机/云端位置；选区只作为短期内存来源。确认后的请求只携带 `contextManifestId`，不能再由前端附带正文列表或自行声明敏感确认结论。实际请求的清单元数据写入 `context_snapshots`，不长期复制文件上下文正文。
 4. Rust 从 SQLite 读取用户明确选择条数的历史消息，在后端组装 Provider 请求；密钥不返回前端。
 5. Provider 的 SSE 增量通过 Tauri Channel 返回，完整用户消息和助手回复写入 SQLite。取消在连接、响应等待和流读取阶段均生效，部分回复保留为 `stopped`。
@@ -48,7 +48,7 @@ src/
 │   ├── home/               # 引导、六类入口、资料区、Task/Result 首页状态
 │   ├── results/            # Result 列表、受控新建、编辑/保存/版本工作台
 │   ├── imports/            # ImportBatch 状态、能力确认和取消/确认
-│   ├── chat/               # 会话、输入与流式 Mock
+│   ├── chat/               # 会话状态、Context 编排、消息呈现、输入与流式 Mock
 │   ├── context/            # 请求前上下文确认
 │   ├── diff/               # 修改前后审阅与应用
 │   └── a2ui/               # 协议、Basic Catalog、Runtime、Inspector

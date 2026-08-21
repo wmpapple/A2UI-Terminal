@@ -121,4 +121,17 @@ describe('front-end application boundaries', () => {
     expect(importModal).toContain('acceptedItemIds');
     expect(importModal).not.toContain('desktopApi');
   });
+
+  it('keeps chat presentation separate from Context Manifest orchestration', () => {
+    const panel = sources['../features/chat/components/ChatPanel.tsx'];
+    const contextFlow = sources['../features/chat/useChatContextFlow.ts'];
+
+    expect(panel.split(/\r?\n/).length).toBeLessThan(220);
+    expect(panel).toContain('<ChatMessageList');
+    expect(panel).toContain('<ChatComposer');
+    expect(panel).toContain('useChatContextFlow()');
+    expect(panel).not.toContain('chatController');
+    expect(contextFlow).toContain('chatController.planContext');
+    expect(contextFlow).toContain('plannedManifestKey === currentManifestKey');
+  });
 });

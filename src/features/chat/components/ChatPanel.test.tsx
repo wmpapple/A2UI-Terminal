@@ -477,4 +477,91 @@ describe('ChatPanel patch presentation', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '确认并发送' })).toBeDisabled();
   });
+
+  it('discards a background manifest when the prompt changes before confirmation', async () => {
+    const sendChat = vi.fn().mockResolvedValue(undefined);
+    const confirmContext = vi.spyOn(chatController, 'confirmContext').mockResolvedValue({
+      id: 'fresh-manifest',
+      workspaceId: 'workspace',
+      sessionId: 'session',
+      providerId: 'cloud',
+      processingLocation: 'cloud',
+      status: 'confirmed',
+      includedSources: [],
+      excludedSources: [],
+      characterCount: 0,
+      estimatedTokens: 10,
+      sensitiveWarning: false,
+      requiresSensitiveConfirmation: false,
+      createdAt: '1',
+      expiresAt: '2',
+      confirmedAt: '1',
+    });
+    vi.spyOn(chatController, 'planContext')
+      .mockResolvedValueOnce({
+        id: 'stale-sensitive-manifest',
+        workspaceId: 'workspace',
+        sessionId: 'session',
+        providerId: 'cloud',
+        processingLocation: 'cloud',
+        status: 'awaiting_confirmation',
+        includedSources: [],
+        excludedSources: [],
+        characterCount: 0,
+        estimatedTokens: 10,
+        sensitiveWarning: true,
+        requiresSensitiveConfirmation: true,
+        createdAt: '1',
+        expiresAt: '2',
+        confirmedAt: null,
+      })
+      .mockResolvedValueOnce({
+        id: 'fresh-manifest',
+        workspaceId: 'workspace',
+        sessionId: 'session',
+        providerId: 'cloud',
+        processingLocation: 'cloud',
+        status: 'awaiting_confirmation',
+        includedSources: [],
+        excludedSources: [],
+        characterCount: 0,
+        estimatedTokens: 10,
+        sensitiveWarning: false,
+        requiresSensitiveConfirmation: false,
+        createdAt: '1',
+        expiresAt: '2',
+        confirmedAt: null,
+      });
+    useAppStore.setState({
+      runtimeMode: 'desktop',
+      sessions: [
+        {
+          id: 'session',
+          title: 'Existing chat',
+          messages: [{ id: 'user-1', role: 'user', content: 'First request', status: 'complete' }],
+        },
+      ],
+      activeProviderId: 'cloud',
+      chatRequestId: null,
+      sendChat,
+    });
+
+    render(
+      <I18nProvider>
+        <ChatPanel />
+      </I18nProvider>
+    );
+    const input = screen.getByPlaceholderText('描述你希望对当前文件做出的修改…');
+    fireEvent.change(input, { target: { value: 'Original prompt' } });
+    fireEvent.click(screen.getByRole('button', { name: /发送$/ }));
+    expect(await screen.findByText(/本次清单包含可能的敏感信息/)).toBeVisible();
+
+    fireEvent.change(input, { target: { value: 'Changed prompt' } });
+    fireEvent.click(screen.getByRole('button', { name: /发送$/ }));
+
+    await waitFor(() => expect(sendChat).toHaveBeenCalledWith('Changed prompt', 'fresh-manifest'));
+    expect(confirmContext).toHaveBeenCalledWith('fresh-manifest', false);
+    expect(confirmContext).not.toHaveBeenCalledWith('stale-sensitive-manifest', expect.anything());
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 });

@@ -171,17 +171,32 @@ npm run test:e2e
 
 结果：`待验收`
 
+### M11 — 修改 Prompt 后旧清单立即失效
+
+1. 在已有消息的会话中，通过云端 Provider 触发一份需要敏感确认的后台 Manifest，但不要打开或确认它。
+2. 保持发送范围和 Provider 不变，修改输入框中的 Prompt。
+3. 再次点击“发送”。
+
+预期：
+
+- 上一个 Prompt 生成的敏感清单立即失效，不能继续显示、确认或传给 `stream_chat`。
+- 系统为新 Prompt 重新生成 Manifest；若新清单无需敏感确认，可以按后续消息规则在后台确认并发送。
+- Rust 的 Prompt Hash 仍作为最终拒绝边界；前端不会依赖后端报错才发现清单过期。
+- Manifest 规划期间输入框暂时不可编辑，避免用户以为规划中的请求已经被换成新文字。
+
+结果：`待验收`
+
 ## 4. 自动验证证据
 
-截至 2026-08-20，本阶段已通过：
+截至 2026-08-21，本阶段已通过：
 
-- `npm run format:check`、`npm run lint`、`npm run typecheck`、`npm run test -- --maxWorkers=1`、`npm run build`：全部通过，包含 34 个测试文件/123 项 Vitest 和生产构建。
-- `npx vitest run --coverage --maxWorkers=1`：123/123；Statements 97.97%、Branches 84.72%、Functions 96.55%、Lines 98.80%。
+- `npm run format:check`、`npm run lint`、`npm run typecheck`、`npx vitest run --maxWorkers=1`、`npm run build`：全部通过，包含 34 个测试文件/125 项 Vitest 和生产构建。
+- `npx vitest run --coverage --maxWorkers=1`：125/125；Statements 97.97%、Branches 84.72%、Functions 96.55%、Lines 98.80%。
 - `npm run test:e2e`：Chromium Web Mock 7/7；A2UI 与 Patch 的首次发送均经过“生成发送清单 → 确认并发送”，同一 A2UI 对话的第二条消息验证为后台清单且没有再次弹窗。
 - `cargo fmt --all -- --check`、`cargo clippy --lib --all-features -- -D warnings`：本次修正通过；此前 S2.3 全目标 Clippy 已通过。
 - `cargo test --lib --all-features`：106/106；此前 S2.3 未变更的 6 个架构边界、1 个命令注册、8 个合同测试及 doc tests 已通过。本次尝试重跑集成目标时，正在运行的桌面开发实例锁定 `target/debug/a2ui-terminal.exe`，未关闭用户实例强行重跑。
 - `npm run tauri build -- --debug --no-bundle`：通过；隔离 APPDATA/LOCALAPPDATA 的桌面启动冒烟通过，PID 26752 已由脚本关闭。
-- 定向回归覆盖未选正文不跨 IPC、Rust 授权复读、图片明确排除、loopback 精确识别、云端敏感确认、一次消费、Provider 指纹失效、V2 Context Manifest 双端 fixture、来源撤销后清理会话选择、处理位置持续可见、单对话仅首次主动弹窗、后续后台 Manifest、范围变化非抢占提示、已有/无基线会话在活动 Provider 配置变化或切换后跨设置页返回仍明确失效，以及零字节目标专用提示、零写入和跳过无效重试。
+- 定向回归覆盖未选正文不跨 IPC、Rust 授权复读、图片明确排除、loopback 精确识别、云端敏感确认、一次消费、Provider/Prompt 指纹失效、V2 Context Manifest 双端 fixture、来源撤销后清理会话选择、处理位置持续可见、单对话仅首次主动弹窗、后续后台 Manifest、范围变化非抢占提示、已有/无基线会话在活动 Provider 配置变化或切换后跨设置页返回仍明确失效，以及零字节目标专用提示、零写入和跳过无效重试。
 
 ## 5. 失败报告格式
 

@@ -80,20 +80,32 @@ fn tauri_commands_delegate_domain_work_to_application_services() {
 
 #[test]
 fn application_services_do_not_depend_on_tauri() {
-    for source in [
-        include_str!("../src/application/adapters.rs"),
-        include_str!("../src/application/chat.rs"),
-        include_str!("../src/application/import.rs"),
-        include_str!("../src/application/provider.rs"),
-        include_str!("../src/application/result.rs"),
-        include_str!("../src/application/task.rs"),
-        include_str!("../src/application/revision.rs"),
-        include_str!("../src/application/workspace.rs"),
-    ] {
-        assert!(!source.contains("tauri::"));
-        assert!(!source.contains("State<'_"));
-        assert!(!source.contains("Channel<"));
+    let application_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/application");
+    let mut checked_files = 0;
+
+    for entry in std::fs::read_dir(application_dir).expect("application directory should exist") {
+        let path = entry.expect("application entry should be readable").path();
+        if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+            continue;
+        }
+        let source = std::fs::read_to_string(&path).expect("application source should be readable");
+        let display = path.display();
+        assert!(!source.contains("tauri::"), "{display} depends on tauri");
+        assert!(
+            !source.contains("State<'_"),
+            "{display} accepts Tauri State"
+        );
+        assert!(
+            !source.contains("Channel<"),
+            "{display} accepts a Tauri Channel"
+        );
+        checked_files += 1;
     }
+
+    assert!(
+        checked_files >= 9,
+        "application boundary scan missed source files"
+    );
 }
 
 #[test]
