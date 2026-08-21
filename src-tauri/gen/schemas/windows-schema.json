@@ -195,6 +195,12 @@
           "markdownDescription": "Enables the clear_all_local_data command without any pre-configured scope."
         },
         {
+          "description": "Enables the clear_context_index command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-clear-context-index",
+          "markdownDescription": "Enables the clear_context_index command without any pre-configured scope."
+        },
+        {
           "description": "Enables the confirm_context_manifest command without any pre-configured scope.",
           "type": "string",
           "const": "allow-confirm-context-manifest",
@@ -553,6 +559,12 @@
           "type": "string",
           "const": "deny-clear-all-local-data",
           "markdownDescription": "Denies the clear_all_local_data command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the clear_context_index command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-clear-context-index",
+          "markdownDescription": "Denies the clear_context_index command without any pre-configured scope."
         },
         {
           "description": "Denies the confirm_context_manifest command without any pre-configured scope.",

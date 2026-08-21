@@ -42,3 +42,15 @@
   color: var(--text-muted);
   font-size: 12px;
 }
+.manifestRanges {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.manifestRanges code {
+  overflow-wrap: anywhere;
+  color: var(--text-strong);
+  white-space: normal;
+}

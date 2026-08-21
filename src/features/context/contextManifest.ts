@@ -9,6 +9,7 @@ import type {
   ProviderConfig,
   WorkspaceFile,
 } from '../../shared/types/domain';
+import { estimateContextTokens } from './tokenEstimate';
 
 interface ManifestInputOptions {
   workspaceId: string;
@@ -44,6 +45,7 @@ export const buildContextManifestInput = ({
 }: ManifestInputOptions): ContextManifestInput => {
   const candidates: ContextCandidate[] = [];
   const active = files.find((file) => file.path === activePath);
+  const selectedDocumentSourceIds = new Set(selection.documentSourceIds ?? []);
   if (selectedText || selection.selection) {
     candidates.push({
       kind: 'selection',
@@ -58,13 +60,12 @@ export const buildContextManifestInput = ({
   for (const file of files) {
     const selected =
       (file.path === activePath && selection.currentFile) ||
-      selection.projectFiles.includes(file.path);
+      selection.projectFiles.includes(file.path) ||
+      Boolean(file.sourceId && selectedDocumentSourceIds.has(file.sourceId));
     candidates.push({
       kind:
         file.path === activePath
-          ? file.extracted
-            ? 'attached_document'
-            : 'current_file'
+          ? 'current_file'
           : file.extracted
             ? 'attached_document'
             : 'project_file',
@@ -101,33 +102,63 @@ export const createWebMockManifest = (
   input: ContextManifestInput,
   processingLocation: ProcessingLocation
 ): ContextManifest => {
-  const includedSources: ContextManifestSource[] = input.candidates
-    .filter((candidate) => candidate.selected)
-    .map((candidate) => ({
-      kind: candidate.kind,
-      label: candidate.label,
-      contentHash: candidate.baseHash ?? null,
-      sizeBytes: candidate.content?.length ?? 0,
-      characterCount: candidate.content?.length ?? 0,
-      exclusionReason: null,
-    }));
+  const selectedCandidates = input.candidates.filter((candidate) => candidate.selected);
+  const selectedCharacters = selectedCandidates.reduce(
+    (sum, candidate) => sum + (candidate.content?.length ?? 0),
+    0
+  );
+  const hasShortPrioritySource = selectedCandidates.some(
+    (candidate) =>
+      (candidate.kind === 'selection' || candidate.kind === 'current_file') &&
+      (candidate.content?.length ?? 0) <= 12000
+  );
+  const strategy =
+    selectedCharacters <= 24000
+      ? ('full' as const)
+      : hasShortPrioritySource
+        ? ('hybrid' as const)
+        : ('retrieval' as const);
+  const includedSources: ContextManifestSource[] = selectedCandidates.map((candidate) => ({
+    kind: candidate.kind,
+    label: candidate.label,
+    sourceRef: candidate.sourceId ?? null,
+    contentHash: candidate.baseHash ?? null,
+    sizeBytes: candidate.content?.length ?? 0,
+    characterCount: candidate.content?.length ?? 0,
+    mode:
+      strategy === 'full' ||
+      ((candidate.kind === 'selection' || candidate.kind === 'current_file') &&
+        (candidate.content?.length ?? 0) <= 12000)
+        ? ('full' as const)
+        : ('retrieved' as const),
+    selectedRanges: candidate.content
+      ? [{ chunkId: 'full', startCharacter: 0, endCharacter: candidate.content.length }]
+      : [],
+    exclusionReason: null,
+  }));
   const excludedSources: ContextManifestSource[] = input.candidates
     .filter((candidate) => !candidate.selected)
     .map((candidate) => ({
       kind: candidate.kind,
       label: candidate.label,
+      sourceRef: candidate.sourceId ?? null,
       contentHash: null,
       sizeBytes: 0,
       characterCount: 0,
+      mode: 'excluded' as const,
+      selectedRanges: [],
       exclusionReason: '用户未选择',
     }));
   if (input.includeRecentMessages) {
     includedSources.push({
       kind: 'recent_messages',
       label: `最近 ${input.recentMessageCount} 条对话`,
+      sourceRef: null,
       contentHash: null,
       sizeBytes: 0,
       characterCount: 0,
+      mode: 'full',
+      selectedRanges: [],
       exclusionReason: null,
     });
   }
@@ -138,15 +169,27 @@ export const createWebMockManifest = (
     sessionId: input.sessionId,
     providerId: input.providerId,
     processingLocation,
+    strategy,
+    indexMode: strategy === 'full' ? 'none' : 'memory_lexical',
     status: 'awaiting_confirmation',
     includedSources,
     excludedSources,
     characterCount: includedSources.reduce((sum, source) => sum + source.characterCount, 0),
-    estimatedTokens: Math.ceil(
-      (input.prompt.length +
-        includedSources.reduce((sum, source) => sum + source.characterCount, 0)) /
-        4
-    ),
+    estimatedTokens:
+      estimateContextTokens(input.prompt) +
+      includedSources.reduce(
+        (sum, source) =>
+          sum +
+          estimateContextTokens(
+            selectedCandidates.find((candidate) => candidate.label === source.label)?.content ?? ''
+          ),
+        0
+      ) +
+      2048,
+    tokenBudget: 32000,
+    retrievedChunkCount: includedSources
+      .filter((source) => source.mode === 'retrieved')
+      .reduce((sum, source) => sum + source.selectedRanges.length, 0),
     sensitiveWarning: false,
     requiresSensitiveConfirmation: false,
     createdAt: String(now),

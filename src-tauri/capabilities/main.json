@@ -42,6 +42,7 @@
     "allow-list-chat-sessions",
     "allow-create-chat-session",
     "allow-plan-context",
+    "allow-clear-context-index",
     "allow-confirm-context-manifest",
     "allow-stream-chat",
     "allow-stop-chat",

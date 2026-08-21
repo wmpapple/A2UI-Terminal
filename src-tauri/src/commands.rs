@@ -107,6 +107,21 @@ pub struct RevokeDocumentSourceResult {
     original_file_deleted: bool,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClearContextIndexResult {
+    cleared_documents: usize,
+}
+
+fn invalidate_pending_context(state: &AppState) -> Result<(), AppError> {
+    state
+        .pending_context_manifests
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    Ok(())
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApplyPatchRequest {
@@ -183,6 +198,11 @@ pub fn clear_all_local_data(
         .clear();
     state
         .pending_context_manifests
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    state
+        .context_index
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .clear();
@@ -283,10 +303,14 @@ pub async fn select_workspace(
     let selected_path = selected
         .into_path()
         .map_err(|_| AppError::InvalidInput("只支持本机文件系统目录".into()))?;
-    Ok(Some(workspace_service::register(
-        &state.storage,
-        &selected_path,
-    )?))
+    let workspace = workspace_service::register(&state.storage, &selected_path)?;
+    state
+        .context_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .retain_workspace(&workspace.id);
+    invalidate_pending_context(state.inner())?;
+    Ok(Some(workspace))
 }
 
 #[tauri::command]
@@ -301,7 +325,14 @@ pub fn restore_workspace(
     state: State<'_, AppState>,
     workspace_id: String,
 ) -> Result<WorkspaceSummary, AppError> {
-    workspace_service::restore(&state.storage, &workspace_id)
+    let workspace = workspace_service::restore(&state.storage, &workspace_id)?;
+    state
+        .context_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .retain_workspace(&workspace.id);
+    invalidate_pending_context(state.inner())?;
+    Ok(workspace)
 }
 
 #[tauri::command]
@@ -379,8 +410,17 @@ pub fn remove_workspace(
     state: State<'_, AppState>,
     workspace_id: String,
 ) -> Result<RemoveWorkspaceResult, AppError> {
+    let mut index = state
+        .context_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    let removed = workspace_service::remove(&state.storage, &workspace_id)?;
+    if removed {
+        index.clear_workspace(&workspace_id);
+        invalidate_pending_context(state.inner())?;
+    }
     Ok(RemoveWorkspaceResult {
-        removed: workspace_service::remove(&state.storage, &workspace_id)?,
+        removed,
         project_files_deleted: false,
     })
 }
@@ -570,7 +610,13 @@ pub fn revoke_document_source(
     workspace_id: String,
     source_id: String,
 ) -> Result<RevokeDocumentSourceResult, AppError> {
+    let mut index = state
+        .context_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     crate::document_source::revoke(&state.storage, &workspace_id, &source_id)?;
+    index.clear_source(&workspace_id, &source_id);
+    invalidate_pending_context(state.inner())?;
     Ok(RevokeDocumentSourceResult {
         revoked: true,
         original_file_deleted: false,
@@ -678,11 +724,35 @@ pub fn plan_context(
     state: State<'_, AppState>,
     input: ContextManifestInput,
 ) -> Result<ContextManifest, AppError> {
+    let mut index = state
+        .context_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     let mut manifests = state
         .pending_context_manifests
         .lock()
         .map_err(|_| AppError::StateUnavailable)?;
-    context::plan(&state.storage, &mut manifests, input)
+    context::plan(&state.storage, &mut index, &mut manifests, input)
+}
+
+#[tauri::command]
+pub fn clear_context_index(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> Result<ClearContextIndexResult, AppError> {
+    if workspace_id.trim().is_empty() || workspace_id.chars().count() > 128 {
+        return Err(AppError::InvalidInput("工作区标识无效".into()));
+    }
+    if state.storage.workspace(&workspace_id)?.is_none() {
+        return Err(AppError::InvalidInput("工作区不存在".into()));
+    }
+    let cleared_documents = state
+        .context_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear_workspace(&workspace_id);
+    invalidate_pending_context(state.inner())?;
+    Ok(ClearContextIndexResult { cleared_documents })
 }
 
 #[tauri::command]

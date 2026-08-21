@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S2.3 已于 2026-08-21 通过用户人工验收；用户已授权进入 S2.4，但其阻塞决策 O-05 尚未关闭，当前未开始 S2.4 代码实施**
+> 当前状态：**S2.4 自适应 Context Planner 已完成实现和自动验证，等待用户人工验收；S2.5 尚未开始**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -269,7 +269,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S2.4 自适应 Context Planner
 
-状态：`待开始`
+状态：`待人工验收`
 
 - 对应：CTX-05。
 - 工作：Full/Retrieval/Hybrid 决策、chunk/index、来源可追溯、用户调整；短文保持全文路径。
@@ -434,7 +434,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 | TASK-01/02     | S1.2                   | Task/内置模板基础已实现               | 已完成      |
 | WS-01/02/03/04 | S1.3、S1.5、S2.6、S2.7 | S1.5 成果双栏与操作入口已实现         | 部分完成    |
 | CTX-01/02/03   | S2.3                   | 显式上下文和敏感确认已验收            | 已完成      |
-| CTX-05         | S2.4                   | 只有全文选择                          | 未开始      |
+| CTX-05         | S2.4                   | Adaptive Planner 已实现，待人工验收   | 待人工验收  |
 | REV-01…04/06   | S2.5                   | document_patch 内核已有               | 未开始      |
 | OUT-01…04      | S2.7、S3.2…S3.4        | 文本+A2UI 内核                        | 未开始      |
 | EXP-01/02/03   | S1.5、S2.8             | 已有诚实导出入口，真实导出未实现      | 部分完成    |
@@ -496,25 +496,25 @@ npm run tauri build -- --debug --no-bundle
 
 > 更新规则：开始步骤前先改状态并记 START；完成后先写证据再标完成。
 
-| 步骤                                   | 状态   | 最近记录 | 下一动作                         |
-| -------------------------------------- | ------ | -------- | -------------------------------- |
-| DOC-0 架构与实施文档                   | 已完成 | LOG-0003 | 已进入 S0.1                      |
-| S0.1 固化当前工作树基线                | 已完成 | LOG-0006 | 已于 2026-08-13 通过人工验收     |
-| S0.2 合同 fixture                      | 已完成 | LOG-0009 | 已于 2026-08-13 通过人工验收     |
-| S0.3 前端边界拆分                      | 已完成 | LOG-0013 | 已于 2026-08-13 通过人工验收     |
-| S0.4 Rust 边界拆分                     | 已完成 | LOG-0016 | 已于 2026-08-13 通过人工验收     |
-| S1.1 Result/schema v9                  | 已完成 | LOG-0023 | 已通过用户人工验收               |
-| S1.2 Task/Template                     | 已完成 | LOG-0026 | 已通过用户人工验收               |
-| S1.3 导航/双模式外壳                   | 已完成 | LOG-0032 | 已通过用户人工验收               |
-| S1.4 新手引导与首页                    | 已完成 | LOG-0038 | 用户已完成最终人工验收           |
-| S1.5 大众版工作台外壳                  | 已完成 | LOG-0041 | 用户已完成人工验收               |
-| S2.1 统一导入批次                      | 已验收 | LOG-0056 | 用户已明确验收通过               |
-| S2.2 表格与图片读取适配                | 已验收 | LOG-0063 | 用户已明确验收通过               |
-| S2.3 Context Manifest 与持续隐私可见性 | 已完成 | LOG-0071 | 已于 2026-08-21 通过用户人工验收 |
-| S2.4 自适应 Context Planner            | 待开始 | LOG-0071 | 先由用户关闭 O-05 架构/隐私决策  |
-| S2.5…S4.8                              | 待开始 | —        | S2.4 完成并验收前不得提前实施    |
+| 步骤                                   | 状态       | 最近记录 | 下一动作                         |
+| -------------------------------------- | ---------- | -------- | -------------------------------- |
+| DOC-0 架构与实施文档                   | 已完成     | LOG-0003 | 已进入 S0.1                      |
+| S0.1 固化当前工作树基线                | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收     |
+| S0.2 合同 fixture                      | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收     |
+| S0.3 前端边界拆分                      | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收     |
+| S0.4 Rust 边界拆分                     | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收     |
+| S1.1 Result/schema v9                  | 已完成     | LOG-0023 | 已通过用户人工验收               |
+| S1.2 Task/Template                     | 已完成     | LOG-0026 | 已通过用户人工验收               |
+| S1.3 导航/双模式外壳                   | 已完成     | LOG-0032 | 已通过用户人工验收               |
+| S1.4 新手引导与首页                    | 已完成     | LOG-0038 | 用户已完成最终人工验收           |
+| S1.5 大众版工作台外壳                  | 已完成     | LOG-0041 | 用户已完成人工验收               |
+| S2.1 统一导入批次                      | 已验收     | LOG-0056 | 用户已明确验收通过               |
+| S2.2 表格与图片读取适配                | 已验收     | LOG-0063 | 用户已明确验收通过               |
+| S2.3 Context Manifest 与持续隐私可见性 | 已完成     | LOG-0071 | 已于 2026-08-21 通过用户人工验收 |
+| S2.4 自适应 Context Planner            | 待人工验收 | LOG-0073 | 自动验证已通过；执行 M01—M10     |
+| S2.5…S4.8                              | 待开始     | —        | S2.4 完成并验收前不得提前实施    |
 
-S1.1—S2.3 均已通过自动验证和用户人工验收。用户已授权进入 S2.4，但 O-05 仍是实施前阻塞决策；在用户明确选择分块、Embedding、索引存储与清理方案前，不得开始 S2.4 代码实施。
+S1.1—S2.3 均已通过自动验证和用户人工验收。S2.4 已完成实现与自动验证，当前停在用户人工验收门禁；用户明确回复“**S2.4 验收通过**”前不得开始 S2.5。
 
 ## 10. 连续变更账本
 
@@ -1626,6 +1626,63 @@ S1.1—S2.3 均已通过自动验证和用户人工验收。用户已授权进�
 - 工作树与阶段隔离：LOG-0070 代码质量整改已形成提交 `d1560f2`；本条只归档验收文档，在形成独立文档提交前不叠加 S2.4 代码，避免两个阶段无法区分。
 - 下一具体动作：向用户给出 O-05 推荐方案并获得明确选择；随后建立干净 S2.3 基线、记录 S2.4 START，再实施 Full/Retrieval/Hybrid、可追溯 chunk/index 和清理闭环。
 
+### LOG-0072 — S2.4 — START / O-05 CLOSED
+
+- 时间：2026-08-21（Asia/Shanghai）
+- 执行者/会话：用户与 Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `8ac102b`；工作树干净。`8ac102b` 只归档 S2.3 验收文档，未推送远端。
+- 用户决策：用户明确回复“**按推荐方案开始 S2.4**”，关闭 O-05 并授权开始实现。
+- 已接受方案：按标题、段落和表格行进行确定性结构分块，目标约 1600 字符并保留约 200 字符重叠；S2.4 P0 使用本地确定性词法/BM25 检索，不下载、不调用 Embedding 模型；为未来本地 Embedding 保留替换边界。
+- 索引与清理：索引正文和词项只存在 Rust 进程内存，不写入 SQLite 或其他磁盘文件，因此本阶段不新增索引加密密钥。索引按 workspace/source/hash 隔离；授权撤销、内容 Hash 变化、工作区切换/删除、一键清除和进程退出都会失效或释放相应数据。
+- 目标与允许范围：实现 Full/Retrieval/Hybrid 决策、可追溯 chunk 选择、策略可见与用户清除/重建；保持短文全文路径。不得开始 S2.5 Review、持久化正文索引、云端检索、Embedding 下载或图片伪理解。
+- Migration / IPC / Capability：预期不新增 migration；允许为只接受不透明 workspace/source 标识的索引清理命令扩展 IPC，并同步前端 Gateway、mock、合同和 Capability。最终以完成记录为准。
+- 状态：S2.4 从 `待开始` 转为 `进行中`；ADR-019 接受，O-05 关闭。
+- 下一具体动作：先在 Rust 可信边界实现纯函数分块/检索和进程内索引，再接入 Manifest 与前端策略可见性，最后补齐清理命令、自动测试和人工验收文档。
+
+### LOG-0073 — S2.4 — COMPLETE / PENDING USER ACCEPTANCE
+
+- 时间：2026-08-21 11:43（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线与阶段隔离：从干净 `main` / `8ac102b` 开始；`8ac102b` 是只归档 S2.3 验收的本地提交。本条只实现 S2.4，没有开始 S2.5 Review、成果 AI 写入、图片多模态发送、导出或遥测。S2.4 工作树在人工验收前保持未提交，便于用户审阅。
+- Rust Planner 与检索：新增 `ai/planner.rs` 和 `ai/retrieval.rs`，把策略决策、确定性分块/BM25-like 词法排序及内存索引从 Manifest 协调器拆开。文本目标块约 1600 字符、约 200 字符重叠，优先在换行/句末切分；中文使用稳定 CJK bigram。排序和浮点累加使用有序集合/映射，保证相同来源、Hash 和查询得到相同块及次序。
+- 策略与预算：总内容不超过 24000 字符且预算允许时选择 `Full`；短当前来源/短选区不超过 12000 字符而其他来源较长时选择 `Hybrid`；其余长文/多来源选择 `Retrieval`，最多选 32 个检索块。输入预算为 32000 token，预留 2048 token 给系统包装，最近消息上限 6000 token 并从最旧消息开始排除。ASCII 约 4 字符/token，非 ASCII 按 2 token/字符保守估算；前端只复现展示估算，Rust 是最终预算裁决者。
+- Manifest 与消费复验：V2 Context Manifest 新增 `strategy`、`indexMode`、`tokenBudget`、`retrievedChunkCount`；来源新增不透明 `sourceRef`、`mode` 和带 `chunkId/startChar/endChar` 的实际范围。待发送 Manifest 保留来源绑定；一次性消费前 Rust 再次确认来源仍属于当前工作区且内容 Hash 未变化，撤销授权、外部修改或预算越界均拒绝旧清单。
+- 索引生命周期与清理：`ContextIndex` 只存在 Rust 进程内存，按 workspace/source/contentHash 隔离，正文、块和词项不写入 SQLite、临时文件、日志、诊断或遥测。来源撤销、内容 Hash 变化、工作区切换/恢复/删除、清除本地数据、手动清理和进程退出都会释放或失效相关索引；工作区切换只保留活动工作区索引。新增 `clear_context_index(workspaceId)`，只接收不透明 ID、返回清除文档数，并同时使待发送 Manifest 失效。
+- 前端与可见性：发送清单展示 Full/Retrieval/Hybrid 的大众化说明、内存索引隐私提示、实际块数、`chunkId + 字符范围` 和动态 token 预算；桌面端提供“清除本工作区检索索引”入口及结果提示。Web Mock 补齐同构合同和保守预算展示，但不伪造真实桌面索引。用户仍可在发送前取消来源或缩小范围；每个对话只主动弹出一次清单的 S2.3 体验规则保持不变。
+- 合同、IPC、Capability 与数据：更新共享 JSON fixture、Rust serde、TypeScript 类型/guard、Desktop Gateway、命令注册、自动生成权限和主窗口最小 Capability。新增且仅新增 1 个业务 IPC 命令；没有新增数据库表或 migration，SQLite schema 保持 v10；没有 Embedding/向量数据库/云端检索依赖，也没有扩大任意路径、Shell 或网络权限。
+- 架构和隐私文档：更新 [ARCHITECTURE.md](ARCHITECTURE.md)、[PRIVACY.md](PRIVACY.md)、[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)，并建立 [S2_4_MANUAL_ACCEPTANCE.md](S2_4_MANUAL_ACCEPTANCE.md)。新对话可从本日志恢复策略阈值、预算、信任边界、清理语义和验收门禁。
+- 自动验证：
+  - `npm run check` 通过：Prettier、ESLint、TypeScript、35 个 Vitest 文件/126 项测试及 Vite 生产构建全部成功。
+  - `npm run test:coverage` 通过：35 个文件/126 项测试；Statements 97.97%、Branches 84.72%、Functions 96.66%、Lines 98.80%。
+  - `npm run test:e2e -- --project=chromium` 通过：Chromium Web Mock 7/7。
+  - 仓库工具链 `cargo fmt --all -- --check` 和 `cargo clippy --all-targets --all-features -- -D warnings` 通过。
+  - 隔离目标目录 `D:\A2UI\.validation-target\s2-4` 的 `cargo test --all-targets --all-features` 通过：Rust 库 111/111、架构边界 6/6、命令注册 1/1、合同 fixture 8/8，main 0 项；合计 126 项测试、0 失败。
+- 验证过程与已处理问题：系统 PATH 中的 Cargo 不可用，因此所有 Rust 门禁使用仓库工具链 `D:\A2UI\.tooling\cargo\bin\cargo.exe`。第一次完整前端检查发现范围展示后同一文件名出现两处，测试使用了错误的单元素查询；已改为验证两处合法呈现，复跑全绿。普通 Rust 全目标测试因用户正在运行的 `cargo run --no-default-features` 占用 `target/debug/a2ui-terminal.exe` 而遇到 Windows `os error 5`；没有终止用户进程，改用隔离目标目录完成完全相同的全目标验证。生产构建仍有既存主 JS chunk 约 1.22 MB（gzip 约 399.79 KB）提示，本阶段未增加新的构建失败。
+- 回滚与兼容：S2.4 无数据迁移或持久索引，回滚时删除 Planner/检索模块、扩展 Manifest 字段和清理命令并恢复对应 Gateway/UI/Capability 即可；进程退出会自然释放全部索引。现有 Result、Task、Workspace、消息、版本和源文件不需要迁移或回写。
+- 状态与下一动作：S2.4 从 `进行中` 转为 `待人工验收`，CTX-05 同步为 `待人工验收`。按 [S2_4_MANUAL_ACCEPTANCE.md](S2_4_MANUAL_ACCEPTANCE.md) 执行 M01—M10；用户明确回复“**S2.4 验收通过**”前不得开始 S2.5。
+
+### LOG-0074 — S2.4 — ACCEPTANCE FIXTURE
+
+- 时间：2026-08-21（Asia/Shanghai）
+- 执行者/会话：用户与 Codex `/root`
+- 用户请求：为 S2.4 人工验收生成 `long.md`，不改变 Planner、业务代码、IPC、Capability、schema 或阶段状态。
+- 实际修改：在 Git 工作树外建立 `D:\A2UI\S2_4_ACCEPTANCE_FIXTURES\long.md`，避免把人工测试资料混入产品源码。文件为完全虚构的 48 节运营资料，共 39771 字符、791 行、109797 bytes。
+- 检索核对点：长文中部的“火星预算批准”只出现 1 次；对应唯一编号 `MARS-BUDGET-2042-RED-7319`，应急储备答案为 17%。这三个信息可用于验证 Retrieval 相关性、字符范围和重复查询确定性。
+- 完整性：SHA-256 为 `956CF7EE18B09B2EBF13DE1AB45AE2C746B12216B11B64855DE9F6F0F324E49A`。fixture 不含真实姓名、账号、密钥、路径、客户或业务资料；使用说明已同步到 [S2_4_MANUAL_ACCEPTANCE.md](S2_4_MANUAL_ACCEPTANCE.md)。
+- 状态：S2.4 继续保持 `待人工验收`，S2.5 未开始。
+
+### LOG-0075 — S2.4 — HYBRID AUTHORIZED-SOURCE CORRECTION / PENDING ACCEPTANCE
+
+- 时间：2026-08-21（Asia/Shanghai）
+- 执行者/会话：用户与 Codex `/root`
+- 用户验收证据：用户截图中当前 `PROJECT_GUIDE.md` 已缩短为 4 字符，并同时勾选已授权的 `PROJECT_GUIDE.md` 与 `long.md`，但预检只显示当前文件/最近对话，Rust 错误生成 `Full`，没有出现预期 `Hybrid`。这证明问题不是 S2.4 阈值，而是授权资料选择没有进入请求。
+- 根因：已导入文本会同时存在于 Workspace `files` 和 `DocumentSource` 列表。`buildContextManifestInput` 先为所有 Workspace 文件登记 `sourceId`，其 `selected` 却只读取“当前文件/项目文件”选择；随后同一 `DocumentSource` 因 `seenSourceIds` 去重被跳过，导致“已授权资料”复选框虽然可见且已勾选，选择状态仍被丢失。活动的 extracted 文档还被标为 `attached_document`，不能作为 Hybrid 的短优先来源。与此同时，前端“最终发送清单”只渲染 Workspace snapshot，没有显示单独勾选的授权资料。
+- 修复：Workspace 文件候选现在合并同一不透明 `sourceId` 的 `documentSourceIds` 显式选择；活动文件无论是否 extracted 都以 `current_file` 参与 Planner，非活动 extracted 文档仍保持 `attached_document`。候选仍按 `sourceId` 去重，因此同一授权内容最多发送一次。预检列表新增已选授权资料，并对已经由当前文件/项目文件显示的同源条目去重。
+- 安全与兼容：修复不会自动选择任何资料，只合并用户已经勾选的同一授权 ID；未选择内容仍不附带正文跨越 IPC，Rust 继续复读当前工作区授权、内容 Hash、敏感路径和单次来源上限。没有修改 Rust、Provider、IPC、Capability、schema、migration、索引持久化或 S2.5 范围。
+- 回归测试：新增与截图一致的候选合并测试，覆盖“4 字符活动 extracted 文档 + 同列表长资料 + 重复 sourceId”；新增预检 UI 测试，确认 `long.md` 在授权复选框和发送清单中同时可见。专用 2 个测试文件/7 项测试通过。
+- 全量验证：串行 `npm run check` 通过，Prettier、ESLint、TypeScript、35 个 Vitest 文件/128 项测试及生产构建全部成功；`npm run test:coverage` 通过，Statements 97.97%、Branches 84.72%、Functions 96.66%、Lines 98.80%；Chromium E2E 7/7。最初并发运行完整检查和覆盖率时因两套 jsdom 套件资源竞争出现统一 5 秒超时，改为串行后所有原失败项与新增测试均通过，判定为验证方式问题而非产品回归。
+- 状态与复验：S2.4 继续保持 `待人工验收`，S2.5 未开始。重新加载修复后的前端，保持 4 字符当前文件并勾选 `long.md`，重新生成清单；应显示 `Hybrid`，短当前文件为 `Full`，`long.md` 为 `Retrieved` 且带 chunk 范围。
+
 ### 新账本记录模板
 
 ```markdown
@@ -1671,6 +1728,7 @@ S1.1—S2.3 均已通过自动验证和用户人工验收。用户已授权进�
 | ADR-016 | 匿名指标默认关闭，首次核心闭环后邀请主动开启    | 已接受 | 用户决策 2026-08-11  |
 | ADR-017 | 用户可主动新建；AI 创建必须先经用户确认         | 已接受 | 用户决策 2026-08-13  |
 | ADR-018 | 首期新建聚焦 UTF-8 文本，不追求 Office 无损兼容 | 已接受 | 用户决策 2026-08-13  |
+| ADR-019 | S2.4 使用内存确定性检索，不持久化正文索引       | 已接受 | 用户决策 2026-08-21  |
 
 ### 开放问题
 
@@ -1680,7 +1738,7 @@ S1.1—S2.3 均已通过自动验证和用户人工验收。用户已授权进�
 | O-02 | 托管本地成果默认目录和命名/迁移                        | 产品           | —               | 产品决策关闭                                |
 | O-03 | DOCX/PDF/XLSX 导出库、字体、许可证                     | 架构/法务      | S2.8            | 开放                                        |
 | O-04 | XLSX 公式、CSV 注入、图片 OCR 范围                     | 产品/安全      | —               | 读取范围与风险标记已关闭；导出转义留在 S2.8 |
-| O-05 | 本地检索、Embedding、索引清理策略                      | 架构/隐私      | S2.4            | 开放                                        |
+| O-05 | 本地检索、Embedding、索引清理策略                      | 架构/隐私      | S2.4            | 已按 ADR-019 关闭                           |
 | O-06 | 指标上传接收端、保留期、聚合方式和删除机制             | 产品/隐私      | S4.3            | 部分开放                                    |
 | O-07 | “A2UI 工作台”的版本号、安装包标识和升级兼容策略        | 产品/发布      | S4.8            | 部分开放                                    |
 | O-08 | 内置试用模型供应、服务端鉴权、额度、滥用控制和失败降级 | 商业/后端/隐私 | S1.4 真实生成前 | 开放                                        |
@@ -1702,17 +1760,18 @@ S1.1—S2.3 均已通过自动验证和用户人工验收。用户已授权进�
 
 ## 12. 交接摘要
 
-截至 LOG-0071：
+截至 LOG-0075：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页、S1.5 专用成果工作台、S2.1 ImportBatch/系统选择/桌面原生拖放、S2.2 CSV/XLSX/图片读取适配和 S2.3 Context Manifest。S2.4 Adaptive Context 已获进入授权但受 O-05 阻塞；Provider 图片多模态发送、统一 Review、Export 和产品事件尚未开始。
+- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页、S1.5 专用成果工作台、S2.1 ImportBatch/系统选择/桌面原生拖放、S2.2 CSV/XLSX/图片读取适配和 S2.3 Context Manifest。S2.4 Adaptive Context 已完成实现与自动验证、正在等待用户人工验收；Provider 图片多模态发送、统一 Review、Export 和产品事件尚未开始。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
 - S2.2 已建立统一 `DocumentSource`、CSV/XLSX 受限结构化读取、公式/注入风险标记、图片原始视觉来源、8 MB 内本地预览、多批累积和工作区隔离的单项撤销，且已于 2026-08-20 通过用户验收。
 - S2.3 通用聊天每次请求必须经过 Rust 生成清单和一次性 Manifest ID 消费。每个对话仅首次发送主动弹窗并由用户确认；后续范围与 Provider 未变化时后台生成/确认新 Manifest，范围变化只提示点击“修改发送清单”，新敏感风险仍要求用户主动打开并明确确认。会话审核指纹保存在工作区应用状态中，跨设置页导航与工作台重新挂载保留，并在工作区切换/清除时重置；Provider 成功改配或切换时显式失效所有已有消息会话，因此无基线历史会话也能显示变化。前端待确认清单同时绑定 Provider、上下文和 Prompt 指纹，Prompt 编辑会主动清除旧清单；Rust 继续以 Prompt Hash 作最终拒绝。Rust 复读已授权文本/表格、冻结最近消息并独立计算来源/排除项/Hash/本机云端/敏感结论；Provider/Prompt/范围变化拒绝旧清单。当前文本合同不能发送图片，图片在清单中明确排除；没有 schema migration 或 S2.4 检索实现。
 - S2.3 代码质量整改已把 `ChatPanel` 收敛为组合层，将 Context Manifest 编排、消息协议呈现和输入/拖放拆为独立模块；前端架构测试固定该依赖方向。Rust 应用层边界测试改为自动扫描整个 `src/application` 目录，不再漏掉新增 `context.rs`。大规模 Storage/DocumentSource 物理拆分留待 S2.3 验收后的独立重构基线。
 - S2.3 对已授权零字节文本目标只提供准确能力限制：Rust 明确识别空文件，跳过不可能成功的后台模型重试，前端隐藏手动重试且保持零写入。真正的安全首次写入已作为显式合同/E2E 场景排入 S2.5，当前没有放宽非空锚点或实现写入。
-- 当前唯一活动动作是关闭 O-05：明确分块、Embedding、索引持久化/加密和授权撤销清理策略；决策前不得开始 S2.4 代码实施。
+- S2.4 已按 ADR-019 实现 Rust 可信 Planner、约 1600/200 字符确定性结构分块、本地词法/BM25-like 检索、中文 bigram、Full/Retrieval/Hybrid、32000 token 预算、可追溯块范围和进程内 workspace/source/hash 索引。Manifest 消费前会复验授权与 Hash；索引不会持久化，可手动清理，并在撤销、变化、切换、删除、清除数据或退出时失效。Schema 仍为 v10，仅新增 `clear_context_index` 最小 IPC；自动验证结果见 LOG-0073。
+- 当前唯一活动门禁是 S2.4 人工验收：按 [S2_4_MANUAL_ACCEPTANCE.md](S2_4_MANUAL_ACCEPTANCE.md) 执行 M01—M10；用户明确回复“**S2.4 验收通过**”前不得开始 S2.5。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - 如果文档与实际代码不一致，先记录差异并修正文档状态；不要为了符合文档而破坏性改写用户代码。

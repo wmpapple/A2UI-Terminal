@@ -33,10 +33,13 @@ S2.2 当前可确认 UTF-8 白名单文本、只读 DOCX/PDF 文本层、CSV/XLS
 1. 设置页只读写 Endpoint、Model、Temperature 和无凭据代理地址；API Key 通过独立 IPC 写入 Windows Credential Manager。
 2. 每个对话首次发送前必须生成并展示 Rust Context Manifest，再由用户确认。后续请求仍逐次生成并消费绑定新 Prompt 的 Manifest；已确认范围与 Provider 未变化且没有新敏感风险时后台完成，不再主动弹窗。前端待确认清单绑定 Provider、上下文和 Prompt 三类指纹，任一输入变化立即失效；Rust Prompt Hash 继续负责最终拒绝。会话确认指纹保存在工作区级应用状态，设置页导航导致聊天组件卸载时不得丢失；切换工作区或清除工作区状态时必须重置。保存活动 Provider 的 Endpoint/Model/Temperature/Proxy 变化或切换活动 Provider 时，Provider store 必须显式失效所有已有消息会话，包括尚无新版本确认指纹的历史会话。范围、文件内容或 Provider 变化时只提示用户点击“修改发送清单”，不得抢占式弹窗或调用 Provider；新敏感风险必须在用户主动打开后明确确认。
 3. Rust 使用 `sourceId` 反查文件授权并重新读取文本/表格，独立计算字符数、Hash、排除原因与本机/云端位置；选区只作为短期内存来源。确认后的请求只携带 `contextManifestId`，不能再由前端附带正文列表或自行声明敏感确认结论。实际请求的清单元数据写入 `context_snapshots`，不长期复制文件上下文正文。
-4. Rust 从 SQLite 读取用户明确选择条数的历史消息，在后端组装 Provider 请求；密钥不返回前端。
-5. Provider 的 SSE 增量通过 Tauri Channel 返回，完整用户消息和助手回复写入 SQLite。取消在连接、响应等待和流读取阶段均生效，部分回复保留为 `stopped`。
-6. 传输层采用分阶段超时：连接 10 秒、响应头 45 秒、流空闲 60 秒、持续输出最长 15 分钟。HTTP、网络、超时、协议和限流错误映射为稳定错误码，并附带可重试与 `Retry-After` 元数据。
-7. 删除工作区依靠外键级联删除会话、消息与上下文摘要；真实项目文件不受影响。
+4. S2.4 Adaptive Context Planner 位于 Rust `ai/context.rs → ai/planner.rs → ai/retrieval.rs` 边界。短内容使用 `Full`；长文/多来源使用 `Retrieval`；短选区或短当前文件与其他长资料并用时使用 `Hybrid`。文本按约 1600 字符、约 200 字符重叠并优先在换行/句末切分；表格先转为稳定的本地结构化 JSON 行。中文与其他非 ASCII 字符按更保守的 token 估算计入 32000 token 输入预算，并预留 2048 token 给包装与系统指令。
+5. Retrieval 使用确定性的本地词法/BM25 排序和中文字符 bigram，不下载或调用 Embedding 模型。索引正文、词频和分块只存在 `AppState.context_index` 内存，不进入 SQLite、临时文件、日志或遥测。索引按 `workspaceId + sourceId + contentHash` 隔离；内容 Hash 变化自动重建，切换/删除工作区、撤销来源、一键清除本地数据或 `clear_context_index` 会释放对应索引并使待发送 Manifest 失效。
+6. Manifest 显示策略、内存索引模式、实际分块数量和每个来源的 `chunkId + 字符起止范围`。消费清单前 Rust 再次检查来源仍属于当前工作区且 Hash 未变化；授权撤销或外部内容变化会拒绝发送并要求重新确认。检索只缩小已授权正文，不扩大授权范围。
+7. Rust 从 SQLite 读取用户明确选择条数的历史消息，在后端组装 Provider 请求；密钥不返回前端。最近消息按保守的 6000 token 本地预算从最旧消息开始缩减，清单必须显示实际条数和被排除原因。
+8. Provider 的 SSE 增量通过 Tauri Channel 返回，完整用户消息和助手回复写入 SQLite。取消在连接、响应等待和流读取阶段均生效，部分回复保留为 `stopped`。
+9. 传输层采用分阶段超时：连接 10 秒、响应头 45 秒、流空闲 60 秒、持续输出最长 15 分钟。HTTP、网络、超时、协议和限流错误映射为稳定错误码，并附带可重试与 `Retry-After` 元数据。
+10. 删除工作区依靠外键级联删除会话、消息与上下文摘要；真实项目文件不受影响。
 
 ## 模块边界
 

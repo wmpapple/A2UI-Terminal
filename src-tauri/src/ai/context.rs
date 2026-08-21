@@ -1,3 +1,8 @@
+use super::planner::{estimate_tokens, plan_text_sources, ResolvedTextSource};
+pub use super::planner::{
+    ContextChunkRange, ContextIndexMode, ContextManifestSource, ContextSourceMode, ContextStrategy,
+};
+use super::retrieval::ContextIndex;
 use super::{ChatRequest, ContextSource, ContextSourceKind, ProviderConfig, ProviderMessage};
 use crate::document_source::{self, DocumentSourceKind};
 use crate::error::AppError;
@@ -16,7 +21,10 @@ use uuid::Uuid;
 const MAX_PROMPT_CHARACTERS: usize = 100_000;
 const MAX_CONTEXT_CANDIDATES: usize = 50;
 const MAX_CONTEXT_SOURCES: usize = 20;
-const MAX_CONTEXT_CHARACTERS: usize = 1_000_000;
+const CONTEXT_TOKEN_BUDGET: usize = 32_000;
+const CONTEXT_CHARACTER_BUDGET: usize = CONTEXT_TOKEN_BUDGET * 4;
+const CONTEXT_WRAPPER_RESERVE_TOKENS: usize = 2_048;
+const MAX_HISTORY_TOKENS: usize = 6_000;
 const MANIFEST_TTL_SECONDS: u64 = 10 * 60;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -65,28 +73,21 @@ pub struct ConfirmContextManifestInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ContextManifestSource {
-    pub kind: String,
-    pub label: String,
-    pub content_hash: Option<String>,
-    pub size_bytes: u64,
-    pub character_count: usize,
-    pub exclusion_reason: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ContextManifest {
     pub id: String,
     pub workspace_id: String,
     pub session_id: String,
     pub provider_id: String,
     pub processing_location: ProcessingLocation,
+    pub strategy: ContextStrategy,
+    pub index_mode: ContextIndexMode,
     pub status: ContextManifestStatus,
     pub included_sources: Vec<ContextManifestSource>,
     pub excluded_sources: Vec<ContextManifestSource>,
     pub character_count: usize,
     pub estimated_tokens: usize,
+    pub token_budget: usize,
+    pub retrieved_chunk_count: usize,
     pub sensitive_warning: bool,
     pub requires_sensitive_confirmation: bool,
     pub created_at: String,
@@ -101,6 +102,7 @@ pub struct PendingContextManifest {
     prompt_hash: String,
     expires_at_epoch: u64,
     sources: Vec<ContextSource>,
+    source_bindings: Vec<(String, String)>,
     history: Vec<ProviderMessage>,
 }
 
@@ -113,6 +115,7 @@ pub struct ConfirmedContextManifest {
 
 pub fn plan_context_manifest(
     storage: &Storage,
+    index: &mut ContextIndex,
     input: ContextManifestInput,
 ) -> Result<PendingContextManifest, AppError> {
     validate_manifest_input(&input)?;
@@ -130,13 +133,12 @@ pub fn plan_context_manifest(
         return Err(AppError::InvalidInput("会话不属于当前工作区".into()));
     }
 
+    index.retain_workspace(&input.workspace_id);
     let processing_location = processing_location(&provider);
-    let mut sources = Vec::new();
-    let mut included_sources = Vec::new();
+    let mut resolved_sources = Vec::new();
     let mut excluded_sources = Vec::new();
     let mut seen_source_ids = HashSet::new();
-    let mut character_count = 0usize;
-    let mut sensitive_warning = looks_sensitive(&input.prompt);
+    let mut selected_source_count = 0usize;
 
     for candidate in input.candidates {
         validate_candidate_label(&candidate.label)?;
@@ -144,7 +146,7 @@ pub fn plan_context_manifest(
             excluded_sources.push(excluded(&candidate, "用户未选择"));
             continue;
         }
-        if sources.len() >= MAX_CONTEXT_SOURCES {
+        if selected_source_count >= MAX_CONTEXT_SOURCES {
             excluded_sources.push(excluded(&candidate, "超过单次最多 20 项来源的安全上限"));
             continue;
         }
@@ -158,16 +160,17 @@ pub fn plan_context_manifest(
                 excluded_sources.push(excluded(&candidate, "选区为空"));
                 continue;
             }
-            push_text_source(
-                &mut sources,
-                &mut included_sources,
-                &mut character_count,
-                &mut sensitive_warning,
-                ContextSourceKind::Selection,
-                candidate.label,
+            selected_source_count += 1;
+            resolved_sources.push(ResolvedTextSource {
+                kind: ContextSourceKind::Selection,
+                manifest_kind: kind_name(ContextSourceKind::Selection).into(),
+                label: candidate.label,
+                source_id: None,
+                content_hash: sha256(content.as_bytes()),
+                size_bytes: content.len() as u64,
                 content,
-                candidate.base_hash,
-            )?;
+                base_hash: candidate.base_hash,
+            });
             continue;
         }
 
@@ -179,6 +182,7 @@ pub fn plan_context_manifest(
             excluded_sources.push(excluded(&candidate, "同一授权来源已包含一次"));
             continue;
         }
+        selected_source_count += 1;
         let row = storage
             .workspace_file_by_source(source_id)?
             .filter(|row| row.workspace_id == input.workspace_id)
@@ -189,28 +193,27 @@ pub fn plan_context_manifest(
             DocumentSourceKind::Image => excluded_sources.push(ContextManifestSource {
                 kind: "image".into(),
                 label: trusted_label,
+                source_ref: Some(source_id.to_string()),
                 content_hash: Some(trusted.source.content_hash),
                 size_bytes: trusted.source.size_bytes,
                 character_count: 0,
+                mode: ContextSourceMode::Excluded,
+                selected_ranges: Vec::new(),
                 exclusion_reason: Some("当前 Provider 合同不支持可信视觉输入；图片未发送".into()),
             }),
             DocumentSourceKind::Table => {
-                let content = serde_json::to_string(&trusted.table_content)
+                let content = serde_json::to_string_pretty(&trusted.table_content)
                     .map_err(|_| AppError::StateUnavailable)?;
-                push_text_source(
-                    &mut sources,
-                    &mut included_sources,
-                    &mut character_count,
-                    &mut sensitive_warning,
-                    ContextSourceKind::AttachedDocument,
-                    trusted_label,
+                resolved_sources.push(ResolvedTextSource {
+                    kind: ContextSourceKind::AttachedDocument,
+                    manifest_kind: "table".into(),
+                    label: trusted_label,
+                    source_id: Some(source_id.to_string()),
+                    content_hash: trusted.source.content_hash.clone(),
+                    size_bytes: trusted.source.size_bytes,
                     content,
-                    Some(trusted.source.content_hash),
-                )?;
-                if let Some(last) = included_sources.last_mut() {
-                    last.kind = "table".into();
-                    last.size_bytes = trusted.source.size_bytes;
-                }
+                    base_hash: Some(trusted.source.content_hash),
+                });
             }
             DocumentSourceKind::Text => {
                 let content = candidate
@@ -220,48 +223,98 @@ pub fn plan_context_manifest(
                     })
                     .or(trusted.text_content)
                     .unwrap_or_default();
-                push_text_source(
-                    &mut sources,
-                    &mut included_sources,
-                    &mut character_count,
-                    &mut sensitive_warning,
-                    candidate.kind,
-                    trusted_label,
+                resolved_sources.push(ResolvedTextSource {
+                    kind: candidate.kind,
+                    manifest_kind: kind_name(candidate.kind).into(),
+                    label: trusted_label,
+                    source_id: Some(source_id.to_string()),
+                    content_hash: trusted.source.content_hash.clone(),
+                    size_bytes: trusted.source.size_bytes,
                     content,
-                    Some(trusted.source.content_hash),
-                )?;
-                if let Some(last) = included_sources.last_mut() {
-                    last.size_bytes = trusted.source.size_bytes;
-                }
+                    base_hash: Some(trusted.source.content_hash),
+                });
             }
         }
     }
 
-    let history = if input.include_recent_messages {
+    let unbounded_history = if input.include_recent_messages {
         repository.recent_messages(&input.session_id, input.recent_message_count)?
     } else {
         Vec::new()
     };
+    let (history, omitted_history_count) = bounded_history(unbounded_history)?;
+    let history_serialized =
+        serde_json::to_string(&history).map_err(|_| AppError::StateUnavailable)?;
+    let history_character_count = if input.include_recent_messages {
+        history_serialized.chars().count()
+    } else {
+        0
+    };
+    let prompt_tokens = estimate_tokens(&input.prompt);
+    let history_tokens = if input.include_recent_messages {
+        estimate_tokens(&history_serialized)
+    } else {
+        0
+    };
+    let source_token_budget = CONTEXT_TOKEN_BUDGET
+        .saturating_sub(prompt_tokens)
+        .saturating_sub(history_tokens)
+        .saturating_sub(CONTEXT_WRAPPER_RESERVE_TOKENS);
+    let mut source_plan = plan_text_sources(
+        index,
+        &input.workspace_id,
+        &input.prompt,
+        resolved_sources,
+        source_token_budget,
+    );
+    excluded_sources.append(&mut source_plan.excluded_sources);
+    let mut character_count = source_plan.character_count;
+    let mut sensitive_warning = looks_sensitive(&input.prompt)
+        || source_plan
+            .sources
+            .iter()
+            .any(|source| looks_sensitive(&source.content));
     if input.include_recent_messages {
-        let serialized = serde_json::to_string(&history).map_err(|_| AppError::StateUnavailable)?;
-        let count = serialized.chars().count();
-        character_count = checked_context_size(character_count, count)?;
-        sensitive_warning |= looks_sensitive(&serialized);
-        included_sources.push(ContextManifestSource {
+        character_count = checked_context_size(character_count, history_character_count)?;
+        sensitive_warning |= looks_sensitive(&history_serialized);
+        source_plan.included_sources.push(ContextManifestSource {
             kind: "recent_messages".into(),
             label: format!("最近 {} 条对话", history.len()),
-            content_hash: Some(sha256(serialized.as_bytes())),
-            size_bytes: serialized.len() as u64,
-            character_count: count,
+            source_ref: None,
+            content_hash: Some(sha256(history_serialized.as_bytes())),
+            size_bytes: history_serialized.len() as u64,
+            character_count: history_character_count,
+            mode: ContextSourceMode::Full,
+            selected_ranges: vec![ContextChunkRange {
+                chunk_id: "history".into(),
+                start_character: 0,
+                end_character: history_character_count,
+            }],
             exclusion_reason: None,
         });
+        if omitted_history_count > 0 {
+            excluded_sources.push(ContextManifestSource {
+                kind: "recent_messages".into(),
+                label: format!("更早的 {omitted_history_count} 条对话"),
+                source_ref: None,
+                content_hash: None,
+                size_bytes: 0,
+                character_count: 0,
+                mode: ContextSourceMode::Excluded,
+                selected_ranges: Vec::new(),
+                exclusion_reason: Some("超过最近对话的 6000 token 本地预算".into()),
+            });
+        }
     } else {
         excluded_sources.push(ContextManifestSource {
             kind: "recent_messages".into(),
             label: "最近对话".into(),
+            source_ref: None,
             content_hash: None,
             size_bytes: 0,
             character_count: 0,
+            mode: ContextSourceMode::Excluded,
+            selected_ranges: Vec::new(),
             exclusion_reason: Some("用户未选择".into()),
         });
     }
@@ -269,17 +322,37 @@ pub fn plan_context_manifest(
     let expires = now + MANIFEST_TTL_SECONDS;
     let requires_sensitive_confirmation =
         sensitive_warning && processing_location == ProcessingLocation::Cloud;
+    let source_bindings = source_plan
+        .included_sources
+        .iter()
+        .filter_map(|source| Some((source.source_ref.clone()?, source.content_hash.clone()?)))
+        .collect::<Vec<_>>();
     let view = ContextManifest {
         id: Uuid::new_v4().to_string(),
         workspace_id: input.workspace_id,
         session_id: input.session_id,
         provider_id,
         processing_location,
+        strategy: source_plan.strategy,
+        index_mode: if source_plan.strategy == ContextStrategy::Full {
+            ContextIndexMode::None
+        } else {
+            ContextIndexMode::MemoryLexical
+        },
         status: ContextManifestStatus::AwaitingConfirmation,
-        included_sources,
+        included_sources: source_plan.included_sources,
         excluded_sources,
         character_count,
-        estimated_tokens: (character_count + input.prompt.chars().count()).div_ceil(4),
+        estimated_tokens: source_plan
+            .sources
+            .iter()
+            .map(|source| estimate_tokens(&source.content))
+            .sum::<usize>()
+            + prompt_tokens
+            + history_tokens
+            + CONTEXT_WRAPPER_RESERVE_TOKENS,
+        token_budget: CONTEXT_TOKEN_BUDGET,
+        retrieved_chunk_count: source_plan.retrieved_chunk_count,
         sensitive_warning,
         requires_sensitive_confirmation,
         created_at: now.to_string(),
@@ -291,7 +364,8 @@ pub fn plan_context_manifest(
         prompt_hash: sha256(input.prompt.trim().as_bytes()),
         expires_at_epoch: expires,
         view,
-        sources,
+        sources: source_plan.sources,
+        source_bindings,
         history,
     })
 }
@@ -356,6 +430,18 @@ pub fn consume_context_manifest(
             "Provider 配置已变化，请重新确认处理位置和上下文".into(),
         ));
     }
+    for (source_id, expected_hash) in &manifest.source_bindings {
+        let row = storage
+            .workspace_file_by_source(source_id)?
+            .filter(|row| row.workspace_id == request.workspace_id)
+            .ok_or_else(|| AppError::InvalidInput("资料授权已撤销，请重新确认上下文".into()))?;
+        let current = document_source::read(storage, &row.source_id)?;
+        if current.source.content_hash != *expected_hash {
+            return Err(AppError::InvalidInput(
+                "资料内容已变化，请重新确认上下文".into(),
+            ));
+        }
+    }
     Ok(ConfirmedContextManifest {
         view: manifest.view,
         sources: manifest.sources,
@@ -387,6 +473,21 @@ pub fn build_context_prompt(prompt: &str, sources: &[ContextSource]) -> String {
     output
 }
 
+fn bounded_history(
+    mut history: Vec<ProviderMessage>,
+) -> Result<(Vec<ProviderMessage>, usize), AppError> {
+    let original_count = history.len();
+    while !history.is_empty() {
+        let serialized = serde_json::to_string(&history).map_err(|_| AppError::StateUnavailable)?;
+        if estimate_tokens(&serialized) <= MAX_HISTORY_TOKENS {
+            break;
+        }
+        history.remove(0);
+    }
+    let omitted_count = original_count.saturating_sub(history.len());
+    Ok((history, omitted_count))
+}
+
 fn validate_manifest_input(input: &ContextManifestInput) -> Result<(), AppError> {
     Uuid::parse_str(&input.session_id)
         .map_err(|_| AppError::InvalidInput("会话标识必须是有效 UUID".into()))?;
@@ -396,6 +497,11 @@ fn validate_manifest_input(input: &ContextManifestInput) -> Result<(), AppError>
     if input.prompt.trim().is_empty() || input.prompt.chars().count() > MAX_PROMPT_CHARACTERS {
         return Err(AppError::InvalidInput(
             "消息不能为空且不能超过 100000 个字符".into(),
+        ));
+    }
+    if estimate_tokens(&input.prompt) + CONTEXT_WRAPPER_RESERVE_TOKENS >= CONTEXT_TOKEN_BUDGET {
+        return Err(AppError::InvalidInput(
+            "消息预计超过本次 32000 token 输入预算，请缩短后重试".into(),
         ));
     }
     if input.candidates.len() > MAX_CONTEXT_CANDIDATES {
@@ -426,54 +532,31 @@ fn validate_chat_request(request: &ChatRequest) -> Result<(), AppError> {
             "消息不能为空且不能超过 100000 个字符".into(),
         ));
     }
-    Ok(())
-}
-
-#[allow(clippy::too_many_arguments)]
-fn push_text_source(
-    sources: &mut Vec<ContextSource>,
-    metadata: &mut Vec<ContextManifestSource>,
-    total_characters: &mut usize,
-    sensitive_warning: &mut bool,
-    kind: ContextSourceKind,
-    label: String,
-    content: String,
-    base_hash: Option<String>,
-) -> Result<(), AppError> {
-    let count = content.chars().count();
-    *total_characters = checked_context_size(*total_characters, count)?;
-    *sensitive_warning |= looks_sensitive(&content);
-    metadata.push(ContextManifestSource {
-        kind: kind_name(kind).into(),
-        label: label.clone(),
-        content_hash: Some(sha256(content.as_bytes())),
-        size_bytes: content.len() as u64,
-        character_count: count,
-        exclusion_reason: None,
-    });
-    sources.push(ContextSource {
-        kind,
-        label,
-        content,
-        base_hash,
-    });
+    if estimate_tokens(&request.prompt) + CONTEXT_WRAPPER_RESERVE_TOKENS >= CONTEXT_TOKEN_BUDGET {
+        return Err(AppError::InvalidInput(
+            "消息预计超过本次 32000 token 输入预算，请缩短后重试".into(),
+        ));
+    }
     Ok(())
 }
 
 fn checked_context_size(current: usize, additional: usize) -> Result<usize, AppError> {
     current
         .checked_add(additional)
-        .filter(|total| *total <= MAX_CONTEXT_CHARACTERS)
-        .ok_or_else(|| AppError::InvalidInput("上下文总字符数不能超过 1000000".into()))
+        .filter(|total| *total <= CONTEXT_CHARACTER_BUDGET)
+        .ok_or_else(|| AppError::InvalidInput("上下文超过本次 32000 token 输入预算".into()))
 }
 
 fn excluded(candidate: &ContextCandidate, reason: &str) -> ContextManifestSource {
     ContextManifestSource {
         kind: kind_name(candidate.kind).into(),
         label: candidate.label.clone(),
+        source_ref: candidate.source_id.clone(),
         content_hash: None,
         size_bytes: 0,
         character_count: 0,
+        mode: ContextSourceMode::Excluded,
+        selected_ranges: Vec::new(),
         exclusion_reason: Some(reason.into()),
     }
 }
@@ -575,7 +658,7 @@ mod tests {
     use super::{
         build_context_prompt, confirm_context_manifest, consume_context_manifest,
         plan_context_manifest, processing_location, ConfirmContextManifestInput, ContextCandidate,
-        ContextManifestInput,
+        ContextIndex, ContextManifestInput,
     };
     use crate::ai::{ChatRequest, ContextSource, ContextSourceKind, ProviderConfig, ProviderKind};
     use crate::storage::Storage;
@@ -656,8 +739,10 @@ mod tests {
             .create_session(workspace_id, &session_id, "Manifest")
             .unwrap();
         let prompt = "summarize";
+        let mut index = ContextIndex::default();
         let pending = plan_context_manifest(
             &storage,
+            &mut index,
             ContextManifestInput {
                 workspace_id: workspace_id.into(),
                 session_id: session_id.clone(),
@@ -687,6 +772,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(pending.view.included_sources.len(), 1);
+        assert!(pending.view.estimated_tokens <= pending.view.token_budget);
         assert!(pending
             .view
             .excluded_sources
@@ -694,6 +780,7 @@ mod tests {
             .any(|source| source.label == "excluded.txt" && source.content_hash.is_none()));
         let manifest_id = pending.view.id.clone();
         let stale_pending = pending.clone();
+        let revoked_pending = pending.clone();
         let mut manifests = HashMap::from([(manifest_id.clone(), pending)]);
         confirm_context_manifest(
             &mut manifests,
@@ -717,6 +804,23 @@ mod tests {
         assert_eq!(confirmed.sources.len(), 1);
         assert_eq!(confirmed.sources[0].content, "approved content");
         assert!(consume_context_manifest(&storage, &mut manifests, &request).is_err());
+
+        let mut revoked_manifests = HashMap::from([(manifest_id.clone(), revoked_pending)]);
+        confirm_context_manifest(
+            &mut revoked_manifests,
+            ConfirmContextManifestInput {
+                manifest_id: manifest_id.clone(),
+                sensitive_cloud_confirmed: true,
+            },
+        )
+        .unwrap();
+        crate::document_source::revoke(&storage, workspace_id, "source-selected").unwrap();
+        assert!(
+            consume_context_manifest(&storage, &mut revoked_manifests, &request)
+                .unwrap_err()
+                .to_string()
+                .contains("资料授权已撤销")
+        );
 
         let mut stale_manifests = HashMap::from([(manifest_id.clone(), stale_pending)]);
         confirm_context_manifest(
@@ -749,8 +853,10 @@ mod tests {
         storage
             .create_session(workspace_id, &session_id, "Sensitive")
             .unwrap();
+        let mut index = ContextIndex::default();
         let pending = plan_context_manifest(
             &storage,
+            &mut index,
             ContextManifestInput {
                 workspace_id: workspace_id.into(),
                 session_id,

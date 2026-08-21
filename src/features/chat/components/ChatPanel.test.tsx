@@ -7,6 +7,12 @@ import { ChatPanel } from './ChatPanel';
 
 const rawProtocol = '{"version":"1.0","type":"document_patch","changes":["MACHINE_ONLY_PROTOCOL"]';
 const originalSendChat = useAppStore.getState().sendChat;
+const plannerFields = {
+  strategy: 'full' as const,
+  indexMode: 'none' as const,
+  tokenBudget: 32000,
+  retrievedChunkCount: 0,
+};
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -433,6 +439,7 @@ describe('ChatPanel patch presentation', () => {
       sessionId: 'session',
       providerId: 'cloud',
       processingLocation: 'cloud',
+      ...plannerFields,
       status: 'awaiting_confirmation',
       includedSources: [],
       excludedSources: [],
@@ -486,6 +493,7 @@ describe('ChatPanel patch presentation', () => {
       sessionId: 'session',
       providerId: 'cloud',
       processingLocation: 'cloud',
+      ...plannerFields,
       status: 'confirmed',
       includedSources: [],
       excludedSources: [],
@@ -504,6 +512,7 @@ describe('ChatPanel patch presentation', () => {
         sessionId: 'session',
         providerId: 'cloud',
         processingLocation: 'cloud',
+        ...plannerFields,
         status: 'awaiting_confirmation',
         includedSources: [],
         excludedSources: [],
@@ -521,6 +530,7 @@ describe('ChatPanel patch presentation', () => {
         sessionId: 'session',
         providerId: 'cloud',
         processingLocation: 'cloud',
+        ...plannerFields,
         status: 'awaiting_confirmation',
         includedSources: [],
         excludedSources: [],

@@ -1,13 +1,17 @@
 mod client;
 mod context;
+mod planner;
+mod retrieval;
 
 pub use client::{stream_chat, test_connection, StreamChunk};
 pub use context::{
     build_context_prompt, confirm_context_manifest, consume_context_manifest,
     plan_context_manifest, ConfirmContextManifestInput, ConfirmedContextManifest, ContextCandidate,
-    ContextManifest, ContextManifestInput, ContextManifestSource, ContextManifestStatus,
+    ContextChunkRange, ContextIndexMode, ContextManifest, ContextManifestInput,
+    ContextManifestSource, ContextManifestStatus, ContextSourceMode, ContextStrategy,
     PendingContextManifest, ProcessingLocation,
 };
+pub use retrieval::ContextIndex;
 
 use crate::error::AppError;
 use crate::security::validate_provider_id;

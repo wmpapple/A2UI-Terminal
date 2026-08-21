@@ -35,6 +35,7 @@ fn main() {
         "list_chat_sessions",
         "create_chat_session",
         "plan_context",
+        "clear_context_index",
         "confirm_context_manifest",
         "stream_chat",
         "stop_chat",

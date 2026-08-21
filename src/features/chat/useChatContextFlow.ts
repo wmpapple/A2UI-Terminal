@@ -52,6 +52,7 @@ export function useChatContextFlow() {
   const [plannedManifest, setPlannedManifest] = useState<ContextManifest | null>(null);
   const [plannedManifestKey, setPlannedManifestKey] = useState('');
   const [manifestLoading, setManifestLoading] = useState(false);
+  const [indexClearing, setIndexClearing] = useState(false);
   const [manifestError, setManifestError] = useState<string | null>(null);
 
   const activeSession = useMemo(
@@ -254,6 +255,20 @@ export function useChatContextFlow() {
     requestSend(previous.content);
   };
 
+  const clearContextIndex = async () => {
+    if (!workspace?.id || runtimeMode !== 'desktop' || indexClearing) return;
+    setIndexClearing(true);
+    try {
+      const result = await chatController.clearContextIndex(workspace.id);
+      invalidateManifest();
+      message.success(t('contextIndexCleared').replace('{count}', String(result.clearedDocuments)));
+    } catch (error) {
+      message.error(errorDetails(error).message);
+    } finally {
+      setIndexClearing(false);
+    }
+  };
+
   const openContext = () => {
     const needsTrustedSendReview = Boolean(
       prompt.trim() && (!contextReviewed || visibleManifest?.requiresSensitiveConfirmation)
@@ -284,10 +299,13 @@ export function useChatContextFlow() {
     visibleManifest,
     visibleManifestError,
     manifestLoading,
+    indexClearing,
+    canClearContextIndex: runtimeMode === 'desktop' && Boolean(workspace?.id),
     requestSend,
     retryMessage,
     planContext,
     confirmContext,
     invalidateManifest,
+    clearContextIndex,
   };
 }

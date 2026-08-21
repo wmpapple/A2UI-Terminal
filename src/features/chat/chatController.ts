@@ -6,6 +6,7 @@ export const chatController = {
   createSession: (workspaceId: string, sessionId: string, title: string) =>
     desktopGateway.createChatSession(workspaceId, sessionId, title),
   planContext: (input: ContextManifestInput) => desktopGateway.planContext(input),
+  clearContextIndex: (workspaceId: string) => desktopGateway.clearContextIndex(workspaceId),
   confirmContext: (manifestId: string, sensitiveCloudConfirmed: boolean) =>
     desktopGateway.confirmContextManifest(manifestId, sensitiveCloudConfirmed),
   stream: (request: ChatRequest, onEvent: (event: ChatStreamEvent) => void) =>

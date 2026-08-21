@@ -74,6 +74,70 @@ describe('context manifest input', () => {
     expect(JSON.stringify(input)).not.toContain('UNSELECTED_BODY_MUST_NOT_CROSS_IPC');
   });
 
+  it('merges authorized-source selection into an existing workspace file candidate', () => {
+    const source = (id: string, name: string): DocumentSource => ({
+      id,
+      workspaceId: 'workspace',
+      name,
+      extension: 'md',
+      kind: 'text',
+      capability: 'editable_text',
+      mimeType: 'text/markdown',
+      sizeBytes: 10,
+      contentHash: id.repeat(64).slice(0, 64),
+      editable: true,
+      warnings: [],
+      table: null,
+      image: null,
+    });
+    const current = source('a', 'PROJECT_GUIDE.md');
+    const long = source('b', 'long.md');
+    const input = buildContextManifestInput({
+      workspaceId: 'workspace',
+      sessionId: 'session',
+      providerId: 'openai',
+      prompt: '火星预算批准',
+      selection: {
+        selection: false,
+        currentFile: true,
+        recentMessages: true,
+        recentMessageCount: 3,
+        projectFiles: [],
+        documentSourceIds: [current.id, long.id],
+      },
+      files: [
+        {
+          path: 'selected/current/PROJECT_GUIDE.md',
+          name: 'PROJECT_GUIDE.md',
+          language: 'markdown',
+          content: '1111',
+          contentHash: current.contentHash,
+          sourceId: current.id,
+          extracted: true,
+        },
+        {
+          path: 'selected/long/long.md',
+          name: 'long.md',
+          language: 'markdown',
+          content: '长文'.repeat(13000),
+          contentHash: long.contentHash,
+          sourceId: long.id,
+          extracted: true,
+        },
+      ],
+      documentSources: [current, long],
+      activePath: 'selected/current/PROJECT_GUIDE.md',
+      selectedText: '',
+    });
+
+    expect(input.candidates.filter((candidate) => candidate.sourceId === current.id)).toEqual([
+      expect.objectContaining({ kind: 'current_file', selected: true, content: '1111' }),
+    ]);
+    expect(input.candidates.filter((candidate) => candidate.sourceId === long.id)).toEqual([
+      expect.objectContaining({ kind: 'attached_document', selected: true }),
+    ]);
+  });
+
   it('shows only explicit loopback endpoints as local processing', () => {
     expect(processingLocationForProvider(cloudProvider)).toBe('cloud');
     expect(

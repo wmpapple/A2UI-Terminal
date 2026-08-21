@@ -153,6 +153,7 @@ pub fn run() {
             commands::list_chat_sessions,
             commands::create_chat_session,
             commands::plan_context,
+            commands::clear_context_index,
             commands::confirm_context_manifest,
             commands::stream_chat,
             commands::stop_chat,

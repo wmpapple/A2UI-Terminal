@@ -4,6 +4,7 @@ import type {
   ContextSource,
   WorkspaceFile,
 } from '../../shared/types/domain';
+import { estimateContextTokens } from './tokenEstimate';
 
 export interface ContextSnapshot {
   sources: ContextSource[];
@@ -156,15 +157,18 @@ export const buildContextSnapshot = ({
   }
   if (looksSensitive(prompt)) warnings.push('message: possible secret');
   const characterCount = sources.reduce((sum, source) => sum + source.content.length, 0);
-  const historyCharacters = selection.recentMessages
-    ? recentMessages
-        .slice(-selection.recentMessageCount)
-        .reduce((sum, message) => sum + message.content.length, 0)
-    : 0;
   return {
     sources,
     characterCount,
-    estimatedTokens: Math.ceil((characterCount + historyCharacters + prompt.length) / 4),
+    estimatedTokens:
+      estimateContextTokens(prompt) +
+      sources.reduce((sum, source) => sum + estimateContextTokens(source.content), 0) +
+      (selection.recentMessages
+        ? recentMessages
+            .slice(-selection.recentMessageCount)
+            .reduce((sum, recentMessage) => sum + estimateContextTokens(recentMessage.content), 0)
+        : 0) +
+      2048,
     warnings,
   };
 };

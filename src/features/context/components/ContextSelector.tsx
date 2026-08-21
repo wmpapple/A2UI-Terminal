@@ -1,4 +1,4 @@
-import { Alert, Checkbox, Divider, Modal, Progress, Select, Tag } from 'antd';
+import { Alert, Button, Checkbox, Divider, Modal, Progress, Select, Tag } from 'antd';
 import { useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type {
@@ -22,12 +22,14 @@ interface Props {
   confirmText?: string;
   manifest?: ContextManifest | null;
   planning?: boolean;
+  indexClearing?: boolean;
   error?: string | null;
   processingLocation?: ProcessingLocation;
   reviewOnly?: boolean;
   onCancel: () => void;
   onPlan?: (selection: ContextSelection) => void;
   onInvalidateManifest?: () => void;
+  onClearIndex?: () => void;
   onConfirm: (
     selection: ContextSelection,
     manifestId: string | null,
@@ -42,12 +44,14 @@ export function ContextSelector({
   confirmText,
   manifest,
   planning = false,
+  indexClearing = false,
   error,
   processingLocation = 'cloud',
   reviewOnly = false,
   onCancel,
   onPlan,
   onInvalidateManifest,
+  onClearIndex,
   onConfirm,
 }: Props) {
   const { t } = useI18n();
@@ -80,6 +84,21 @@ export function ContextSelector({
       }),
     [activePath, files, prompt, recentMessages, selectedText, selection]
   );
+  const selectedAuthorizedSources = useMemo(() => {
+    const selectedIds = new Set(selection.documentSourceIds ?? []);
+    const alreadyVisibleSourceIds = new Set(
+      files
+        .filter(
+          (file) =>
+            (selection.currentFile && file.path === activePath) ||
+            selection.projectFiles.includes(file.path)
+        )
+        .flatMap((file) => (file.sourceId ? [file.sourceId] : []))
+    );
+    return documentSources.filter(
+      (source) => selectedIds.has(source.id) && !alreadyVisibleSourceIds.has(source.id)
+    );
+  }, [activePath, documentSources, files, selection]);
 
   const updateSelection = (next: ContextSelection) => {
     setSelection(next);
@@ -212,13 +231,20 @@ export function ContextSelector({
         )}
         <Divider>{t(manifest ? 'finalSendList' : 'selectionPreview')}</Divider>
         <div className={styles.sourceList}>
-          {snapshot.sources.length === 0 && !selection.recentMessages ? (
+          {snapshot.sources.length === 0 &&
+          selectedAuthorizedSources.length === 0 &&
+          !selection.recentMessages ? (
             <Tag>{t('noFileContext')}</Tag>
           ) : (
             snapshot.sources.map((source) => (
               <Tag key={`${source.kind}:${source.label}`}>{source.label}</Tag>
             ))
           )}
+          {selectedAuthorizedSources.map((source) => (
+            <Tag key={`authorized:${source.id}`} color="cyan">
+              {source.name}
+            </Tag>
+          ))}
           {selection.recentMessages && (
             <Tag color="purple">
               {t('recentMessageCountValue').replace(
@@ -239,6 +265,25 @@ export function ContextSelector({
         {manifest && (
           <div className={styles.manifest}>
             <Divider>{t('trustedManifest')}</Divider>
+            <Alert
+              type="info"
+              showIcon
+              title={t(
+                manifest.strategy === 'full'
+                  ? 'contextStrategyFull'
+                  : manifest.strategy === 'retrieval'
+                    ? 'contextStrategyRetrieval'
+                    : 'contextStrategyHybrid'
+              )}
+              description={
+                manifest.indexMode === 'memory_lexical'
+                  ? t('contextMemoryIndexDescription').replace(
+                      '{count}',
+                      String(manifest.retrievedChunkCount)
+                    )
+                  : t('contextFullDescription')
+              }
+            />
             <strong>{t('includedSources')}</strong>
             <div className={styles.manifestList}>
               {manifest.includedSources.length === 0 ? (
@@ -247,10 +292,31 @@ export function ContextSelector({
                 manifest.includedSources.map((source) => (
                   <Tag color="green" key={`${source.kind}:${source.label}`}>
                     {source.label} · {source.characterCount.toLocaleString()} chars
+                    {source.mode === 'retrieved'
+                      ? ` · ${source.selectedRanges.length} ${t('contextChunks')}`
+                      : ''}
                   </Tag>
                 ))
               )}
             </div>
+            {manifest.includedSources
+              .filter((source) => source.mode === 'retrieved')
+              .map((source) => (
+                <div
+                  className={styles.manifestRanges}
+                  key={`ranges:${source.kind}:${source.label}`}
+                >
+                  <span>{t('contextSelectedRanges').replace('{source}', source.label)}</span>
+                  <code>
+                    {source.selectedRanges
+                      .map(
+                        (range) =>
+                          `${range.chunkId} [${range.startCharacter.toLocaleString()}–${range.endCharacter.toLocaleString()}]`
+                      )
+                      .join(' · ')}
+                  </code>
+                </div>
+              ))}
             <strong>{t('excludedSources')}</strong>
             <div className={styles.manifestExcluded}>
               {manifest.excludedSources.map((source) => (
@@ -259,6 +325,11 @@ export function ContextSelector({
                 </span>
               ))}
             </div>
+            {onClearIndex && (
+              <Button size="small" loading={indexClearing} onClick={onClearIndex}>
+                {t('clearContextIndex')}
+              </Button>
+            )}
           </div>
         )}
         {manifest && requiresSensitiveConfirmation && (
@@ -284,7 +355,11 @@ export function ContextSelector({
         <Progress
           percent={Math.min(
             100,
-            Math.round(((manifest?.estimatedTokens ?? snapshot.estimatedTokens) / 128000) * 100)
+            Math.round(
+              ((manifest?.estimatedTokens ?? snapshot.estimatedTokens) /
+                (manifest?.tokenBudget ?? 128000)) *
+                100
+            )
           )}
           showInfo={false}
           size="small"

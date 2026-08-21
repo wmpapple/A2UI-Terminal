@@ -44,7 +44,11 @@ const IMPORT_COMMANDS: [&str; 7] = [
     "read_document_source",
     "revoke_document_source",
 ];
-const CONTEXT_COMMANDS: [&str; 2] = ["plan_context", "confirm_context_manifest"];
+const CONTEXT_COMMANDS: [&str; 3] = [
+    "plan_context",
+    "clear_context_index",
+    "confirm_context_manifest",
+];
 
 #[test]
 fn native_commands_are_registered_and_allowed_for_the_main_window() {

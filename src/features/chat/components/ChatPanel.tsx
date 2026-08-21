@@ -119,12 +119,16 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
           confirmText={context.contextIntent === 'review' ? t('saveContextSelection') : undefined}
           manifest={context.visibleManifest}
           planning={context.manifestLoading}
+          indexClearing={context.indexClearing}
           error={context.visibleManifestError}
           processingLocation={context.processingLocation}
           reviewOnly={context.contextIntent === 'review'}
           onCancel={context.closeContext}
           onPlan={(selection) => void context.planContext(selection)}
           onInvalidateManifest={context.invalidateManifest}
+          onClearIndex={
+            context.canClearContextIndex ? () => void context.clearContextIndex() : undefined
+          }
           onConfirm={context.confirmContext}
         />
       )}

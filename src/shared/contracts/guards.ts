@@ -115,14 +115,27 @@ const documentSourceCapabilities = new Set([
 ]);
 const processingLocations = new Set(['local', 'cloud']);
 const contextManifestStatuses = new Set(['awaiting_confirmation', 'confirmed']);
+const contextStrategies = new Set(['full', 'retrieval', 'hybrid']);
+const contextSourceModes = new Set(['full', 'retrieved', 'excluded']);
+
+const isContextChunkRange = (value: unknown): boolean =>
+  isObject(value) &&
+  isString(value.chunkId) &&
+  isNumber(value.startCharacter) &&
+  isNumber(value.endCharacter);
 
 const isContextManifestSource = (value: unknown): boolean =>
   isObject(value) &&
   isString(value.kind) &&
   isString(value.label) &&
+  isNullableString(value.sourceRef) &&
   isNullableString(value.contentHash) &&
   isNumber(value.sizeBytes) &&
   isNumber(value.characterCount) &&
+  isString(value.mode) &&
+  contextSourceModes.has(value.mode) &&
+  Array.isArray(value.selectedRanges) &&
+  value.selectedRanges.every(isContextChunkRange) &&
   isNullableString(value.exclusionReason);
 
 export const isContextManifest = (value: unknown): value is ContextManifest =>
@@ -133,6 +146,10 @@ export const isContextManifest = (value: unknown): value is ContextManifest =>
   isString(value.providerId) &&
   isString(value.processingLocation) &&
   processingLocations.has(value.processingLocation) &&
+  isString(value.strategy) &&
+  contextStrategies.has(value.strategy) &&
+  isString(value.indexMode) &&
+  ['none', 'memory_lexical'].includes(value.indexMode) &&
   isString(value.status) &&
   contextManifestStatuses.has(value.status) &&
   Array.isArray(value.includedSources) &&
@@ -141,6 +158,8 @@ export const isContextManifest = (value: unknown): value is ContextManifest =>
   value.excludedSources.every(isContextManifestSource) &&
   isNumber(value.characterCount) &&
   isNumber(value.estimatedTokens) &&
+  isNumber(value.tokenBudget) &&
+  isNumber(value.retrievedChunkCount) &&
   isBoolean(value.sensitiveWarning) &&
   isBoolean(value.requiresSensitiveConfirmation) &&
   isString(value.createdAt) &&

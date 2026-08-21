@@ -432,6 +432,11 @@ export const desktopApi = {
     return invoke<ContextManifest>('plan_context', { input });
   },
 
+  async clearContextIndex(workspaceId: string): Promise<{ clearedDocuments: number }> {
+    requireDesktop();
+    return invoke<{ clearedDocuments: number }>('clear_context_index', { workspaceId });
+  },
+
   async confirmContextManifest(
     manifestId: string,
     sensitiveCloudConfirmed: boolean

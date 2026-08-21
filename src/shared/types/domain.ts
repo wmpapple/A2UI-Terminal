@@ -387,6 +387,8 @@ export interface ChatRequest {
 
 export type ProcessingLocation = 'local' | 'cloud';
 export type ContextManifestStatus = 'awaiting_confirmation' | 'confirmed';
+export type ContextStrategy = 'full' | 'retrieval' | 'hybrid';
+export type ContextSourceMode = 'full' | 'retrieved' | 'excluded';
 
 export interface ContextCandidate {
   kind: ContextSourceKind;
@@ -410,9 +412,16 @@ export interface ContextManifestInput {
 export interface ContextManifestSource {
   kind: string;
   label: string;
+  sourceRef: string | null;
   contentHash: string | null;
   sizeBytes: number;
   characterCount: number;
+  mode: ContextSourceMode;
+  selectedRanges: Array<{
+    chunkId: string;
+    startCharacter: number;
+    endCharacter: number;
+  }>;
   exclusionReason: string | null;
 }
 
@@ -422,11 +431,15 @@ export interface ContextManifest {
   sessionId: string;
   providerId: string;
   processingLocation: ProcessingLocation;
+  strategy: ContextStrategy;
+  indexMode: 'none' | 'memory_lexical';
   status: ContextManifestStatus;
   includedSources: ContextManifestSource[];
   excludedSources: ContextManifestSource[];
   characterCount: number;
   estimatedTokens: number;
+  tokenBudget: number;
+  retrievedChunkCount: number;
   sensitiveWarning: boolean;
   requiresSensitiveConfirmation: boolean;
   createdAt: string;

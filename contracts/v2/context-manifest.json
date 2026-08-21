@@ -4,14 +4,25 @@
   "sessionId": "550e8400-e29b-41d4-a716-446655440021",
   "providerId": "openai",
   "processingLocation": "cloud",
+  "strategy": "full",
+  "indexMode": "none",
   "status": "awaiting_confirmation",
   "includedSources": [
     {
       "kind": "attached_document",
       "label": "meeting.md",
+      "sourceRef": "source-meeting",
       "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "sizeBytes": 128,
       "characterCount": 120,
+      "mode": "full",
+      "selectedRanges": [
+        {
+          "chunkId": "full",
+          "startCharacter": 0,
+          "endCharacter": 120
+        }
+      ],
       "exclusionReason": null
     }
   ],
@@ -19,14 +30,19 @@
     {
       "kind": "image",
       "label": "whiteboard.png",
+      "sourceRef": "source-whiteboard",
       "contentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "sizeBytes": 2048,
       "characterCount": 0,
+      "mode": "excluded",
+      "selectedRanges": [],
       "exclusionReason": "当前 Provider 合同不支持可信视觉输入；图片未发送"
     }
   ],
   "characterCount": 120,
   "estimatedTokens": 34,
+  "tokenBudget": 32000,
+  "retrievedChunkCount": 0,
   "sensitiveWarning": false,
   "requiresSensitiveConfirmation": false,
   "createdAt": "1787198400",
