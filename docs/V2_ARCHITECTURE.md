@@ -1,8 +1,8 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S2.2 已验收，S2.3 已实现并等待人工验收
+> 文档状态：V2 目标架构基线；S1.1—S2.3 已验收，S2.4 等待关闭 O-05 后开始
 > 建立日期：2026-08-11  
-> 对照代码：`main` 分支 S2.3 工作树，开始基线 HEAD `72a0e88`
+> 对照代码：`main` 分支 S2.3 已验收基线 `d1560f2`
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
 > PRD SHA-256：`E56FD2303B6228C5FC7AB1936FB1C2B71229845D6780DFDA2ACE06D69347AA3C`
 
@@ -308,7 +308,7 @@ ContextPack（可复用授权集合）
 - Context Pack 只是引用集合；挂载后仍必须在请求前展开为具体来源并确认。
 - 删除 Context Pack 不删除原文件。
 
-`[IMPLEMENTED — S2.3 PENDING ACCEPTANCE]` 通用工作台每次请求执行 `plan_context → confirm_context_manifest → stream_chat(contextManifestId)`。Rust 用已授权 `sourceId` 复读文本/表格并独立生成 included/excluded 元数据；选区是唯一允许的短期前端正文来源。待确认正文只在 Rust 进程内存保留 10 分钟，确认后一次消费；工作区、会话、Prompt Hash、Provider ID 或 Provider 配置指纹任一变化都会拒绝旧清单。SQLite 继续复用 `context_snapshots` 保存实际请求清单的元数据/Hash，不新增长期正文表。
+`[CURRENT — S2.3 ACCEPTED]` 通用工作台每次请求执行 `plan_context → confirm_context_manifest → stream_chat(contextManifestId)`。Rust 用已授权 `sourceId` 复读文本/表格并独立生成 included/excluded 元数据；选区是唯一允许的短期前端正文来源。待确认正文只在 Rust 进程内存保留 10 分钟，确认后一次消费；工作区、会话、Prompt Hash、Provider ID 或 Provider 配置指纹任一变化都会拒绝旧清单。SQLite 继续复用 `context_snapshots` 保存实际请求清单的元数据/Hash，不新增长期正文表。
 
 交互层采用“单对话一次主动弹窗、逐请求一次性 Manifest”：首次发送主动展示清单；后续范围和 Provider 未变化时在后台生成并确认新的 Manifest，不复用旧 ID。前端待确认清单同时绑定 Provider 指纹、上下文指纹和 Prompt 内容指纹，任一输入变化即从界面失效；Rust Prompt Hash 继续作为最终拒绝边界。已确认的范围/Provider 指纹属于工作区级会话状态，跨工作台与设置页导航保留，切换/移除工作区时清空。Provider store 在活动 Provider 的 Endpoint/Model/Temperature/Proxy 被保存修改或活动 Provider 被切换后，显式失效所有已有消息会话；该事件规则同时覆盖尚无新版本确认指纹的历史会话。范围、文件内容或 Provider 变化时只提示用户点击“修改发送清单”，不主动弹窗且不调用 Provider。后台 Manifest 新发现敏感内容时不得代替用户确认，只保留待确认清单并提示用户主动打开后明确确认。
 
@@ -485,7 +485,7 @@ Planner 输出必须包含：策略、实际来源数、估算大小、排除原
 
 ### 7.6 表格、图片与复杂文档边界
 
-`[IMPLEMENTED — S2.2 ACCEPTED / S2.3 PENDING ACCEPTANCE]` V2 P0 支持 CSV/XLSX 基础数据。图片是可单独授权的上下文类型，系统保留原始视觉信息供未来具备视觉能力的多模态模型理解，不以仅提取文本替代原图。
+`[IMPLEMENTED — S2.2 ACCEPTED / S2.3 ACCEPTED]` V2 P0 支持 CSV/XLSX 基础数据。图片是可单独授权的上下文类型，系统保留原始视觉信息供未来具备视觉能力的多模态模型理解，不以仅提取文本替代原图。
 
 - 图片是否发送、发送给本地还是云端模型，必须与其他来源一样进入 Context Manifest 并由用户确认。
 - Provider 不支持视觉输入时必须明确说明，不得静默丢弃图片或伪造理解结果。
