@@ -11,7 +11,11 @@ const MAX_ANCHOR_BYTES: usize = 256 * 1024;
 const MAX_CONTENT_BYTES: usize = 1024 * 1024;
 const MAX_RESULT_BYTES: usize = 2 * 1024 * 1024;
 pub(crate) const EMPTY_FILE_PATCH_UNSUPPORTED_MESSAGE: &str =
-    "目标文件为空，当前版本暂不支持 AI 直接写入；请先手动添加并保存一行内容后重试";
+    "目标文件为空，普通 document_patch 不能用于首次写入；请改用 replace_empty_file 完整内容审阅";
+
+pub(crate) fn is_blank_editable_content(content: &str) -> bool {
+    content.trim_start_matches('\u{feff}').trim().is_empty()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -199,6 +203,56 @@ pub fn apply_patch(
     session_id: Option<&str>,
     assistant_message_id: Option<&str>,
 ) -> Result<PatchApplication, AppError> {
+    apply_patch_for_review(
+        storage,
+        workspace_id,
+        patch,
+        selected_change_ids,
+        session_id,
+        assistant_message_id,
+        None,
+    )
+}
+
+pub fn preview_patch_files(
+    storage: &Storage,
+    workspace_id: &str,
+    patch: &DocumentPatch,
+    selected_change_ids: &[String],
+) -> Result<Vec<AppliedPatchFile>, AppError> {
+    validate_header(patch, workspace_id)?;
+    let selected = selected_change_ids.iter().cloned().collect::<BTreeSet<_>>();
+    if selected.is_empty()
+        || selected.len() != selected_change_ids.len()
+        || selected
+            .iter()
+            .any(|id| !patch.changes.iter().any(|change| &change.id == id))
+    {
+        return Err(AppError::InvalidInput(
+            "选中的修改块标识无效、重复或为空".into(),
+        ));
+    }
+    let (files, _) = plan(storage, patch, &selected)?;
+    Ok(files
+        .into_iter()
+        .map(|file| AppliedPatchFile {
+            path: file.path,
+            content: file.after,
+            content_hash: file.after_hash,
+        })
+        .collect())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn apply_patch_for_review(
+    storage: &Storage,
+    workspace_id: &str,
+    patch: DocumentPatch,
+    selected_change_ids: &[String],
+    session_id: Option<&str>,
+    assistant_message_id: Option<&str>,
+    review_id: Option<&str>,
+) -> Result<PatchApplication, AppError> {
     validate_header(&patch, workspace_id)?;
     let selected = selected_change_ids.iter().cloned().collect::<BTreeSet<_>>();
     if selected.is_empty() {
@@ -225,6 +279,8 @@ pub fn apply_patch(
         &patch_json,
         None,
         &snapshots,
+        review_id,
+        None,
     ) {
         rollback_files(storage, workspace_id, &files);
         return Err(error);
@@ -233,10 +289,91 @@ pub fn apply_patch(
     Ok(application(&operation_id, &patch.summary, None, &files))
 }
 
+pub fn apply_full_replace_for_review(
+    storage: &Storage,
+    workspace_id: &str,
+    path: &str,
+    base_hash: &str,
+    content: &str,
+    summary: &str,
+    review_id: &str,
+) -> Result<PatchApplication, AppError> {
+    if content.is_empty() || content.len() > MAX_RESULT_BYTES {
+        return Err(AppError::InvalidInput(
+            "首次写入内容不能为空且不能超过 2 MiB".into(),
+        ));
+    }
+    let document = read_patch_document(storage, workspace_id, path)?;
+    if !document.editable || document.extracted {
+        return Err(AppError::InvalidInput("目标不是可编辑文本文件".into()));
+    }
+    if document.content_hash != base_hash || !is_blank_editable_content(&document.content) {
+        return Err(AppError::FileConflict);
+    }
+    let file = PlannedFile {
+        path: path.to_string(),
+        before: document.content,
+        before_hash: document.content_hash,
+        after: content.to_string(),
+        after_hash: sha256(content.as_bytes()),
+    };
+    let operation_id = Uuid::new_v4().to_string();
+    write_all_or_rollback(storage, workspace_id, std::slice::from_ref(&file))?;
+    let patch_json = serde_json::to_string(&serde_json::json!({
+        "version": "1.0",
+        "type": "replace_empty_file",
+        "workspaceId": workspace_id,
+        "path": path,
+        "baseHash": base_hash,
+        "summary": summary,
+    }))
+    .map_err(|_| AppError::StateUnavailable)?;
+    let snapshots = snapshots_for(&operation_id, workspace_id, std::slice::from_ref(&file));
+    if let Err(error) = storage.record_patch_operation(
+        &operation_id,
+        workspace_id,
+        None,
+        None,
+        summary,
+        &patch_json,
+        None,
+        &snapshots,
+        Some(review_id),
+        None,
+    ) {
+        rollback_files(storage, workspace_id, std::slice::from_ref(&file));
+        return Err(error);
+    }
+    Ok(application(
+        &operation_id,
+        summary,
+        None,
+        std::slice::from_ref(&file),
+    ))
+}
+
 pub fn undo_patch(
     storage: &Storage,
     workspace_id: &str,
     operation_id: &str,
+) -> Result<PatchApplication, AppError> {
+    undo_patch_internal(storage, workspace_id, operation_id, None)
+}
+
+pub fn undo_patch_for_review(
+    storage: &Storage,
+    workspace_id: &str,
+    operation_id: &str,
+    review_id: &str,
+) -> Result<PatchApplication, AppError> {
+    undo_patch_internal(storage, workspace_id, operation_id, Some(review_id))
+}
+
+fn undo_patch_internal(
+    storage: &Storage,
+    workspace_id: &str,
+    operation_id: &str,
+    review_id: Option<&str>,
 ) -> Result<PatchApplication, AppError> {
     Uuid::parse_str(operation_id).map_err(|_| AppError::InvalidInput("撤销操作标识无效".into()))?;
     let operation = storage
@@ -290,6 +427,8 @@ pub fn undo_patch(
         &operation.patch_json,
         Some(operation_id),
         &snapshots,
+        None,
+        review_id,
     ) {
         rollback_files(storage, workspace_id, &files);
         return Err(error);
@@ -596,7 +735,7 @@ fn application(
     }
 }
 
-fn extract_json(raw: &str) -> Option<&str> {
+pub(crate) fn extract_json(raw: &str) -> Option<&str> {
     let trimmed = raw.trim();
     if trimmed.starts_with('{') && trimmed.ends_with('}') {
         return Some(trimmed);

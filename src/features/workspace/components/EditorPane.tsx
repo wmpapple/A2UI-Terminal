@@ -25,18 +25,24 @@ const VersionHistoryDrawer = lazy(() =>
   import('./VersionHistoryDrawer').then((module) => ({ default: module.VersionHistoryDrawer }))
 );
 
+const preserveEmptyMarkdown = (current: string, next: string) =>
+  current.length === 0 && next.trim().length === 0 ? current : next;
+
 interface EditorPaneProps {
   showInspector?: boolean;
   showSimpleFileActions?: boolean;
+  onOpenResult?: (resultId: string) => void;
 }
 
 export function EditorPane({
   showInspector = true,
   showSimpleFileActions = false,
+  onOpenResult,
 }: EditorPaneProps) {
   const { locale, t } = useI18n();
   const {
     runtimeMode,
+    workspace,
     files,
     openPaths,
     activePath,
@@ -47,6 +53,7 @@ export function EditorPane({
     recoveryDrafts,
     centerView,
     lastPatchApplication,
+    lastReviewApplication,
     patchApplying,
     patchError,
   } = useAppStore();
@@ -108,6 +115,16 @@ export function EditorPane({
   useEffect(() => {
     const timers = autosaveTimersRef.current;
     const dirtySet = new Set(dirtyPaths);
+    const workspaceId = workspace?.id;
+
+    if (workspaceLoading) {
+      for (const pending of timers.values()) {
+        window.clearTimeout(pending.draftTimer);
+        window.clearTimeout(pending.diskTimer);
+      }
+      timers.clear();
+      return;
+    }
 
     for (const [path, pending] of timers) {
       if (!dirtySet.has(path)) {
@@ -120,7 +137,7 @@ export function EditorPane({
     for (const path of dirtyPaths) {
       const file = files.find((item) => item.path === path);
       if (!file || file.editable === false) continue;
-      const signature = `${file.contentHash ?? ''}\0${file.content}`;
+      const signature = `${workspaceId ?? ''}\0${file.contentHash ?? ''}\0${file.content}`;
       const pending = timers.get(path);
       if (pending?.signature === signature) continue;
       if (pending) {
@@ -130,15 +147,24 @@ export function EditorPane({
       if (runtimeMode === 'desktop') {
         timers.set(path, {
           signature,
-          draftTimer: window.setTimeout(() => void persistDraft(path), 250),
-          diskTimer: window.setTimeout(() => void saveFileToDisk(path), 1000),
+          draftTimer: window.setTimeout(() => void persistDraft(path, workspaceId), 250),
+          diskTimer: window.setTimeout(() => void saveFileToDisk(path, workspaceId), 1000),
         });
       } else {
         const timer = window.setTimeout(() => markSaved(path), 1000);
         timers.set(path, { signature, draftTimer: timer, diskTimer: timer });
       }
     }
-  }, [dirtyPaths, files, markSaved, persistDraft, runtimeMode, saveFileToDisk]);
+  }, [
+    dirtyPaths,
+    files,
+    markSaved,
+    persistDraft,
+    runtimeMode,
+    saveFileToDisk,
+    workspace?.id,
+    workspaceLoading,
+  ]);
 
   useEffect(
     () => () => {
@@ -200,7 +226,7 @@ export function EditorPane({
               {t('chooseFiles')}
             </Button>
           ) : null}
-          {lastPatchApplication ? (
+          {lastPatchApplication || lastReviewApplication ? (
             <Button
               size="small"
               icon={<UndoOutlined />}
@@ -307,7 +333,7 @@ export function EditorPane({
       ) : null}
       <div className={styles.content} ref={editorRegionRef}>
         {centerView === 'diff' ? (
-          <DiffReview />
+          <DiffReview onOpenResult={onOpenResult} />
         ) : centerView === 'surface' ? (
           <A2uiWorkbench showInspector={showInspector} />
         ) : activeFile && isMarkdown ? (
@@ -319,9 +345,17 @@ export function EditorPane({
             }
           >
             <MarkdownEditor
+              key={`${workspace?.id ?? 'web-mock'}:${activeFile.sourceId ?? activeFile.path}`}
               ref={bindMarkdownEditor}
               modelValue={activeFile.content}
-              onChange={(value) => updateFile(activeFile.path, value)}
+              onChange={(value) =>
+                updateFile(
+                  activeFile.path,
+                  preserveEmptyMarkdown(activeFile.content, value),
+                  workspace?.id
+                )
+              }
+              disabled={workspaceLoading}
               language={locale}
               preview={previewEnabled}
               toolbarsExclude={[
@@ -344,9 +378,10 @@ export function EditorPane({
           <textarea
             className={styles.codeEditor}
             value={activeFile.content}
+            disabled={workspaceLoading}
             spellCheck={false}
             aria-label={activeFile.path}
-            onChange={(event) => updateFile(activeFile.path, event.target.value)}
+            onChange={(event) => updateFile(activeFile.path, event.target.value, workspace?.id)}
           />
         ) : (
           <Empty description={t('selectFilePrompt')}>

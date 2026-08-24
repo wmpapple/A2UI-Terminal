@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S2.4 已于 2026-08-21 通过用户人工验收；正在建立 S2.5 统一 Review Pipeline 的独立起始基线**
+> 当前状态：**S2.5 统一 Review Request 和 Review Pipeline 已完成自动验证，等待用户人工验收；S2.6 尚未开始**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -278,7 +278,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S2.5 统一 Review Request 和 Review Pipeline
 
-状态：`待开始`
+状态：`待人工验收`
 
 - 对应：REV-01…06。
 - 工作：Review schema、来源适配、语义块决定、应用状态机；现有 document_patch 接入而不是重写；新增 `create_file` Review payload 和可信应用适配器，模型只能建议受限名称、文本类型、完整候选内容与不透明目标作用域；为已授权、已存在的零字节 UTF-8 文本文件增加不依赖伪造锚点的安全首次写入 Review 语义。
@@ -426,23 +426,23 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 状态含义：`已有内核` 不等于 V2 产品验收通过。
 
-| 需求           | 实施步骤               | 当前基线                              | V2 验收状态 |
-| -------------- | ---------------------- | ------------------------------------- | ----------- |
-| ONB-01         | S1.4                   | 三步可跳过引导已实现                  | 已完成      |
-| HOME-01/02     | S1.1、S1.4             | 六类首页与 Result 最近成果已实现      | 已完成      |
-| IMP-01/02      | S2.1、S2.2             | S2.1 批次/能力/安全已实现，适配器后续 | 部分完成    |
-| TASK-01/02     | S1.2                   | Task/内置模板基础已实现               | 已完成      |
-| WS-01/02/03/04 | S1.3、S1.5、S2.6、S2.7 | S1.5 成果双栏与操作入口已实现         | 部分完成    |
-| CTX-01/02/03   | S2.3                   | 显式上下文和敏感确认已验收            | 已完成      |
-| CTX-05         | S2.4                   | Adaptive Planner 已实现并验收         | 已完成      |
-| REV-01…04/06   | S2.5                   | document_patch 内核已有               | 未开始      |
-| OUT-01…04      | S2.7、S3.2…S3.4        | 文本+A2UI 内核                        | 未开始      |
-| EXP-01/02/03   | S1.5、S2.8             | 已有诚实导出入口，真实导出未实现      | 部分完成    |
-| RES-01         | S1.1                   | Result 基础聚合已实现                 | 已完成      |
-| SEL-01         | S2.6                   | 只记录选区                            | 未开始      |
-| PRV-04         | S2.3/S4.2              | 处理位置与 Provider 失效已验收        | 部分完成    |
-| ARC-03         | S0.4                   | 统一 compatible 传输层部分已有        | 未开始      |
-| A2UI-06        | S3.1                   | 私有 V1 测试已有                      | 未开始      |
+| 需求           | 实施步骤               | 当前基线                               | V2 验收状态 |
+| -------------- | ---------------------- | -------------------------------------- | ----------- |
+| ONB-01         | S1.4                   | 三步可跳过引导已实现                   | 已完成      |
+| HOME-01/02     | S1.1、S1.4             | 六类首页与 Result 最近成果已实现       | 已完成      |
+| IMP-01/02      | S2.1、S2.2             | S2.1 批次/能力/安全已实现，适配器后续  | 部分完成    |
+| TASK-01/02     | S1.2                   | Task/内置模板基础已实现                | 已完成      |
+| WS-01/02/03/04 | S1.3、S1.5、S2.6、S2.7 | S1.5 成果双栏与操作入口已实现          | 部分完成    |
+| CTX-01/02/03   | S2.3                   | 显式上下文和敏感确认已验收             | 已完成      |
+| CTX-05         | S2.4                   | Adaptive Planner 已实现并验收          | 已完成      |
+| REV-01…04/06   | S2.5                   | schema v11 统一 Review Pipeline 已实现 | 待人工验收  |
+| OUT-01…04      | S2.7、S3.2…S3.4        | 文本+A2UI 内核                         | 未开始      |
+| EXP-01/02/03   | S1.5、S2.8             | 已有诚实导出入口，真实导出未实现       | 部分完成    |
+| RES-01         | S1.1                   | Result 基础聚合已实现                  | 已完成      |
+| SEL-01         | S2.6                   | 只记录选区                             | 未开始      |
+| PRV-04         | S2.3/S4.2              | 处理位置与 Provider 失效已验收         | 部分完成    |
+| ARC-03         | S0.4                   | 统一 compatible 传输层部分已有         | 未开始      |
+| A2UI-06        | S3.1                   | 私有 V1 测试已有                       | 未开始      |
 
 ## 6. 验证命令基线
 
@@ -496,25 +496,26 @@ npm run tauri build -- --debug --no-bundle
 
 > 更新规则：开始步骤前先改状态并记 START；完成后先写证据再标完成。
 
-| 步骤                                   | 状态   | 最近记录 | 下一动作                         |
-| -------------------------------------- | ------ | -------- | -------------------------------- |
-| DOC-0 架构与实施文档                   | 已完成 | LOG-0003 | 已进入 S0.1                      |
-| S0.1 固化当前工作树基线                | 已完成 | LOG-0006 | 已于 2026-08-13 通过人工验收     |
-| S0.2 合同 fixture                      | 已完成 | LOG-0009 | 已于 2026-08-13 通过人工验收     |
-| S0.3 前端边界拆分                      | 已完成 | LOG-0013 | 已于 2026-08-13 通过人工验收     |
-| S0.4 Rust 边界拆分                     | 已完成 | LOG-0016 | 已于 2026-08-13 通过人工验收     |
-| S1.1 Result/schema v9                  | 已完成 | LOG-0023 | 已通过用户人工验收               |
-| S1.2 Task/Template                     | 已完成 | LOG-0026 | 已通过用户人工验收               |
-| S1.3 导航/双模式外壳                   | 已完成 | LOG-0032 | 已通过用户人工验收               |
-| S1.4 新手引导与首页                    | 已完成 | LOG-0038 | 用户已完成最终人工验收           |
-| S1.5 大众版工作台外壳                  | 已完成 | LOG-0041 | 用户已完成人工验收               |
-| S2.1 统一导入批次                      | 已验收 | LOG-0056 | 用户已明确验收通过               |
-| S2.2 表格与图片读取适配                | 已验收 | LOG-0063 | 用户已明确验收通过               |
-| S2.3 Context Manifest 与持续隐私可见性 | 已完成 | LOG-0071 | 已于 2026-08-21 通过用户人工验收 |
-| S2.4 自适应 Context Planner            | 已完成 | LOG-0076 | 已于 2026-08-21 通过用户人工验收 |
-| S2.5…S4.8                              | 待开始 | —        | S2.4 完成并验收前不得提前实施    |
+| 步骤                                   | 状态       | 最近记录 | 下一动作                           |
+| -------------------------------------- | ---------- | -------- | ---------------------------------- |
+| DOC-0 架构与实施文档                   | 已完成     | LOG-0003 | 已进入 S0.1                        |
+| S0.1 固化当前工作树基线                | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收       |
+| S0.2 合同 fixture                      | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收       |
+| S0.3 前端边界拆分                      | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收       |
+| S0.4 Rust 边界拆分                     | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收       |
+| S1.1 Result/schema v9                  | 已完成     | LOG-0023 | 已通过用户人工验收                 |
+| S1.2 Task/Template                     | 已完成     | LOG-0026 | 已通过用户人工验收                 |
+| S1.3 导航/双模式外壳                   | 已完成     | LOG-0032 | 已通过用户人工验收                 |
+| S1.4 新手引导与首页                    | 已完成     | LOG-0038 | 用户已完成最终人工验收             |
+| S1.5 大众版工作台外壳                  | 已完成     | LOG-0041 | 用户已完成人工验收                 |
+| S2.1 统一导入批次                      | 已验收     | LOG-0056 | 用户已明确验收通过                 |
+| S2.2 表格与图片读取适配                | 已验收     | LOG-0063 | 用户已明确验收通过                 |
+| S2.3 Context Manifest 与持续隐私可见性 | 已完成     | LOG-0071 | 已于 2026-08-21 通过用户人工验收   |
+| S2.4 自适应 Context Planner            | 已完成     | LOG-0076 | 已于 2026-08-21 通过用户人工验收   |
+| S2.5 统一 Review Request/Pipeline      | 待人工验收 | LOG-0084 | 当前复验 M05/M06；之后继续 M07—M13 |
+| S2.6…S4.8                              | 待开始     | —        | S2.5 完成并验收前不得提前实施      |
 
-S1.1—S2.4 均已通过自动验证和用户人工验收。用户已授权开始 S2.5；必须先归档 S2.4 为独立提交，再记录 S2.5 START，且 S2.5 完成并验收前不得开始 S2.6。
+S1.1—S2.4 均已通过自动验证和用户人工验收。S2.5 从干净 `main` / `93a8dcf` 开始，代码与自动验证已完成，当前唯一门禁是用户按 [S2_5_MANUAL_ACCEPTANCE.md](S2_5_MANUAL_ACCEPTANCE.md) 验收；明确回复“S2.5 验收通过”前不得开始 S2.6。
 
 ## 10. 连续变更账本
 
@@ -1692,6 +1693,101 @@ S1.1—S2.4 均已通过自动验证和用户人工验收。用户已授权开�
 - 阶段隔离：先把全部 S2.4 代码、合同、测试、生成权限和文档形成独立本地提交，再以该干净提交作为 S2.5 起始基线，避免 Context Planner 与 Review Pipeline 改动混在一起。
 - 下一具体动作：读取现有 `document_patch`、Result/Revision、Chat、Template 与 A2UI 写入路径，记录 S2.5 START；只实施统一 Review Request/Pipeline、`create_file` 和空文件首次写入，不得开始 S2.6 选区助手。
 
+### LOG-0077 — S2.5 — START
+
+- 时间：2026-08-21（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `93a8dcf`；工作树干净。`93a8dcf` 只归档 S2.4 用户验收，S2.4 完整实现提交为 `ee431b8`。
+- 用户授权：用户明确要求 S2.4 验收通过后开始下一阶段。
+- 目标与允许范围：建立持久化 `ReviewRequest + blocks`、来源适配器和 Rust 可信应用状态机；复用既有 `document_patch`/Revision 执行内核；实现 AI `create_file` 及已授权零字节 UTF-8 文本首次写入；提供逐块接受/拒绝、冲突处理、幂等应用和撤销。只接通现有聊天/模板/A2UI 写入候选，不实现 S2.6 选区助手动作菜单。
+- 安全红线：AI/前端只能提交严格候选内容、受限名称/文本格式、不透明工作区或 Result 标识，不能提交绝对目标路径；接受前零文件写入。应用时 Rust 必须重新读取授权、base Hash、目标存在性和当前内容；名称冲突不覆盖，重复应用不重复写入，失败必须回滚文件与数据库记录。
+- 预期数据与兼容：按目标架构评估 schema v11 `review_requests/review_blocks`；保留 `patch_operations/document_versions` 为成熟执行审计，不重写 Patch 内核。IPC/Capability 仅增加 Review 生命周期最小命令，最终数量和 migration 证据以 COMPLETE 日志为准。
+- 下一具体动作：盘点所有 AI 候选写入入口、现有 Patch/Result/Revision 事务边界与共享合同，先确定可回滚的数据模型和适配器，再实施命令/UI/E2E。
+
+### LOG-0078 — S2.5 — COMPLETE / PENDING USER ACCEPTANCE
+
+- 时间：2026-08-24（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线与阶段隔离：从干净 `main` / `93a8dcf` 开始；本条只实施 S2.5。没有开始 S2.6 选区助手、S2.7 类型适配、S2.8 导出或 S3.3 A2UI Action→Review 接线。
+- 数据与状态机：新增 schema v11 `review_requests/review_blocks`，持久化来源、操作类型、状态、风险、base、受限候选 payload、逐块决定和 Patch/Result 应用引用。状态覆盖 `pending/partially_accepted/accepted/rejected/applied/conflicted/failed/undone`；待处理/冲突审阅按工作区列出并在重启恢复。v0—v11 连续迁移、外键检查、清除本地数据和故障事务回滚保持成立。
+- Rust 可信边界：新增 `domain/review.rs`、`repository/review.rs`、`application/review.rs`。统一入口接受 `chat | selection | template | a2ui_action | import_transform` 来源，但路径、名称、格式、授权、Hash、零字节基线、内容大小和状态迁移均由 Rust 验证。现有 `document_patch` 不重写，统一服务在决定后调用成熟 Patch/Revision 内核并把 Review 应用状态与操作快照同事务关联。
+- AI 创建与空文件：新增严格 `create_file` 候选，只允许安全单层 `.md/.markdown/.txt` 名称、文本格式、完整内容和不透明工作区；接受前不建文件、Result 或 Revision。接受后使用 `create_new` 并在业务事务中建立一个 Result/初始 Revision；同名冲突不覆盖，重复应用返回既有结果。零字节已授权文本使用 `replace_empty_file` 完整内容审阅，应用时复验授权、可编辑、Hash 和仍为空；拒绝零写入，应用后走 Patch 版本链并可撤销为空。
+- 冲突与恢复：并发变化进入持久 `conflicted`，UI 提供“保留当前版本 / 另存候选副本 / 基于当前版本重新生成”。单文件完整候选可安全另存到“我的成果”，原文件不变；多文件冲突不伪装为单一副本。Patch 撤销与 Review `undone` 在同一数据库事务中关联；AI 新建的托管成果只有当前 Hash 未变化时才允许撤销删除，外部变化返回冲突。重复撤销幂等。
+- 前端与聊天：`ChatStreamResult` 新增统一 `review`，聊天系统提示和一次无效候选重试覆盖 Patch、新建和空文件；未校验完成声明仍被标记。审阅中心改用统一 blocks，创建块可调整名称，冲突态显示三种大众选项；工具栏统一显示“撤销上次 AI 修改”。Web Mock 新增确定性的“生成杭州三日游文档”创建审阅、接受/拒绝/撤销闭环。工作区选择/恢复会从 Rust 恢复最新待处理审阅，前端 store 不成为业务事实源。
+- 合同、IPC 与权限：新增 `contracts/v2/review.json`，由 TypeScript guard 和 Rust serde 双向校验；旧 chat fixture 以可空 `review` 前向扩展。新增并登记 8 个 Review 生命周期命令：`create_review_request/get_review/list_active_reviews/decide_review_blocks/apply_review/discard_review/resolve_review_conflict/undo_review`，同步 Tauri 运行时、构建元数据、自动生成权限、主窗口最小 Capability 和命令注册测试；没有新增网络、Shell、任意路径或密钥权限。
+- 来源边界：当前真实 AI 文件写入来自 Chat，并已统一接线。Template 的现有本地结构草稿是用户明确点击的非 AI 流程；A2UI `request_patch` 当前只返回 `review_required` 而不写文件；Selection 动作菜单尚未实现。S2.6 与 S3.3 必须复用本阶段入口，不能建立旁路。
+- 自动验证：`npm run format:check`、`npm run lint`、`npm run typecheck`、`npm run test`、`npm run test:coverage`、`npm run build`、`npm run test:e2e` 均通过；最新全量 Vitest 为 35 个文件/130 项，Chromium Web Mock E2E 8/8。覆盖率门最近一次为 Statements 97.97%、Branches 84.72%、Functions 96.66%、Lines 98.80%。Rust `cargo fmt --all -- --check`、全目标全 feature Clippy `-D warnings` 和 `cargo test --all-features` 通过：115 个库测试、6 个架构边界、1 个命令注册、9 个合同测试及 doc tests，0 失败。`npm run tauri build -- --debug --no-bundle` 成功生成 debug 程序；隔离 APPDATA/LOCALAPPDATA 的桌面启动冒烟通过，PID 33148 已由脚本关闭并清理临时目录。链接阶段仅有 MSVC“创建导入库”的环境提示；生产构建仍有既存主 chunk 约 1.23 MB（gzip 约 401 KB）性能提示，不是失败。
+- 安全/隐私：Review payload 仅保存在本地 SQLite，不进入匿名指标、诊断或 Provider 之外的新通道；API Key、Endpoint 和未授权内容边界不变。诊断仍只输出 schema/能力/计数，不输出 Review 正文、Prompt、文件名或路径。没有删除用户已有文件；测试只操作临时目录和 Web Mock。
+- 兼容与回滚：回滚代码前必须确认旧版本是否支持 schema v11；迁移不自动降级。业务回滚可停止新 Review 命令/UI，但不得删除 v11 表或应用记录。旧 Patch/Revision/Result 数据保持原样，真实文件不依赖 Review 表才能读取。
+- 人工验收：新增 [S2_5_MANUAL_ACCEPTANCE.md](S2_5_MANUAL_ACCEPTANCE.md) M01—M11，覆盖迁移、创建零写入、拒绝、应用/幂等、危险名称、空文件、冲突三选项、部分接受、撤销和跨重启恢复。
+- 状态与下一动作：S2.5 从 `进行中` 转为 `待人工验收`。用户明确回复“**S2.5 验收通过**”前不得开始 S2.6，也不得把本条自动证据当作用户人工结论。
+
+### LOG-0079 — S2.5 — ACCEPTANCE DEFECT FIX / WORKSPACE ISOLATION
+
+- 时间：2026-08-24（Asia/Shanghai）
+- 用户反馈与实际影响：人工验收时切换工作区，一个工作区的编辑正文进入另一个工作区并被自动保存。现场文件 [S2_5_MANUAL_ACCEPTANCE.md](S2_5_MANUAL_ACCEPTANCE.md) 已从完整文档被覆盖为 `1111`，属于真实落盘的数据隔离缺陷，不是单纯显示问题；S2.5 保持待验收，S2.6 未开始。
+- 数据恢复：只读检查应用 SQLite `document_versions`，确认同一路径在 2026-08-24 02:35:15 UTC 有紧邻损坏前的 7049 字节完整快照，3 秒后才出现 4 字节 `1111` 版本。已用完整快照精确恢复工作树文件，恢复后字节数再次为 7049；随后只追加本条缺陷对应的 M12。数据库中的完整版本和错误版本均未删除，保留审计证据；未猜测或拼接用户正文。
+- 根因：Markdown 编辑器组件只按视图位置复用，工作区变化但相对路径相同或快速切换时，旧实例的 `onChange` 可能作用到新工作区；自动保存计时器只以相对路径为键；草稿/磁盘保存、打开文件和工作区恢复的异步回写在完成时没有统一复核发起工作区，乱序响应可污染当前前端状态。“添加文件”若返回不同工作区还会合并旧文件/Tab，而不是替换工作区级状态。
+- 修复：编辑器现在以 `workspaceId + sourceId/relativePath` 为身份强制重建，并把发起工作区 ID 传给编辑回调；store 拒绝不存在文件或工作区不匹配的更新。草稿与磁盘保存捕获工作区 ID，响应、错误和版本刷新前重新比对；打开文件同样比对工作区和切换令牌。工作区加载期间禁用 Markdown/文本输入并取消旧自动保存计时器，计时器签名加入工作区 ID。所有选择/恢复/删除工作区操作使用单调切换令牌，只允许最后一次选择提交；选择资料若实际切换工作区，则替换文件、Tab、脏状态、选区、上下文、Review 和版本呈现，不再跨工作区合并。
+- 自动回归：新增 6 项测试，覆盖旧编辑器回调、跨工作区强制重建、加载时取消计时器、同名路径延迟保存响应、不同文件工作区状态替换和恢复请求乱序。定向 2 文件/18 项通过；完整 `npm run check` 通过，35 个测试文件/136 项 Vitest 全通过；coverage 136/136，Statements 97.97%、Branches 84.72%、Functions 96.66%、Lines 98.80%；Chromium Web Mock E2E 8/8。
+- 桌面验证：为避免影响用户正在运行的验收程序，使用隔离 `CARGO_TARGET_DIR=src-tauri/target/s2-1-event-capability-fix` 执行 `npm run tauri build -- --debug --no-bundle`，构建通过；隔离 APPDATA/LOCALAPPDATA 启动冒烟通过，PID 20672 已由脚本关闭并清理临时目录。没有停止、覆盖或复用用户正在运行的进程。仅有既存 Vite 主 chunk 体积提示和 MSVC 创建导入库信息提示。
+- 架构与验收：`ARCHITECTURE.md`、`V2_ARCHITECTURE.md` 已固化工作区异步身份边界；人工清单新增 M12，必须用两个含同名相对路径的工作区复验切换与自动保存隔离。当前旧验收程序仍包含修复前代码，需关闭后从修复工作树重新启动再复验；用户明确回复“**S2.5 验收通过**”前不得开始 S2.6。
+
+### LOG-0080 — S2.5 — ACCEPTANCE DEFECT FIX / RESULT NAVIGATION AND PROTOCOL PRESENTATION
+
+- 时间：2026-08-24（Asia/Shanghai）
+- 用户反馈与现场确认：用户打开“杭州三日游”后，点击左侧项目文件没有反应、不清楚出游文档保存在哪里，并把聊天/成果中的机器或 Markdown 源格式感知为“一串代码”。只读检查确认成果没有丢失：实际托管文件为 `%APPDATA%\com.a2ui.terminal\my-results\杭州三日游.md`，当时为 1748 字节；它按产品决策属于“我的成果”而不是左侧当前授权项目，因此不应混入项目树。前端继续只使用 `result://` 不透明引用，不暴露绝对路径。
+- 根因：`AppShell` 的活动 Result 是独立视图状态，`WorkspaceSidebar.openFile` 和重复点击顶部“工作台”没有清除此状态，因此文件确实被选中但中央仍渲染旧 Result；接受 `create_file` 后也没有把返回的 Result 交给外壳继续导航。成果标题区只显示格式，没有解释托管域或返回“我的成果”的入口。Result 使用纯 TextArea 直接展示 Markdown 源文。聊天协议呈现只识别旧 `document_patch` 字样，没有覆盖 `create_file/replace_empty_file` 与对应 Ready 状态码；Rust 对有效 Review 又把 Provider 原始 JSON 保存为消息正文，重开后仍可能显示机器协议。
+- 导航与成果修复：左侧普通文件和恢复草稿选择会先退出活动 Result；顶部“工作台”始终打开工作区编辑器，不恢复过期成果。接受新建 Review 后由 `DiffReview → EditorPane → AppShell` 显式传递新 Result ID 并直接打开成果。标题区持续显示“保存在‘我的成果’”和“查看我的成果”；Web Mock 也改为建立托管 Result，而不是伪造一个左侧项目文件。新建 Review 的统一撤销入口在自动打开成果后仍可见，成功撤销后回到工作区，避免导航改进破坏 S2.5 撤销闭环。
+- 阅读与协议呈现：Markdown Result 默认进入关闭原始 HTML 的安全阅读视图，按标题、列表、强调、表格等排版；用户切换“编辑”后才看到 Markdown 源文。安全 Markdown renderer 提取为共享模块，聊天与成果复用同一渲染规则。`ChatMessageList` 统一识别 `document_patch/create_file/replace_empty_file`、三种 Ready 状态码和流式 JSON 信封，只显示生成状态、接受前零写入说明及审阅入口。Rust 对校验成功的 Review 保存用户可读摘要，完整结构候选继续以 Review 记录为事实源，不再把有效协议 JSON 当会话正文。
+- 数据、安全与兼容：没有新增或修改 migration、schema、IPC、Capability、Provider 网络权限、任意路径权限或遥测。没有移动、改名或重写用户现有“杭州三日游”文件；只读定位后保持原文件不变。普通 Markdown 助手回复仍安全渲染；无效 Review 仍保留校验错误和重试能力。S2.6 选区助手未开始。
+- 自动验证：`npm run check` 全绿，35 个 Vitest 文件/140 项测试通过并完成生产构建；coverage 140/140，Statements 97.97%、Branches 84.72%、Functions 96.66%、Lines 98.80%。Chromium Web Mock 首次运行暴露 Mock 未设置 `CREATE_REVIEW_READY` 的同构缺口并完成修复，默认阅读视图也使一个旧测试定位产生合理变化；修正后完整重跑 8/8 通过。Rust `rustfmt --check`、全目标全 feature Clippy `-D warnings` 通过；隔离目标目录全目标全 feature 测试通过：库 116/116、架构边界 6/6、命令注册 1/1、合同 fixture 9/9，0 失败。普通目标目录测试因用户正在运行的 `a2ui-terminal.exe` 被 Windows 锁定而报 `os error 5`，没有终止用户进程，改用既有隔离目标目录完成同一验证。隔离 `tauri build --debug --no-bundle` 成功，临时桌面实例 PID 34156 启动冒烟后已关闭；隔离目录没有产生文件，执行环境拒绝删除空目录 `D:\A2UI\.validation-runtime\s2-5-result-ux-smoke`，不含用户内容且不在仓库内。
+- 架构与验收：`ARCHITECTURE.md`、`V2_ARCHITECTURE.md` 固化“我的成果/项目文件树”双导航域、协议非聊天正文和默认阅读视图；[S2_5_MANUAL_ACCEPTANCE.md](S2_5_MANUAL_ACCEPTANCE.md) 新增 M13。用户需从当前修复工作树重新启动应用，复验 M12 工作区隔离和 M13 成果导航/协议呈现；明确回复“**S2.5 验收通过**”前不得开始 S2.6。
+
+### LOG-0081 — S2.5 — M04 UNDO VISIBLE OUTCOME FIX（待人工复验）
+
+- 时间：2026-08-24 13:30（Asia/Shanghai）
+- 用户反馈与只读证据：用户按 M04 接受改名后的创建型 Review、查看成果及初始历史后，点击“撤销上次 AI 修改”没有可见反应。只读检查本机 SQLite 与托管文件元数据确认：最新创建型 Review 仍为 `applied`，`output_result_id` 和初始 Revision 均存在，托管文件 SHA-256 与当前 Revision Hash 完全一致；没有读取、打印或修改正文。这排除了“用户内容已变化而必须拒绝删除”，也确认本次撤销没有完成。
+- 根因：`undoLastPatch` 的异步合同只有 `Promise<void>`；无可撤销状态、工作区不可用和后端异常都不能向调用方返回成败。异常虽写入全局 `patchError`，但活动 Result 页面只订阅 Result store 的错误，不显示 Review store 错误，因此 IPC/状态失败在成果视图中表现为静默无响应。成功路径仅清除活动 Result 回到编辑器，也缺少成功提示和成果列表删除证据。
+- 实际修改：统一撤销动作改为 `Promise<boolean>`，所有无操作、缺少工作区、Web Mock 成功、Desktop 成功和异常分支都明确返回结果；失败保留 `lastReviewApplication` 供安全重试，并显示后端错误。`AppShell` 使用 Ant Design 上下文消息实例：失败即时提示，成功清除活动 Result、导航到“我的成果”并显示已撤销/已删除提示。`ResultWorkbench` 同时直接展示 Review 撤销错误，避免 Toast 错过后再次陷入视野盲区。
+- 测试与合同：成果组件回归新增“按钮确实调用统一撤销 + 当前页显示失败原因”；Web Mock store 断言成功返回 `true`；Desktop store 新增后端 `FILE_CONFLICT` 时返回 `false`、保留 Review 标记并公开错误；E2E 更新为撤销后直接进入 `#/results`、看到成功提示且原成果不在列表。后端文件 Hash/归属/状态校验、SQLite 事务和重复撤销幂等语义未修改。
+- 自动验证：定向 Vitest 2 个文件/9 项通过；最终完整 `npm run check` 通过，35 个测试文件/142 项 Vitest 全通过并完成生产构建；定向 Chromium E2E 1/1 通过。首次完整 E2E 按旧预期等待编辑器而失败，原因是本次成功路径有意改为跳转成果列表；更新预期后最终完整 Chromium Web Mock 8/8 通过。
+- 数据、安全与阶段边界：未新增 migration、IPC、Capability、文件权限、网络请求或遥测；没有执行真实撤销，也没有修改用户现有托管成果。诊断程序只读打开 SQLite，检查完成后已从仓库删除。S2.5 继续保持待人工验收，S2.6 未开始。
+- 下一动作：用户完全停止旧开发实例并从当前工作树重新启动，从 M04 第 1 步重新生成一份测试审阅后复验（前端只保留当前进程的“上次 AI 修改”快捷入口，不把该临时指针持久化）。成功时应立即提示并进入“我的成果”，新测试成果消失；失败时应在成果页显示可操作原因。此前未撤销的测试成果保持原样，没有被本次诊断代为删除。M04 复验通过前不进入后续验收步骤或 S2.6。
+
+### LOG-0082 — S2.5 — CORRECTION / PERSISTED RESULT REVIEW ORIGIN AND SAFE UNDO（待人工复验）
+
+- 时间：2026-08-24 14:05（Asia/Shanghai）
+- 用户反馈与更正：用户重启后重新打开 AI 创建的“杭州三日游”，工具栏只有普通成果“撤销”，没有“撤销上次 AI 修改”。LOG-0081 只解决点击后的可见结果，却仍把按钮可见性绑定在进程内 `lastReviewApplication`，并要求重启后重新生成测试审阅；这不满足已有 Result 可重开、可继续处理的产品语义。本记录取代 LOG-0081 关于“临时指针不跨重启且需重新生成”的结论；现有已应用测试成果应能直接恢复撤销入口。
+- 持久来源实现：`ResultDocument` 新增 `appliedReview { reviewId, workspaceId } | null`。Rust 读取或创建托管 Result 时，根据 SQLite `review_requests.output_result_id` 且状态为 `applied` 的关系反查 Review 与原工作区，不暴露绝对路径、正文或额外审阅 payload。`ResultWorkbench` 完全依据该可信响应显示 AI 撤销按钮；`AppShell` 把持久来源显式交给统一撤销动作，因此当前工作区、`lastReviewApplication` 和 `lastPatchApplication` 均为空时仍可调用原 `undo_review`。Web Mock 保存同构来源并支持按 Review 定位删除。
+- 安全根因与修复：复核 LOG-0081 所称“后端 Hash 校验未修改”后发现，旧 `undo_review_managed_result` 把磁盘 Hash 与同一次读取产生的当前文档 Hash 比较，两者通常天然相同，无法证明内容仍是 AI 创建时版本。现在 Storage 从 Result 的最早 `source='initial'` Revision 读取可信创建 Hash；删除前用磁盘当前字节重新计算并比较。成果编辑器保存、外部修改或并发变化都会返回 `FILE_CONFLICT`，文件、Result、Review 和版本记录保持不变；只有仍匹配初始版本的托管成果才允许删除。
+- 合同与兼容：更新 Rust/TypeScript `ResultDocument` DTO、TypeScript guard 和 `contracts/v2/result.json` fixture。该字段为同一 schema v11 关系的派生只读元数据，没有 migration、新表、新 IPC、新 Capability、路径权限、网络请求或遥测。旧普通成果、用户主动创建成果、任务草稿和副本均返回 `appliedReview: null`，不会错误显示 AI 撤销按钮。
+- 回归覆盖：Rust 新增真实文件数据库重开用例，执行“创建 Review → 接受 → 关闭 Storage → 重新打开数据库 → 读取 Result 恢复来源 → 撤销删除”；原创建型 Review 测试新增“外部改写 → 撤销返回冲突且保留正文 → 恢复初始正文后正常撤销”。前端组件断言按钮把持久来源传给撤销；Desktop store 断言无活动工作区和无临时 Review 状态时仍按来源调用后端；E2E 在接受后先返回“我的成果”并重新打开，再确认按钮存在并完成撤销。
+- 自动验证：前端定向 3 个文件/23 项通过；最终 `npm run check` 通过，35 个测试文件/143 项 Vitest 全通过并完成生产构建；Chromium Web Mock 8/8 通过。Rust `cargo fmt --check`、全目标/全 feature Clippy `-D warnings` 通过；隔离目标全目标/全 feature 测试通过：库 117/117、架构边界 6/6、命令注册 1/1、合同 fixture 9/9。隔离 `tauri build --debug --no-bundle` 成功，产物位于既有忽略目录 `src-tauri/target/s2-1-event-capability-fix/debug/a2ui-terminal.exe`。只有既有 Vite 大 chunk 提示和 MSVC 导入库信息，无失败。
+- 数据与阶段边界：没有调用真实用户数据库的撤销命令，没有删除或修改“杭州三日游”等现有成果；代码仅在新版本启动并读取 Result 时恢复派生来源。S2.5 继续待人工验收，S2.6 未开始。
+- 下一动作：完全停止旧应用并从当前工作树重启，直接在“我的成果”重新打开此前未撤销的 AI 创建成果；无需重新生成审阅。应看到“撤销上次 AI 修改”。点击后若内容仍是初始版本，应提示成功并从成果列表消失；若内容已保存过修改，应显示冲突并保留成果。M04 通过前不开始 M05 或 S2.6。
+
+### LOG-0083 — S2.5 — M06 BLANK MARKDOWN FIRST-WRITE FIX（待人工复验）
+
+- 时间：2026-08-24 14:45（Asia/Shanghai）
+- 用户反馈与只读证据：用户执行 M06，向界面上空白的 Markdown 请求写入首段时，连续两次模型候选都显示“AI 修改方案未通过安全校验”。只读诊断只输出候选字段类型、枚举、长度、工作区/授权匹配和目标字节数，不输出正文、Prompt、密钥或绝对路径；两次 `replace_empty_file` 均具有完整字段、`version=1.0`、`risk=low`、正确工作区和授权虚拟路径，真正差异是目标已为 1 字节而非零字节。没有修改该测试文件。
+- 根因：Markdown 编辑器把空模型值规范化为一个换行并触发 `onChange`，store 随后按正常用户编辑进入草稿与磁盘自动保存；界面仍呈现空白，但 Rust 的首次写入可信边界只接受 `content.is_empty()`，所以合法模型候选在生成和自动重试后都被拒绝。这不是 Provider、权限或候选 Schema 问题。
+- 前端修复：Markdown 编辑器当前内容严格为空时，忽略初始化产生的纯空白回调；真正输入非空正文仍按原路径标脏、保存草稿并自动保存。这样从当前版本新建并打开的零字节 Markdown 不会只因组件挂载变成换行。S2.3 遗留的“当前版本不支持首次写入、未请求模型且隐藏重试”提示同步退场：若模型误用普通 `document_patch`，界面现在准确说明专用完整内容协议要求、自动重试结果和零写入事实，并保留用户重试入口。
+- Rust 修复：`replace_empty_file` 生成与应用统一使用 Patch 内核的语义空白判定，接受零字节、仅含 Unicode 空白或 UTF-8 BOM 的授权可编辑文本；安全条件没有放宽为任意全文件替换，仍要求专用协议、完整候选、原始基线 Hash、当前 Hash 一致、授权和可编辑状态。拒绝零写入，接受只写一次，撤销恢复审阅前的原始字节，因此旧版本遗留的 1 字节换行也不会被静默规范化或丢失。
+- 回归与验证：前端新增编辑器初始化换行不标脏、实际正文仍标脏的组件回归；Rust 新增“纯空白基线 → 拒绝保持原字节 → 接受一次写入 → 撤销精确恢复”的集成回归。`npm run check` 通过，35 个 Vitest 文件/144 项全绿并完成生产构建；Chromium Web Mock E2E 8/8；Rust `cargo fmt --check`、全目标/全 feature Clippy `-D warnings` 与测试通过：库 118/118、架构边界 6/6、命令注册 1/1、合同 fixture 9/9。隔离 `tauri build --debug --no-bundle` 成功，产物位于既有忽略目录 `src-tauri/target/s2-1-event-capability-fix/debug/a2ui-terminal.exe`。仅有既有 Vite 大 chunk 提示和 MSVC 导入库信息。
+- 合同、数据与阶段边界：无 migration、schema、IPC、Capability、Provider、网络、文件权限或遥测变化；没有写入、删除或规范化用户的 M06 测试文件，临时只读诊断源码已删除。S2.5 继续待人工验收，S2.6 未开始。
+- 下一动作：完全停止旧桌面进程并从当前工作树重启。严格复验时重新创建零字节 `empty.md`，打开后等待自动保存窗口仍应保持 0 字节，再发送 M06 请求并拒绝；也可直接使用当前视觉空白的 1 字节测试文件确认能够进入审阅，但它拒绝/撤销后会安全恢复为原来的 1 字节。M06 通过后再进入 M07。
+
+### LOG-0084 — S2.5 — M05 CREATE-REVIEW DISCOVERABILITY CORRECTION（待人工复验）
+
+- 时间：2026-08-24 15:15（Asia/Shanghai）
+- 用户反馈：执行 M05“对创建审阅输入危险名称”时找不到“创建审阅”入口。代码核对确认产品没有也不应提供一个绕过 AI 候选的手工 Review 构造按钮；创建型 Review 的真实入口是右侧 AI 助手在没有现有文件修改目标时返回 `create_file` 候选，经 Rust 校验后出现“前往审阅中心”。原 M05 直接从“对创建审阅输入”开始，漏掉了这条必要触发路径。
+- 界面修正：审阅中心没有待处理方案时，不再只显示“暂无待审阅修改”，而是明确提示在右侧 AI 助手中新建对话、取消现有文件范围并提出生成 Markdown 文档。创建型 Review 的文件名输入由只有 `aria-label` 的无标签文本框改为可见的“确认创建后的文件名”区域，并说明只允许安全的 `.md/.markdown/.txt` 单层名称；无障碍名称继续保留。
+- 验收修正：M05 现在完整记录“新建对话 → 修改发送清单并取消当前文件/选区/现有文件目标 → 发送创建请求 → 前往审阅中心 → 逐个输入危险名称 → 建立同名用户成果 → 返回并接受”的操作。绝对路径、路径穿越、子目录、Windows 保留名和非文本扩展名仍由 Rust 拒绝；提示不替代可信边界。同名冲突仍进入持久冲突态，不覆盖现有成果。
+- 自动验证：新增两项组件回归，覆盖无审阅时的真实入口提示，以及创建型 Review 的可见文件名标签、初始值和安全格式提示；定向 6/6 通过。最终 `npm run check` 全绿，35 个 Vitest 文件/146 项通过并完成生产构建；Chromium Web Mock E2E 8/8。
+- 合同与阶段边界：无 migration、schema、IPC、Capability、Provider、网络、文件权限、Review 状态机或遥测变化；没有创建、覆盖或删除任何用户成果。S2.5 继续待人工验收，S2.6 未开始。
+- 下一动作：完全停止旧应用并从当前工作树重启，按更新后的 M05 重新生成创建型 Review。确认“确认创建后的文件名”清晰可见，危险名称被拒绝且同名成果不被覆盖；M05/M06 通过后再继续 M07。
+
 ### 新账本记录模板
 
 ```markdown
@@ -1717,27 +1813,28 @@ S1.1—S2.4 均已通过自动验证和用户人工验收。用户已授权开�
 
 ### ADR 索引
 
-| ID      | 决策                                            | 状态   | 来源                 |
-| ------- | ----------------------------------------------- | ------ | -------------------- |
-| ADR-001 | Result 是第一等对象，与 Chat Session 解耦       | 已接受 | PRD RES-01           |
-| ADR-002 | 所有 AI 持久写入使用统一 Review Pipeline        | 已接受 | PRD REV-06           |
-| ADR-003 | Rust 为唯一可信执行边界                         | 已接受 | V1 内核/PRD 安全红线 |
-| ADR-004 | 简单/专业模式共享同一 Core Services             | 已接受 | PRD 双模式风险控制   |
-| ADR-005 | Template 是版本化工作流配置，不是 Prompt 列表   | 已接受 | PRD 6.7              |
-| ADR-006 | Provider 优先统一 OpenAI-Compatible adapter     | 已接受 | PRD ARC-03           |
-| ADR-007 | A2UI 只允许可信 Catalog，禁止任意代码           | 已接受 | PRD/A2UI V1          |
-| ADR-008 | V2 采用增量包裹 V1 内核，不做大爆炸重写         | 已接受 | 当前代码风险审计     |
-| ADR-009 | 首次默认平台内置模型/试用，本地模型与 BYOK 可选 | 已接受 | 用户决策 2026-08-11  |
-| ADR-010 | 新成果默认保存到应用管理的“我的成果”目录        | 已接受 | 用户决策 2026-08-11  |
-| ADR-011 | 首批场景为会议纪要和文档总结                    | 已接受 | 用户决策 2026-08-11  |
-| ADR-012 | 验证归档当前 V1 改动后才开始 V2                 | 已接受 | 用户决策 2026-08-11  |
-| ADR-013 | P0 表格基础数据；图片为授权多模态上下文         | 已接受 | 用户决策 2026-08-11  |
-| ADR-014 | 匿名指标克制透明可关闭，内容永不上报            | 已接受 | 用户决策 2026-08-11  |
-| ADR-015 | 大众产品名称为“A2UI 工作台”                     | 已接受 | 用户决策 2026-08-11  |
-| ADR-016 | 匿名指标默认关闭，首次核心闭环后邀请主动开启    | 已接受 | 用户决策 2026-08-11  |
-| ADR-017 | 用户可主动新建；AI 创建必须先经用户确认         | 已接受 | 用户决策 2026-08-13  |
-| ADR-018 | 首期新建聚焦 UTF-8 文本，不追求 Office 无损兼容 | 已接受 | 用户决策 2026-08-13  |
-| ADR-019 | S2.4 使用内存确定性检索，不持久化正文索引       | 已接受 | 用户决策 2026-08-21  |
+| ID      | 决策                                                     | 状态   | 来源                     |
+| ------- | -------------------------------------------------------- | ------ | ------------------------ |
+| ADR-001 | Result 是第一等对象，与 Chat Session 解耦                | 已接受 | PRD RES-01               |
+| ADR-002 | 所有 AI 持久写入使用统一 Review Pipeline                 | 已接受 | PRD REV-06               |
+| ADR-003 | Rust 为唯一可信执行边界                                  | 已接受 | V1 内核/PRD 安全红线     |
+| ADR-004 | 简单/专业模式共享同一 Core Services                      | 已接受 | PRD 双模式风险控制       |
+| ADR-005 | Template 是版本化工作流配置，不是 Prompt 列表            | 已接受 | PRD 6.7                  |
+| ADR-006 | Provider 优先统一 OpenAI-Compatible adapter              | 已接受 | PRD ARC-03               |
+| ADR-007 | A2UI 只允许可信 Catalog，禁止任意代码                    | 已接受 | PRD/A2UI V1              |
+| ADR-008 | V2 采用增量包裹 V1 内核，不做大爆炸重写                  | 已接受 | 当前代码风险审计         |
+| ADR-009 | 首次默认平台内置模型/试用，本地模型与 BYOK 可选          | 已接受 | 用户决策 2026-08-11      |
+| ADR-010 | 新成果默认保存到应用管理的“我的成果”目录                 | 已接受 | 用户决策 2026-08-11      |
+| ADR-011 | 首批场景为会议纪要和文档总结                             | 已接受 | 用户决策 2026-08-11      |
+| ADR-012 | 验证归档当前 V1 改动后才开始 V2                          | 已接受 | 用户决策 2026-08-11      |
+| ADR-013 | P0 表格基础数据；图片为授权多模态上下文                  | 已接受 | 用户决策 2026-08-11      |
+| ADR-014 | 匿名指标克制透明可关闭，内容永不上报                     | 已接受 | 用户决策 2026-08-11      |
+| ADR-015 | 大众产品名称为“A2UI 工作台”                              | 已接受 | 用户决策 2026-08-11      |
+| ADR-016 | 匿名指标默认关闭，首次核心闭环后邀请主动开启             | 已接受 | 用户决策 2026-08-11      |
+| ADR-017 | 用户可主动新建；AI 创建必须先经用户确认                  | 已接受 | 用户决策 2026-08-13      |
+| ADR-018 | 首期新建聚焦 UTF-8 文本，不追求 Office 无损兼容          | 已接受 | 用户决策 2026-08-13      |
+| ADR-019 | S2.4 使用内存确定性检索，不持久化正文索引                | 已接受 | 用户决策 2026-08-21      |
+| ADR-020 | Review 以 SQLite 为事实源，Patch/Result 复用成熟执行内核 | 已接受 | S2.5 架构落实 2026-08-24 |
 
 ### 开放问题
 
@@ -1769,11 +1866,11 @@ S1.1—S2.4 均已通过自动验证和用户人工验收。用户已授权开�
 
 ## 12. 交接摘要
 
-截至 LOG-0076：
+截至 LOG-0084：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页、S1.5 专用成果工作台、S2.1 ImportBatch/系统选择/桌面原生拖放、S2.2 CSV/XLSX/图片读取适配、S2.3 Context Manifest 和 S2.4 Adaptive Context；Provider 图片多模态发送、统一 Review、Export 和产品事件尚未开始。
+- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页、S1.5 专用成果工作台、S2.1 ImportBatch/系统选择/桌面原生拖放、S2.2 CSV/XLSX/图片读取适配、S2.3 Context Manifest 和 S2.4 Adaptive Context；S2.5 统一 Review/schema v11 已完成自动验证、待人工验收；Provider 图片多模态发送、Export 和产品事件尚未开始。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
 - S2.2 已建立统一 `DocumentSource`、CSV/XLSX 受限结构化读取、公式/注入风险标记、图片原始视觉来源、8 MB 内本地预览、多批累积和工作区隔离的单项撤销，且已于 2026-08-20 通过用户验收。
@@ -1781,6 +1878,6 @@ S1.1—S2.4 均已通过自动验证和用户人工验收。用户已授权开�
 - S2.3 代码质量整改已把 `ChatPanel` 收敛为组合层，将 Context Manifest 编排、消息协议呈现和输入/拖放拆为独立模块；前端架构测试固定该依赖方向。Rust 应用层边界测试改为自动扫描整个 `src/application` 目录，不再漏掉新增 `context.rs`。大规模 Storage/DocumentSource 物理拆分留待 S2.3 验收后的独立重构基线。
 - S2.3 对已授权零字节文本目标只提供准确能力限制：Rust 明确识别空文件，跳过不可能成功的后台模型重试，前端隐藏手动重试且保持零写入。真正的安全首次写入已作为显式合同/E2E 场景排入 S2.5，当前没有放宽非空锚点或实现写入。
 - S2.4 已按 ADR-019 实现 Rust 可信 Planner、约 1600/200 字符确定性结构分块、本地词法/BM25-like 检索、中文 bigram、Full/Retrieval/Hybrid、32000 token 预算、可追溯块范围和进程内 workspace/source/hash 索引。Manifest 消费前会复验授权与 Hash；索引不会持久化，可手动清理，并在撤销、变化、切换、删除、清除数据或退出时失效。Schema 仍为 v10，仅新增 `clear_context_index` 最小 IPC；自动验证结果见 LOG-0073。
-- S2.4 已于 2026-08-21 通过用户人工验收。下一步只允许开始 S2.5 统一 Review Pipeline；S2.5 完成并验收前不得开始 S2.6。
+- S2.4 已于 2026-08-21 通过用户人工验收。S2.5 已实现持久 Review/blocks、Patch 接入、AI `create_file`、空白文件首次写入、冲突三选项、幂等应用、撤销和跨重启恢复；人工验收发现的跨工作区编辑器/自动保存串写、成果/项目导航失联、机器协议外露、Markdown 源文误呈现、成果页撤销静默无反馈、撤销入口不跨重启、空 Markdown 初始化换行导致首次写入误拒绝及创建型 Review 入口/文件名字段不清晰均已修复。Result 现在从 SQLite 派生已应用 Review 来源，删除前与初始 Revision Hash 比较；空白写入按原始 Hash 审核并精确恢复原始字节。详细自动证据见 LOG-0078—LOG-0084，人工步骤见 [S2_5_MANUAL_ACCEPTANCE.md](S2_5_MANUAL_ACCEPTANCE.md)。当前复验 M05/M06；用户验收前不得开始 S2.6。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - 如果文档与实际代码不一致，先记录差异并修正文档状态；不要为了符合文档而破坏性改写用户代码。

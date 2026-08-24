@@ -19,6 +19,11 @@ import type {
   DocumentVersionSummary,
   PatchApplication,
   PatchReview,
+  ReviewApplication,
+  ReviewBlockDecision,
+  ReviewRequest,
+  ReviewSource,
+  ReviewConflictResolution,
   SelectedWorkspaceFiles,
   WorkspaceDocument,
   WorkspaceFileEntry,
@@ -471,6 +476,59 @@ export const desktopApi = {
   async undoDocumentPatch(workspaceId: string, operationId: string): Promise<PatchApplication> {
     requireDesktop();
     return invoke<PatchApplication>('undo_document_patch', { workspaceId, operationId });
+  },
+
+  async createReviewRequest(input: {
+    workspaceId: string;
+    source: ReviewSource;
+    resultId?: string | null;
+    raw: string;
+  }): Promise<ReviewRequest> {
+    requireDesktop();
+    return invoke<ReviewRequest>('create_review_request', { input });
+  },
+
+  async getReview(reviewId: string): Promise<ReviewRequest> {
+    requireDesktop();
+    return invoke<ReviewRequest>('get_review', { reviewId });
+  },
+
+  async listActiveReviews(workspaceId: string): Promise<ReviewRequest[]> {
+    requireDesktop();
+    return invoke<ReviewRequest[]>('list_active_reviews', { workspaceId });
+  },
+
+  async decideReviewBlocks(input: {
+    reviewId: string;
+    workspaceId: string;
+    decisions: ReviewBlockDecision[];
+  }): Promise<ReviewRequest> {
+    requireDesktop();
+    return invoke<ReviewRequest>('decide_review_blocks', { input });
+  },
+
+  async applyReview(input: { reviewId: string; workspaceId: string }): Promise<ReviewApplication> {
+    requireDesktop();
+    return invoke<ReviewApplication>('apply_review', { input });
+  },
+
+  async discardReview(workspaceId: string, reviewId: string): Promise<ReviewRequest> {
+    requireDesktop();
+    return invoke<ReviewRequest>('discard_review', { workspaceId, reviewId });
+  },
+
+  async resolveReviewConflict(input: {
+    reviewId: string;
+    workspaceId: string;
+    resolution: ReviewConflictResolution;
+  }): Promise<ReviewApplication> {
+    requireDesktop();
+    return invoke<ReviewApplication>('resolve_review_conflict', { input });
+  },
+
+  async undoReview(input: { reviewId: string; workspaceId: string }): Promise<ReviewApplication> {
+    requireDesktop();
+    return invoke<ReviewApplication>('undo_review', { input });
   },
 
   async processA2uiMessage(request: {

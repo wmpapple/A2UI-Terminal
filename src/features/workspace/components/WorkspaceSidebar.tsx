@@ -15,7 +15,11 @@ import styles from './WorkspaceSidebar.module.css';
 const iconFor = (path: string) =>
   path.endsWith('.md') ? <FileMarkdownOutlined /> : <FileTextOutlined />;
 
-export function WorkspaceSidebar() {
+interface Props {
+  onActivateWorkspace?: () => void;
+}
+
+export function WorkspaceSidebar({ onActivateWorkspace }: Props) {
   const { t } = useI18n();
   const {
     runtimeMode,
@@ -123,7 +127,10 @@ export function WorkspaceSidebar() {
                     type="link"
                     size="small"
                     disabled={!draft.available}
-                    onClick={() => void openFile(draft.relativePath)}
+                    onClick={() => {
+                      onActivateWorkspace?.();
+                      void openFile(draft.relativePath);
+                    }}
                   >
                     {draft.relativePath}
                   </Button>
@@ -181,7 +188,10 @@ export function WorkspaceSidebar() {
                   aria-disabled={!file.readable}
                   disabled={!file.readable}
                   className={`${styles.file} ${activePath === file.path ? styles.active : ''}`}
-                  onClick={() => void openFile(file.path)}
+                  onClick={() => {
+                    onActivateWorkspace?.();
+                    void openFile(file.path);
+                  }}
                 >
                   {iconFor(file.path)}
                   <span>{file.sourceId ? file.name : file.path}</span>

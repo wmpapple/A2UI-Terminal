@@ -9,7 +9,7 @@ use crate::ai::{
 pub use crate::application::chat::{ChatStreamEvent, ChatStreamResult};
 pub use crate::application::provider::{ProviderConnectionResult, SecretStatus};
 use crate::application::{
-    adapters, chat, context, import as import_service, provider, revision,
+    adapters, chat, context, import as import_service, provider, review, revision,
     workspace as workspace_service,
 };
 use crate::document_source::{DocumentSource, DocumentSourceContent};
@@ -17,6 +17,10 @@ use crate::domain::import::{
     ConfirmImportInput, ImportBatch, ImportConfirmation, SetImportDropTargetInput,
 };
 use crate::domain::result::{ResultDetail, ResultSummary};
+use crate::domain::review::{
+    ApplyReviewInput, CreateReviewRequestInput, DecideReviewBlocksInput,
+    ResolveReviewConflictInput, ReviewApplication, ReviewRequest,
+};
 use crate::domain::task::{
     AnswerTaskInput, CreateTaskInput, TaskDetail, TaskRunResult, TaskTemplate,
 };
@@ -836,6 +840,71 @@ pub fn undo_document_patch(
 }
 
 #[tauri::command]
+pub fn create_review_request(
+    state: State<'_, AppState>,
+    input: CreateReviewRequestInput,
+) -> Result<ReviewRequest, AppError> {
+    review::create(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn get_review(
+    state: State<'_, AppState>,
+    review_id: String,
+) -> Result<ReviewRequest, AppError> {
+    review::get(&state.storage, &review_id)
+}
+
+#[tauri::command]
+pub fn list_active_reviews(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> Result<Vec<ReviewRequest>, AppError> {
+    review::list_active(&state.storage, &workspace_id)
+}
+
+#[tauri::command]
+pub fn decide_review_blocks(
+    state: State<'_, AppState>,
+    input: DecideReviewBlocksInput,
+) -> Result<ReviewRequest, AppError> {
+    review::decide(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn apply_review(
+    state: State<'_, AppState>,
+    input: ApplyReviewInput,
+) -> Result<ReviewApplication, AppError> {
+    review::apply(&state.storage, &state.managed_results_dir, input)
+}
+
+#[tauri::command]
+pub fn discard_review(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    review_id: String,
+) -> Result<ReviewRequest, AppError> {
+    review::discard(&state.storage, &workspace_id, &review_id)
+}
+
+#[tauri::command]
+pub fn resolve_review_conflict(
+    state: State<'_, AppState>,
+    input: ResolveReviewConflictInput,
+) -> Result<ReviewApplication, AppError> {
+    review::resolve_conflict(&state.storage, &state.managed_results_dir, input)
+}
+
+#[tauri::command]
+pub fn undo_review(
+    state: State<'_, AppState>,
+    input: ApplyReviewInput,
+) -> Result<ReviewApplication, AppError> {
+    review::undo(&state.storage, &state.managed_results_dir, input)
+}
+
+#[tauri::command]
 pub fn process_a2ui_message(
     state: State<'_, AppState>,
     request: ProcessA2uiRequest,
@@ -1051,6 +1120,7 @@ mod tests {
                 configured_providers: 1,
                 tasks: 4,
                 results: 10,
+                review_requests: 11,
             },
         );
         let json = serde_json::to_value(report).unwrap();

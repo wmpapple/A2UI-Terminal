@@ -1,7 +1,7 @@
 use crate::domain::result::{
-    validate_title, CreateTextResultInput, RestoreResultRevisionInput, ResultDetail,
-    ResultDocument, ResultRevision, ResultRevisionSummary, ResultStorageKind, ResultSummary,
-    SaveResultDocumentInput, TextResultFormat,
+    validate_title, CreateTextResultInput, RestoreResultRevisionInput, ResultAppliedReview,
+    ResultDetail, ResultDocument, ResultRevision, ResultRevisionSummary, ResultStorageKind,
+    ResultSummary, SaveResultDocumentInput, TextResultFormat,
 };
 use crate::error::AppError;
 use crate::repository::result::{detail_from_row, ResultRepository};
@@ -17,6 +17,14 @@ use uuid::Uuid;
 
 const MANAGED_RESULTS_DIRECTORY: &str = "my-results";
 const MANAGED_RESULTS_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
+
+enum ReviewResultLink<'a> {
+    None,
+    Apply {
+        review_id: &'a str,
+        expected_status: &'a str,
+    },
+}
 
 pub fn prepare_managed_results_dir(app_data_dir: &Path) -> Result<PathBuf, AppError> {
     let directory = app_data_dir.join(MANAGED_RESULTS_DIRECTORY);
@@ -58,12 +66,120 @@ pub fn create_text(
     create_managed_document(
         storage,
         managed_results_dir,
-        MANAGED_RESULTS_WORKSPACE_ID,
         &title,
         &file_name,
         input.format,
         &content,
+        ReviewResultLink::None,
     )
+}
+
+pub fn create_from_review(
+    storage: &Storage,
+    managed_results_dir: &Path,
+    review_id: &str,
+    title: &str,
+    file_name: &str,
+    format: TextResultFormat,
+    content: &str,
+) -> Result<ResultDocument, AppError> {
+    let title = validate_title(title)?;
+    let file_name = validate_file_name(file_name, format)?;
+    create_managed_document(
+        storage,
+        managed_results_dir,
+        title,
+        &file_name,
+        format,
+        content,
+        ReviewResultLink::Apply {
+            review_id,
+            expected_status: "accepted",
+        },
+    )
+}
+
+pub fn create_conflict_copy(
+    storage: &Storage,
+    managed_results_dir: &Path,
+    review_id: &str,
+    title: &str,
+    original_path: &str,
+    content: &str,
+) -> Result<ResultDocument, AppError> {
+    let extension = Path::new(original_path)
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(str::to_ascii_lowercase);
+    let format = if extension.as_deref() == Some("txt") {
+        TextResultFormat::PlainText
+    } else {
+        TextResultFormat::Markdown
+    };
+    let suffix = match format {
+        TextResultFormat::Markdown => "md",
+        TextResultFormat::PlainText => "txt",
+    };
+    let file_name = format!("{}.{suffix}", Uuid::new_v4());
+    let title = format!("{} - AI 候选副本", title.trim());
+    let title: String = title.chars().take(160).collect();
+    create_managed_document(
+        storage,
+        managed_results_dir,
+        &title,
+        &file_name,
+        format,
+        content,
+        ReviewResultLink::Apply {
+            review_id,
+            expected_status: "conflicted",
+        },
+    )
+}
+
+pub fn undo_review_managed_result(
+    storage: &Storage,
+    managed_results_dir: &Path,
+    review_id: &str,
+    result_id: &str,
+) -> Result<(), AppError> {
+    let source = result_source(storage, result_id)?;
+    if source.source_kind != "managed_local" {
+        return Err(AppError::InvalidInput(
+            "AI 创建的成果不是托管文本文件".into(),
+        ));
+    }
+    let output_path = managed_path(
+        managed_results_dir,
+        &source.source_ref,
+        format_for_file_name(&source.source_ref)?,
+        true,
+    )?;
+    let bytes = fs::read(&output_path)?;
+    let initial_hash = storage
+        .review_managed_result_initial_hash(review_id, result_id)?
+        .ok_or(AppError::StateUnavailable)?;
+    if content_hash(&bytes) != initial_hash {
+        return Err(AppError::FileConflict);
+    }
+    fs::remove_file(&output_path)?;
+    if let Err(error) = storage.delete_review_managed_result(
+        review_id,
+        result_id,
+        &source.result.workspace_id,
+        &source.source_ref,
+    ) {
+        let _ = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&output_path)
+            .and_then(|mut file| {
+                file.write_all(&bytes)?;
+                file.sync_all()
+            });
+        return Err(error);
+    }
+    Ok(())
 }
 
 pub fn read_document(
@@ -210,25 +326,25 @@ pub fn duplicate(
     create_managed_document(
         storage,
         managed_results_dir,
-        MANAGED_RESULTS_WORKSPACE_ID,
         &title,
         &file_name,
         source.format,
         &source.content,
+        ReviewResultLink::None,
     )
 }
 
 fn create_managed_document(
     storage: &Storage,
     managed_results_dir: &Path,
-    workspace_id: &str,
     title: &str,
     file_name: &str,
     format: TextResultFormat,
     content: &str,
+    review_link: ReviewResultLink<'_>,
 ) -> Result<ResultDocument, AppError> {
     validate_content(content)?;
-    storage.ensure_managed_results_workspace(workspace_id)?;
+    storage.ensure_managed_results_workspace(MANAGED_RESULTS_WORKSPACE_ID)?;
     fs::create_dir_all(managed_results_dir)?;
     let output_path = managed_path(managed_results_dir, file_name, format, false)?;
     let result_id = Uuid::new_v4().to_string();
@@ -237,6 +353,13 @@ fn create_managed_document(
     let storage_ref = format!("result://file/{result_id}");
     let managed_state = serde_json::to_string(&json!({ "format": format }))
         .map_err(|_| AppError::StateUnavailable)?;
+    let (review_id, review_expected_status) = match review_link {
+        ReviewResultLink::None => (None, None),
+        ReviewResultLink::Apply {
+            review_id,
+            expected_status,
+        } => (Some(review_id), Some(expected_status)),
+    };
     let write_result = (|| -> Result<(), std::io::Error> {
         let mut file = OpenOptions::new()
             .write(true)
@@ -247,9 +370,13 @@ fn create_managed_document(
     })();
     if let Err(error) = write_result {
         return if error.kind() == std::io::ErrorKind::AlreadyExists {
-            Err(AppError::InvalidInput(
-                "同名成果已存在，未覆盖任何文件".into(),
-            ))
+            if review_id.is_some() {
+                Err(AppError::FileConflict)
+            } else {
+                Err(AppError::InvalidInput(
+                    "同名成果已存在，未覆盖任何文件".into(),
+                ))
+            }
         } else {
             let _ = fs::remove_file(&output_path);
             Err(AppError::Io(error))
@@ -257,7 +384,7 @@ fn create_managed_document(
     }
     let row = match storage.create_managed_text_result(NewManagedResultRow {
         result_id: &result_id,
-        workspace_id,
+        workspace_id: MANAGED_RESULTS_WORKSPACE_ID,
         title,
         storage_ref: &storage_ref,
         source_ref: file_name,
@@ -265,6 +392,8 @@ fn create_managed_document(
         revision_id: &revision_id,
         content,
         content_hash: &content_hash,
+        review_id,
+        review_expected_status,
     }) {
         Ok(row) => row,
         Err(error) => {
@@ -279,6 +408,7 @@ fn create_managed_document(
         content_hash,
         size_bytes: content.len() as u64,
         editable: true,
+        applied_review: applied_review_for_result(storage, &result_id)?,
     })
 }
 
@@ -332,7 +462,20 @@ fn read_from_source(
         content_hash: hash,
         size_bytes,
         editable,
+        applied_review: applied_review_for_result(storage, &source.result.id)?,
     })
+}
+
+fn applied_review_for_result(
+    storage: &Storage,
+    result_id: &str,
+) -> Result<Option<ResultAppliedReview>, AppError> {
+    Ok(storage
+        .applied_review_for_result(result_id)?
+        .map(|(review_id, workspace_id)| ResultAppliedReview {
+            review_id,
+            workspace_id,
+        }))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -388,7 +531,10 @@ fn validate_result_id(value: &str) -> Result<(), AppError> {
         .map_err(|_| AppError::InvalidInput("成果或版本标识无效".into()))
 }
 
-fn validate_file_name(file_name: &str, format: TextResultFormat) -> Result<String, AppError> {
+pub(crate) fn validate_file_name(
+    file_name: &str,
+    format: TextResultFormat,
+) -> Result<String, AppError> {
     let file_name = file_name.trim();
     if file_name.is_empty() || file_name.chars().count() > 120 {
         return Err(AppError::InvalidInput(
@@ -498,7 +644,7 @@ fn read_managed_file(path: &Path) -> Result<Vec<u8>, AppError> {
     Ok(fs::read(path)?)
 }
 
-fn validate_content(content: &str) -> Result<(), AppError> {
+pub(crate) fn validate_content(content: &str) -> Result<(), AppError> {
     if content.len() as u64 > MAX_TEXT_FILE_BYTES {
         return Err(AppError::FileTooLarge);
     }

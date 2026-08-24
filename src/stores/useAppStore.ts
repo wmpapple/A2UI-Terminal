@@ -45,6 +45,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   activeSessionId: useMockWorkspace ? 'welcome' : '',
   pendingDiff: null,
   lastPatchApplication: null,
+  lastReviewApplication: null,
   patchBeforeByPath: {},
   patchApplying: false,
   patchError: null,

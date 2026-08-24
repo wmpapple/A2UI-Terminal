@@ -17,6 +17,8 @@ import type {
   ResultDocument,
   ResultRevision,
   ResultSummary,
+  ReviewApplication,
+  ReviewRequest,
   TaskDetail,
   TaskRunResult,
   TaskTemplate,
@@ -117,6 +119,19 @@ const processingLocations = new Set(['local', 'cloud']);
 const contextManifestStatuses = new Set(['awaiting_confirmation', 'confirmed']);
 const contextStrategies = new Set(['full', 'retrieval', 'hybrid']);
 const contextSourceModes = new Set(['full', 'retrieved', 'excluded']);
+const reviewSources = new Set(['chat', 'selection', 'template', 'a2ui_action', 'import_transform']);
+const reviewOperationKinds = new Set(['document_patch', 'create_file', 'replace_result']);
+const reviewStatuses = new Set([
+  'pending',
+  'partially_accepted',
+  'accepted',
+  'rejected',
+  'applied',
+  'conflicted',
+  'failed',
+  'undone',
+]);
+const reviewBlockStatuses = new Set(['pending', 'accepted', 'rejected']);
 
 const isContextChunkRange = (value: unknown): boolean =>
   isObject(value) &&
@@ -306,7 +321,11 @@ export const isResultDocument = (value: unknown): value is ResultDocument =>
   isString(value.content) &&
   isString(value.contentHash) &&
   isNumber(value.sizeBytes) &&
-  isBoolean(value.editable);
+  isBoolean(value.editable) &&
+  (value.appliedReview === null ||
+    (isObject(value.appliedReview) &&
+      isString(value.appliedReview.reviewId) &&
+      isString(value.appliedReview.workspaceId)));
 
 export const isResultRevision = (value: unknown): value is ResultRevision =>
   isObject(value) &&
@@ -456,6 +475,7 @@ export const isChatStreamResult = (value: unknown): value is ChatStreamResult =>
   isBoolean(value.retryable) &&
   isNullableNumber(value.retryAfterSeconds) &&
   (value.patch === null || isPatchReview(value.patch)) &&
+  (value.review === null || value.review === undefined || isReviewRequest(value.review)) &&
   isNullableString(value.patchError) &&
   (value.a2ui === null || isA2uiProcessResult(value.a2ui));
 
@@ -542,6 +562,58 @@ export const isPatchApplication = (value: unknown): value is PatchApplication =>
   isNullableString(value.undoOf) &&
   Array.isArray(value.files) &&
   value.files.every(isAppliedPatchFile);
+
+const isReviewBlock = (value: unknown): boolean =>
+  isObject(value) &&
+  isString(value.id) &&
+  isString(value.kind) &&
+  reviewOperationKinds.has(value.kind) &&
+  isString(value.status) &&
+  reviewBlockStatuses.has(value.status) &&
+  isString(value.targetLabel) &&
+  isNullableString(value.operation) &&
+  isString(value.before) &&
+  isString(value.after) &&
+  isString(value.reason) &&
+  isString(value.risk) &&
+  patchRisks.has(value.risk) &&
+  isNullableString(value.suggestedFileName) &&
+  isNullableString(value.decidedFileName);
+
+export const isReviewRequest = (value: unknown): value is ReviewRequest =>
+  isObject(value) &&
+  isString(value.id) &&
+  isString(value.workspaceId) &&
+  isNullableString(value.resultId) &&
+  isString(value.source) &&
+  reviewSources.has(value.source) &&
+  isString(value.operationKind) &&
+  reviewOperationKinds.has(value.operationKind) &&
+  isString(value.status) &&
+  reviewStatuses.has(value.status) &&
+  isString(value.summary) &&
+  isString(value.risk) &&
+  patchRisks.has(value.risk) &&
+  isNullableString(value.baseRevisionId) &&
+  isNullableString(value.baseHash) &&
+  Array.isArray(value.blocks) &&
+  value.blocks.every(isReviewBlock) &&
+  isNullableString(value.applicationOperationId) &&
+  isNullableString(value.outputResultId) &&
+  isNullableString(value.errorCode) &&
+  isString(value.createdAt) &&
+  isNullableString(value.decidedAt) &&
+  isNullableString(value.appliedAt);
+
+export const isReviewApplication = (value: unknown): value is ReviewApplication =>
+  isObject(value) &&
+  isString(value.reviewId) &&
+  isString(value.status) &&
+  reviewStatuses.has(value.status) &&
+  isNullableString(value.operationId) &&
+  Array.isArray(value.files) &&
+  value.files.every(isAppliedPatchFile) &&
+  (value.result === null || isResultDocument(value.result));
 
 const isA2uiAction = (value: unknown): boolean =>
   isObject(value) &&

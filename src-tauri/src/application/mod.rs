@@ -4,6 +4,7 @@ pub mod context;
 pub mod import;
 pub mod provider;
 pub mod result;
+pub mod review;
 pub mod revision;
 pub mod task;
 pub mod workspace;

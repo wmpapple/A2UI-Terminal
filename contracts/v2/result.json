@@ -53,7 +53,8 @@
     "content": "# 会议纪要\n\n",
     "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "sizeBytes": 18,
-    "editable": true
+    "editable": true,
+    "appliedReview": null
   },
   "revision": {
     "id": "550e8400-e29b-41d4-a716-446655440021",

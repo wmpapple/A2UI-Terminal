@@ -195,7 +195,47 @@ test('keeps file changes behind review before applying the Web Mock patch', asyn
   await expect(page.getByText('已通过 Rust 校验')).toBeVisible();
   await page.getByRole('button', { name: /应用已选修改/ }).click();
   await expect(page.getByRole('radio', { name: '编辑器' })).toBeChecked();
-  await expect(page.getByRole('button', { name: /撤销上次 Patch/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /撤销上次 AI 修改/ })).toBeVisible();
+});
+
+test('keeps AI-created travel documents behind a complete create-file review', async ({ page }) => {
+  await openProfessionalWorkbench(page);
+  const composer = page.getByPlaceholder('描述你希望对当前文件做出的修改…');
+  const send = page.getByRole('button', { name: /send 发送$/ });
+
+  await composer.fill('生成一份杭州三日游文档');
+  await send.click();
+  const contextReview = page.getByRole('dialog', { name: '发送前确认上下文' });
+  await contextReview.getByRole('button', { name: '生成发送清单' }).click();
+  await contextReview.getByRole('button', { name: '确认并发送' }).click();
+
+  await expect(page.getByText('AI 已生成可审阅方案')).toBeVisible();
+  await expect(page.getByText(/接受后将保存到“我的成果”/)).toBeVisible();
+  await expect(page.getByText(/create_file/)).toHaveCount(0);
+  const review = page.getByRole('region', { name: '审阅中心' });
+  await expect(review).toBeVisible();
+  await expect(review.getByLabel('确认创建后的文件名')).toHaveValue('杭州三日游.md');
+  await expect(review.getByText(/抵达杭州并游览西湖/)).toBeVisible();
+  await review.getByRole('button', { name: '全部拒绝' }).click();
+  await expect(page.getByText('杭州三日游.md', { exact: true })).toHaveCount(0);
+
+  await composer.fill('重新生成杭州三日游文档');
+  await send.click();
+  await expect(contextReview).toBeHidden();
+  await expect(review).toBeVisible();
+  await review.getByRole('button', { name: /应用已选修改/ }).click();
+  await expect(page.getByLabel('成果预览')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '杭州三日游' })).toBeVisible();
+  await expect(page.getByText(/保存在“我的成果”/)).toBeVisible();
+  await expect(page.getByText('杭州三日游.md', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: /查看我的成果/ }).click();
+  const reopened = page.getByRole('article').filter({ hasText: '杭州三日游' });
+  await reopened.getByRole('button', { name: /继续处理/ }).click();
+  await expect(page.getByRole('button', { name: /撤销上次 AI 修改/ })).toBeVisible();
+  await page.getByRole('button', { name: /撤销上次 AI 修改/ }).click();
+  await expect(page).toHaveURL(/#\/results$/);
+  await expect(page.getByText(/已撤销上次 AI 修改/)).toBeVisible();
+  await expect(page.getByText('杭州三日游', { exact: true })).toHaveCount(0);
 });
 
 test('creates, saves, versions, copies, and reopens a text Result without chat', async ({
@@ -209,8 +249,9 @@ test('creates, saves, versions, copies, and reopens a text Result without chat',
   await create.getByRole('button', { name: '创建并打开' }).click();
 
   await expect(page).toHaveURL(/#\/workbench$/);
-  await expect(page.getByText('S1.5 验收记录', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'S1.5 验收记录' })).toBeVisible();
   await expect(page.getByText(/当前成果不会自动发送/)).toBeVisible();
+  await page.getByText('编辑', { exact: true }).click();
   const editor = page.getByRole('textbox', { name: '成果编辑器' });
   await editor.fill('# S1.5 验收记录\n\n成果正文已保存。');
   await expect(page.getByText('有未保存修改')).toBeVisible();
@@ -228,7 +269,10 @@ test('creates, saves, versions, copies, and reopens a text Result without chat',
   await expect(page.getByText('S1.5 验收记录 - 副本', { exact: true })).toBeVisible();
   const original = page.getByRole('article').filter({ hasText: 'S1.5 验收记录' }).last();
   await original.getByRole('button', { name: /继续处理/ }).click();
-  await expect(editor).toHaveValue('# S1.5 验收记录\n\n成果正文已保存。');
+  await page.getByText('编辑', { exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '成果编辑器' })).toHaveValue(
+    '# S1.5 验收记录\n\n成果正文已保存。'
+  );
 });
 
 test('reviews and locally previews text, table, and image sources before any AI send', async ({

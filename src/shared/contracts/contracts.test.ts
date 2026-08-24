@@ -11,6 +11,7 @@ import importBatch from '../../../contracts/v2/import.json';
 import importDrop from '../../../contracts/v2/import-drop.json';
 import documentSource from '../../../contracts/v2/document-source.json';
 import contextManifest from '../../../contracts/v2/context-manifest.json';
+import review from '../../../contracts/v2/review.json';
 import {
   isA2uiProcessResult,
   isA2uiSurfaceProtocol,
@@ -33,6 +34,8 @@ import {
   isResultDocument,
   isResultRevision,
   isResultSummary,
+  isReviewApplication,
+  isReviewRequest,
   isTaskDetail,
   isTaskRunResult,
   isTaskTemplate,
@@ -79,6 +82,8 @@ describe('shared Rust/TypeScript contract fixtures', () => {
     expect(isDocumentSource(documentSource.source)).toBe(true);
     expect(isDocumentSourceContent(documentSource)).toBe(true);
     expect(isContextManifest(contextManifest)).toBe(true);
+    expect(isReviewRequest(review.request)).toBe(true);
+    expect(isReviewApplication(review.application)).toBe(true);
   });
 
   it('allows additive fields on trusted Rust responses for forward compatibility', () => {

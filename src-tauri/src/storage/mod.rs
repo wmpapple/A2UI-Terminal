@@ -9,7 +9,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 10;
+const SCHEMA_VERSION: i64 = 11;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -20,6 +20,7 @@ const MIGRATION_V7: &str = include_str!("../../migrations/0007_document_history.
 const MIGRATION_V8: &str = include_str!("../../migrations/0008_crash_recovery.sql");
 const MIGRATION_V9: &str = include_str!("../../migrations/0009_results.sql");
 const MIGRATION_V10: &str = include_str!("../../migrations/0010_tasks_and_templates.sql");
+const MIGRATION_V11: &str = include_str!("../../migrations/0011_review_pipeline.sql");
 const MIGRATIONS: &[(i64, &str)] = &[
     (1, MIGRATION_V1),
     (2, MIGRATION_V2),
@@ -31,6 +32,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (8, MIGRATION_V8),
     (9, MIGRATION_V9),
     (10, MIGRATION_V10),
+    (11, MIGRATION_V11),
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -166,6 +168,91 @@ pub struct PatchSnapshot {
     pub version_kind: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct ReviewRequestRow {
+    pub id: String,
+    pub workspace_id: String,
+    pub result_id: Option<String>,
+    pub source: String,
+    pub operation_kind: String,
+    pub status: String,
+    pub summary: String,
+    pub risk: String,
+    pub base_revision_id: Option<String>,
+    pub base_hash: Option<String>,
+    pub payload_json: String,
+    pub application_operation_id: Option<String>,
+    pub output_result_id: Option<String>,
+    pub error_code: Option<String>,
+    pub created_at: String,
+    pub decided_at: Option<String>,
+    pub applied_at: Option<String>,
+}
+
+fn review_request_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ReviewRequestRow> {
+    Ok(ReviewRequestRow {
+        id: row.get(0)?,
+        workspace_id: row.get(1)?,
+        result_id: row.get(2)?,
+        source: row.get(3)?,
+        operation_kind: row.get(4)?,
+        status: row.get(5)?,
+        summary: row.get(6)?,
+        risk: row.get(7)?,
+        base_revision_id: row.get(8)?,
+        base_hash: row.get(9)?,
+        payload_json: row.get(10)?,
+        application_operation_id: row.get(11)?,
+        output_result_id: row.get(12)?,
+        error_code: row.get(13)?,
+        created_at: row.get(14)?,
+        decided_at: row.get(15)?,
+        applied_at: row.get(16)?,
+    })
+}
+
+#[derive(Debug, Clone)]
+pub struct ReviewBlockRow {
+    pub id: String,
+    pub review_id: String,
+    pub position: usize,
+    pub kind: String,
+    pub status: String,
+    pub target_label: String,
+    pub operation: Option<String>,
+    pub before_content: String,
+    pub after_content: String,
+    pub reason: String,
+    pub risk: String,
+    pub suggested_file_name: Option<String>,
+    pub decided_file_name: Option<String>,
+}
+
+pub struct NewReviewRequestRow<'a> {
+    pub id: &'a str,
+    pub workspace_id: &'a str,
+    pub result_id: Option<&'a str>,
+    pub source: &'a str,
+    pub operation_kind: &'a str,
+    pub summary: &'a str,
+    pub risk: &'a str,
+    pub base_revision_id: Option<&'a str>,
+    pub base_hash: Option<&'a str>,
+    pub payload_json: &'a str,
+}
+
+pub struct NewReviewBlockRow<'a> {
+    pub id: &'a str,
+    pub kind: &'a str,
+    pub target_label: &'a str,
+    pub operation: Option<&'a str>,
+    pub before_content: &'a str,
+    pub after_content: &'a str,
+    pub reason: &'a str,
+    pub risk: &'a str,
+    pub suggested_file_name: Option<&'a str>,
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentVersionRecord {
@@ -265,6 +352,8 @@ pub struct NewManagedResultRow<'a> {
     pub revision_id: &'a str,
     pub content: &'a str,
     pub content_hash: &'a str,
+    pub review_id: Option<&'a str>,
+    pub review_expected_status: Option<&'a str>,
 }
 
 #[derive(Debug, Clone)]
@@ -338,6 +427,7 @@ pub struct DiagnosticCounts {
     pub configured_providers: u64,
     pub tasks: u64,
     pub results: u64,
+    pub review_requests: u64,
 }
 
 fn result_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ResultRow> {
@@ -469,6 +559,7 @@ impl Storage {
             configured_providers: count("credential_refs")?,
             tasks: count("tasks")?,
             results: count("results")?,
+            review_requests: count("review_requests")?,
         })
     }
 
@@ -1399,6 +1490,243 @@ impl Storage {
             .optional()?)
     }
 
+    pub fn create_review_request(
+        &self,
+        input: NewReviewRequestRow<'_>,
+        blocks: &[NewReviewBlockRow<'_>],
+    ) -> Result<(), AppError> {
+        if blocks.is_empty() || blocks.len() > 50 {
+            return Err(AppError::InvalidInput(
+                "审阅请求必须包含 1 到 50 个修改块".into(),
+            ));
+        }
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        transaction.execute(
+            "INSERT INTO review_requests
+                (id, workspace_id, result_id, source, operation_kind, summary, risk,
+                 base_revision_id, base_hash, payload_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                input.id,
+                input.workspace_id,
+                input.result_id,
+                input.source,
+                input.operation_kind,
+                input.summary,
+                input.risk,
+                input.base_revision_id,
+                input.base_hash,
+                input.payload_json,
+            ],
+        )?;
+        for (position, block) in blocks.iter().enumerate() {
+            transaction.execute(
+                "INSERT INTO review_blocks
+                    (id, review_id, position, kind, target_label, operation,
+                     before_content, after_content, reason, risk, suggested_file_name)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                params![
+                    block.id,
+                    input.id,
+                    position as i64,
+                    block.kind,
+                    block.target_label,
+                    block.operation,
+                    block.before_content,
+                    block.after_content,
+                    block.reason,
+                    block.risk,
+                    block.suggested_file_name,
+                ],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn review_request(&self, review_id: &str) -> Result<Option<ReviewRequestRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT id, workspace_id, result_id, source, operation_kind, status,
+                        summary, risk, base_revision_id, base_hash, payload_json,
+                        application_operation_id, output_result_id, error_code,
+                        created_at, decided_at, applied_at
+                 FROM review_requests WHERE id = ?1",
+                [review_id],
+                review_request_from_row,
+            )
+            .optional()?)
+    }
+
+    pub fn active_review_requests(
+        &self,
+        workspace_id: &str,
+    ) -> Result<Vec<ReviewRequestRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut statement = connection.prepare(
+            "SELECT id, workspace_id, result_id, source, operation_kind, status,
+                    summary, risk, base_revision_id, base_hash, payload_json,
+                    application_operation_id, output_result_id, error_code,
+                    created_at, decided_at, applied_at
+             FROM review_requests
+             WHERE workspace_id = ?1 AND status IN ('pending', 'conflicted')
+             ORDER BY created_at DESC, id DESC",
+        )?;
+        let rows = statement.query_map([workspace_id], review_request_from_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn review_blocks(&self, review_id: &str) -> Result<Vec<ReviewBlockRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut statement = connection.prepare(
+            "SELECT id, review_id, position, kind, status, target_label, operation,
+                    before_content, after_content, reason, risk,
+                    suggested_file_name, decided_file_name
+             FROM review_blocks WHERE review_id = ?1 ORDER BY position",
+        )?;
+        let rows = statement.query_map([review_id], |row| {
+            Ok(ReviewBlockRow {
+                id: row.get(0)?,
+                review_id: row.get(1)?,
+                position: row.get::<_, i64>(2)? as usize,
+                kind: row.get(3)?,
+                status: row.get(4)?,
+                target_label: row.get(5)?,
+                operation: row.get(6)?,
+                before_content: row.get(7)?,
+                after_content: row.get(8)?,
+                reason: row.get(9)?,
+                risk: row.get(10)?,
+                suggested_file_name: row.get(11)?,
+                decided_file_name: row.get(12)?,
+            })
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn decide_review_blocks(
+        &self,
+        review_id: &str,
+        decisions: &[(String, String, Option<String>)],
+        payload_json: Option<&str>,
+    ) -> Result<(), AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let current: Option<String> = transaction
+            .query_row(
+                "SELECT status FROM review_requests WHERE id = ?1",
+                [review_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if current.as_deref() != Some("pending") {
+            return Err(AppError::InvalidInput("审阅请求已决定或已失效".into()));
+        }
+        let total = transaction.query_row(
+            "SELECT COUNT(*) FROM review_blocks WHERE review_id = ?1",
+            [review_id],
+            |row| row.get::<_, i64>(0),
+        )? as usize;
+        if decisions.len() != total {
+            return Err(AppError::InvalidInput("必须明确决定每一个审阅块".into()));
+        }
+        let mut accepted = 0usize;
+        let mut seen = std::collections::BTreeSet::new();
+        for (block_id, decision, file_name) in decisions {
+            if !seen.insert(block_id) || !matches!(decision.as_str(), "accepted" | "rejected") {
+                return Err(AppError::InvalidInput("审阅块决定无效或重复".into()));
+            }
+            accepted += usize::from(decision == "accepted");
+            let changed = transaction.execute(
+                "UPDATE review_blocks
+                 SET status = ?3, decided_file_name = ?4
+                 WHERE id = ?1 AND review_id = ?2 AND status = 'pending'",
+                params![block_id, review_id, decision, file_name],
+            )?;
+            if changed != 1 {
+                return Err(AppError::InvalidInput("审阅块不存在或已决定".into()));
+            }
+        }
+        let status = if accepted == 0 {
+            "rejected"
+        } else if accepted == total {
+            "accepted"
+        } else {
+            "partially_accepted"
+        };
+        transaction.execute(
+            "UPDATE review_requests
+             SET status = ?2, decided_at = CURRENT_TIMESTAMP,
+                 payload_json = COALESCE(?3, payload_json)
+             WHERE id = ?1 AND status = 'pending'",
+            params![review_id, status, payload_json],
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn mark_review_error(
+        &self,
+        review_id: &str,
+        status: &str,
+        error_code: &str,
+    ) -> Result<(), AppError> {
+        if !matches!(status, "conflicted" | "failed") {
+            return Err(AppError::InvalidInput("审阅错误状态无效".into()));
+        }
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        connection.execute(
+            "UPDATE review_requests SET status = ?2, error_code = ?3
+             WHERE id = ?1 AND status IN ('accepted', 'partially_accepted')",
+            params![review_id, status, error_code],
+        )?;
+        Ok(())
+    }
+
+    pub fn discard_review(&self, review_id: &str) -> Result<bool, AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let changed = transaction.execute(
+            "UPDATE review_requests
+             SET status = 'rejected', decided_at = COALESCE(decided_at, CURRENT_TIMESTAMP),
+                 error_code = NULL
+             WHERE id = ?1 AND status IN ('pending', 'conflicted', 'failed')",
+            [review_id],
+        )?;
+        if changed == 1 {
+            transaction.execute(
+                "UPDATE review_blocks SET status = 'rejected'
+                 WHERE review_id = ?1 AND status = 'pending'",
+                [review_id],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(changed == 1)
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn record_patch_operation(
         &self,
@@ -1410,6 +1738,8 @@ impl Storage {
         patch_json: &str,
         undo_of: Option<&str>,
         snapshots: &[PatchSnapshot],
+        review_id: Option<&str>,
+        undone_review_id: Option<&str>,
     ) -> Result<(), AppError> {
         let mut connection = self
             .connection
@@ -1458,6 +1788,29 @@ impl Storage {
                     summary
                 ],
             )?;
+        }
+        if let Some(review_id) = review_id {
+            let changed = transaction.execute(
+                "UPDATE review_requests
+                 SET status = 'applied', application_operation_id = ?2,
+                     applied_at = CURRENT_TIMESTAMP, error_code = NULL
+                 WHERE id = ?1 AND status IN ('accepted', 'partially_accepted')",
+                params![review_id, operation_id],
+            )?;
+            if changed != 1 {
+                return Err(AppError::InvalidInput("审阅请求不能重复应用".into()));
+            }
+        }
+        if let Some(review_id) = undone_review_id {
+            let changed = transaction.execute(
+                "UPDATE review_requests SET status = 'undone', error_code = NULL
+                 WHERE id = ?1 AND status = 'applied'
+                   AND application_operation_id = ?2",
+                params![review_id, undo_of],
+            )?;
+            if changed != 1 {
+                return Err(AppError::InvalidInput("审阅已撤销或不能撤销".into()));
+            }
         }
         transaction.execute(
             "UPDATE sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
@@ -1785,6 +2138,50 @@ impl Storage {
             .optional()?)
     }
 
+    pub fn applied_review_for_result(
+        &self,
+        result_id: &str,
+    ) -> Result<Option<(String, String)>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT id, workspace_id FROM review_requests
+                 WHERE output_result_id = ?1 AND status = 'applied'
+                 ORDER BY applied_at DESC, id DESC LIMIT 1",
+                [result_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?)
+    }
+
+    pub fn review_managed_result_initial_hash(
+        &self,
+        review_id: &str,
+        result_id: &str,
+    ) -> Result<Option<String>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT dv.content_hash
+                 FROM review_requests rr
+                 JOIN results r ON r.id = rr.output_result_id
+                 JOIN document_versions dv
+                   ON dv.workspace_id = r.workspace_id AND dv.relative_path = r.source_ref
+                 WHERE rr.id = ?1 AND rr.status = 'applied' AND rr.output_result_id = ?2
+                   AND r.source_kind = 'managed_local' AND dv.source = 'initial'
+                 ORDER BY dv.created_at ASC, dv.id ASC LIMIT 1",
+                params![review_id, result_id],
+                |row| row.get(0),
+            )
+            .optional()?)
+    }
+
     pub fn create_managed_text_result(
         &self,
         input: NewManagedResultRow<'_>,
@@ -1825,6 +2222,20 @@ impl Storage {
                 input.managed_state_json,
             ],
         )?;
+        if let Some(review_id) = input.review_id {
+            let expected_status = input.review_expected_status.unwrap_or("accepted");
+            let changed = transaction.execute(
+                "UPDATE review_requests
+                 SET status = 'applied', output_result_id = ?2,
+                     applied_at = CURRENT_TIMESTAMP, error_code = NULL
+                 WHERE id = ?1 AND status = ?3
+                   AND (?3 = 'conflicted' OR operation_kind = 'create_file')",
+                params![review_id, input.result_id, expected_status],
+            )?;
+            if changed != 1 {
+                return Err(AppError::InvalidInput("创建审阅不能重复应用".into()));
+            }
+        }
         let row = transaction.query_row(
             "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
                     r.storage_kind, r.storage_ref, r.current_revision_id,
@@ -1836,6 +2247,52 @@ impl Storage {
         )?;
         transaction.commit()?;
         Ok(row)
+    }
+
+    pub fn delete_review_managed_result(
+        &self,
+        review_id: &str,
+        result_id: &str,
+        workspace_id: &str,
+        source_ref: &str,
+    ) -> Result<(), AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let valid = transaction.query_row(
+            "SELECT COUNT(*) FROM review_requests rr
+             JOIN results r ON r.id = rr.output_result_id
+             WHERE rr.id = ?1 AND rr.status = 'applied' AND rr.output_result_id = ?2
+               AND r.workspace_id = ?3 AND r.source_kind = 'managed_local'
+               AND r.source_ref = ?4",
+            params![review_id, result_id, workspace_id, source_ref],
+            |row| row.get::<_, i64>(0),
+        )?;
+        if valid != 1 {
+            return Err(AppError::InvalidInput(
+                "AI 创建的成果已变化或不能撤销".into(),
+            ));
+        }
+        transaction.execute(
+            "DELETE FROM document_versions WHERE workspace_id = ?1 AND relative_path = ?2",
+            params![workspace_id, source_ref],
+        )?;
+        let deleted = transaction.execute("DELETE FROM results WHERE id = ?1", [result_id])?;
+        if deleted != 1 {
+            return Err(AppError::StateUnavailable);
+        }
+        let changed = transaction.execute(
+            "UPDATE review_requests SET status = 'undone', output_result_id = NULL,
+                 error_code = NULL WHERE id = ?1 AND status = 'applied'",
+            [review_id],
+        )?;
+        if changed != 1 {
+            return Err(AppError::StateUnavailable);
+        }
+        transaction.commit()?;
+        Ok(())
     }
 
     pub fn ensure_managed_result_initial_revision(
@@ -2447,7 +2904,8 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         let transaction = connection.transaction()?;
         transaction.execute_batch(
-            "DELETE FROM tasks;
+            "DELETE FROM review_requests;
+             DELETE FROM tasks;
              DELETE FROM results;
              DELETE FROM a2ui_events;
              DELETE FROM a2ui_messages;
@@ -2629,6 +3087,8 @@ mod tests {
             "results",
             "task_templates",
             "tasks",
+            "review_requests",
+            "review_blocks",
         ] {
             assert!(
                 storage.table_exists(table).unwrap(),
@@ -2882,6 +3342,37 @@ mod tests {
         assert!(!connection
             .query_row(
                 "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'tasks'",
+                [],
+                |_| Ok(true),
+            )
+            .optional()
+            .unwrap()
+            .unwrap_or(false));
+    }
+
+    #[test]
+    fn failed_v11_migration_rolls_back_review_tables_and_schema_version() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        Storage::configure(&connection).unwrap();
+        Storage::migrate_to(&mut connection, 10, MIGRATIONS).unwrap();
+        let failure = Storage::migrate_to(
+            &mut connection,
+            11,
+            &[(
+                11,
+                "CREATE TABLE review_requests(id TEXT); INSERT INTO missing_table VALUES (1);",
+            )],
+        );
+        assert!(failure.is_err());
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .unwrap(),
+            10
+        );
+        assert!(!connection
+            .query_row(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'review_requests'",
                 [],
                 |_| Ok(true),
             )
@@ -3323,6 +3814,7 @@ mod tests {
 
         assert_eq!(counts.workspaces, 1);
         assert_eq!(counts.results, 0);
+        assert_eq!(counts.review_requests, 0);
         let serialized = serde_json::to_string(&counts).unwrap();
         assert!(!serialized.contains("Private project"));
         assert!(!serialized.contains("C:\\\\private"));

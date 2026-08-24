@@ -55,7 +55,7 @@ describe('ChatPanel patch presentation', () => {
       </I18nProvider>
     );
 
-    expect(screen.getByText('正在生成修改方案')).toBeInTheDocument();
+    expect(screen.getByText('正在生成可审阅方案')).toBeInTheDocument();
     expect(screen.queryByText(/MACHINE_ONLY_PROTOCOL/)).not.toBeInTheDocument();
   });
 
@@ -77,8 +77,60 @@ describe('ChatPanel patch presentation', () => {
       </I18nProvider>
     );
 
-    expect(screen.getByText('AI 已生成文件修改方案')).toBeInTheDocument();
+    expect(screen.getByText('AI 已生成可审阅方案')).toBeInTheDocument();
     expect(screen.queryByText(/MACHINE_ONLY_PROTOCOL/)).not.toBeInTheDocument();
+  });
+
+  it('hides create-file JSON and explains where acceptance will save the result', () => {
+    useAppStore.setState({
+      sessions: [
+        {
+          id: 'session',
+          title: 'test',
+          messages: [
+            {
+              id: 'assistant',
+              role: 'assistant',
+              content:
+                '{"version":"1.0","type":"create_file","content":"MACHINE_ONLY_CREATE_PROTOCOL"}',
+              status: 'complete',
+              errorCode: 'CREATE_REVIEW_READY',
+            },
+          ],
+        },
+      ],
+      chatRequestId: null,
+      pendingDiff: {
+        id: 'review',
+        workspaceId: 'workspace',
+        resultId: null,
+        source: 'chat',
+        operationKind: 'create_file',
+        status: 'pending',
+        summary: '创建出游文档',
+        risk: 'low',
+        baseRevisionId: null,
+        baseHash: null,
+        blocks: [],
+        applicationOperationId: null,
+        outputResultId: null,
+        errorCode: null,
+        createdAt: 'now',
+        decidedAt: null,
+        appliedAt: null,
+      },
+    });
+
+    render(
+      <I18nProvider>
+        <ChatPanel />
+      </I18nProvider>
+    );
+
+    expect(screen.getByText('AI 已生成可审阅方案')).toBeInTheDocument();
+    expect(screen.getByText(/接受后将保存到“我的成果”/)).toBeInTheDocument();
+    expect(screen.queryByText(/MACHINE_ONLY_CREATE_PROTOCOL/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '前往审阅中心' })).toBeVisible();
   });
 
   it('shows the trusted backend reason when patch validation fails', () => {
@@ -111,7 +163,7 @@ describe('ChatPanel patch presentation', () => {
     expect(screen.queryByText(/MACHINE_ONLY_PROTOCOL/)).not.toBeInTheDocument();
   });
 
-  it('explains the empty-file limitation without claiming an automatic retry', () => {
+  it('routes an ordinary patch for a blank file back to the supported full-content review', () => {
     useAppStore.setState((state) => ({
       sessions: state.sessions.map((session) => ({
         ...session,
@@ -120,7 +172,7 @@ describe('ChatPanel patch presentation', () => {
           status: 'complete' as const,
           errorCode: 'PATCH_VALIDATION_FAILED',
           protocolError:
-            'AI 修改方案未通过安全校验：invalid input: 目标文件为空，当前版本暂不支持 AI 直接写入；请先手动添加并保存一行内容后重试',
+            'AI 修改方案未通过安全校验：invalid input: 目标文件为空，普通 document_patch 不能用于首次写入；请改用 replace_empty_file 完整内容审阅',
         })),
       })),
       chatRequestId: null,
@@ -132,10 +184,9 @@ describe('ChatPanel patch presentation', () => {
       </I18nProvider>
     );
 
-    expect(screen.getByText(/目标文件已经成功授权，但它是空文件/)).toBeInTheDocument();
-    expect(screen.getByText(/系统没有再次请求模型/)).toBeInTheDocument();
-    expect(screen.queryByText(/系统已自动重试/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '重试' })).not.toBeInTheDocument();
+    expect(screen.getByText(/目标文件已授权且为空/)).toBeInTheDocument();
+    expect(screen.getByText(/系统已自动重试/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /重试/ })).toBeInTheDocument();
   });
 
   it('blocks an unverified claim that a document was created', () => {

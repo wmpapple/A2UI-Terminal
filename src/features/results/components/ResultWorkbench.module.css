@@ -47,6 +47,13 @@
   font-size: 11px;
 }
 
+.identity :global(.ant-btn-link) {
+  height: auto;
+  margin-top: 2px;
+  padding: 0;
+  font-size: 11px;
+}
+
 .actions {
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -64,6 +71,64 @@
   font-family: 'Cascadia Code', Consolas, monospace;
   font-size: 14px;
   line-height: 1.7;
+}
+
+.markdownPreview {
+  min-height: 0;
+  flex: 1;
+  padding: 28px clamp(28px, 8vw, 120px) 64px;
+  overflow: auto;
+  color: var(--text-strong);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.markdownPreview > :first-child {
+  margin-top: 0;
+}
+
+.markdownPreview h1,
+.markdownPreview h2,
+.markdownPreview h3 {
+  margin: 1.35em 0 0.55em;
+  line-height: 1.35;
+}
+
+.markdownPreview h1 {
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--border);
+}
+
+.markdownPreview li + li {
+  margin-top: 0.3em;
+}
+
+.markdownPreview blockquote {
+  margin-left: 0;
+  padding-left: 16px;
+  color: var(--text-muted);
+  border-left: 3px solid var(--accent);
+}
+
+.markdownPreview pre {
+  padding: 14px;
+  overflow: auto;
+  color: #f2f4f8;
+  background: #1f2430;
+  border-radius: 8px;
+}
+
+.markdownPreview table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.markdownPreview th,
+.markdownPreview td {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
 }
 
 .assistant {

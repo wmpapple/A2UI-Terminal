@@ -91,6 +91,13 @@ pub struct RestoreResultRevisionInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct ResultAppliedReview {
+    pub review_id: String,
+    pub workspace_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct ResultDocument {
     pub result: ResultDetail,
     pub format: TextResultFormat,
@@ -98,6 +105,7 @@ pub struct ResultDocument {
     pub content_hash: String,
     pub size_bytes: u64,
     pub editable: bool,
+    pub applied_review: Option<ResultAppliedReview>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

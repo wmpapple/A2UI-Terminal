@@ -49,6 +49,16 @@ const CONTEXT_COMMANDS: [&str; 3] = [
     "clear_context_index",
     "confirm_context_manifest",
 ];
+const REVIEW_COMMANDS: [&str; 8] = [
+    "create_review_request",
+    "get_review",
+    "list_active_reviews",
+    "decide_review_blocks",
+    "apply_review",
+    "discard_review",
+    "resolve_review_conflict",
+    "undo_review",
+];
 
 #[test]
 fn native_commands_are_registered_and_allowed_for_the_main_window() {
@@ -76,7 +86,7 @@ fn native_commands_are_registered_and_allowed_for_the_main_window() {
         "the frontend must not gain event emission permission for native file paths"
     );
 
-    for command in NATIVE_COMMANDS {
+    for command in NATIVE_COMMANDS.into_iter().chain(REVIEW_COMMANDS) {
         assert!(
             build_script.contains(&format!("\"{command}\"")),
             "{command} is missing from the Tauri app manifest"

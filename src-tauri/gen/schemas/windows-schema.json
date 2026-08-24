@@ -189,6 +189,12 @@
           "markdownDescription": "Enables the apply_document_patch command without any pre-configured scope."
         },
         {
+          "description": "Enables the apply_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-apply-review",
+          "markdownDescription": "Enables the apply_review command without any pre-configured scope."
+        },
+        {
           "description": "Enables the clear_all_local_data command without any pre-configured scope.",
           "type": "string",
           "const": "allow-clear-all-local-data",
@@ -219,6 +225,12 @@
           "markdownDescription": "Enables the create_chat_session command without any pre-configured scope."
         },
         {
+          "description": "Enables the create_review_request command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-review-request",
+          "markdownDescription": "Enables the create_review_request command without any pre-configured scope."
+        },
+        {
           "description": "Enables the create_task command without any pre-configured scope.",
           "type": "string",
           "const": "allow-create-task",
@@ -231,6 +243,12 @@
           "markdownDescription": "Enables the create_text_result command without any pre-configured scope."
         },
         {
+          "description": "Enables the decide_review_blocks command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-decide-review-blocks",
+          "markdownDescription": "Enables the decide_review_blocks command without any pre-configured scope."
+        },
+        {
           "description": "Enables the delete_a2ui_surface command without any pre-configured scope.",
           "type": "string",
           "const": "allow-delete-a2ui-surface",
@@ -241,6 +259,12 @@
           "type": "string",
           "const": "allow-delete-provider-secret",
           "markdownDescription": "Enables the delete_provider_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the discard_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-discard-review",
+          "markdownDescription": "Enables the discard_review command without any pre-configured scope."
         },
         {
           "description": "Enables the discard_workspace_draft command without any pre-configured scope.",
@@ -279,6 +303,12 @@
           "markdownDescription": "Enables the get_result command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-review",
+          "markdownDescription": "Enables the get_review command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_task command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-task",
@@ -301,6 +331,12 @@
           "type": "string",
           "const": "allow-list-a2ui-surfaces",
           "markdownDescription": "Enables the list_a2ui_surfaces command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_active_reviews command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-active-reviews",
+          "markdownDescription": "Enables the list_active_reviews command without any pre-configured scope."
         },
         {
           "description": "Enables the list_chat_sessions command without any pre-configured scope.",
@@ -415,6 +451,12 @@
           "type": "string",
           "const": "allow-remove-workspace",
           "markdownDescription": "Enables the remove_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the resolve_review_conflict command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-resolve-review-conflict",
+          "markdownDescription": "Enables the resolve_review_conflict command without any pre-configured scope."
         },
         {
           "description": "Enables the restore_document_version command without any pre-configured scope.",
@@ -537,6 +579,12 @@
           "markdownDescription": "Enables the undo_document_patch command without any pre-configured scope."
         },
         {
+          "description": "Enables the undo_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-undo-review",
+          "markdownDescription": "Enables the undo_review command without any pre-configured scope."
+        },
+        {
           "description": "Enables the validate_document_patch command without any pre-configured scope.",
           "type": "string",
           "const": "allow-validate-document-patch",
@@ -553,6 +601,12 @@
           "type": "string",
           "const": "deny-apply-document-patch",
           "markdownDescription": "Denies the apply_document_patch command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the apply_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-apply-review",
+          "markdownDescription": "Denies the apply_review command without any pre-configured scope."
         },
         {
           "description": "Denies the clear_all_local_data command without any pre-configured scope.",
@@ -585,6 +639,12 @@
           "markdownDescription": "Denies the create_chat_session command without any pre-configured scope."
         },
         {
+          "description": "Denies the create_review_request command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-review-request",
+          "markdownDescription": "Denies the create_review_request command without any pre-configured scope."
+        },
+        {
           "description": "Denies the create_task command without any pre-configured scope.",
           "type": "string",
           "const": "deny-create-task",
@@ -597,6 +657,12 @@
           "markdownDescription": "Denies the create_text_result command without any pre-configured scope."
         },
         {
+          "description": "Denies the decide_review_blocks command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-decide-review-blocks",
+          "markdownDescription": "Denies the decide_review_blocks command without any pre-configured scope."
+        },
+        {
           "description": "Denies the delete_a2ui_surface command without any pre-configured scope.",
           "type": "string",
           "const": "deny-delete-a2ui-surface",
@@ -607,6 +673,12 @@
           "type": "string",
           "const": "deny-delete-provider-secret",
           "markdownDescription": "Denies the delete_provider_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the discard_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-discard-review",
+          "markdownDescription": "Denies the discard_review command without any pre-configured scope."
         },
         {
           "description": "Denies the discard_workspace_draft command without any pre-configured scope.",
@@ -645,6 +717,12 @@
           "markdownDescription": "Denies the get_result command without any pre-configured scope."
         },
         {
+          "description": "Denies the get_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-review",
+          "markdownDescription": "Denies the get_review command without any pre-configured scope."
+        },
+        {
           "description": "Denies the get_task command without any pre-configured scope.",
           "type": "string",
           "const": "deny-get-task",
@@ -667,6 +745,12 @@
           "type": "string",
           "const": "deny-list-a2ui-surfaces",
           "markdownDescription": "Denies the list_a2ui_surfaces command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_active_reviews command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-active-reviews",
+          "markdownDescription": "Denies the list_active_reviews command without any pre-configured scope."
         },
         {
           "description": "Denies the list_chat_sessions command without any pre-configured scope.",
@@ -781,6 +865,12 @@
           "type": "string",
           "const": "deny-remove-workspace",
           "markdownDescription": "Denies the remove_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the resolve_review_conflict command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-resolve-review-conflict",
+          "markdownDescription": "Denies the resolve_review_conflict command without any pre-configured scope."
         },
         {
           "description": "Denies the restore_document_version command without any pre-configured scope.",
@@ -901,6 +991,12 @@
           "type": "string",
           "const": "deny-undo-document-patch",
           "markdownDescription": "Denies the undo_document_patch command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the undo_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-undo-review",
+          "markdownDescription": "Denies the undo_review command without any pre-configured scope."
         },
         {
           "description": "Denies the validate_document_patch command without any pre-configured scope.",

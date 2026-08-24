@@ -6,7 +6,7 @@ import {
   SettingOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
-import { Button, ConfigProvider, Dropdown, Tag } from 'antd';
+import { Button, ConfigProvider, Dropdown, message, Tag } from 'antd';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ChatPanel } from '../features/chat/components/ChatPanel';
 import { HomePage } from '../features/home/components/HomePage';
@@ -19,6 +19,7 @@ import { ResultWorkbench } from '../features/results/components/ResultWorkbench'
 import { EditorPane } from '../features/workspace/components/EditorPane';
 import { WorkspaceSidebar } from '../features/workspace/components/WorkspaceSidebar';
 import { getRuntimeMode } from '../shared/platform/runtime';
+import type { ResultAppliedReview } from '../shared/types/domain';
 import { useAppStore } from '../stores/useAppStore';
 import { useI18n } from './i18n/useI18n';
 import styles from './AppShell.module.css';
@@ -40,11 +41,15 @@ export function AppShell() {
   const mode = getRuntimeMode();
   const initializeWorkspace = useAppStore((state) => state.initializeWorkspace);
   const initializeProviders = useAppStore((state) => state.initializeProviders);
+  const patchApplying = useAppStore((state) => state.patchApplying);
+  const patchError = useAppStore((state) => state.patchError);
+  const undoLastPatch = useAppStore((state) => state.undoLastPatch);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(() => !readOnboardingComplete());
   const [experienceMode, setExperienceMode] = useState(readExperienceMode);
   const [route, setRoute] = useState(() => routeFromHash(window.location.hash));
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
+  const [messageApi, messageContextHolder] = message.useMessage();
   const professional = experienceMode === 'professional';
 
   useEffect(() => {
@@ -78,6 +83,17 @@ export function AppShell() {
 
   const openResult = (resultId: string) => openWorkbench(resultId);
 
+  const undoCreatedResult = async (review: ResultAppliedReview) => {
+    const undone = await undoLastPatch(review);
+    if (!undone) {
+      void messageApi.error(useAppStore.getState().patchError ?? t('undoReviewUnavailable'));
+      return;
+    }
+    setActiveResultId(null);
+    openRoute('results');
+    void messageApi.success(t('undoReviewSuccess'));
+  };
+
   const navigationItems: Array<{
     route: AppRoute;
     label: ReturnType<typeof t>;
@@ -98,12 +114,24 @@ export function AppShell() {
     ) : route === 'workbench' ? (
       <WorkspaceLayout
         showLeftPanel={professional}
-        left={<WorkspaceSidebar />}
+        left={<WorkspaceSidebar onActivateWorkspace={() => setActiveResultId(null)} />}
         center={
           activeResultId ? (
-            <ResultWorkbench resultId={activeResultId} onDuplicated={openResult} />
+            <ResultWorkbench
+              key={activeResultId}
+              resultId={activeResultId}
+              onDuplicated={openResult}
+              onOpenResults={() => openRoute('results')}
+              reviewUndoing={patchApplying}
+              reviewUndoError={patchError}
+              onUndoReview={(review) => void undoCreatedResult(review)}
+            />
           ) : (
-            <EditorPane showInspector={professional} showSimpleFileActions={!professional} />
+            <EditorPane
+              showInspector={professional}
+              showSimpleFileActions={!professional}
+              onOpenResult={openResult}
+            />
           )
         }
         right={
@@ -136,6 +164,7 @@ export function AppShell() {
         },
       }}
     >
+      {messageContextHolder}
       <div className={styles.app}>
         <header className={styles.titlebar} data-tauri-drag-region>
           <div className={styles.brand} data-tauri-drag-region>
@@ -150,7 +179,9 @@ export function AppShell() {
                 type={route === item.route ? 'primary' : 'text'}
                 icon={item.icon}
                 aria-current={route === item.route ? 'page' : undefined}
-                onClick={() => openRoute(item.route)}
+                onClick={() =>
+                  item.route === 'workbench' ? openWorkbench() : openRoute(item.route)
+                }
               >
                 {item.label}
               </Button>

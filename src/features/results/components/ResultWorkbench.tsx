@@ -2,22 +2,41 @@ import {
   CopyOutlined,
   DiffOutlined,
   DownloadOutlined,
+  EditOutlined,
+  EyeOutlined,
+  FileDoneOutlined,
   HistoryOutlined,
   SaveOutlined,
   UndoOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Drawer, Empty, Modal, Skeleton, Tag, Tooltip, message } from 'antd';
+import {
+  Alert,
+  Button,
+  Drawer,
+  Empty,
+  Modal,
+  Segmented,
+  Skeleton,
+  Tag,
+  Tooltip,
+  message,
+} from 'antd';
 import TextArea from 'antd/es/input/TextArea';
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
-import type { FileSaveStatus } from '../../../shared/types/domain';
+import { renderSafeMarkdown } from '../../../shared/markdown/renderSafeMarkdown';
+import type { FileSaveStatus, ResultAppliedReview } from '../../../shared/types/domain';
 import { useResultStore } from '../resultStore';
 import styles from './ResultWorkbench.module.css';
 
 interface Props {
   resultId: string;
   onDuplicated: (resultId: string) => void;
+  onOpenResults: () => void;
+  reviewUndoing?: boolean;
+  reviewUndoError?: string | null;
+  onUndoReview?: (review: ResultAppliedReview) => void;
 }
 
 const saveColors: Record<FileSaveStatus, string> = {
@@ -38,7 +57,14 @@ const saveStatusKeys: Record<FileSaveStatus, MessageKey> = {
   error: 'resultSaveStatus_error',
 };
 
-export function ResultWorkbench({ resultId, onDuplicated }: Props) {
+export function ResultWorkbench({
+  resultId,
+  onDuplicated,
+  onOpenResults,
+  reviewUndoing = false,
+  reviewUndoError = null,
+  onUndoReview,
+}: Props) {
   const { t } = useI18n();
   const activeDocument = useResultStore((state) => state.activeDocument);
   const draftContent = useResultStore((state) => state.draftContent);
@@ -60,6 +86,7 @@ export function ResultWorkbench({ resultId, onDuplicated }: Props) {
   const clearError = useResultStore((state) => state.clearError);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'preview' | 'edit'>('preview');
 
   useEffect(() => {
     void openResult(resultId);
@@ -102,15 +129,32 @@ export function ResultWorkbench({ resultId, onDuplicated }: Props) {
         )}
       </div>
     );
+  const appliedReview = activeDocument.appliedReview;
 
   return (
     <section className={styles.workbench} aria-label={t('resultWorkspace')}>
       <header className={styles.toolbar}>
         <div className={styles.identity}>
           <strong>{activeDocument.result.title}</strong>
-          <span>{activeDocument.format === 'markdown' ? 'Markdown' : t('plainText')}</span>
+          <span>
+            {activeDocument.format === 'markdown' ? 'Markdown' : t('plainText')} ·{' '}
+            {t('managedResultLocation')}
+          </span>
+          <Button type="link" size="small" icon={<FileDoneOutlined />} onClick={onOpenResults}>
+            {t('openMyResults')}
+          </Button>
         </div>
         <div className={styles.actions}>
+          {activeDocument.format === 'markdown' ? (
+            <Segmented
+              value={viewMode}
+              onChange={(value) => setViewMode(value as 'preview' | 'edit')}
+              options={[
+                { label: t('previewResult'), value: 'preview', icon: <EyeOutlined /> },
+                { label: t('editResult'), value: 'edit', icon: <EditOutlined /> },
+              ]}
+            />
+          ) : null}
           <Tag color={saveColors[saveStatus]}>{t(saveStatusKeys[saveStatus])}</Tag>
           <Button
             icon={<SaveOutlined />}
@@ -123,6 +167,15 @@ export function ResultWorkbench({ resultId, onDuplicated }: Props) {
           <Button icon={<DiffOutlined />} onClick={() => setDiffOpen(true)}>
             {t('viewChanges')}
           </Button>
+          {appliedReview && onUndoReview ? (
+            <Button
+              icon={<UndoOutlined />}
+              loading={reviewUndoing}
+              onClick={() => onUndoReview(appliedReview)}
+            >
+              {t('undoPatch')}
+            </Button>
+          ) : null}
           <Button icon={<UndoOutlined />} disabled={changed} onClick={() => void undo()}>
             {t('undoResult')}
           </Button>
@@ -142,15 +195,26 @@ export function ResultWorkbench({ resultId, onDuplicated }: Props) {
           </Tooltip>
         </div>
       </header>
+      {reviewUndoError ? (
+        <Alert type="error" showIcon title={reviewUndoError} data-testid="review-undo-error" />
+      ) : null}
       {error ? <Alert type="error" showIcon title={error} closable onClose={clearError} /> : null}
-      <TextArea
-        className={styles.editor}
-        aria-label={t('resultEditor')}
-        value={draftContent}
-        disabled={!activeDocument.editable}
-        onChange={(event) => updateDraft(event.target.value)}
-        autoSize={false}
-      />
+      {activeDocument.format === 'markdown' && viewMode === 'preview' ? (
+        <article
+          className={styles.markdownPreview}
+          aria-label={t('resultPreview')}
+          dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(draftContent) }}
+        />
+      ) : (
+        <TextArea
+          className={styles.editor}
+          aria-label={t('resultEditor')}
+          value={draftContent}
+          disabled={!activeDocument.editable}
+          onChange={(event) => updateDraft(event.target.value)}
+          autoSize={false}
+        />
+      )}
 
       <Modal
         open={diffOpen}

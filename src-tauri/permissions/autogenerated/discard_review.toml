@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-discard-review"
+description = "Enables the discard_review command without any pre-configured scope."
+commands.allow = ["discard_review"]
+
+[[permission]]
+identifier = "deny-discard-review"
+description = "Denies the discard_review command without any pre-configured scope."
+commands.deny = ["discard_review"]

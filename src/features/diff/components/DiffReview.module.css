@@ -3,6 +3,17 @@
   height: 100%;
   place-items: center;
 }
+.emptyDescription {
+  display: grid;
+  max-width: 420px;
+  gap: 6px;
+}
+.emptyDescription span,
+.fileNameField span {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
 .review {
   display: flex;
   min-height: 100%;
@@ -50,6 +61,15 @@
 }
 .changeHeader > span {
   white-space: nowrap;
+}
+.fileNameField {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+.fileNameField > strong {
+  color: var(--text-strong);
+  font-size: 13px;
 }
 .diffGrid {
   display: grid;

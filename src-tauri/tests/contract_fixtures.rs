@@ -6,6 +6,7 @@ use a2ui_terminal_lib::domain::import::{ImportBatch, ImportDropOutcome};
 use a2ui_terminal_lib::domain::result::{
     ResultDetail, ResultDocument, ResultRevision, ResultSummary,
 };
+use a2ui_terminal_lib::domain::review::{ReviewApplication, ReviewRequest};
 use a2ui_terminal_lib::domain::task::{TaskDetail, TaskRunResult, TaskTemplate};
 use a2ui_terminal_lib::error::{AppError, ProviderFailure};
 use a2ui_terminal_lib::patch::{DocumentPatch, PatchApplication, PatchReview};
@@ -27,6 +28,7 @@ const IMPORT_FIXTURE: &str = include_str!("../../contracts/v2/import.json");
 const IMPORT_DROP_FIXTURE: &str = include_str!("../../contracts/v2/import-drop.json");
 const DOCUMENT_SOURCE_FIXTURE: &str = include_str!("../../contracts/v2/document-source.json");
 const CONTEXT_MANIFEST_FIXTURE: &str = include_str!("../../contracts/v2/context-manifest.json");
+const REVIEW_FIXTURE: &str = include_str!("../../contracts/v2/review.json");
 
 fn assert_round_trip<T>(value: &Value)
 where
@@ -95,6 +97,13 @@ fn rust_serde_matches_import_v2_fixture() {
 fn rust_serde_matches_context_manifest_v2_fixture() {
     let manifest: Value = serde_json::from_str(CONTEXT_MANIFEST_FIXTURE).unwrap();
     assert_round_trip::<ContextManifest>(&manifest);
+}
+
+#[test]
+fn rust_serde_matches_review_v2_fixture() {
+    let review: Value = serde_json::from_str(REVIEW_FIXTURE).unwrap();
+    assert_round_trip::<ReviewRequest>(&review["request"]);
+    assert_round_trip::<ReviewApplication>(&review["application"]);
 }
 
 #[test]

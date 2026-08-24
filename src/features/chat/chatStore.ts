@@ -1,5 +1,5 @@
 ﻿import { TextStreamBuffer } from './textStreamBuffer';
-import { createMockA2ui } from '../../shared/mock/workspace';
+import { createMockA2ui, createMockCreateFileReview } from '../../shared/mock/workspace';
 import type { ChatMessage } from '../../shared/types/domain';
 import { errorDetails, locallyStoppedChatRequests, upsertA2uiSurface } from '../../stores/support';
 import type { AppGet, AppSet, AppState } from '../../stores/types';
@@ -182,6 +182,33 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
         }));
         return;
       }
+      if (/出游|日游|旅游|旅行|行程|\b(travel|trip|itinerary)\b/i.test(prompt)) {
+        get().updateMessage(
+          session.id,
+          assistantMessageId,
+          '已生成完整候选内容。接受审阅前不会创建文件。',
+          'complete'
+        );
+        set((current) => ({
+          chatRequestId: null,
+          pendingDiff: createMockCreateFileReview(),
+          centerView: 'diff',
+          patchError: null,
+          sessions: current.sessions.map((item) =>
+            item.id === session.id
+              ? {
+                  ...item,
+                  messages: item.messages.map((message) =>
+                    message.id === assistantMessageId
+                      ? { ...message, errorCode: 'CREATE_REVIEW_READY' }
+                      : message
+                  ),
+                }
+              : item
+          ),
+        }));
+        return;
+      }
       get().updateMessage(
         session.id,
         assistantMessageId,
@@ -288,8 +315,8 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
           ),
         }));
       }
-      if (result.patch) {
-        set({ pendingDiff: result.patch, centerView: 'diff', patchError: null });
+      if (result.review) {
+        set({ pendingDiff: result.review, centerView: 'diff', patchError: null });
       }
       if (result.a2ui) {
         set((current) => ({

@@ -1,0 +1,42 @@
+{
+  "request": {
+    "id": "review-contract-v2",
+    "workspaceId": "workspace-contract-v2",
+    "resultId": null,
+    "source": "chat",
+    "operationKind": "create_file",
+    "status": "pending",
+    "summary": "生成一份杭州三日游计划",
+    "risk": "medium",
+    "baseRevisionId": null,
+    "baseHash": null,
+    "blocks": [
+      {
+        "id": "review-block-contract-v2",
+        "kind": "create_file",
+        "status": "pending",
+        "targetLabel": "我的成果（应用管理目录）",
+        "operation": "create",
+        "before": "",
+        "after": "# 杭州三日游\n\n## 第一天\n\n抵达杭州。\n",
+        "reason": "用户要求生成出游文档",
+        "risk": "medium",
+        "suggestedFileName": "杭州三日游.md",
+        "decidedFileName": null
+      }
+    ],
+    "applicationOperationId": null,
+    "outputResultId": null,
+    "errorCode": null,
+    "createdAt": "2026-08-24T09:00:00Z",
+    "decidedAt": null,
+    "appliedAt": null
+  },
+  "application": {
+    "reviewId": "review-contract-v2",
+    "status": "applied",
+    "operationId": null,
+    "files": [],
+    "result": null
+  }
+}

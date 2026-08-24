@@ -10,7 +10,10 @@ import type {
   DocumentVersionSummary,
   FileSaveStatus,
   PatchApplication,
-  PatchReview,
+  ResultAppliedReview,
+  ReviewApplication,
+  ReviewConflictResolution,
+  ReviewRequest,
   ProviderConfig,
   RecoveryDraftSummary,
   SelectedWorkspaceFiles,
@@ -43,8 +46,9 @@ export interface AppState {
   centerView: CenterView;
   sessions: ChatSession[];
   activeSessionId: string;
-  pendingDiff: PatchReview | null;
+  pendingDiff: ReviewRequest | null;
   lastPatchApplication: PatchApplication | null;
+  lastReviewApplication: ReviewApplication | null;
   patchBeforeByPath: Record<string, string>;
   patchApplying: boolean;
   patchError: string | null;
@@ -73,9 +77,9 @@ export interface AppState {
   forgetAuthorizedSource: (sourceId: string) => void;
   openFile: (path: string) => void | Promise<void>;
   closeFile: (path: string) => void;
-  updateFile: (path: string, content: string) => void;
-  persistDraft: (path: string) => Promise<void>;
-  saveFileToDisk: (path: string) => Promise<void>;
+  updateFile: (path: string, content: string, expectedWorkspaceId?: string) => void;
+  persistDraft: (path: string, expectedWorkspaceId?: string) => Promise<void>;
+  saveFileToDisk: (path: string, expectedWorkspaceId?: string) => Promise<void>;
   restoreRecoveryDraft: (path: string) => void;
   discardRecoveryDraft: (path: string) => Promise<void>;
   loadDocumentVersions: (path: string) => Promise<void>;
@@ -95,10 +99,12 @@ export interface AppState {
     status?: ChatMessage['status']
   ) => void;
   createProposal: () => void;
-  rejectDiff: () => void;
+  rejectDiff: () => void | Promise<void>;
   togglePatchChange: (changeId: string) => void;
+  setReviewFileName: (blockId: string, fileName: string) => void;
   applyDiff: () => Promise<void>;
-  undoLastPatch: () => Promise<void>;
+  resolveReviewConflict: (resolution: ReviewConflictResolution) => Promise<void>;
+  undoLastPatch: (review?: ResultAppliedReview) => Promise<boolean>;
   setSelectedText: (text: string) => void;
   setSessionContext: (sessionId: string, context: ContextSelection) => void;
   setSessionContextReviewKey: (sessionId: string, reviewKey: string) => void;

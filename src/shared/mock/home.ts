@@ -146,6 +146,7 @@ interface MockResultRecord {
   fileName: string;
   content: string;
   revisions: ResultRevision[];
+  appliedReview: ResultDocument['appliedReview'];
 }
 
 const mockHash = (content: string) => {
@@ -173,6 +174,7 @@ const initialRecords = () =>
         format: 'markdown',
         fileName: 'A2UI 调研纪要.md',
         content: initialContent,
+        appliedReview: null,
         revisions: [
           {
             id: 'web-mock-revision-existing',
@@ -199,6 +201,7 @@ const documentFor = (record: MockResultRecord): ResultDocument => ({
   contentHash: mockHash(record.content),
   sizeBytes: new TextEncoder().encode(record.content).length,
   editable: true,
+  appliedReview: clone(record.appliedReview),
 });
 
 const requireRecord = (resultId: string) => {
@@ -273,6 +276,7 @@ export const webMockHomeGateway = {
       format: input.format,
       fileName,
       content,
+      appliedReview: null,
       revisions: [
         {
           id: revisionId,
@@ -466,6 +470,7 @@ export const webMockHomeGateway = {
       format: 'markdown',
       fileName: `${resultId}.md`,
       content,
+      appliedReview: null,
       revisions: [
         {
           id: summary.currentRevisionId!,
@@ -501,4 +506,35 @@ export function resetWebMockHomeGateway(): void {
   tasks = new Map();
   sequence = 0;
   resultRecords = initialRecords();
+}
+
+export async function createWebMockReviewResult(input: {
+  title: string;
+  fileName: string;
+  format: 'markdown' | 'plain_text';
+  content: string;
+  reviewId: string;
+  workspaceId: string;
+}): Promise<ResultDocument> {
+  const created = await webMockHomeGateway.createTextResult(input);
+  const record = requireRecord(created.result.id);
+  record.content = input.content;
+  record.revisions[0].content = input.content;
+  record.revisions[0].contentHash = mockHash(input.content);
+  record.appliedReview = { reviewId: input.reviewId, workspaceId: input.workspaceId };
+  return clone(documentFor(record));
+}
+
+export function deleteWebMockReviewResult(resultId: string): void {
+  resultRecords.delete(resultId);
+  results = results.filter((result) => result.id !== resultId);
+}
+
+export function deleteWebMockReviewResultByReview(reviewId: string, workspaceId: string): void {
+  const result = [...resultRecords.entries()].find(
+    ([, record]) =>
+      record.appliedReview?.reviewId === reviewId &&
+      record.appliedReview.workspaceId === workspaceId
+  );
+  if (result) deleteWebMockReviewResult(result[0]);
 }

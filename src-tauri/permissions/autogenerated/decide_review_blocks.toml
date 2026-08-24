@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-decide-review-blocks"
+description = "Enables the decide_review_blocks command without any pre-configured scope."
+commands.allow = ["decide_review_blocks"]
+
+[[permission]]
+identifier = "deny-decide-review-blocks"
+description = "Denies the decide_review_blocks command without any pre-configured scope."
+commands.deny = ["decide_review_blocks"]

@@ -51,7 +51,7 @@ describe('workspace review flow', () => {
   it('does not mutate a file when every patch block is rejected', async () => {
     const before = useAppStore.getState().files[0].content;
     useAppStore.getState().createProposal();
-    const changeId = useAppStore.getState().pendingDiff?.changes[0].id;
+    const changeId = useAppStore.getState().pendingDiff?.blocks[0].id;
     if (!changeId) throw new Error('mock patch missing');
     useAppStore.getState().togglePatchChange(changeId);
     await useAppStore.getState().applyDiff();
@@ -64,7 +64,8 @@ describe('workspace review flow', () => {
     useAppStore.getState().createProposal();
     await useAppStore.getState().applyDiff();
     expect(useAppStore.getState().lastPatchApplication).not.toBeNull();
-    await useAppStore.getState().undoLastPatch();
+    const undone = await useAppStore.getState().undoLastPatch();
+    expect(undone).toBe(true);
     expect(useAppStore.getState().files[0].content).toBe(before);
     expect(useAppStore.getState().lastPatchApplication).toBeNull();
   });

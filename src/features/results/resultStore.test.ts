@@ -26,6 +26,7 @@ const document: ResultDocument = {
   contentHash: 'a'.repeat(64),
   sizeBytes: 9,
   editable: true,
+  appliedReview: null,
 };
 
 const revision: ResultRevisionSummary = {

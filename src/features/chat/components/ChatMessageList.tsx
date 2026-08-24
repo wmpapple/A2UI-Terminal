@@ -1,26 +1,13 @@
 import { RedoOutlined } from '@ant-design/icons';
 import { Alert, Button } from 'antd';
-import MarkdownIt from 'markdown-it';
 import { useEffect, useMemo, useRef } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
+import { renderSafeMarkdown } from '../../../shared/markdown/renderSafeMarkdown';
 import type { ChatMessage } from '../../../shared/types/domain';
 import styles from './ChatPanel.module.css';
 
-const markdownRenderer = new MarkdownIt({
-  breaks: true,
-  html: false,
-  linkify: true,
-  typographer: false,
-});
-
-markdownRenderer.renderer.rules.link_open = (tokens, index, options, environment, renderer) => {
-  tokens[index].attrSet('target', '_blank');
-  tokens[index].attrSet('rel', 'noreferrer noopener');
-  return renderer.renderToken(tokens, index, options);
-};
-
 function AssistantMarkdown({ content, streaming }: { content: string; streaming: boolean }) {
-  const rendered = useMemo(() => markdownRenderer.render(content), [content]);
+  const rendered = useMemo(() => renderSafeMarkdown(content), [content]);
 
   return (
     <div className={styles.markdownBubble}>
@@ -145,24 +132,38 @@ export function ChatMessageList({
   return (
     <div className={styles.messages} aria-live="polite">
       {messages.map((chatMessage, index) => {
-        const containsPatchProtocol =
+        const containsReviewProtocol =
           chatMessage.role === 'assistant' &&
-          chatMessage.content.toLowerCase().includes('document_patch');
+          /["']type["']\s*:\s*["'](?:document_patch|create_file|replace_empty_file)["']/i.test(
+            chatMessage.content
+          );
         const containsA2uiProtocol =
           chatMessage.role === 'assistant' && /a2ui_(surface|update)/i.test(chatMessage.content);
+        const reviewReady = ['PATCH_READY', 'CREATE_REVIEW_READY', 'REPLACE_REVIEW_READY'].includes(
+          chatMessage.errorCode ?? ''
+        );
+        const createReviewReady = chatMessage.errorCode === 'CREATE_REVIEW_READY';
+        const replaceReviewReady = chatMessage.errorCode === 'REPLACE_REVIEW_READY';
         const patchFailed = chatMessage.errorCode === 'PATCH_VALIDATION_FAILED';
         const patchFailureReason = validationFailureReason(chatMessage.protocolError);
-        const emptyFilePatchUnsupported = patchFailureReason?.startsWith('目标文件为空');
+        const emptyFileReviewRequired = patchFailureReason?.startsWith('目标文件为空');
         const a2uiFailed = chatMessage.errorCode === 'A2UI_VALIDATION_FAILED';
         const unverifiedCompletionClaim =
           chatMessage.errorCode === 'UNVERIFIED_FILE_COMPLETION_CLAIM' ||
           (chatMessage.role === 'assistant' &&
             chatMessage.status === 'complete' &&
-            !containsPatchProtocol &&
+            !containsReviewProtocol &&
             !containsA2uiProtocol &&
             looksLikeUnverifiedFileCompletionClaim(chatMessage.content));
         const fileCreationUnavailable = chatMessage.errorCode === 'FILE_CREATION_NOT_AVAILABLE';
-        const patchGenerating = containsPatchProtocol && chatMessage.status === 'streaming';
+        const streamingProtocolEnvelope =
+          chatMessage.role === 'assistant' &&
+          chatMessage.status === 'streaming' &&
+          /^\s*(?:```(?:json)?\s*)?\{/i.test(chatMessage.content);
+        const reviewGenerating =
+          !containsA2uiProtocol &&
+          chatMessage.status === 'streaming' &&
+          (containsReviewProtocol || streamingProtocolEnvelope);
         const a2uiGenerating = containsA2uiProtocol && chatMessage.status === 'streaming';
         return (
           <article
@@ -197,28 +198,28 @@ export function ChatMessageList({
                   {t(a2uiFailed ? 'openInspector' : 'openSurface')}
                 </Button>
               </div>
-            ) : patchGenerating ? (
+            ) : reviewGenerating ? (
               <div className={styles.protocolError}>
                 <Alert
                   type="info"
                   showIcon
-                  title={t('patchGenerating')}
-                  description={t('patchGeneratingDescription')}
+                  title={t('reviewProposalGenerating')}
+                  description={t('reviewProposalGeneratingDescription')}
                 />
               </div>
-            ) : containsPatchProtocol ? (
+            ) : containsReviewProtocol || reviewReady ? (
               <div className={styles.protocolError}>
                 <Alert
-                  type={patchFailed ? 'warning' : 'info'}
+                  type={patchFailed ? 'warning' : 'success'}
                   showIcon
-                  title={t(patchFailed ? 'patchValidationFailed' : 'patchProtocolReceived')}
+                  title={t(patchFailed ? 'patchValidationFailed' : 'reviewProposalReady')}
                   description={
                     patchFailed ? (
                       <div>
                         <div>
                           {t(
-                            emptyFilePatchUnsupported
-                              ? 'emptyFilePatchUnsupportedDescription'
+                            emptyFileReviewRequired
+                              ? 'emptyFileReviewRequiredDescription'
                               : 'patchValidationFailedDescription'
                           )}
                         </div>
@@ -229,6 +230,10 @@ export function ChatMessageList({
                           </div>
                         ) : null}
                       </div>
+                    ) : createReviewReady ? (
+                      t('createReviewReadyDescription')
+                    ) : replaceReviewReady ? (
+                      t('replaceReviewReadyDescription')
                     ) : (
                       t('patchProtocolReceivedDescription')
                     )
@@ -262,7 +267,7 @@ export function ChatMessageList({
             )}
             {(chatMessage.status === 'error' ||
               chatMessage.status === 'stopped' ||
-              (patchFailed && !emptyFilePatchUnsupported) ||
+              patchFailed ||
               a2uiFailed) && (
               <Button
                 size="small"

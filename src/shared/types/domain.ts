@@ -106,6 +106,12 @@ export interface ResultDocument {
   contentHash: string;
   sizeBytes: number;
   editable: boolean;
+  appliedReview: ResultAppliedReview | null;
+}
+
+export interface ResultAppliedReview {
+  reviewId: string;
+  workspaceId: string;
 }
 
 export interface ResultRevisionSummary {
@@ -471,6 +477,7 @@ export interface ChatStreamResult {
   retryable?: boolean;
   retryAfterSeconds?: number | null;
   patch?: PatchReview | null;
+  review?: ReviewRequest | null;
   patchError?: string | null;
   a2ui?: A2uiProcessResult | null;
 }
@@ -542,6 +549,69 @@ export interface PatchApplication {
   summary: string;
   undoOf: string | null;
   files: AppliedPatchFile[];
+}
+
+export type ReviewSource = 'chat' | 'selection' | 'template' | 'a2ui_action' | 'import_transform';
+export type ReviewOperationKind = 'document_patch' | 'create_file' | 'replace_result';
+export type ReviewStatus =
+  | 'pending'
+  | 'partially_accepted'
+  | 'accepted'
+  | 'rejected'
+  | 'applied'
+  | 'conflicted'
+  | 'failed'
+  | 'undone';
+export type ReviewConflictResolution = 'regenerate' | 'save_copy' | 'keep_current';
+export type ReviewBlockStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface ReviewBlock {
+  id: string;
+  kind: ReviewOperationKind;
+  status: ReviewBlockStatus;
+  targetLabel: string;
+  operation: string | null;
+  before: string;
+  after: string;
+  reason: string;
+  risk: PatchRisk;
+  suggestedFileName: string | null;
+  decidedFileName: string | null;
+  selected?: boolean;
+}
+
+export interface ReviewRequest {
+  id: string;
+  workspaceId: string;
+  resultId: string | null;
+  source: ReviewSource;
+  operationKind: ReviewOperationKind;
+  status: ReviewStatus;
+  summary: string;
+  risk: PatchRisk;
+  baseRevisionId: string | null;
+  baseHash: string | null;
+  blocks: ReviewBlock[];
+  applicationOperationId: string | null;
+  outputResultId: string | null;
+  errorCode: string | null;
+  createdAt: string;
+  decidedAt: string | null;
+  appliedAt: string | null;
+}
+
+export interface ReviewBlockDecision {
+  blockId: string;
+  accepted: boolean;
+  fileName?: string | null;
+}
+
+export interface ReviewApplication {
+  reviewId: string;
+  status: ReviewStatus;
+  operationId: string | null;
+  files: AppliedPatchFile[];
+  result: ResultDocument | null;
 }
 
 export type A2uiComponentName =

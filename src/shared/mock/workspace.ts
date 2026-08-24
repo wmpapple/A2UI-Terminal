@@ -2,7 +2,7 @@ import type {
   A2uiInspection,
   A2uiSurface,
   ChatSession,
-  PatchReview,
+  ReviewRequest,
   WorkspaceFile,
 } from '../types/domain';
 
@@ -50,45 +50,79 @@ export const mockSessions: ChatSession[] = [
   },
 ];
 
-export const createMockDiff = (file: WorkspaceFile): PatchReview => {
+export const createMockDiff = (file: WorkspaceFile): ReviewRequest => {
   const id = crypto.randomUUID();
   const anchor = file.content;
   const content = `${file.content.trim()}\n\n## Review workflow\n\nEvery AI change must be reviewed before it is applied.\n`;
   return {
     id,
     workspaceId: 'web-mock-workspace',
+    resultId: null,
+    source: 'chat',
+    operationKind: 'document_patch',
+    status: 'pending',
     summary: 'Clarify the document goal and add a review requirement.',
-    patch: {
-      version: '1.0',
-      type: 'document_patch',
-      workspaceId: 'web-mock-workspace',
-      baseRevision: file.contentHash ?? 'web-mock-revision',
-      summary: 'Clarify the document goal and add a review requirement.',
-      changes: [
-        {
-          id,
-          path: file.path,
-          operation: 'replace',
-          baseHash: file.contentHash ?? 'web-mock-revision',
-          anchor: { before: anchor, beforeHash: 'web-mock-anchor' },
-          content,
-          reason: 'Clarify the document goal and add a review requirement.',
-          risk: 'medium',
-        },
-      ],
-    },
-    changes: [
+    risk: 'medium',
+    baseRevisionId: null,
+    baseHash: file.contentHash ?? 'web-mock-revision',
+    blocks: [
       {
         id,
-        path: file.path,
+        kind: 'document_patch',
+        status: 'pending',
+        targetLabel: file.path,
         operation: 'replace',
         reason: 'Clarify the document goal and add a review requirement.',
         risk: 'medium',
         before: anchor,
         after: content,
-        selected: true,
+        suggestedFileName: null,
+        decidedFileName: null,
       },
     ],
+    applicationOperationId: null,
+    outputResultId: null,
+    errorCode: null,
+    createdAt: new Date().toISOString(),
+    decidedAt: null,
+    appliedAt: null,
+  };
+};
+
+export const createMockCreateFileReview = (): ReviewRequest => {
+  const id = crypto.randomUUID();
+  return {
+    id,
+    workspaceId: 'web-mock-workspace',
+    resultId: null,
+    source: 'chat',
+    operationKind: 'create_file',
+    status: 'pending',
+    summary: '生成一份杭州三日游计划',
+    risk: 'medium',
+    baseRevisionId: null,
+    baseHash: null,
+    blocks: [
+      {
+        id: crypto.randomUUID(),
+        kind: 'create_file',
+        status: 'pending',
+        targetLabel: '我的成果（应用管理目录）',
+        operation: 'create',
+        reason: '用户要求生成完整出游文档',
+        risk: 'medium',
+        before: '',
+        after: '# 杭州三日游\n\n## 第一天\n\n抵达杭州并游览西湖。\n',
+        suggestedFileName: '杭州三日游.md',
+        decidedFileName: null,
+      },
+    ],
+    applicationOperationId: null,
+    outputResultId: null,
+    errorCode: null,
+    createdAt: new Date().toISOString(),
+    decidedAt: null,
+    appliedAt: null,
   };
 };
 
