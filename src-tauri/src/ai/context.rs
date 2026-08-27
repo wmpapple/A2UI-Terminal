@@ -799,6 +799,8 @@ mod tests {
             provider_id: "openai".into(),
             prompt: prompt.into(),
             context_manifest_id: manifest_id.clone(),
+            review_source: None,
+            explanation_only: false,
         };
         let confirmed = consume_context_manifest(&storage, &mut manifests, &request).unwrap();
         assert_eq!(confirmed.sources.len(), 1);

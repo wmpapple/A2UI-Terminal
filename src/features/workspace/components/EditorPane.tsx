@@ -16,6 +16,7 @@ import type { CenterView } from '../../../shared/types/domain';
 import { useAppStore } from '../../../stores/useAppStore';
 import { A2uiWorkbench } from '../../a2ui/inspector/A2uiWorkbench';
 import { DiffReview } from '../../diff/components/DiffReview';
+import { SelectionAssistant } from '../../selection/components/SelectionAssistant';
 import styles from './EditorPane.module.css';
 
 const MarkdownEditor = lazy(() =>
@@ -309,6 +310,9 @@ export function EditorPane({
           </div>
         ))}
       </div>
+      {centerView === 'editor' && activeFile?.editable !== false && !previewEnabled ? (
+        <SelectionAssistant />
+      ) : null}
       {activeFile && recoveryDraft ? (
         <Alert
           type="warning"
@@ -381,6 +385,14 @@ export function EditorPane({
             disabled={workspaceLoading}
             spellCheck={false}
             aria-label={activeFile.path}
+            onMouseUp={(event) => {
+              const target = event.currentTarget;
+              setSelectedText(target.value.slice(target.selectionStart, target.selectionEnd));
+            }}
+            onKeyUp={(event) => {
+              const target = event.currentTarget;
+              setSelectedText(target.value.slice(target.selectionStart, target.selectionEnd));
+            }}
             onChange={(event) => updateFile(activeFile.path, event.target.value, workspace?.id)}
           />
         ) : (

@@ -76,6 +76,8 @@ describe('EditorPane modes', () => {
       activePath: 'README.md',
       dirtyPaths: [],
       centerView: 'editor',
+      workspaceLoading: false,
+      selectedText: '',
     });
   });
 
@@ -301,6 +303,21 @@ describe('EditorPane modes', () => {
     expect(screen.queryByTestId('markdown-editor')).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'src/experiment.ts' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Hide preview' })).not.toBeInTheDocument();
+  });
+
+  it('captures textarea selections for the selection assistant context', () => {
+    act(() => useAppStore.getState().openFile('src/experiment.ts'));
+    render(
+      <I18nProvider>
+        <EditorPane />
+      </I18nProvider>
+    );
+    const editor = screen.getByRole('textbox', { name: 'src/experiment.ts' });
+    const value = (editor as HTMLTextAreaElement).value;
+    const start = value.indexOf('context-window');
+    (editor as HTMLTextAreaElement).setSelectionRange(start, start + 'context-window'.length);
+    fireEvent.mouseUp(editor);
+    expect(useAppStore.getState().selectedText).toBe('context-window');
   });
 
   it('opens persistent version history for editable desktop files', async () => {

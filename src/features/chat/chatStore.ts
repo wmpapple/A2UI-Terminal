@@ -114,7 +114,7 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
         : [...state.files, file],
     })),
 
-  sendChat: async (prompt, contextManifestId) => {
+  sendChat: async (prompt, contextManifestId, reviewSource = 'chat', explanationOnly = false) => {
     const state = get();
     const workspace = state.workspace;
     if (state.runtimeMode === 'desktop' && !workspace) {
@@ -209,6 +209,16 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
         }));
         return;
       }
+      if (explanationOnly) {
+        get().updateMessage(
+          session.id,
+          assistantMessageId,
+          '这是对当前选区的只读解释。编辑器和文件均未修改。',
+          'complete'
+        );
+        set({ chatRequestId: null });
+        return;
+      }
       get().updateMessage(
         session.id,
         assistantMessageId,
@@ -217,6 +227,13 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
       );
       set({ chatRequestId: null });
       get().createProposal();
+      if (reviewSource !== 'chat') {
+        set((current) => ({
+          pendingDiff: current.pendingDiff
+            ? { ...current.pendingDiff, source: reviewSource }
+            : current.pendingDiff,
+        }));
+      }
       return;
     }
     if (!workspace) return;
@@ -257,6 +274,8 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
           providerId,
           prompt: prompt.trim(),
           contextManifestId,
+          reviewSource,
+          explanationOnly,
         },
         (event) => {
           if (event.type === 'delta') {

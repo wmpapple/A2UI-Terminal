@@ -389,6 +389,8 @@ export interface ChatRequest {
   providerId: string;
   prompt: string;
   contextManifestId: string;
+  reviewSource?: ReviewSource;
+  explanationOnly?: boolean;
 }
 
 export type ProcessingLocation = 'local' | 'cloud';

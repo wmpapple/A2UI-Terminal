@@ -78,6 +78,10 @@ pub struct ChatRequest {
     pub provider_id: String,
     pub prompt: String,
     pub context_manifest_id: String,
+    #[serde(default)]
+    pub review_source: Option<crate::domain::review::ReviewSource>,
+    #[serde(default)]
+    pub explanation_only: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -169,7 +173,8 @@ pub fn default_providers() -> Vec<ProviderConfig> {
 
 #[cfg(test)]
 mod tests {
-    use super::{default_providers, ProviderConfig, ProviderKind};
+    use super::{default_providers, ChatRequest, ProviderConfig, ProviderKind};
+    use crate::domain::review::ReviewSource;
 
     #[test]
     fn rejects_out_of_range_temperature() {
@@ -189,5 +194,38 @@ mod tests {
         let providers = default_providers();
         assert_eq!(providers.len(), 4);
         assert!(providers.iter().all(|config| config.validate().is_ok()));
+    }
+
+    #[test]
+    fn chat_request_defaults_to_chat_review_and_writable_response_mode() {
+        let request: ChatRequest = serde_json::from_value(serde_json::json!({
+            "requestId": "request",
+            "userMessageId": "user",
+            "assistantMessageId": "assistant",
+            "workspaceId": "workspace",
+            "sessionId": "session",
+            "providerId": "provider",
+            "prompt": "prompt",
+            "contextManifestId": "manifest"
+        }))
+        .unwrap();
+        assert_eq!(request.review_source, None);
+        assert!(!request.explanation_only);
+
+        let selection: ChatRequest = serde_json::from_value(serde_json::json!({
+            "requestId": "request",
+            "userMessageId": "user",
+            "assistantMessageId": "assistant",
+            "workspaceId": "workspace",
+            "sessionId": "session",
+            "providerId": "provider",
+            "prompt": "prompt",
+            "contextManifestId": "manifest",
+            "reviewSource": "selection",
+            "explanationOnly": true
+        }))
+        .unwrap();
+        assert_eq!(selection.review_source, Some(ReviewSource::Selection));
+        assert!(selection.explanation_only);
     }
 }

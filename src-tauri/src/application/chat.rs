@@ -173,12 +173,16 @@ where
             let mut content = first_content;
             let create_input = |raw: String| CreateReviewRequestInput {
                 workspace_id: request.workspace_id.clone(),
-                source: ReviewSource::Chat,
+                source: request.review_source.unwrap_or(ReviewSource::Chat),
                 result_id: None,
                 raw,
             };
-            let mut review_result = super::review::create(storage, create_input(content.clone()));
-            if should_retry_invalid_review(&content, &review_result) {
+            let mut review_result = (!request.explanation_only)
+                .then(|| super::review::create(storage, create_input(content.clone())));
+            if review_result
+                .as_ref()
+                .is_some_and(|result| should_retry_invalid_review(&content, result))
+            {
                 let mut retry_messages = messages.clone();
                 retry_messages.push(ProviderMessage {
                     role: "user".into(),
@@ -189,8 +193,10 @@ where
                 {
                     Ok(retried) => {
                         content = retried;
-                        review_result =
-                            super::review::create(storage, create_input(content.clone()));
+                        review_result = Some(super::review::create(
+                            storage,
+                            create_input(content.clone()),
+                        ));
                     }
                     Err(AppError::RequestCancelled) => {
                         repository.update_assistant(
@@ -209,11 +215,11 @@ where
                 }
             }
             let (validated_review, patch_error) = match review_result {
-                Ok(review) => (Some(review), None),
-                Err(error) if super::review::looks_like_candidate(&content) => {
+                Some(Ok(review)) => (Some(review), None),
+                Some(Err(error)) if super::review::looks_like_candidate(&content) => {
                     (None, Some(format!("AI 修改方案未通过安全校验：{error}")))
                 }
-                Err(_) => (None, None),
+                Some(Err(_)) | None => (None, None),
             };
             let validated_patch = if validated_review
                 .as_ref()
@@ -223,19 +229,21 @@ where
             } else {
                 None
             };
-            let a2ui_result = if validated_review.is_none() && patch_error.is_none() {
-                a2ui::process_message(
-                    storage,
-                    &ProcessA2uiRequest {
-                        workspace_id: request.workspace_id.clone(),
-                        session_id: request.session_id.clone(),
-                        message_id: request.assistant_message_id.clone(),
-                        raw_message: content.clone(),
-                    },
-                )?
-            } else {
-                None
-            };
+            let a2ui_result =
+                if !request.explanation_only && validated_review.is_none() && patch_error.is_none()
+                {
+                    a2ui::process_message(
+                        storage,
+                        &ProcessA2uiRequest {
+                            workspace_id: request.workspace_id.clone(),
+                            session_id: request.session_id.clone(),
+                            message_id: request.assistant_message_id.clone(),
+                            raw_message: content.clone(),
+                        },
+                    )?
+                } else {
+                    None
+                };
             let unverified_completion_claim = validated_review.is_none()
                 && patch_error.is_none()
                 && a2ui_result.is_none()

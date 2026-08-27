@@ -14,6 +14,7 @@ import type {
   ReviewApplication,
   ReviewConflictResolution,
   ReviewRequest,
+  ReviewSource,
   ProviderConfig,
   RecoveryDraftSummary,
   SelectedWorkspaceFiles,
@@ -115,7 +116,12 @@ export interface AppState {
   selectProvider: (providerId: string) => Promise<void>;
   deleteProviderKey: (providerId: string) => Promise<void>;
   testProvider: (providerId: string) => Promise<number>;
-  sendChat: (prompt: string, contextManifestId: string) => Promise<void>;
+  sendChat: (
+    prompt: string,
+    contextManifestId: string,
+    reviewSource?: ReviewSource,
+    explanationOnly?: boolean
+  ) => Promise<void>;
   stopChat: () => Promise<void>;
   setActiveSurface: (surfaceId: string) => void;
   setActiveInspection: (inspectionId: string) => void;

@@ -23,6 +23,7 @@ beforeEach(() => {
     sessions: mockSessions,
     activeSessionId: 'welcome',
     pendingDiff: null,
+    chatRequestId: null,
     a2uiSurfaces: [],
     a2uiInspections: [],
     activeSurfaceId: '',
@@ -80,5 +81,24 @@ describe('workspace review flow', () => {
     await useAppStore.getState().executeA2uiAction('role', 'change', 'designer');
     expect(useAppStore.getState().a2uiSurfaces[0]?.events[0]?.componentId).toBe('role');
     expect(useAppStore.getState().a2uiSurfaces[0]?.events[1]?.componentId).toBe('name');
+  });
+
+  it('creates selection-sourced review proposals without writing before acceptance', async () => {
+    const before = useAppStore.getState().files[0].content;
+    await useAppStore
+      .getState()
+      .sendChat('润色当前选区并返回 document_patch JSON', 'web-manifest', 'selection', false);
+    expect(useAppStore.getState().pendingDiff?.source).toBe('selection');
+    expect(useAppStore.getState().files[0].content).toBe(before);
+  });
+
+  it('keeps selection explanations read-only', async () => {
+    const before = useAppStore.getState().files[0].content;
+    await useAppStore
+      .getState()
+      .sendChat('解释当前选区，不要修改文件', 'web-manifest', 'selection', true);
+    expect(useAppStore.getState().pendingDiff).toBeNull();
+    expect(useAppStore.getState().files[0].content).toBe(before);
+    expect(useAppStore.getState().sessions[0].messages.at(-1)?.content).toContain('只读解释');
   });
 });

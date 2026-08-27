@@ -1,0 +1,9 @@
+.assistant {
+  padding: 8px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.customInput {
+  width: min(260px, 42vw);
+}

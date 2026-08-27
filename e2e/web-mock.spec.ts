@@ -198,6 +198,43 @@ test('keeps file changes behind review before applying the Web Mock patch', asyn
   await expect(page.getByRole('button', { name: /撤销上次 AI 修改/ })).toBeVisible();
 });
 
+test('routes selection edits through review and keeps explanations read-only', async ({ page }) => {
+  await openProfessionalWorkbench(page);
+  await page.getByText('src/experiment.ts', { exact: true }).click();
+  const editor = page.getByRole('textbox', { name: 'src/experiment.ts' });
+  const original = await editor.inputValue();
+  await editor.evaluate((element) => {
+    const textarea = element as HTMLTextAreaElement;
+    const start = textarea.value.indexOf('context-window');
+    textarea.focus();
+    textarea.setSelectionRange(start, start + 'context-window'.length);
+    textarea.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  });
+
+  const assistant = page.getByRole('region', { name: '选区助手' });
+  await expect(assistant).toBeVisible();
+  await assistant.getByRole('button', { name: /润\s*色/ }).click();
+  const confirmation = page.getByRole('dialog', { name: '确认使用当前选区' });
+  await expect(confirmation.getByText(/接受前不会写入编辑器或文件/)).toBeVisible();
+  await confirmation.getByRole('button', { name: '生成审阅方案' }).click();
+  await expect(page.getByRole('region', { name: '审阅中心' })).toBeVisible();
+  await page.getByRole('button', { name: '全部拒绝' }).click();
+  await expect(editor).toHaveValue(original);
+
+  await editor.evaluate((element) => {
+    const textarea = element as HTMLTextAreaElement;
+    const start = textarea.value.indexOf('context-window');
+    textarea.focus();
+    textarea.setSelectionRange(start, start + 'context-window'.length);
+    textarea.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  });
+  await assistant.getByRole('button', { name: /解\s*释/ }).click();
+  await confirmation.getByRole('button', { name: '生成解释' }).click();
+  await expect(page.getByText('这是对当前选区的只读解释。编辑器和文件均未修改。')).toBeVisible();
+  await expect(page.getByRole('region', { name: '审阅中心' })).toHaveCount(0);
+  await expect(editor).toHaveValue(original);
+});
+
 test('keeps AI-created travel documents behind a complete create-file review', async ({ page }) => {
   await openProfessionalWorkbench(page);
   const composer = page.getByPlaceholder('描述你希望对当前文件做出的修改…');
