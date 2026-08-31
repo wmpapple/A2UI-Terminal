@@ -21,13 +21,13 @@ import {
   Tooltip,
   message,
 } from 'antd';
-import TextArea from 'antd/es/input/TextArea';
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
-import { renderSafeMarkdown } from '../../../shared/markdown/renderSafeMarkdown';
 import type { FileSaveStatus, ResultAppliedReview } from '../../../shared/types/domain';
+import { resultAdapterDefinitions } from '../resultAdapters';
 import { useResultStore } from '../resultStore';
+import { ResultContentAdapter } from './ResultContentAdapter';
 import styles from './ResultWorkbench.module.css';
 
 interface Props {
@@ -130,6 +130,7 @@ export function ResultWorkbench({
       </div>
     );
   const appliedReview = activeDocument.appliedReview;
+  const adapter = resultAdapterDefinitions[activeDocument.result.type];
 
   return (
     <section className={styles.workbench} aria-label={t('resultWorkspace')}>
@@ -137,7 +138,7 @@ export function ResultWorkbench({
         <div className={styles.identity}>
           <strong>{activeDocument.result.title}</strong>
           <span>
-            {activeDocument.format === 'markdown' ? 'Markdown' : t('plainText')} ·{' '}
+            {t(adapter.labelKey as MessageKey)} · {activeDocument.format.toUpperCase()} ·{' '}
             {t('managedResultLocation')}
           </span>
           <Button type="link" size="small" icon={<FileDoneOutlined />} onClick={onOpenResults}>
@@ -145,7 +146,7 @@ export function ResultWorkbench({
           </Button>
         </div>
         <div className={styles.actions}>
-          {activeDocument.format === 'markdown' ? (
+          {activeDocument.editable ? (
             <Segmented
               value={viewMode}
               onChange={(value) => setViewMode(value as 'preview' | 'edit')}
@@ -159,7 +160,7 @@ export function ResultWorkbench({
           <Button
             icon={<SaveOutlined />}
             loading={saving}
-            disabled={!changed}
+            disabled={!activeDocument.editable || !changed}
             onClick={() => void save()}
           >
             {t('saveResult')}
@@ -176,13 +177,21 @@ export function ResultWorkbench({
               {t('undoPatch')}
             </Button>
           ) : null}
-          <Button icon={<UndoOutlined />} disabled={changed} onClick={() => void undo()}>
+          <Button
+            icon={<UndoOutlined />}
+            disabled={!activeDocument.editable || changed}
+            onClick={() => void undo()}
+          >
             {t('undoResult')}
           </Button>
           <Button icon={<HistoryOutlined />} onClick={showHistory}>
             {t('resultHistory')}
           </Button>
-          <Button icon={<CopyOutlined />} onClick={() => void makeCopy()}>
+          <Button
+            icon={<CopyOutlined />}
+            disabled={!activeDocument.editable}
+            onClick={() => void makeCopy()}
+          >
             {t('saveAsCopy')}
           </Button>
           <Tooltip title={t('exportResultPending')}>
@@ -199,22 +208,14 @@ export function ResultWorkbench({
         <Alert type="error" showIcon title={reviewUndoError} data-testid="review-undo-error" />
       ) : null}
       {error ? <Alert type="error" showIcon title={error} closable onClose={clearError} /> : null}
-      {activeDocument.format === 'markdown' && viewMode === 'preview' ? (
-        <article
-          className={styles.markdownPreview}
-          aria-label={t('resultPreview')}
-          dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(draftContent) }}
-        />
-      ) : (
-        <TextArea
-          className={styles.editor}
-          aria-label={t('resultEditor')}
-          value={draftContent}
-          disabled={!activeDocument.editable}
-          onChange={(event) => updateDraft(event.target.value)}
-          autoSize={false}
-        />
-      )}
+      <ResultContentAdapter
+        type={activeDocument.result.type}
+        format={activeDocument.format}
+        content={draftContent}
+        editable={activeDocument.editable}
+        viewMode={viewMode}
+        onChange={updateDraft}
+      />
 
       <Modal
         open={diffOpen}

@@ -1,3 +1,4 @@
+use crate::domain::result::TextResultFormat;
 use crate::domain::review::{
     ApplyReviewInput, CreateFileProposal, CreateReviewRequestInput, DecideReviewBlocksInput,
     ReplaceEmptyFileProposal, ResolveReviewConflictInput, ReviewApplication, ReviewAppliedFile,
@@ -506,6 +507,14 @@ fn create_file(
         &input.workspace_id,
         &proposal.summary,
     )?;
+    if !matches!(
+        proposal.format,
+        TextResultFormat::Markdown | TextResultFormat::PlainText
+    ) {
+        return Err(AppError::InvalidInput(
+            "AI 创建文件目前只支持 Markdown 或纯文本成果".into(),
+        ));
+    }
     super::result::validate_file_name(&proposal.file_name, proposal.format)?;
     super::result::validate_content(&proposal.content)?;
     if proposal.content.trim().is_empty() {

@@ -279,8 +279,8 @@ test('creates, saves, versions, copies, and reopens a text Result without chat',
   page,
 }) => {
   await skipOnboarding(page);
-  await page.getByRole('button', { name: '新建文本成果' }).click();
-  const create = page.getByRole('dialog', { name: '新建文本成果' });
+  await page.getByRole('button', { name: '新建成果' }).click();
+  const create = page.getByRole('dialog', { name: '新建成果' });
   await create.getByLabel('成果标题').fill('S1.5 验收记录');
   await create.getByLabel('本地文件名').fill('S1.5-验收记录.md');
   await create.getByRole('button', { name: '创建并打开' }).click();
@@ -310,6 +310,68 @@ test('creates, saves, versions, copies, and reopens a text Result without chat',
   await expect(page.getByRole('textbox', { name: '成果编辑器' })).toHaveValue(
     '# S1.5 验收记录\n\n成果正文已保存。'
   );
+});
+
+test('creates and reopens typed spreadsheet, checklist, and form Result adapters', async ({
+  page,
+}) => {
+  await skipOnboarding(page);
+  await page.getByRole('button', { name: '新建成果' }).click();
+  let create = page.getByRole('dialog', { name: '新建成果' });
+  await create.getByLabel('成果标题').fill('季度数据');
+  await create.getByLabel('成果类型').click();
+  await page.getByText('表格', { exact: true }).last().click();
+  await create.getByLabel('本地文件名').fill('季度数据.csv');
+  await create.getByRole('button', { name: '创建并打开' }).click();
+
+  await expect(page.getByLabel('表格预览')).toContainText('Column 1');
+  await page.getByText('编辑', { exact: true }).click();
+  await page.getByRole('textbox', { name: '成果编辑器' }).fill('月份,收入\n一月,100\n');
+  await expect(page.getByText('有未保存修改')).toBeVisible();
+  await expect(page.getByText('已保存', { exact: true })).toBeVisible({ timeout: 5000 });
+
+  const navigation = page.getByRole('navigation', { name: '主导航' });
+  await navigation.getByRole('button', { name: /成果$/ }).click();
+  const spreadsheet = page.getByRole('article').filter({ hasText: '季度数据' });
+  await expect(spreadsheet.getByText('表格', { exact: true })).toBeVisible();
+  await spreadsheet.getByRole('button', { name: /继续处理/ }).click();
+  await expect(page.getByLabel('表格预览')).toContainText('一月');
+
+  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await page.getByRole('button', { name: '新建成果' }).click();
+  create = page.getByRole('dialog', { name: '新建成果' });
+  await create.getByLabel('成果标题').fill('发布清单');
+  await create.getByLabel('成果类型').click();
+  await page.getByText('清单', { exact: true }).last().click();
+  await create.getByLabel('本地文件名').fill('发布清单.json');
+  await create.getByRole('button', { name: '创建并打开' }).click();
+
+  await expect(page.getByLabel('清单编辑器')).toContainText('发布清单');
+  await page.getByText('编辑', { exact: true }).click();
+  await page.getByRole('button', { name: /添加清单项/ }).click();
+  await expect(page.locator('input[value="新清单项"]')).toBeVisible();
+  await expect(page.getByText('有未保存修改')).toBeVisible();
+  await expect(page.getByText('已保存', { exact: true })).toBeVisible({ timeout: 5000 });
+
+  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await page.getByRole('button', { name: '新建成果' }).click();
+  create = page.getByRole('dialog', { name: '新建成果' });
+  await create.getByLabel('成果标题').fill('报名表单');
+  await create.getByLabel('成果类型').click();
+  await page.getByText('表单', { exact: true }).last().click();
+  await create.getByLabel('本地文件名').fill('报名表单.json');
+  await create.getByRole('button', { name: '创建并打开' }).click();
+
+  await page.getByText('编辑', { exact: true }).click();
+  const required = page.getByRole('checkbox', { name: '必填' });
+  const requiredLabel = required.locator('xpath=ancestor::label');
+  const checkboxBox = await requiredLabel.locator('.ant-checkbox').boundingBox();
+  const labelBox = await requiredLabel.locator('.ant-checkbox-label').boundingBox();
+  expect(checkboxBox).not.toBeNull();
+  expect(labelBox).not.toBeNull();
+  expect(
+    Math.abs(checkboxBox!.y + checkboxBox!.height / 2 - (labelBox!.y + labelBox!.height / 2))
+  ).toBeLessThanOrEqual(2);
 });
 
 test('reviews and locally previews text, table, and image sources before any AI send', async ({

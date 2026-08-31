@@ -1,8 +1,8 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S2.5 已验收，S2.6 已完成自动验证并等待人工验收
+> 文档状态：V2 目标架构基线；S1.1—S2.6 已验收，S2.7 已完成自动验证、待人工验收
 > 建立日期：2026-08-11  
-> 对照代码：`main` 分支 S2.6 开始基线 `3e32166`；当前 S2.6 工作树待人工验收
+> 对照代码：`main` 分支 S2.7 开始基线 `14243d6`；当前 S2.7 工作树待人工验收
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
 > PRD SHA-256：`E56FD2303B6228C5FC7AB1936FB1C2B71229845D6780DFDA2ACE06D69347AA3C`
 
@@ -96,7 +96,7 @@ React components
 | 导入     | ImportBatch、文本/DOCX/PDF、CSV/XLSX 基础数据和图片本地视觉来源                                                   | Context Manifest 与 Provider 多模态发送属于 S2.3        |
 | 上下文   | Rust 不可变 Manifest、来源/排除项、处理位置、一次确认和请求绑定                                                   | 没有 Full/Retrieval/Hybrid 策略、检索索引、Context Pack |
 | 审阅     | Review Request/blocks、`document_patch`、`create_file`、空文件首次写入、冲突/撤销；S2.6 选区修改已接入统一 Review | S3.3 A2UI 中风险 Action 的真实接线仍属后续步骤          |
-| 成果类型 | 文本编辑器和 A2UI Surface                                                                                         | 没有文档/表格/清单/表单/小工具统一类型系统              |
+| 成果类型 | 文档/表格/清单/表单/小工具统一 adapter 与共享保存、版本、复制协议；A2UI 工具快照只读并自动保存状态                | S2.7 待人工验收；富格式编辑和导出仍属后续步骤           |
 | 导出     | 无成果级导出服务                                                                                                  | 无 DOCX/PDF/富文本、CSV/XLSX、JSON 导出与导出审计       |
 | 模板     | S1.2 已实现并验收 4 个版本化内置文档模板和字段 Schema                                                             | 尚无个人模板、系统规则/上下文规则编辑和模板 UI          |
 | 模式     | S1.3 双模式外壳与 S1.5 成果专用工作台已实现                                                                       | S2.3 后接通成果 AI 上下文                               |
@@ -242,13 +242,15 @@ Result
 - `storageRef` 对前端必须是不透明引用；不得用任意绝对路径作为业务 API。
 - 新成果默认保存到应用管理的本地“我的成果”目录；只有导出或用户主动另存时才通过系统对话框选择外部位置。
 - “我的成果”目录由 Rust 管理，前端只获得 Result 和不透明存储引用；设置中应提供打开目录、空间占用和迁移入口。
-- 用户可以主动新建文本型 Result。创建表单至少明确标题和成果类型，默认生成 UTF-8 Markdown；用户点击“创建”即为本次创建动作的显式确认，不需要伪装成 AI Review。
+- 用户可以主动新建五类受控 Result。创建表单至少明确标题和成果类型，并按 adapter 选择 Markdown/纯文本、CSV 或受控 JSON；用户点击“创建”即为本次创建动作的显式确认，不需要伪装成 AI Review。
 - AI 不得直接创建文件。AI 只能提出 `create_file` Review Request，内容、建议文件名、托管位置和风险必须先展示给用户；只有用户接受后，Rust 才能创建真实文件、初始 Revision 和 Result 关联。
 - 文档、表格等文件型成果通过 Revision 保存内容和 Hash；A2UI 成果保存协议状态及权限声明。
 - 每个 Result 必须能继续编辑，并至少拥有保存或导出路径。
 - Result 删除与真实文件删除是两个不同操作；V2 P0 默认只归档/删除应用记录，不删除真实文件。
 
-`[IMPLEMENTED — S1.5 PENDING ACCEPTANCE]` 用户可从首页或成果页主动创建 Markdown/纯文本 Result。Rust 只接受单层安全文件名和匹配扩展名，拒绝绝对路径、路径穿越、非法字符、系统保留名和同名覆盖；前端只获得 Result DTO 与 `result://` 引用。成功路径建立托管 UTF-8 文件、Result 和初始 Revision；SQLite 失败会补偿删除本次新建文件。手工编辑使用基础 Hash 冲突检查和现有版本保留规则，支持重开、历史预览/恢复、撤销与独立副本。S1.2 旧托管草稿缺少初始版本时在首次专用读取时惰性补录，不批量扫描或复制其他内容。
+`[IMPLEMENTED — S1.5 ACCEPTED]` 用户可从首页或成果页主动创建 Markdown/纯文本 Result。Rust 只接受单层安全文件名和匹配扩展名，拒绝绝对路径、路径穿越、非法字符、系统保留名和同名覆盖；前端只获得 Result DTO 与 `result://` 引用。成功路径建立托管 UTF-8 文件、Result 和初始 Revision；SQLite 失败会补偿删除本次新建文件。手工编辑使用基础 Hash 冲突检查和现有版本保留规则，支持重开、历史预览/恢复、撤销与独立副本。S1.2 旧托管草稿缺少初始版本时在首次专用读取时惰性补录，不批量扫描或复制其他内容。
+
+`[IMPLEMENTED — S2.7 PENDING ACCEPTANCE]` Result 工作台按 `document | spreadsheet | checklist | form | tool` 选择受控 adapter，但继续复用既有 `create_text_result`、读取、Hash 冲突保存、Revision、恢复和复制协议，避免为每种 UI 建立写入旁路。document 使用 UTF-8 Markdown/纯文本；spreadsheet 使用 UTF-8 CSV 并按 RFC 风格引号解析；checklist、form、tool 使用有界受控 JSON，Rust 校验根结构、字段类型、唯一标识、数量与长度。普通 tool 提供安全键值配置编辑；由 A2UI Surface 形成的 tool 只显示已验证快照，控件动作在原 A2UI 事务内同步更新 Result 快照，不能在成果编辑器中执行脚本、HTML、宏或动态代码。DOCX/PDF/XLSX 无损回写与真实导出仍属于 S2.8，不在本阶段伪装实现。
 
 ### 5.2 Task（任务）
 
@@ -298,7 +300,7 @@ ReviewRequest
 
 冲突只提供可理解且不覆盖原文的三个方向：保留当前版本、把已审阅的单文件完整候选另存到“我的成果”、关闭旧候选并基于当前版本重新生成。多文件冲突不能伪装为一个完整副本。A2UI `request_patch` 当前仍只返回 `review_required` 而不写文件，真实 Action→Review 接线按 S3.3 实施。
 
-`[IMPLEMENTED — S2.6 PENDING ACCEPTANCE]` 编辑器文本选区和 textarea 表格/代码选区会显示统一选区助手，提供润色、缩短、改专业、解释、提取重点和自定义六类动作。动作先建立仅含当前选区的 Context Manifest，并展示目标文件、字符数和本机/云端处理位置；敏感云端清单继续要求明确确认。修改类请求通过现有 `stream_chat` 的受限 `reviewSource=selection` 进入同一 Review Pipeline，接受前不修改编辑器或文件；Rust 持久化的 Review 来源为 `selection`，Patch 应用时继续复核文件 Hash、授权、唯一锚点和冲突。解释类请求使用 `explanationOnly` 只读模式：Rust 不解析或持久化 Review/A2UI 候选，只保存用户可读说明，文件完成声明防伪规则仍然生效。切换文件或工作区继续清除旧选区；重复锚点或外部变化安全失败，不以首次字符串匹配绕过 Patch 内核。
+`[IMPLEMENTED — S2.6 ACCEPTED]` 编辑器文本选区和 textarea 表格/代码选区会显示统一选区助手，提供润色、缩短、改专业、解释、提取重点和自定义六类动作。动作先建立仅含当前选区的 Context Manifest，并展示目标文件、字符数和本机/云端处理位置；敏感云端清单继续要求明确确认。修改类请求通过现有 `stream_chat` 的受限 `reviewSource=selection` 进入同一 Review Pipeline，接受前不修改编辑器或文件；Rust 持久化的 Review 来源为 `selection`，Patch 应用时继续复核文件 Hash、授权、唯一锚点和冲突。解释类请求使用 `explanationOnly` 只读模式：Rust 不解析或持久化 Review/A2UI 候选，只保存用户可读说明，文件完成声明防伪规则仍然生效。切换文件或工作区继续清除旧选区；重复锚点或外部变化安全失败，不以首次字符串匹配绕过 Patch 内核。
 
 ### 5.4 Context Manifest 与 Context Pack
 
@@ -422,10 +424,10 @@ S1.2 已验收并开放上述流程的本地准备子集：创建 Task → 校�
 
 ```text
 首页/成果页点击“新建”
-  → 选择文本成果类型并输入标题
+  → 选择文档/表格/清单/表单/小工具并输入标题
   → Rust 校验受控名称和“我的成果”目标作用域
   → 用户确认创建
-  → 原子创建 UTF-8 文本文件 + Result + 初始 Revision
+  → 原子创建受控 UTF-8 内部文件 + Result + 初始 Revision
   → 打开工作台继续编辑
 ```
 
@@ -560,7 +562,7 @@ S2.4 P0 的检索边界已经关闭并固定：
 
 `[CURRENT — S1.3 ACCEPTED]` 两种模式渲染同一组 `WorkspaceLayout`、`WorkspaceSidebar`、`EditorPane` 和 `ChatPanel`，并共享同一 Zustand store、Gateway 与 Rust IPC。简单模式不渲染文件树、会话列表、Provider/Model 标识、A2UI Inspector、Endpoint 和 API Key 入口，但保留直接复用现有授权链路的“选择文件”和直接复用现有会话动作的“新对话”；专业模式恢复完整 V1 工具。模式切换不会重建业务 store、迁移 Result/Task 数据、改变上下文授权或扩大 Capability。
 
-`[CURRENT — S1.4 ACCEPTED / S1.5 PENDING ACCEPTANCE]` 首页已成为 Result/Task 产品入口，最近成果会按具体 Result ID 打开专用工作台；成果页提供完整本地 Result 列表与新建入口。简单模式显示成果区和 AI 助手外壳，专业模式在同一业务状态上增加既有文件树。AI 区不自动发送正文，导出入口不声称 S2.8 已完成。
+`[CURRENT — S1.4 / S1.5 ACCEPTED; S2.7 PENDING ACCEPTANCE]` 首页已成为 Result/Task 产品入口，最近成果会按具体 Result ID 打开专用工作台；成果页提供五类本地 Result 列表与新建入口。简单模式显示成果区和 AI 助手外壳，专业模式在同一业务状态上增加既有文件树。AI 区不自动发送正文，导出入口不声称 S2.8 已完成。
 
 ## 10. IPC 与事件合同
 
@@ -662,13 +664,13 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 | ------------- | --------------------------------------------------- | ------------------------------------------------- |
 | ONB/HOME      | app routing、home feature、Result queries           | S1.4 Current                                      |
 | IMP/TASK      | Import Service、DocumentSource、Task/Template       | Task/模板与 S2.1 Current；S2.2 已实现待验收       |
-| WS            | Result Workbench、typed editors、mode shell         | 文本 Result 外壳 Current，其余 Target             |
+| WS            | Result Workbench、typed editors、mode shell         | 五类 Result adapter Current（S2.7 待人工验收）    |
 | CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | Manifest/local-cloud Current；Planner/Pack Target |
 | REV-01…06     | Review Request + 现有 Patch/Revision 内核           | S2.5 Current（已验收）；Selection 来源已接线      |
-| OUT-01…06     | Result type adapters、A2UI、Action Policy           | A2UI 内核 Current，其余 Target                    |
+| OUT-01…06     | Result type adapters、A2UI、Action Policy           | 五类 adapter Current；S3.x Action 扩展仍为 Target |
 | EXP-01…04     | Export Service、export jobs、format adapters        | 入口 Current，真实导出 Target                     |
 | RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target         |
-| SEL-01        | Selection controller → Review Pipeline              | S2.6 Current（待人工验收）                        |
+| SEL-01        | Selection controller → Review Pipeline              | S2.6 Current（已验收）                            |
 | PRV-04/MDL-05 | Processing options、local probe                     | Target                                            |
 | SRCH-01       | 授权索引和 Search Service                           | P1 Target                                         |
 | ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                            |

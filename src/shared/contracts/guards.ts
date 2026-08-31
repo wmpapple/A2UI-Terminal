@@ -317,7 +317,7 @@ export const isResultDocument = (value: unknown): value is ResultDocument =>
   isObject(value) &&
   isResultDetail(value.result) &&
   isString(value.format) &&
-  new Set(['markdown', 'plain_text']).has(value.format) &&
+  new Set(['markdown', 'plain_text', 'csv', 'json']).has(value.format) &&
   isString(value.content) &&
   isString(value.contentHash) &&
   isNumber(value.sizeBytes) &&

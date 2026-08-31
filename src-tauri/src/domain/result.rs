@@ -6,16 +6,31 @@ use serde::{Deserialize, Serialize};
 pub enum TextResultFormat {
     Markdown,
     PlainText,
+    Csv,
+    Json,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ResultType {
+    #[default]
     Document,
     Spreadsheet,
     Checklist,
     Form,
     Tool,
+}
+
+impl ResultType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Document => "document",
+            Self::Spreadsheet => "spreadsheet",
+            Self::Checklist => "checklist",
+            Self::Form => "form",
+            Self::Tool => "tool",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -70,6 +85,8 @@ pub struct ResultDetail {
 pub struct CreateTextResultInput {
     pub title: String,
     pub file_name: String,
+    #[serde(rename = "type", default)]
+    pub result_type: ResultType,
     pub format: TextResultFormat,
 }
 
@@ -159,7 +176,9 @@ pub fn validate_title(title: &str) -> Result<&str, AppError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{validate_title, CreateTextResultInput, ResultStatus, TextResultFormat};
+    use super::{
+        validate_title, CreateTextResultInput, ResultStatus, ResultType, TextResultFormat,
+    };
 
     #[test]
     fn result_status_machine_allows_recovery_but_rejects_invalid_shortcuts() {
@@ -187,5 +206,26 @@ mod tests {
         }));
         assert!(parsed.is_err());
         assert_eq!(TextResultFormat::PlainText, TextResultFormat::PlainText);
+    }
+
+    #[test]
+    fn create_input_defaults_legacy_requests_to_document_and_accepts_typed_results() {
+        let legacy: CreateTextResultInput = serde_json::from_value(serde_json::json!({
+            "title": "记录",
+            "fileName": "记录.md",
+            "format": "markdown"
+        }))
+        .unwrap();
+        assert_eq!(legacy.result_type, ResultType::Document);
+
+        let spreadsheet: CreateTextResultInput = serde_json::from_value(serde_json::json!({
+            "title": "预算",
+            "fileName": "预算.csv",
+            "type": "spreadsheet",
+            "format": "csv"
+        }))
+        .unwrap();
+        assert_eq!(spreadsheet.result_type, ResultType::Spreadsheet);
+        assert_eq!(spreadsheet.format, TextResultFormat::Csv);
     }
 }

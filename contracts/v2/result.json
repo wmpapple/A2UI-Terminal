@@ -64,5 +64,103 @@
     "createdAt": "2026-08-13 13:00:00",
     "isCurrent": true,
     "content": "# 会议纪要\n\n"
-  }
+  },
+  "typedDocuments": [
+    {
+      "result": {
+        "id": "550e8400-e29b-41d4-a716-446655440030",
+        "workspaceId": "550e8400-e29b-41d4-a716-446655440000",
+        "type": "spreadsheet",
+        "title": "季度数据",
+        "status": "draft",
+        "storageKind": "managed_local",
+        "currentRevisionId": "550e8400-e29b-41d4-a716-446655440031",
+        "a2uiSurfaceId": null,
+        "createdAt": "2026-08-27 10:00:00",
+        "updatedAt": "2026-08-27 10:00:00",
+        "completedAt": null,
+        "storageRef": "result://file/550e8400-e29b-41d4-a716-446655440030",
+        "activeSessionId": null,
+        "managedState": { "adapter": "spreadsheet", "format": "csv" }
+      },
+      "format": "csv",
+      "content": "月份,收入\n一月,100\n",
+      "contentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "sizeBytes": 27,
+      "editable": true,
+      "appliedReview": null
+    },
+    {
+      "result": {
+        "id": "550e8400-e29b-41d4-a716-446655440040",
+        "workspaceId": "550e8400-e29b-41d4-a716-446655440000",
+        "type": "checklist",
+        "title": "发布清单",
+        "status": "draft",
+        "storageKind": "managed_local",
+        "currentRevisionId": "550e8400-e29b-41d4-a716-446655440041",
+        "a2uiSurfaceId": null,
+        "createdAt": "2026-08-27 10:00:00",
+        "updatedAt": "2026-08-27 10:00:00",
+        "completedAt": null,
+        "storageRef": "result://file/550e8400-e29b-41d4-a716-446655440040",
+        "activeSessionId": null,
+        "managedState": { "adapter": "checklist", "format": "json" }
+      },
+      "format": "json",
+      "content": "{\"items\":[]}",
+      "contentHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "sizeBytes": 12,
+      "editable": true,
+      "appliedReview": null
+    },
+    {
+      "result": {
+        "id": "550e8400-e29b-41d4-a716-446655440050",
+        "workspaceId": "550e8400-e29b-41d4-a716-446655440000",
+        "type": "form",
+        "title": "登记表",
+        "status": "draft",
+        "storageKind": "managed_local",
+        "currentRevisionId": "550e8400-e29b-41d4-a716-446655440051",
+        "a2uiSurfaceId": null,
+        "createdAt": "2026-08-27 10:00:00",
+        "updatedAt": "2026-08-27 10:00:00",
+        "completedAt": null,
+        "storageRef": "result://file/550e8400-e29b-41d4-a716-446655440050",
+        "activeSessionId": null,
+        "managedState": { "adapter": "form", "format": "json" }
+      },
+      "format": "json",
+      "content": "{\"fields\":[]}",
+      "contentHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "sizeBytes": 13,
+      "editable": true,
+      "appliedReview": null
+    },
+    {
+      "result": {
+        "id": "550e8400-e29b-41d4-a716-446655440060",
+        "workspaceId": "550e8400-e29b-41d4-a716-446655440000",
+        "type": "tool",
+        "title": "参数工具",
+        "status": "draft",
+        "storageKind": "managed_local",
+        "currentRevisionId": "550e8400-e29b-41d4-a716-446655440061",
+        "a2uiSurfaceId": null,
+        "createdAt": "2026-08-27 10:00:00",
+        "updatedAt": "2026-08-27 10:00:00",
+        "completedAt": null,
+        "storageRef": "result://file/550e8400-e29b-41d4-a716-446655440060",
+        "activeSessionId": null,
+        "managedState": { "adapter": "tool", "format": "json" }
+      },
+      "format": "json",
+      "content": "{\"settings\":[]}",
+      "contentHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "sizeBytes": 15,
+      "editable": true,
+      "appliedReview": null
+    }
+  ]
 }

@@ -6,7 +6,7 @@ export type ResultType = 'document' | 'spreadsheet' | 'checklist' | 'form' | 'to
 export type ResultStatus =
   'draft' | 'generating' | 'review_pending' | 'ready' | 'exporting' | 'failed' | 'archived';
 export type ResultStorageKind = 'workspace_file' | 'standalone_file' | 'managed_local';
-export type TextResultFormat = 'markdown' | 'plain_text';
+export type TextResultFormat = 'markdown' | 'plain_text' | 'csv' | 'json';
 export type TaskKind = 'write' | 'modify' | 'organize' | 'analyze';
 export type TaskStatus =
   | 'draft'
@@ -96,6 +96,7 @@ export interface ResultDetail extends ResultSummary {
 export interface CreateTextResultInput {
   title: string;
   fileName: string;
+  type?: ResultType;
   format: TextResultFormat;
 }
 

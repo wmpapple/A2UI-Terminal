@@ -5,10 +5,12 @@ import type {
   ResultRevision,
   ResultRevisionSummary,
   ResultSummary,
+  ResultType,
   TaskDetail,
   TaskQuestion,
   TaskRunResult,
   TaskTemplate,
+  TextResultFormat,
 } from '../types/domain';
 
 const templates: TaskTemplate[] = [
@@ -142,7 +144,7 @@ let sequence = 0;
 
 interface MockResultRecord {
   detail: ResultDetail;
-  format: 'markdown' | 'plain_text';
+  format: TextResultFormat;
   fileName: string;
   content: string;
   revisions: ResultRevision[];
@@ -237,14 +239,24 @@ export const webMockHomeGateway = {
   async createTextResult(input: CreateTextResultInput): Promise<ResultDocument> {
     const title = input.title.trim();
     const fileName = input.fileName.trim();
+    const type = input.type ?? 'document';
+    const expectedFormats: Record<ResultType, TextResultFormat[]> = {
+      document: ['markdown', 'plain_text'],
+      spreadsheet: ['csv'],
+      checklist: ['json'],
+      form: ['json'],
+      tool: ['json'],
+    };
     if (!title || title.length > 160) throw new Error('成果标题不能为空且不能超过 160 个字符');
     if (
       !fileName ||
       fileName.includes('..') ||
       /[\\/:<>"|?*]/.test(fileName) ||
-      (input.format === 'markdown'
-        ? !/\.(md|markdown)$/i.test(fileName)
-        : !/\.txt$/i.test(fileName))
+      !expectedFormats[type].includes(input.format) ||
+      (input.format === 'markdown' && !/\.(md|markdown)$/i.test(fileName)) ||
+      (input.format === 'plain_text' && !/\.txt$/i.test(fileName)) ||
+      (input.format === 'csv' && !/\.csv$/i.test(fileName)) ||
+      (input.format === 'json' && !/\.json$/i.test(fileName))
     ) {
       throw new Error('文件名或扩展名无效');
     }
@@ -254,11 +266,36 @@ export const webMockHomeGateway = {
     const id = `web-mock-result-created-${++sequence}`;
     const revisionId = `web-mock-revision-${sequence}-initial`;
     const timestamp = `2026-08-17 11:${String(sequence).padStart(2, '0')}:00`;
-    const content = input.format === 'markdown' ? `# ${title}\n\n` : `${title}\n\n`;
+    const content =
+      input.format === 'markdown'
+        ? `# ${title}\n\n`
+        : input.format === 'plain_text'
+          ? `${title}\n\n`
+          : input.format === 'csv'
+            ? 'Column 1,Column 2\n,\n'
+            : type === 'checklist'
+              ? JSON.stringify(
+                  { items: [{ id: 'item-1', text: title, completed: false }] },
+                  null,
+                  2
+                )
+              : type === 'form'
+                ? JSON.stringify(
+                    {
+                      fields: [{ id: 'field-1', label: title, kind: 'text', required: false }],
+                    },
+                    null,
+                    2
+                  )
+                : JSON.stringify(
+                    { settings: [{ key: 'title', label: 'Title', value: title }] },
+                    null,
+                    2
+                  );
     const detail: ResultDetail = {
       id,
       workspaceId: 'web-mock-managed-results',
-      type: 'document',
+      type,
       title,
       status: 'draft',
       storageKind: 'managed_local',
@@ -269,7 +306,7 @@ export const webMockHomeGateway = {
       completedAt: null,
       storageRef: `result://file/${id}`,
       activeSessionId: null,
-      managedState: { format: input.format },
+      managedState: { adapter: type, format: input.format },
     };
     const record: MockResultRecord = {
       detail,
@@ -357,10 +394,12 @@ export const webMockHomeGateway = {
 
   async duplicateResult(resultId: string): Promise<ResultDocument> {
     const source = requireRecord(resultId);
-    const extension = source.format === 'markdown' ? 'md' : 'txt';
+    const extension =
+      source.format === 'markdown' ? 'md' : source.format === 'plain_text' ? 'txt' : source.format;
     const created = await this.createTextResult({
       title: `${source.detail.title} - 副本`,
       fileName: `副本-${++sequence}.${extension}`,
+      type: source.detail.type,
       format: source.format,
     });
     const record = requireRecord(created.result.id);

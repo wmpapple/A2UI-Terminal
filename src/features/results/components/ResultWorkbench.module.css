@@ -131,6 +131,130 @@
   border: 1px solid var(--border);
 }
 
+.textPreview {
+  min-height: 0;
+  flex: 1;
+  margin: 0;
+  padding: 28px clamp(28px, 8vw, 120px) 64px;
+  overflow: auto;
+  color: var(--text-strong);
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.typedEditor,
+.structuredEditor,
+.structuredFallback,
+.toolSnapshot {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.typedEditor {
+  display: grid;
+  grid-template-rows: minmax(180px, 1fr) minmax(180px, 1fr);
+}
+
+.typedEditor > .tablePreview:only-child {
+  grid-row: 1 / -1;
+}
+
+.tablePreview,
+.structuredEditor,
+.structuredFallback,
+.toolSnapshot {
+  padding: 24px;
+}
+
+.tablePreview {
+  overflow: auto;
+}
+
+.tablePreview table {
+  min-width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+}
+
+.tablePreview th,
+.tablePreview td {
+  min-width: 120px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+.tablePreview th {
+  position: sticky;
+  top: 0;
+  background: var(--canvas);
+}
+
+.adapterSummary {
+  margin-bottom: 12px;
+}
+
+.structuredEditor,
+.structuredFallback,
+.toolSnapshot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.structuredFallback .editor {
+  min-height: 320px !important;
+  border: 1px solid var(--border) !important;
+}
+
+.structuredRow,
+.formField,
+.toolSetting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.structuredRow > :global(.ant-input),
+.formField > :global(.ant-input),
+.toolSetting > :global(.ant-input-group-wrapper) {
+  min-width: 0;
+  flex: 1;
+}
+
+.requiredToggle {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.formPreview {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.completedItem {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.toolSnapshot pre {
+  padding: 14px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  background: var(--canvas);
+  border-radius: 8px;
+  white-space: pre-wrap;
+}
+
 .assistant {
   display: flex;
   flex-direction: column;

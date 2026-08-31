@@ -1,7 +1,17 @@
 import { Button, Form, Input, Modal, Select } from 'antd';
 import { useEffect } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
-import type { CreateTextResultInput, TextResultFormat } from '../../../shared/types/domain';
+import type { MessageKey } from '../../../app/i18n/messages';
+import type {
+  CreateTextResultInput,
+  ResultType,
+  TextResultFormat,
+} from '../../../shared/types/domain';
+import {
+  defaultFormatForResultType,
+  resultAdapterDefinitions,
+  suggestedResultFileName,
+} from '../resultAdapters';
 import { useResultStore } from '../resultStore';
 
 interface Props {
@@ -13,6 +23,7 @@ interface Props {
 interface FormValues {
   title: string;
   fileName: string;
+  type: ResultType;
   format: TextResultFormat;
 }
 
@@ -23,11 +34,12 @@ export function CreateTextResultModal({ open, onCancel, onCreated }: Props) {
   const loading = useResultStore((state) => state.loading);
   const error = useResultStore((state) => state.error);
   const clearError = useResultStore((state) => state.clearError);
+  const resultType = Form.useWatch('type', form) ?? 'document';
 
   useEffect(() => {
     if (open) {
       clearError();
-      form.setFieldsValue({ title: '', fileName: '', format: 'markdown' });
+      form.setFieldsValue({ title: '', fileName: '', type: 'document', format: 'markdown' });
     }
   }, [clearError, form, open]);
 
@@ -35,6 +47,7 @@ export function CreateTextResultModal({ open, onCancel, onCreated }: Props) {
     const input: CreateTextResultInput = {
       title: values.title.trim(),
       fileName: values.fileName.trim(),
+      type: values.type,
       format: values.format,
     };
     const created = await createTextResult(input);
@@ -43,22 +56,21 @@ export function CreateTextResultModal({ open, onCancel, onCreated }: Props) {
 
   const updateSuggestedFileName = () => {
     const title = form.getFieldValue('title')?.trim();
-    const format = form.getFieldValue('format') ?? 'markdown';
-    if (title) form.setFieldValue('fileName', `${title}.${format === 'markdown' ? 'md' : 'txt'}`);
+    const type = form.getFieldValue('type') ?? 'document';
+    if (title) form.setFieldValue('fileName', suggestedResultFileName(title, type));
+  };
+
+  const changeType = (type: ResultType) => {
+    form.setFieldValue('format', defaultFormatForResultType(type));
+    window.setTimeout(updateSuggestedFileName, 0);
   };
 
   return (
-    <Modal
-      open={open}
-      title={t('createTextResult')}
-      footer={null}
-      destroyOnHidden
-      onCancel={onCancel}
-    >
+    <Modal open={open} title={t('createResult')} footer={null} destroyOnHidden onCancel={onCancel}>
       <Form<FormValues>
         form={form}
         layout="vertical"
-        initialValues={{ format: 'markdown' }}
+        initialValues={{ type: 'document', format: 'markdown' }}
         onFinish={(values) => void create(values)}
       >
         <Form.Item
@@ -68,13 +80,32 @@ export function CreateTextResultModal({ open, onCancel, onCreated }: Props) {
         >
           <Input maxLength={160} showCount onBlur={updateSuggestedFileName} />
         </Form.Item>
+        <Form.Item name="type" label={t('resultType')} rules={[{ required: true }]}>
+          <Select
+            onChange={changeType}
+            options={(Object.keys(resultAdapterDefinitions) as ResultType[]).map((type) => ({
+              value: type,
+              label: t(resultAdapterDefinitions[type].labelKey as MessageKey),
+            }))}
+          />
+        </Form.Item>
         <Form.Item name="format" label={t('resultFormat')} rules={[{ required: true }]}>
           <Select
+            disabled={resultType !== 'document'}
             onChange={updateSuggestedFileName}
-            options={[
-              { value: 'markdown', label: 'Markdown (.md)' },
-              { value: 'plain_text', label: `${t('plainText')} (.txt)` },
-            ]}
+            options={
+              resultType === 'document'
+                ? [
+                    { value: 'markdown', label: 'Markdown (.md)' },
+                    { value: 'plain_text', label: `${t('plainText')} (.txt)` },
+                  ]
+                : [
+                    {
+                      value: defaultFormatForResultType(resultType),
+                      label: defaultFormatForResultType(resultType).toUpperCase(),
+                    },
+                  ]
+            }
           />
         </Form.Item>
         <Form.Item

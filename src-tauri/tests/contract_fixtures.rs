@@ -73,6 +73,9 @@ fn rust_serde_matches_result_v2_fixture() {
     assert_round_trip::<ResultDetail>(&result["detail"]);
     assert_round_trip::<ResultDocument>(&result["document"]);
     assert_round_trip::<ResultRevision>(&result["revision"]);
+    for document in result["typedDocuments"].as_array().unwrap() {
+        assert_round_trip::<ResultDocument>(document);
+    }
 }
 
 #[test]

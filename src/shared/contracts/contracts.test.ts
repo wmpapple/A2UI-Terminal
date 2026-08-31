@@ -73,6 +73,8 @@ describe('shared Rust/TypeScript contract fixtures', () => {
     expect(isResultSummary(result.summary)).toBe(true);
     expect(isResultDetail(result.detail)).toBe(true);
     expect(isResultDocument(result.document)).toBe(true);
+    expect(result.typedDocuments).toHaveLength(4);
+    expect(result.typedDocuments.every(isResultDocument)).toBe(true);
     expect(isResultRevision(result.revision)).toBe(true);
     expect(isTaskTemplate(task.template)).toBe(true);
     expect(isTaskDetail(task.task)).toBe(true);

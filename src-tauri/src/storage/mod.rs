@@ -345,6 +345,7 @@ pub struct ResultSourceRow {
 pub struct NewManagedResultRow<'a> {
     pub result_id: &'a str,
     pub workspace_id: &'a str,
+    pub result_type: &'a str,
     pub title: &'a str,
     pub storage_ref: &'a str,
     pub source_ref: &'a str,
@@ -2210,11 +2211,12 @@ impl Storage {
                 (id, workspace_id, result_type, title, status, storage_kind,
                  storage_ref, source_kind, source_ref, current_revision_id,
                  managed_state_json)
-             VALUES (?1, ?2, 'document', ?3, 'draft', 'managed_local',
-                     ?4, 'managed_local', ?5, ?6, ?7)",
+             VALUES (?1, ?2, ?3, ?4, 'draft', 'managed_local',
+                     ?5, 'managed_local', ?6, ?7, ?8)",
             params![
                 input.result_id,
                 input.workspace_id,
+                input.result_type,
                 input.title,
                 input.storage_ref,
                 input.source_ref,
@@ -2312,12 +2314,12 @@ impl Storage {
         let matches = transaction.query_row(
             "SELECT COUNT(*) FROM results
              WHERE id = ?1 AND workspace_id = ?2 AND source_kind = 'managed_local'
-               AND source_ref = ?3 AND result_type = 'document'",
+               AND source_ref = ?3",
             params![result_id, workspace_id, source_ref],
             |row| row.get::<_, i64>(0),
         )?;
         if matches != 1 {
-            return Err(AppError::InvalidInput("成果不是可编辑的托管文档".into()));
+            return Err(AppError::InvalidInput("成果不是可编辑的托管内容".into()));
         }
         let existing: Option<String> = transaction
             .query_row(
@@ -2383,12 +2385,12 @@ impl Storage {
         let matches = transaction.query_row(
             "SELECT COUNT(*) FROM results
              WHERE id = ?1 AND workspace_id = ?2 AND source_kind = 'managed_local'
-               AND source_ref = ?3 AND result_type = 'document'",
+               AND source_ref = ?3",
             params![result_id, workspace_id, source_ref],
             |row| row.get::<_, i64>(0),
         )?;
         if matches != 1 {
-            return Err(AppError::InvalidInput("成果不是可编辑的托管文档".into()));
+            return Err(AppError::InvalidInput("成果不是可编辑的托管内容".into()));
         }
         let before_exists = transaction
             .query_row(
@@ -2849,6 +2851,11 @@ impl Storage {
             transaction.execute(
                 "UPDATE a2ui_surfaces SET state_json = ?2, updated_at = CURRENT_TIMESTAMP
                  WHERE id = ?1",
+                params![surface_row_id, state_json],
+            )?;
+            transaction.execute(
+                "UPDATE results SET managed_state_json = ?2, updated_at = CURRENT_TIMESTAMP
+                 WHERE a2ui_surface_row_id = ?1 AND result_type = 'tool'",
                 params![surface_row_id, state_json],
             )?;
         }
@@ -3500,8 +3507,25 @@ mod tests {
                     params![workspace.id, session.id],
                 )
                 .unwrap();
+        }
+        storage
+            .record_a2ui_action(
+                "surface-row",
+                Some(r#"{"safe":false}"#),
+                "event-snapshot",
+                "root",
+                "change",
+                "set_state",
+                "low",
+                "allowed",
+                "{}",
+                1,
+            )
+            .unwrap();
+        {
+            let connection = storage.connection.lock().unwrap();
             connection
-                .execute("DELETE FROM sessions WHERE id = ?1", [session.id])
+                .execute("DELETE FROM sessions WHERE id = ?1", [&session.id])
                 .unwrap();
             let snapshot: String = connection
                 .query_row(
@@ -3510,7 +3534,7 @@ mod tests {
                     |row| row.get(0),
                 )
                 .unwrap();
-            assert_eq!(snapshot, r#"{"safe":true}"#);
+            assert_eq!(snapshot, r#"{"safe":false}"#);
         }
 
         let result = storage
@@ -3523,7 +3547,7 @@ mod tests {
             .get("550e8400-e29b-41d4-a716-446655440031")
             .unwrap()
             .unwrap();
-        assert_eq!(detail.managed_state.unwrap()["safe"], true);
+        assert_eq!(detail.managed_state.unwrap()["safe"], false);
     }
 
     #[test]

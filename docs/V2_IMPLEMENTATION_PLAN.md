@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S2.5 已完成并通过用户验收；S2.6 选区助手已完成自动验证，等待用户人工验收；S2.7 尚未开始**
+> 当前状态：**S2.6 已完成并通过用户验收；S2.7 成果类型编辑适配已完成自动验证、待人工验收；S2.8 尚未开始**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -286,7 +286,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S2.6 选区助手
 
-状态：`待人工验收`
+状态：`已完成`
 
 - 对应：SEL-01、WS-03。
 - 工作：选中文本/表格区域出现 4-6 个动作；默认润色、缩短、改专业、解释、提取重点、自定义。
@@ -294,7 +294,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S2.7 成果类型编辑适配
 
-状态：`待开始`
+状态：`待人工验收`
 
 - 对应：TASK-01、WS-02、OUT-01/02。
 - 工作：document、spreadsheet、checklist、form、tool 的 Result adapter；共享保存/版本/状态协议。
@@ -432,14 +432,14 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 | HOME-01/02     | S1.1、S1.4             | 六类首页与 Result 最近成果已实现       | 已完成      |
 | IMP-01/02      | S2.1、S2.2             | S2.1 批次/能力/安全已实现，适配器后续  | 部分完成    |
 | TASK-01/02     | S1.2                   | Task/内置模板基础已实现                | 已完成      |
-| WS-01/02/03/04 | S1.3、S1.5、S2.6、S2.7 | S1.5 成果双栏与操作入口已实现          | 部分完成    |
+| WS-01/02/03/04 | S1.3、S1.5、S2.6、S2.7 | 五类成果编辑与共享保存协议已实现       | 待人工验收  |
 | CTX-01/02/03   | S2.3                   | 显式上下文和敏感确认已验收             | 已完成      |
 | CTX-05         | S2.4                   | Adaptive Planner 已实现并验收          | 已完成      |
 | REV-01…04/06   | S2.5                   | schema v11 统一 Review Pipeline 已实现 | 已完成      |
-| OUT-01…04      | S2.7、S3.2…S3.4        | 文本+A2UI 内核                         | 未开始      |
+| OUT-01…04      | S2.7、S3.2…S3.4        | 五类 Result adapter 已实现             | 部分完成    |
 | EXP-01/02/03   | S1.5、S2.8             | 已有诚实导出入口，真实导出未实现       | 部分完成    |
 | RES-01         | S1.1                   | Result 基础聚合已实现                  | 已完成      |
-| SEL-01         | S2.6                   | 六类选区动作与统一 Review 接线已实现   | 待人工验收  |
+| SEL-01         | S2.6                   | 六类选区动作与统一 Review 接线已实现   | 已完成      |
 | PRV-04         | S2.3/S4.2              | 处理位置与 Provider 失效已验收         | 部分完成    |
 | ARC-03         | S0.4                   | 统一 compatible 传输层部分已有         | 未开始      |
 | A2UI-06        | S3.1                   | 私有 V1 测试已有                       | 未开始      |
@@ -496,27 +496,28 @@ npm run tauri build -- --debug --no-bundle
 
 > 更新规则：开始步骤前先改状态并记 START；完成后先写证据再标完成。
 
-| 步骤                                   | 状态       | 最近记录 | 下一动作                         |
-| -------------------------------------- | ---------- | -------- | -------------------------------- |
-| DOC-0 架构与实施文档                   | 已完成     | LOG-0003 | 已进入 S0.1                      |
-| S0.1 固化当前工作树基线                | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收     |
-| S0.2 合同 fixture                      | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收     |
-| S0.3 前端边界拆分                      | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收     |
-| S0.4 Rust 边界拆分                     | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收     |
-| S1.1 Result/schema v9                  | 已完成     | LOG-0023 | 已通过用户人工验收               |
-| S1.2 Task/Template                     | 已完成     | LOG-0026 | 已通过用户人工验收               |
-| S1.3 导航/双模式外壳                   | 已完成     | LOG-0032 | 已通过用户人工验收               |
-| S1.4 新手引导与首页                    | 已完成     | LOG-0038 | 用户已完成最终人工验收           |
-| S1.5 大众版工作台外壳                  | 已完成     | LOG-0041 | 用户已完成人工验收               |
-| S2.1 统一导入批次                      | 已验收     | LOG-0056 | 用户已明确验收通过               |
-| S2.2 表格与图片读取适配                | 已验收     | LOG-0063 | 用户已明确验收通过               |
-| S2.3 Context Manifest 与持续隐私可见性 | 已完成     | LOG-0071 | 已于 2026-08-21 通过用户人工验收 |
-| S2.4 自适应 Context Planner            | 已完成     | LOG-0076 | 已于 2026-08-21 通过用户人工验收 |
-| S2.5 统一 Review Request/Pipeline      | 已完成     | LOG-0085 | 用户已确认完成并已提交代码       |
-| S2.6 选区助手                          | 待人工验收 | LOG-0087 | 按 S2.6 人工验收文档完成复验     |
-| S2.7…S4.8                              | 待开始     | —        | S2.6 完成并验收前不得提前实施    |
+| 步骤                                   | 状态   | 最近记录 | 下一动作                         |
+| -------------------------------------- | ------ | -------- | -------------------------------- |
+| DOC-0 架构与实施文档                   | 已完成 | LOG-0003 | 已进入 S0.1                      |
+| S0.1 固化当前工作树基线                | 已完成 | LOG-0006 | 已于 2026-08-13 通过人工验收     |
+| S0.2 合同 fixture                      | 已完成 | LOG-0009 | 已于 2026-08-13 通过人工验收     |
+| S0.3 前端边界拆分                      | 已完成 | LOG-0013 | 已于 2026-08-13 通过人工验收     |
+| S0.4 Rust 边界拆分                     | 已完成 | LOG-0016 | 已于 2026-08-13 通过人工验收     |
+| S1.1 Result/schema v9                  | 已完成 | LOG-0023 | 已通过用户人工验收               |
+| S1.2 Task/Template                     | 已完成 | LOG-0026 | 已通过用户人工验收               |
+| S1.3 导航/双模式外壳                   | 已完成 | LOG-0032 | 已通过用户人工验收               |
+| S1.4 新手引导与首页                    | 已完成 | LOG-0038 | 用户已完成最终人工验收           |
+| S1.5 大众版工作台外壳                  | 已完成 | LOG-0041 | 用户已完成人工验收               |
+| S2.1 统一导入批次                      | 已验收 | LOG-0056 | 用户已明确验收通过               |
+| S2.2 表格与图片读取适配                | 已验收 | LOG-0063 | 用户已明确验收通过               |
+| S2.3 Context Manifest 与持续隐私可见性 | 已完成 | LOG-0071 | 已于 2026-08-21 通过用户人工验收 |
+| S2.4 自适应 Context Planner            | 已完成 | LOG-0076 | 已于 2026-08-21 通过用户人工验收 |
+| S2.5 统一 Review Request/Pipeline      | 已完成 | LOG-0085 | 用户已确认完成并已提交代码       |
+| S2.6 选区助手                          | 已完成 | LOG-0088 | 已于 2026-08-27 通过用户人工验收 |
+| S2.7 成果类型编辑适配                  | 待验收 | LOG-0091 | M05 对齐缺陷已修复，等待人工复验 |
+| S2.8…S4.8                              | 待开始 | —        | S2.7 完成并验收前不得提前实施    |
 
-S1.1—S2.5 均已通过自动验证和用户人工验收。S2.6 从干净 `main` / `3e32166` 开始；只实现选区助手，不得提前进入 S2.7。
+S1.1—S2.6 均已通过自动验证和用户人工验收。S2.7 从干净 `main` / `14243d6` 开始，现已完成自动验证并停在人工验收；用户明确通过前不得进入 S2.8。
 
 ## 10. 连续变更账本
 
@@ -1828,6 +1829,45 @@ S1.1—S2.5 均已通过自动验证和用户人工验收。S2.6 从干净 `main
 - 状态与证据：S2.6 自动验证完成，转为 `待人工验收`；人工步骤见 [S2_6_MANUAL_ACCEPTANCE.md](S2_6_MANUAL_ACCEPTANCE.md)。
 - 下一具体动作：停止功能实施，等待用户完成 S2.6 M01—M07 并明确回复“**S2.6 验收通过**”；此前禁止开始 S2.7。
 
+### LOG-0088 — S2.6 — COMPLETE
+
+- 时间：2026-08-27（Asia/Shanghai）
+- 用户验收：用户明确回复“`S2.6 验收通过`”，授权开始下一阶段。
+- 提交基线：S2.6 已由用户提交为 `14243d6`（`选区助手功能`）；开始 S2.7 前工作树干净。
+- 结论：S2.6 从 `待人工验收` 转为 `已完成`；六类选区动作、解释只读、修改统一 Review、接受前零写入和选区 Context Manifest 边界通过人工验收。
+- 下一具体动作：开始 S2.7 成果类型编辑适配；不得提前实施 S2.8 Export Service。
+
+### LOG-0089 — S2.7 — START
+
+- 时间：2026-08-27（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `14243d6`；工作树干净。
+- 目标与允许范围：为 document、spreadsheet、checklist、form、tool 建立 Result adapter；复用统一保存、Hash 冲突、Revision、恢复、复制和状态呈现协议；每类成果必须可重开并拥有继续编辑/保存路径。
+- 首期格式边界：document 使用 UTF-8 Markdown/纯文本；spreadsheet 使用 UTF-8 CSV；checklist/form/tool 使用受控 JSON 内部格式。DOCX/PDF/XLSX 继续作为导入/导出边界，不实现无损回写。
+- 明确不做：不实现 S2.8 导出任务、系统保存对话框或多格式生成，不实现 S3.x A2UI 扩展，不放宽任意路径、脚本、宏、HTML 或动态代码执行权限。
+- 下一具体动作：先固化共享 adapter 合同与 Rust 校验，再接入成果新建、类型工作台和完整测试；完成后停在 S2.7 人工验收。
+
+### LOG-0090 — S2.7 — PROGRESS / AUTOMATED VALIDATION COMPLETE
+
+- 时间：2026-08-27（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线与阶段隔离：延续干净 `main` / `14243d6`，只完成 S2.7 成果类型编辑适配；S2.8 Export Service、系统保存对话框、多格式生成和 S3.x A2UI 扩展均未开始。
+- Result adapter：新建入口支持 document、spreadsheet、checklist、form、tool；document 继续使用 Markdown/纯文本，spreadsheet 使用 CSV，checklist/form/tool 使用受控 JSON。工作台按类型提供阅读/编辑视图，并统一复用保存、Hash 冲突、Revision、历史恢复和另存副本。
+- Rust 可信边界：创建和保存时重新校验 Result type/format/扩展名映射及结构化内容的根结构、字段类型、唯一 ID、数量和长度；旧调用缺省为 document，保持已有 IPC 兼容。AI `create_file` 明确仍只允许文档 Markdown/纯文本，没有因格式枚举扩展而放宽。
+- A2UI tool 边界：已验证 Surface 产生的 tool Result 可从“我的成果”打开为只读快照；A2UI Action 状态变化在同一事务同步到 Result 快照。普通 tool 只编辑受控键值配置，不执行脚本、HTML、宏或动态代码。
+- 合同与测试：共享 Result fixture 增加四类 typed document；TypeScript guard、Rust serde、adapter 单元/组件测试和 Web Mock E2E 覆盖新建、编辑、保存、重开、清单结构化操作及 A2UI 快照。前端 changed-file Prettier、lint、typecheck、39 个 Vitest 文件/162 项测试、覆盖率和生产构建通过，覆盖率 Statements 97.97%、Branches 84.72%、Functions 96.66%、Lines 98.80%；Chromium Web Mock E2E 10/10。Rust all-targets/all-features 测试 139 项通过（库 123、架构 6、命令注册 1、合同 9），Clippy `-D warnings` 通过；隔离 Tauri debug `--no-bundle` 构建和临时数据目录启动冒烟通过。仅有既有 Vite 大 chunk 提示和 MSVC 导入库信息。
+- 数据与兼容：无 migration、schema 版本、IPC 命令、Capability、Provider、网络、任意路径或遥测变化；继续使用 schema v11 和既有 36 个命令。DOCX/PDF/XLSX 只保留导入/导出边界，不承诺无损回写。
+- 状态与下一动作：S2.7 从 `进行中` 转为 `待人工验收`，步骤见 [S2_7_MANUAL_ACCEPTANCE.md](S2_7_MANUAL_ACCEPTANCE.md)。用户明确回复“**S2.7 验收通过**”前停止功能实施，不得开始 S2.8。
+
+### LOG-0091 — S2.7 — ACCEPTANCE DEFECT FIX / REQUIRED CHECKBOX ALIGNMENT
+
+- 时间：2026-08-31（Asia/Shanghai）
+- 用户反馈：表单成果编辑器中的“必填”复选框勾选图标漂移到字段卡片上方，没有与复选框边框和“必填”文字对齐。
+- 根因与修复：只读表单预览使用的 `.formField > label` 选择器误命中 Ant Design Checkbox 的根 `label`，把编辑态复选框强制改成整行纵向布局。现在给预览标签使用独立 `formPreview` class，并给编辑态必填控件使用不伸展、禁止换行的 `requiredToggle` class，避免预览样式跨组件泄漏。
+- 回归验证：新增组件测试固定“必填”是单一带标签 checkbox 控件并可正确更新 JSON 状态；typed Result E2E 新增真实 Chromium 几何断言，验证 checkbox 图标与标签中心线偏差不超过 2px。changed-file Prettier、定向组件测试 6/6、定向 E2E 1/1、前端 lint 和 typecheck 通过。
+- 阶段边界：只修复 S2.7 人工验收缺陷；没有修改 Result 协议、Rust、schema、IPC、Capability、Provider、文件权限或数据。S2.7 继续待人工验收，S2.8 未开始。
+- 下一动作：从当前工作树重启应用并复验 [S2_7_MANUAL_ACCEPTANCE.md](S2_7_MANUAL_ACCEPTANCE.md) M05；用户明确回复“**S2.7 验收通过**”前不得开始 S2.8。
+
 ### 新账本记录模板
 
 ```markdown
@@ -1906,11 +1946,11 @@ S1.1—S2.5 均已通过自动验证和用户人工验收。S2.6 从干净 `main
 
 ## 12. 交接摘要
 
-截至 LOG-0087：
+截至 LOG-0091：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页、S1.5 专用成果工作台、S2.1 ImportBatch/系统选择/桌面原生拖放、S2.2 CSV/XLSX/图片读取适配、S2.3 Context Manifest、S2.4 Adaptive Context 和 S2.5 统一 Review/schema v11；S2.6 选区助手已完成自动验证、待人工验收；Provider 图片多模态发送、Export 和产品事件尚未开始。
+- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页、S1.5 专用成果工作台、S2.1 ImportBatch/系统选择/桌面原生拖放、S2.2 CSV/XLSX/图片读取适配、S2.3 Context Manifest、S2.4 Adaptive Context、S2.5 统一 Review/schema v11 和 S2.6 选区助手；S2.7 五类成果 adapter 已完成自动验证、待人工验收；Provider 图片多模态发送、Export 和产品事件尚未开始。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
 - S2.2 已建立统一 `DocumentSource`、CSV/XLSX 受限结构化读取、公式/注入风险标记、图片原始视觉来源、8 MB 内本地预览、多批累积和工作区隔离的单项撤销，且已于 2026-08-20 通过用户验收。
@@ -1918,6 +1958,6 @@ S1.1—S2.5 均已通过自动验证和用户人工验收。S2.6 从干净 `main
 - S2.3 代码质量整改已把 `ChatPanel` 收敛为组合层，将 Context Manifest 编排、消息协议呈现和输入/拖放拆为独立模块；前端架构测试固定该依赖方向。Rust 应用层边界测试改为自动扫描整个 `src/application` 目录，不再漏掉新增 `context.rs`。大规模 Storage/DocumentSource 物理拆分留待 S2.3 验收后的独立重构基线。
 - S2.3 对已授权零字节文本目标只提供准确能力限制：Rust 明确识别空文件，跳过不可能成功的后台模型重试，前端隐藏手动重试且保持零写入。真正的安全首次写入已作为显式合同/E2E 场景排入 S2.5，当前没有放宽非空锚点或实现写入。
 - S2.4 已按 ADR-019 实现 Rust 可信 Planner、约 1600/200 字符确定性结构分块、本地词法/BM25-like 检索、中文 bigram、Full/Retrieval/Hybrid、32000 token 预算、可追溯块范围和进程内 workspace/source/hash 索引。Manifest 消费前会复验授权与 Hash；索引不会持久化，可手动清理，并在撤销、变化、切换、删除、清除数据或退出时失效。Schema 仍为 v10，仅新增 `clear_context_index` 最小 IPC；自动验证结果见 LOG-0073。
-- S2.5 已实现并通过用户验收：持久 Review/blocks、Patch 接入、AI `create_file`、空白文件首次写入、冲突三选项、幂等应用、撤销和跨重启恢复。S2.6 已实现六类选区动作、Context Manifest 确认、`source=selection` Review 透传和解释只读模式；自动验证见 LOG-0087，人工步骤见 [S2_6_MANUAL_ACCEPTANCE.md](S2_6_MANUAL_ACCEPTANCE.md)。用户明确验收前不得开始 S2.7。
+- S2.5 已实现并通过用户验收：持久 Review/blocks、Patch 接入、AI `create_file`、空白文件首次写入、冲突三选项、幂等应用、撤销和跨重启恢复。S2.6 已实现并验收六类选区动作、Context Manifest 确认、`source=selection` Review 透传和解释只读模式。S2.7 已实现 document/spreadsheet/checklist/form/tool adapter 与共享保存/版本/复制协议；自动验证见 LOG-0090，人工步骤见 [S2_7_MANUAL_ACCEPTANCE.md](S2_7_MANUAL_ACCEPTANCE.md)。用户明确验收前不得开始 S2.8。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - 如果文档与实际代码不一致，先记录差异并修正文档状态；不要为了符合文档而破坏性改写用户代码。

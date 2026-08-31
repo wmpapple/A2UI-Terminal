@@ -2,6 +2,9 @@ import { FileAddOutlined, RightOutlined } from '@ant-design/icons';
 import { Alert, Button, Empty, Skeleton, Tag } from 'antd';
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
+import type { MessageKey } from '../../../app/i18n/messages';
+import type { ResultStatus } from '../../../shared/types/domain';
+import { resultAdapterDefinitions } from '../resultAdapters';
 import { useResultStore } from '../resultStore';
 import { CreateTextResultModal } from './CreateTextResultModal';
 import styles from './ResultsPage.module.css';
@@ -9,6 +12,16 @@ import styles from './ResultsPage.module.css';
 interface Props {
   onOpenResult: (resultId: string) => void;
 }
+
+const statusLabels: Record<ResultStatus, MessageKey> = {
+  draft: 'resultStatusDraft',
+  generating: 'resultStatusGenerating',
+  review_pending: 'resultStatusReviewPending',
+  ready: 'resultStatusReady',
+  exporting: 'resultStatusExporting',
+  failed: 'resultStatusFailed',
+  archived: 'resultStatusArchived',
+};
 
 export function ResultsPage({ onOpenResult }: Props) {
   const { t, locale } = useI18n();
@@ -37,7 +50,7 @@ export function ResultsPage({ onOpenResult }: Props) {
             <p>{t('resultsWorkbenchDescription')}</p>
           </div>
           <Button type="primary" icon={<FileAddOutlined />} onClick={() => setCreateOpen(true)}>
-            {t('createTextResult')}
+            {t('createResult')}
           </Button>
         </header>
         {error ? <Alert type="error" showIcon title={error} closable onClose={clearError} /> : null}
@@ -45,7 +58,7 @@ export function ResultsPage({ onOpenResult }: Props) {
         {!loading && results.length === 0 ? (
           <Empty description={t('resultsPageEmpty')}>
             <Button type="primary" onClick={() => setCreateOpen(true)}>
-              {t('createTextResult')}
+              {t('createResult')}
             </Button>
           </Empty>
         ) : null}
@@ -55,8 +68,10 @@ export function ResultsPage({ onOpenResult }: Props) {
               <div>
                 <strong>{result.title}</strong>
                 <div className={styles.meta}>
-                  <Tag>{t('resultTypeDocument')}</Tag>
-                  <Tag color={result.status === 'failed' ? 'red' : 'blue'}>{result.status}</Tag>
+                  <Tag>{t(resultAdapterDefinitions[result.type].labelKey as MessageKey)}</Tag>
+                  <Tag color={result.status === 'failed' ? 'red' : 'blue'}>
+                    {t(statusLabels[result.status])}
+                  </Tag>
                   <span>
                     {new Intl.DateTimeFormat(locale, {
                       dateStyle: 'medium',

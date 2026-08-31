@@ -158,7 +158,7 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
           </div>
           <div>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-              {t('createTextResult')}
+              {t('createResult')}
             </Button>{' '}
             <Button onClick={onOpenGuide}>{t('replayOnboarding')}</Button>
           </div>

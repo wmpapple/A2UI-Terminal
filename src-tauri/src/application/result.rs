@@ -1,14 +1,16 @@
 use crate::domain::result::{
     validate_title, CreateTextResultInput, RestoreResultRevisionInput, ResultAppliedReview,
     ResultDetail, ResultDocument, ResultRevision, ResultRevisionSummary, ResultStorageKind,
-    ResultSummary, SaveResultDocumentInput, TextResultFormat,
+    ResultSummary, ResultType, SaveResultDocumentInput, TextResultFormat,
 };
 use crate::error::AppError;
 use crate::repository::result::{detail_from_row, ResultRepository};
 use crate::storage::{A2uiSurfaceRow, NewManagedResultRow, ResultSourceRow, Storage};
 use crate::workspace::{self, WorkspaceDocument, MAX_TEXT_FILE_BYTES};
+use serde::Deserialize;
 use serde_json::json;
 use sha2::{Digest, Sha256};
+use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
@@ -24,6 +26,15 @@ enum ReviewResultLink<'a> {
         review_id: &'a str,
         expected_status: &'a str,
     },
+}
+
+struct ManagedResultDraft<'a> {
+    title: &'a str,
+    file_name: &'a str,
+    result_type: ResultType,
+    format: TextResultFormat,
+    content: &'a str,
+    review_link: ReviewResultLink<'a>,
 }
 
 pub fn prepare_managed_results_dir(app_data_dir: &Path) -> Result<PathBuf, AppError> {
@@ -58,19 +69,25 @@ pub fn create_text(
     input: CreateTextResultInput,
 ) -> Result<ResultDocument, AppError> {
     let title = validate_title(&input.title)?.to_string();
+    validate_adapter(input.result_type, input.format)?;
     let file_name = validate_file_name(&input.file_name, input.format)?;
     let content = match input.format {
         TextResultFormat::Markdown => format!("# {title}\n\n"),
         TextResultFormat::PlainText => format!("{title}\n\n"),
+        TextResultFormat::Csv => "Column 1,Column 2\n,\n".into(),
+        TextResultFormat::Json => initial_structured_content(input.result_type, &title)?,
     };
     create_managed_document(
         storage,
         managed_results_dir,
-        &title,
-        &file_name,
-        input.format,
-        &content,
-        ReviewResultLink::None,
+        ManagedResultDraft {
+            title: &title,
+            file_name: &file_name,
+            result_type: input.result_type,
+            format: input.format,
+            content: &content,
+            review_link: ReviewResultLink::None,
+        },
     )
 }
 
@@ -88,13 +105,16 @@ pub fn create_from_review(
     create_managed_document(
         storage,
         managed_results_dir,
-        title,
-        &file_name,
-        format,
-        content,
-        ReviewResultLink::Apply {
-            review_id,
-            expected_status: "accepted",
+        ManagedResultDraft {
+            title,
+            file_name: &file_name,
+            result_type: ResultType::Document,
+            format,
+            content,
+            review_link: ReviewResultLink::Apply {
+                review_id,
+                expected_status: "accepted",
+            },
         },
     )
 }
@@ -119,6 +139,8 @@ pub fn create_conflict_copy(
     let suffix = match format {
         TextResultFormat::Markdown => "md",
         TextResultFormat::PlainText => "txt",
+        TextResultFormat::Csv => "csv",
+        TextResultFormat::Json => "json",
     };
     let file_name = format!("{}.{suffix}", Uuid::new_v4());
     let title = format!("{} - AI 候选副本", title.trim());
@@ -126,13 +148,16 @@ pub fn create_conflict_copy(
     create_managed_document(
         storage,
         managed_results_dir,
-        &title,
-        &file_name,
-        format,
-        content,
-        ReviewResultLink::Apply {
-            review_id,
-            expected_status: "conflicted",
+        ManagedResultDraft {
+            title: &title,
+            file_name: &file_name,
+            result_type: ResultType::Document,
+            format,
+            content,
+            review_link: ReviewResultLink::Apply {
+                review_id,
+                expected_status: "conflicted",
+            },
         },
     )
 }
@@ -198,9 +223,10 @@ pub fn save_document(
     input: SaveResultDocumentInput,
 ) -> Result<ResultDocument, AppError> {
     validate_result_id(&input.result_id)?;
-    validate_content(&input.content)?;
     validate_hash(&input.base_hash)?;
     let source = result_source(storage, &input.result_id)?;
+    let result_type = result_type_from_storage(&source.result.result_type)?;
+    validate_result_content(result_type, &input.content)?;
     match source.source_kind.as_str() {
         "managed_local" => save_managed_document(
             storage,
@@ -319,6 +345,8 @@ pub fn duplicate(
     let extension = match source.format {
         TextResultFormat::Markdown => "md",
         TextResultFormat::PlainText => "txt",
+        TextResultFormat::Csv => "csv",
+        TextResultFormat::Json => "json",
     };
     let file_name = format!("{result_id}.{extension}");
     let title = format!("{} - 副本", source.result.summary.title);
@@ -326,24 +354,32 @@ pub fn duplicate(
     create_managed_document(
         storage,
         managed_results_dir,
-        &title,
-        &file_name,
-        source.format,
-        &source.content,
-        ReviewResultLink::None,
+        ManagedResultDraft {
+            title: &title,
+            file_name: &file_name,
+            result_type: source.result.summary.result_type,
+            format: source.format,
+            content: &source.content,
+            review_link: ReviewResultLink::None,
+        },
     )
 }
 
 fn create_managed_document(
     storage: &Storage,
     managed_results_dir: &Path,
-    title: &str,
-    file_name: &str,
-    format: TextResultFormat,
-    content: &str,
-    review_link: ReviewResultLink<'_>,
+    draft: ManagedResultDraft<'_>,
 ) -> Result<ResultDocument, AppError> {
-    validate_content(content)?;
+    let ManagedResultDraft {
+        title,
+        file_name,
+        result_type,
+        format,
+        content,
+        review_link,
+    } = draft;
+    validate_adapter(result_type, format)?;
+    validate_result_content(result_type, content)?;
     storage.ensure_managed_results_workspace(MANAGED_RESULTS_WORKSPACE_ID)?;
     fs::create_dir_all(managed_results_dir)?;
     let output_path = managed_path(managed_results_dir, file_name, format, false)?;
@@ -351,8 +387,11 @@ fn create_managed_document(
     let revision_id = Uuid::new_v4().to_string();
     let content_hash = content_hash(content.as_bytes());
     let storage_ref = format!("result://file/{result_id}");
-    let managed_state = serde_json::to_string(&json!({ "format": format }))
-        .map_err(|_| AppError::StateUnavailable)?;
+    let managed_state = serde_json::to_string(&json!({
+        "adapter": result_type,
+        "format": format
+    }))
+    .map_err(|_| AppError::StateUnavailable)?;
     let (review_id, review_expected_status) = match review_link {
         ReviewResultLink::None => (None, None),
         ReviewResultLink::Apply {
@@ -385,6 +424,7 @@ fn create_managed_document(
     let row = match storage.create_managed_text_result(NewManagedResultRow {
         result_id: &result_id,
         workspace_id: MANAGED_RESULTS_WORKSPACE_ID,
+        result_type: result_type.as_str(),
         title,
         storage_ref: &storage_ref,
         source_ref: file_name,
@@ -417,16 +457,15 @@ fn read_from_source(
     managed_results_dir: &Path,
     source: ResultSourceRow,
 ) -> Result<ResultDocument, AppError> {
-    if source.result.result_type != "document" {
-        return Err(AppError::InvalidInput("成果不是文档类型".into()));
-    }
+    let result_type = result_type_from_storage(&source.result.result_type)?;
     let (format, content, hash, size_bytes, editable) = match source.source_kind.as_str() {
         "managed_local" => {
             let format = format_for_file_name(&source.source_ref)?;
+            validate_adapter(result_type, format)?;
             let path = managed_path(managed_results_dir, &source.source_ref, format, true)?;
             let bytes = read_managed_file(&path)?;
             let content = String::from_utf8(bytes).map_err(|_| AppError::InvalidEncoding)?;
-            validate_content(&content)?;
+            validate_result_content(result_type, &content)?;
             let hash = content_hash(content.as_bytes());
             storage.ensure_managed_result_initial_revision(
                 &source.result.id,
@@ -440,6 +479,11 @@ fn read_from_source(
             (format, content, hash, size, true)
         }
         "workspace_file" => {
+            if result_type != ResultType::Document {
+                return Err(AppError::InvalidInput(
+                    "只有文档成果可以直接绑定工作区文本文件".into(),
+                ));
+            }
             let document =
                 workspace::read_file(storage, &source.result.workspace_id, &source.source_ref)?;
             (
@@ -450,7 +494,19 @@ fn read_from_source(
                 document.editable,
             )
         }
-        _ => return Err(AppError::InvalidInput("成果不是可编辑的文档".into())),
+        "a2ui_surface" if result_type == ResultType::Tool => {
+            let content = source
+                .result
+                .managed_state_json
+                .as_deref()
+                .and_then(|value| serde_json::from_str::<serde_json::Value>(value).ok())
+                .and_then(|value| serde_json::to_string_pretty(&value).ok())
+                .ok_or(AppError::StateUnavailable)?;
+            let hash = content_hash(content.as_bytes());
+            let size = content.len() as u64;
+            (TextResultFormat::Json, content, hash, size, false)
+        }
+        _ => return Err(AppError::InvalidInput("成果没有可用的内容适配器".into())),
     };
     let row = storage
         .result(&source.result.id)?
@@ -564,6 +620,8 @@ pub(crate) fn validate_file_name(
     let valid_extension = match format {
         TextResultFormat::Markdown => matches!(extension.as_str(), "md" | "markdown"),
         TextResultFormat::PlainText => extension == "txt",
+        TextResultFormat::Csv => extension == "csv",
+        TextResultFormat::Json => extension == "json",
     };
     if !valid_extension {
         return Err(AppError::InvalidInput("成果扩展名与文本格式不匹配".into()));
@@ -595,6 +653,8 @@ fn format_for_file_name(file_name: &str) -> Result<TextResultFormat, AppError> {
     let format = match extension.as_str() {
         "md" | "markdown" => TextResultFormat::Markdown,
         "txt" => TextResultFormat::PlainText,
+        "csv" => TextResultFormat::Csv,
+        "json" => TextResultFormat::Json,
         _ => return Err(AppError::InvalidInput("托管成果文件类型不受支持".into())),
     };
     validate_file_name(file_name, format)?;
@@ -647,6 +707,197 @@ fn read_managed_file(path: &Path) -> Result<Vec<u8>, AppError> {
 pub(crate) fn validate_content(content: &str) -> Result<(), AppError> {
     if content.len() as u64 > MAX_TEXT_FILE_BYTES {
         return Err(AppError::FileTooLarge);
+    }
+    Ok(())
+}
+
+fn validate_adapter(result_type: ResultType, format: TextResultFormat) -> Result<(), AppError> {
+    let valid = matches!(
+        (result_type, format),
+        (
+            ResultType::Document,
+            TextResultFormat::Markdown | TextResultFormat::PlainText
+        ) | (ResultType::Spreadsheet, TextResultFormat::Csv)
+            | (
+                ResultType::Checklist | ResultType::Form | ResultType::Tool,
+                TextResultFormat::Json
+            )
+    );
+    if valid {
+        Ok(())
+    } else {
+        Err(AppError::InvalidInput("成果类型与内部格式不匹配".into()))
+    }
+}
+
+fn result_type_from_storage(value: &str) -> Result<ResultType, AppError> {
+    match value {
+        "document" => Ok(ResultType::Document),
+        "spreadsheet" => Ok(ResultType::Spreadsheet),
+        "checklist" => Ok(ResultType::Checklist),
+        "form" => Ok(ResultType::Form),
+        "tool" => Ok(ResultType::Tool),
+        _ => Err(AppError::StateUnavailable),
+    }
+}
+
+fn initial_structured_content(result_type: ResultType, title: &str) -> Result<String, AppError> {
+    let value = match result_type {
+        ResultType::Checklist => json!({
+            "items": [{ "id": "item-1", "text": title, "completed": false }]
+        }),
+        ResultType::Form => json!({
+            "fields": [{ "id": "field-1", "label": title, "kind": "text", "required": false }]
+        }),
+        ResultType::Tool => json!({
+            "settings": [{ "key": "title", "label": "Title", "value": title }]
+        }),
+        _ => return Err(AppError::InvalidInput("成果类型不使用结构化 JSON".into())),
+    };
+    serde_json::to_string_pretty(&value).map_err(|_| AppError::StateUnavailable)
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChecklistContent {
+    items: Vec<ChecklistItem>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChecklistItem {
+    id: String,
+    text: String,
+    completed: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FormContent {
+    fields: Vec<FormField>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FormField {
+    id: String,
+    label: String,
+    kind: String,
+    required: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolContent {
+    settings: Vec<ToolSetting>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolSetting {
+    key: String,
+    label: String,
+    value: String,
+}
+
+fn validate_result_content(result_type: ResultType, content: &str) -> Result<(), AppError> {
+    validate_content(content)?;
+    match result_type {
+        ResultType::Document => Ok(()),
+        ResultType::Spreadsheet => validate_csv_content(content),
+        ResultType::Checklist => {
+            let parsed: ChecklistContent = serde_json::from_str(content)
+                .map_err(|_| AppError::InvalidInput("清单内容不是受支持的 JSON 结构".into()))?;
+            validate_structured_entries(
+                parsed.items.iter().map(|item| (&item.id, &item.text)),
+                2_000,
+                "清单",
+            )?;
+            let _completed_count = parsed.items.iter().filter(|item| item.completed).count();
+            Ok(())
+        }
+        ResultType::Form => {
+            let parsed: FormContent = serde_json::from_str(content)
+                .map_err(|_| AppError::InvalidInput("表单内容不是受支持的 JSON 结构".into()))?;
+            validate_structured_entries(
+                parsed.fields.iter().map(|field| (&field.id, &field.label)),
+                500,
+                "表单",
+            )?;
+            if parsed.fields.iter().any(|field| {
+                !matches!(field.kind.as_str(), "text" | "number" | "date" | "checkbox")
+            }) {
+                return Err(AppError::InvalidInput("表单字段类型不受支持".into()));
+            }
+            let _required_count = parsed.fields.iter().filter(|field| field.required).count();
+            Ok(())
+        }
+        ResultType::Tool => {
+            let parsed: ToolContent = serde_json::from_str(content)
+                .map_err(|_| AppError::InvalidInput("工具配置不是受支持的 JSON 结构".into()))?;
+            validate_structured_entries(
+                parsed
+                    .settings
+                    .iter()
+                    .map(|setting| (&setting.key, &setting.label)),
+                500,
+                "工具配置",
+            )?;
+            if parsed
+                .settings
+                .iter()
+                .any(|setting| setting.value.chars().count() > 2_000)
+            {
+                return Err(AppError::InvalidInput(
+                    "工具配置值不能超过 2000 个字符".into(),
+                ));
+            }
+            Ok(())
+        }
+    }
+}
+
+fn validate_structured_entries<'a>(
+    entries: impl Iterator<Item = (&'a String, &'a String)>,
+    max_entries: usize,
+    label: &str,
+) -> Result<(), AppError> {
+    let entries: Vec<_> = entries.collect();
+    if entries.len() > max_entries {
+        return Err(AppError::InvalidInput(format!("{label}条目数量超限")));
+    }
+    let mut ids = HashSet::new();
+    for (id, text) in entries {
+        if id.trim().is_empty()
+            || id.chars().count() > 80
+            || text.trim().is_empty()
+            || text.chars().count() > 500
+            || !ids.insert(id)
+        {
+            return Err(AppError::InvalidInput(format!("{label}包含无效或重复条目")));
+        }
+    }
+    Ok(())
+}
+
+fn validate_csv_content(content: &str) -> Result<(), AppError> {
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(false)
+        .flexible(true)
+        .from_reader(content.as_bytes());
+    let mut rows = 0usize;
+    let mut cells = 0usize;
+    for record in reader.records() {
+        let record = record.map_err(|_| AppError::InvalidInput("CSV 内容格式无效".into()))?;
+        rows += 1;
+        cells += record.len();
+        if rows > 10_000
+            || record.len() > 256
+            || cells > 250_000
+            || record.iter().any(|cell| cell.chars().count() > 32_768)
+        {
+            return Err(AppError::InvalidInput("CSV 内容超过编辑适配器限制".into()));
+        }
     }
     Ok(())
 }
@@ -752,6 +1003,7 @@ mod tests {
             CreateTextResultInput {
                 title: "项目记录".into(),
                 file_name: "项目记录.md".into(),
+                result_type: ResultType::Document,
                 format: TextResultFormat::Markdown,
             },
         )
@@ -799,6 +1051,156 @@ mod tests {
     }
 
     #[test]
+    fn all_result_adapters_share_save_revision_and_copy_protocols() {
+        let storage = Storage::open_in_memory().unwrap();
+        let output = tempfile::tempdir().unwrap();
+        let cases = [
+            (
+                ResultType::Spreadsheet,
+                TextResultFormat::Csv,
+                "table.csv",
+                "Name,Count\nAlpha,2\n",
+            ),
+            (
+                ResultType::Checklist,
+                TextResultFormat::Json,
+                "checklist.json",
+                r#"{"items":[{"id":"one","text":"核对合同","completed":true}]}"#,
+            ),
+            (
+                ResultType::Form,
+                TextResultFormat::Json,
+                "form.json",
+                r#"{"fields":[{"id":"name","label":"姓名","kind":"text","required":true}]}"#,
+            ),
+            (
+                ResultType::Tool,
+                TextResultFormat::Json,
+                "tool.json",
+                r#"{"settings":[{"key":"limit","label":"上限","value":"20"}]}"#,
+            ),
+        ];
+
+        for (result_type, format, file_name, updated_content) in cases {
+            let created = create_text(
+                &storage,
+                output.path(),
+                CreateTextResultInput {
+                    title: format!("{result_type:?}"),
+                    file_name: file_name.into(),
+                    result_type,
+                    format,
+                },
+            )
+            .unwrap();
+            assert_eq!(created.result.summary.result_type, result_type);
+            assert_eq!(created.format, format);
+
+            let saved = save_document(
+                &storage,
+                output.path(),
+                SaveResultDocumentInput {
+                    result_id: created.result.summary.id.clone(),
+                    content: updated_content.into(),
+                    base_hash: created.content_hash,
+                },
+            )
+            .unwrap();
+            assert_eq!(saved.content, updated_content);
+            assert_eq!(
+                list_revisions(&storage, output.path(), &saved.result.summary.id)
+                    .unwrap()
+                    .len(),
+                2
+            );
+            let copy = duplicate(&storage, output.path(), &saved.result.summary.id).unwrap();
+            assert_eq!(copy.result.summary.result_type, result_type);
+            assert_eq!(copy.content, updated_content);
+        }
+    }
+
+    #[test]
+    fn rejects_type_format_mismatches_and_invalid_structured_content() {
+        let storage = Storage::open_in_memory().unwrap();
+        let output = tempfile::tempdir().unwrap();
+        assert!(matches!(
+            create_text(
+                &storage,
+                output.path(),
+                CreateTextResultInput {
+                    title: "错误表格".into(),
+                    file_name: "wrong.json".into(),
+                    result_type: ResultType::Spreadsheet,
+                    format: TextResultFormat::Json,
+                },
+            ),
+            Err(AppError::InvalidInput(_))
+        ));
+
+        let checklist = create_text(
+            &storage,
+            output.path(),
+            CreateTextResultInput {
+                title: "安全清单".into(),
+                file_name: "safe.json".into(),
+                result_type: ResultType::Checklist,
+                format: TextResultFormat::Json,
+            },
+        )
+        .unwrap();
+        assert!(matches!(
+            save_document(
+                &storage,
+                output.path(),
+                SaveResultDocumentInput {
+                    result_id: checklist.result.summary.id,
+                    content: r#"{"items":[{"id":"same","text":"一","completed":false},{"id":"same","text":"二","completed":false}]}"#.into(),
+                    base_hash: checklist.content_hash,
+                },
+            ),
+            Err(AppError::InvalidInput(_))
+        ));
+    }
+
+    #[test]
+    fn opens_a2ui_tool_results_as_read_only_auto_saved_snapshots() {
+        let storage = Storage::open_in_memory().unwrap();
+        let output = tempfile::tempdir().unwrap();
+        let workspace = storage
+            .upsert_workspace("tool-workspace", "Tool", "C:\\tool")
+            .unwrap();
+        let session = storage
+            .create_session(
+                &workspace.id,
+                "550e8400-e29b-41d4-a716-446655440090",
+                "Tool session",
+            )
+            .unwrap();
+        let state_json = r#"{"surfaceId":"tool","revision":1,"root":{"id":"root","component":"Text","text":"safe"},"data":{}}"#;
+        storage
+            .save_a2ui_surface(
+                "surface-tool-row",
+                "tool",
+                &workspace.id,
+                &session.id,
+                "message-tool",
+                1,
+                state_json,
+                "{}",
+                r#"{"valid":true,"errors":[],"warnings":[],"durationMs":1}"#,
+                "inspection-tool",
+                1,
+            )
+            .unwrap();
+        let result = ensure_surface_by_id(&storage, &workspace.id, "tool").unwrap();
+        let snapshot = read_document(&storage, output.path(), &result.summary.id).unwrap();
+        assert_eq!(snapshot.result.summary.result_type, ResultType::Tool);
+        assert_eq!(snapshot.format, TextResultFormat::Json);
+        assert!(!snapshot.editable);
+        assert!(snapshot.content.contains("surfaceId"));
+    }
+
+    #[test]
     fn rejects_unsafe_names_wrong_extensions_conflicts_and_silent_overwrite() {
         let storage = Storage::open_in_memory().unwrap();
         let output = tempfile::tempdir().unwrap();
@@ -816,6 +1218,7 @@ mod tests {
                     CreateTextResultInput {
                         title: "安全测试".into(),
                         file_name: file_name.into(),
+                        result_type: ResultType::Document,
                         format: TextResultFormat::Markdown,
                     },
                 ),
@@ -828,6 +1231,7 @@ mod tests {
             CreateTextResultInput {
                 title: "不可覆盖".into(),
                 file_name: "不可覆盖.txt".into(),
+                result_type: ResultType::Document,
                 format: TextResultFormat::PlainText,
             },
         )
@@ -839,6 +1243,7 @@ mod tests {
                 CreateTextResultInput {
                     title: "另一个成果".into(),
                     file_name: "不可覆盖.txt".into(),
+                    result_type: ResultType::Document,
                     format: TextResultFormat::PlainText,
                 },
             ),
