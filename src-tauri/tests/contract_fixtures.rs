@@ -29,6 +29,23 @@ const IMPORT_DROP_FIXTURE: &str = include_str!("../../contracts/v2/import-drop.j
 const DOCUMENT_SOURCE_FIXTURE: &str = include_str!("../../contracts/v2/document-source.json");
 const CONTEXT_MANIFEST_FIXTURE: &str = include_str!("../../contracts/v2/context-manifest.json");
 const REVIEW_FIXTURE: &str = include_str!("../../contracts/v2/review.json");
+const EXPORT_FIXTURE: &str = include_str!("../../contracts/v2/export.json");
+
+#[test]
+fn export_contract_binds_revision_and_rejects_frontend_paths_or_content() {
+    use a2ui_terminal_lib::domain::export::{
+        ExportProgressEvent, ExportResultInput, ExportResultOutput,
+    };
+    let fixture: Value = serde_json::from_str(EXPORT_FIXTURE).unwrap();
+    assert_round_trip::<ExportResultInput>(&fixture["input"]);
+    assert_round_trip::<ExportProgressEvent>(&fixture["event"]);
+    assert_round_trip::<ExportResultOutput>(&fixture["output"]);
+    for field in ["path", "targetPath", "content", "prompt", "contextManifest"] {
+        let mut input = fixture["input"].clone();
+        input[field] = Value::String("untrusted".into());
+        assert!(serde_json::from_value::<ExportResultInput>(input).is_err());
+    }
+}
 
 fn assert_round_trip<T>(value: &Value)
 where

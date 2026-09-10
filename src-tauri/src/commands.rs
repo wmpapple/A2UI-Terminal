@@ -9,8 +9,8 @@ use crate::ai::{
 pub use crate::application::chat::{ChatStreamEvent, ChatStreamResult};
 pub use crate::application::provider::{ProviderConnectionResult, SecretStatus};
 use crate::application::{
-    adapters, chat, context, import as import_service, provider, review, revision,
-    workspace as workspace_service,
+    adapters, chat, context, export as export_service, import as import_service, provider, review,
+    revision, workspace as workspace_service,
 };
 use crate::document_source::{DocumentSource, DocumentSourceContent};
 use crate::domain::import::{
@@ -42,6 +42,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
+use uuid::Uuid;
 
 const CLEAR_CONFIRMATION: &str = "DELETE_ALL_LOCAL_DATA";
 const BUILT_IN_PROVIDERS: &[&str] = &["siliconflow", "deepseek", "openai"];
@@ -223,6 +224,14 @@ pub fn clear_all_local_data(
         .map(|(_, cancellation)| cancellation)
     {
         cancellation.store(true, Ordering::Release);
+    }
+    for cancellation in state
+        .active_exports
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .values()
+    {
+        cancellation.cancel();
     }
 
     Ok(ClearAllResult { cleared: true })
@@ -1064,6 +1073,192 @@ pub fn duplicate_result(
     result_id: String,
 ) -> Result<crate::domain::result::ResultDocument, AppError> {
     crate::application::result::duplicate(&state.storage, &state.managed_results_dir, &result_id)
+}
+
+pub use crate::domain::export::{ExportProgressEvent, ExportResultInput, ExportResultOutput};
+
+struct ActiveExportGuard<'a> {
+    exports: &'a std::sync::Mutex<
+        std::collections::HashMap<String, Arc<export_service::ExportCancellation>>,
+    >,
+    export_id: String,
+}
+
+impl Drop for ActiveExportGuard<'_> {
+    fn drop(&mut self) {
+        if let Ok(mut exports) = self.exports.lock() {
+            exports.remove(&self.export_id);
+        }
+    }
+}
+
+fn emit_export_progress(
+    channel: &Channel<ExportProgressEvent>,
+    export_id: &str,
+    stage: &str,
+    progress: u8,
+) -> Result<(), AppError> {
+    channel
+        .send(ExportProgressEvent {
+            export_id: export_id.to_string(),
+            stage: stage.to_string(),
+            progress,
+        })
+        .map_err(|_| AppError::StreamReceiverClosed)
+}
+
+#[tauri::command]
+pub async fn export_result(
+    app: AppHandle,
+    input: ExportResultInput,
+    on_event: Channel<ExportProgressEvent>,
+) -> Result<ExportResultOutput, AppError> {
+    // Both the native dialog and CPU-bound generators must be off the UI thread.
+    tauri::async_runtime::spawn_blocking(move || {
+        use tauri::Manager;
+        let state = app.state::<AppState>();
+        let document = export_service::prepare(&state.storage, &state.managed_results_dir, &input)?;
+        let cancellation = Arc::new(export_service::ExportCancellation::default());
+        {
+            let mut exports = state
+                .active_exports
+                .lock()
+                .map_err(|_| AppError::StateUnavailable)?;
+            if !exports.is_empty() {
+                return Err(AppError::InvalidInput(
+                    "已有导出任务正在进行，请等待完成或取消".into(),
+                ));
+            }
+            exports.insert(input.export_id.clone(), Arc::clone(&cancellation));
+        }
+        let _active_export = ActiveExportGuard {
+            exports: &state.active_exports,
+            export_id: input.export_id.clone(),
+        };
+        let work = (|| -> Result<Option<String>, AppError> {
+            emit_export_progress(&on_event, &input.export_id, "preparing", 10)?;
+            let selection = app
+                .dialog()
+                .file()
+                .set_title("导出成果")
+                .set_file_name(format!("result.{}", input.format.extension()))
+                .add_filter(
+                    input.format.extension().to_uppercase(),
+                    &[input.format.extension()],
+                )
+                .blocking_save_file();
+            cancellation.check()?;
+            let Some(selection) = selection else {
+                return Ok(None);
+            };
+            let mut path = selection
+                .into_path()
+                .map_err(|_| AppError::InvalidInput("导出目标路径无效".into()))?;
+            let extension_added = path.extension().is_none();
+            if extension_added {
+                path.set_extension(input.format.extension());
+            }
+            if path
+                .extension()
+                .and_then(|extension| extension.to_str())
+                .map(|extension| extension.eq_ignore_ascii_case(input.format.extension()))
+                != Some(true)
+            {
+                return Err(AppError::InvalidInput(
+                    "导出文件扩展名与所选格式不匹配".into(),
+                ));
+            }
+            crate::application::export_target::protect_source(
+                &state.storage,
+                &state.managed_results_dir,
+                &input.result_id,
+                &path,
+            )?;
+            // Windows IFileSaveDialog keeps its default FOS_OVERWRITEPROMPT.
+            // If Rust appended an extension, that new exact path was not confirmed.
+            if extension_added && path.try_exists()? {
+                let confirmed = app
+                    .dialog()
+                    .message("补全扩展名后的目标已存在，是否替换？")
+                    .title("确认替换导出文件")
+                    .buttons(tauri_plugin_dialog::MessageDialogButtons::OkCancelCustom(
+                        "替换".into(),
+                        "取消".into(),
+                    ))
+                    .blocking_show();
+                if !confirmed {
+                    return Ok(None);
+                }
+            }
+            let destination = crate::application::export_target::ExportTarget::selected(
+                &path,
+                true,
+                &cancellation,
+            )?;
+            emit_export_progress(&on_event, &input.export_id, "generating", 45)?;
+            let bytes = export_service::generate(
+                document.result.summary.result_type,
+                document.format,
+                &document.result.summary.title,
+                &document.content,
+                input.format,
+            )?;
+            cancellation.check()?;
+            // A native dialog can remain open while the source is changed/revoked.
+            let latest =
+                export_service::prepare(&state.storage, &state.managed_results_dir, &input)?;
+            if latest.content_hash != document.content_hash {
+                return Err(AppError::FileConflict);
+            }
+            emit_export_progress(&on_event, &input.export_id, "writing", 80)?;
+            crate::application::export_target::protect_source(
+                &state.storage,
+                &state.managed_results_dir,
+                &input.result_id,
+                &path,
+            )?;
+            destination.write(&bytes, &cancellation)?;
+            Ok(Some(
+                path.file_name()
+                    .and_then(|name| name.to_str())
+                    .map(str::to_string)
+                    .unwrap_or_else(|| format!("result.{}", input.format.extension())),
+            ))
+        })();
+        let (status, file_name) = match work {
+            Ok(Some(name)) => ("completed", Some(name)),
+            Ok(None) | Err(AppError::RequestCancelled) => ("cancelled", None),
+            Err(error) => {
+                let _ = emit_export_progress(&on_event, &input.export_id, "failed", 100);
+                return Err(error);
+            }
+        };
+        // The file is committed: a closed Channel must not turn success into
+        // a retryable failure which would create a duplicate export.
+        let _ = emit_export_progress(&on_event, &input.export_id, status, 100);
+        Ok(ExportResultOutput {
+            export_id: input.export_id,
+            result_id: input.result_id,
+            revision_id: input.revision_id,
+            format: input.format,
+            status: status.to_string(),
+            file_name,
+        })
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
+}
+
+#[tauri::command]
+pub fn cancel_export(state: State<'_, AppState>, export_id: String) -> Result<bool, AppError> {
+    Uuid::parse_str(&export_id).map_err(|_| AppError::InvalidInput("导出任务标识无效".into()))?;
+    let exports = state
+        .active_exports
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    Ok(exports
+        .get(&export_id)
+        .is_some_and(|cancellation| cancellation.cancel()))
 }
 
 #[tauri::command]

@@ -195,6 +195,12 @@
           "markdownDescription": "Enables the apply_review command without any pre-configured scope."
         },
         {
+          "description": "Enables the cancel_export command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cancel-export",
+          "markdownDescription": "Enables the cancel_export command without any pre-configured scope."
+        },
+        {
           "description": "Enables the clear_all_local_data command without any pre-configured scope.",
           "type": "string",
           "const": "allow-clear-all-local-data",
@@ -289,6 +295,12 @@
           "type": "string",
           "const": "allow-export-diagnostics",
           "markdownDescription": "Enables the export_diagnostics command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the export_result command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-export-result",
+          "markdownDescription": "Enables the export_result command without any pre-configured scope."
         },
         {
           "description": "Enables the get_bootstrap_status command without any pre-configured scope.",
@@ -609,6 +621,12 @@
           "markdownDescription": "Denies the apply_review command without any pre-configured scope."
         },
         {
+          "description": "Denies the cancel_export command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cancel-export",
+          "markdownDescription": "Denies the cancel_export command without any pre-configured scope."
+        },
+        {
           "description": "Denies the clear_all_local_data command without any pre-configured scope.",
           "type": "string",
           "const": "deny-clear-all-local-data",
@@ -703,6 +721,12 @@
           "type": "string",
           "const": "deny-export-diagnostics",
           "markdownDescription": "Denies the export_diagnostics command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the export_result command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-export-result",
+          "markdownDescription": "Denies the export_result command without any pre-configured scope."
         },
         {
           "description": "Denies the get_bootstrap_status command without any pre-configured scope.",

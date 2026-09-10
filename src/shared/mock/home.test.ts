@@ -4,6 +4,60 @@ import { resetWebMockHomeGateway, webMockHomeGateway } from './home';
 describe('Web Mock home gateway', () => {
   beforeEach(() => resetWebMockHomeGateway());
 
+  it('cancels an in-flight export, preserves history and allows a fresh retry', async () => {
+    const created = await webMockHomeGateway.createTextResult({
+      title: 'test',
+      fileName: 'test.md',
+      format: 'markdown',
+    });
+    const input = {
+      exportId: crypto.randomUUID(),
+      resultId: created.result.id,
+      revisionId: created.result.currentRevisionId!,
+      format: 'pdf' as const,
+    };
+    const before = await webMockHomeGateway.listResultRevisions(created.result.id);
+    const pending = webMockHomeGateway.exportResult(input, () => undefined);
+    await expect(
+      webMockHomeGateway.exportResult({ ...input, exportId: crypto.randomUUID() }, () => undefined)
+    ).rejects.toThrow('已有导出任务');
+    expect(await webMockHomeGateway.cancelExport(input.exportId)).toBe(true);
+    expect(await pending).toMatchObject({ status: 'cancelled', fileName: null });
+    expect(await webMockHomeGateway.cancelExport(input.exportId)).toBe(false);
+    expect(await webMockHomeGateway.listResultRevisions(created.result.id)).toEqual(before);
+    expect(
+      await webMockHomeGateway.exportResult(
+        { ...input, exportId: crypto.randomUUID() },
+        () => undefined
+      )
+    ).toMatchObject({ status: 'completed' });
+  });
+
+  it('rejects mismatched formats and changes made during export without altering the Result', async () => {
+    const created = await webMockHomeGateway.createTextResult({
+      title: 'test',
+      fileName: 'test.md',
+      format: 'markdown',
+    });
+    const input = {
+      exportId: crypto.randomUUID(),
+      resultId: created.result.id,
+      revisionId: created.result.currentRevisionId!,
+      format: 'pdf' as const,
+    };
+    await expect(
+      webMockHomeGateway.exportResult({ ...input, format: 'xlsx' }, () => undefined)
+    ).rejects.toThrow('不支持');
+    const pending = webMockHomeGateway.exportResult(input, () => undefined);
+    const changed = await webMockHomeGateway.saveResultDocument(
+      created.result.id,
+      'changed',
+      created.contentHash
+    );
+    await expect(pending).rejects.toThrow('成果版本已变化');
+    expect(await webMockHomeGateway.readResultDocument(created.result.id)).toEqual(changed);
+  });
+
   it('lists versioned templates and recent results independently of chats', async () => {
     const templates = await webMockHomeGateway.listTaskTemplates();
     const results = await webMockHomeGateway.listResults();
@@ -57,5 +111,37 @@ describe('Web Mock home gateway', () => {
     const copy = await webMockHomeGateway.duplicateResult(created.result.id);
     expect(copy.result.id).not.toBe(created.result.id);
     expect(copy.content).toBe(created.content);
+  });
+
+  it('exports only the bound current revision and exposes no destination path', async () => {
+    const created = await webMockHomeGateway.createTextResult({
+      title: '导出验收',
+      fileName: '导出验收.md',
+      format: 'markdown',
+    });
+    const events: string[] = [];
+    const output = await webMockHomeGateway.exportResult(
+      {
+        exportId: '00000000-0000-4000-8000-000000000001',
+        resultId: created.result.id,
+        revisionId: created.result.currentRevisionId!,
+        format: 'pdf',
+      },
+      (event) => events.push(event.stage)
+    );
+    expect(events).toEqual(['preparing', 'generating', 'writing', 'completed']);
+    expect(output).toMatchObject({ status: 'completed', fileName: 'result.pdf' });
+    expect(output).not.toHaveProperty('path');
+    await expect(
+      webMockHomeGateway.exportResult(
+        {
+          exportId: output.exportId,
+          resultId: output.resultId,
+          revisionId: 'stale',
+          format: output.format,
+        },
+        () => undefined
+      )
+    ).rejects.toThrow('成果版本已变化');
   });
 });

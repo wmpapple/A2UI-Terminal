@@ -312,6 +312,30 @@ test('creates, saves, versions, copies, and reopens a text Result without chat',
   );
 });
 
+test('exports the saved Result through an explicitly labelled Web Mock dialog', async ({
+  page,
+}) => {
+  await skipOnboarding(page);
+  await page.getByRole('button', { name: '新建成果' }).click();
+  const create = page.getByRole('dialog', { name: '新建成果' });
+  await create.getByLabel('成果标题').fill('S2.8 导出测试');
+  await create.getByLabel('本地文件名').fill('export-test.md');
+  await create.getByRole('button', { name: '创建并打开' }).click();
+  await page.getByText('编辑', { exact: true }).click();
+  await page.getByRole('textbox', { name: '成果编辑器' }).fill('# 中文导出\n\n当前版本');
+  await page.getByRole('button', { name: /导出$/ }).click();
+  const modal = page.getByRole('dialog', { name: '导出', exact: true });
+  await expect(modal.getByText(/Web Mock 仅演示/)).toBeVisible();
+  await modal.getByRole('button', { name: '选择位置并导出' }).click();
+  await expect(modal.getByText('导出演示完成（未创建文件）')).toBeVisible();
+  await expect(modal.getByText('result.pdf', { exact: true })).toBeVisible();
+  await modal.getByRole('button', { name: /^关\s*闭$/ }).click();
+  await expect(page.getByRole('textbox', { name: '成果编辑器' })).toHaveValue(
+    '# 中文导出\n\n当前版本'
+  );
+  await expect(page.getByText('已保存', { exact: true })).toBeVisible();
+});
+
 test('creates and reopens typed spreadsheet, checklist, and form Result adapters', async ({
   page,
 }) => {
@@ -320,7 +344,7 @@ test('creates and reopens typed spreadsheet, checklist, and form Result adapters
   let create = page.getByRole('dialog', { name: '新建成果' });
   await create.getByLabel('成果标题').fill('季度数据');
   await create.getByLabel('成果类型').click();
-  await page.getByText('表格', { exact: true }).last().click();
+  await page.getByText('表格（CSV）', { exact: true }).last().click();
   await create.getByLabel('本地文件名').fill('季度数据.csv');
   await create.getByRole('button', { name: '创建并打开' }).click();
 

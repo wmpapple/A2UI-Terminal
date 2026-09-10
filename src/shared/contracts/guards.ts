@@ -1,4 +1,7 @@
 import type {
+  ExportResultInput,
+  ExportResultOutput,
+  ExportProgressEvent,
   A2uiProcessResult,
   ChatSession,
   ChatStreamEvent,
@@ -34,6 +37,52 @@ export interface AppErrorContract {
 }
 
 type JsonObject = Record<string, unknown>;
+
+const exportFormats = new Set([
+  'markdown',
+  'plain_text',
+  'docx',
+  'pdf',
+  'rtf',
+  'csv',
+  'xlsx',
+  'json',
+]);
+const exportStages = new Set([
+  'preparing',
+  'generating',
+  'writing',
+  'completed',
+  'cancelled',
+  'failed',
+]);
+export const isExportResultInput = (value: unknown): value is ExportResultInput =>
+  isObject(value) &&
+  hasExactKeys(value, ['exportId', 'resultId', 'revisionId', 'format']) &&
+  isString(value.exportId) &&
+  isString(value.resultId) &&
+  isString(value.revisionId) &&
+  isString(value.format) &&
+  exportFormats.has(value.format);
+export const isExportProgressEvent = (value: unknown): value is ExportProgressEvent =>
+  isObject(value) &&
+  isString(value.exportId) &&
+  isString(value.stage) &&
+  exportStages.has(value.stage) &&
+  isNumber(value.progress) &&
+  Number.isInteger(value.progress) &&
+  value.progress >= 0 &&
+  value.progress <= 100;
+export const isExportResultOutput = (value: unknown): value is ExportResultOutput =>
+  isObject(value) &&
+  isExportResultInput({
+    exportId: value.exportId,
+    resultId: value.resultId,
+    revisionId: value.revisionId,
+    format: value.format,
+  }) &&
+  (value.status === 'completed' || value.status === 'cancelled') &&
+  isNullableString(value.fileName);
 
 const isObject = (value: unknown): value is JsonObject =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

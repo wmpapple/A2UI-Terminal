@@ -50,7 +50,8 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "createUpdaterArtifacts": false
+    "createUpdaterArtifacts": false,
+    "resources": ["assets/fonts/OFL.txt", "assets/licenses/*", "THIRD_PARTY_NOTICES.md"]
   },
   "plugins": {
     "updater": {

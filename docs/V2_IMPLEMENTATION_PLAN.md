@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S2.6 已完成并通过用户验收；S2.7 成果类型编辑适配已完成自动验证、待人工验收；S2.8 尚未开始**
+> 当前状态：**S2.8 待人工复验：CSV 新建入口已明确显示“表格（CSV）”（LOG-0099）；不得开始 S2.9**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -294,7 +294,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S2.7 成果类型编辑适配
 
-状态：`待人工验收`
+状态：`已完成`
 
 - 对应：TASK-01、WS-02、OUT-01/02。
 - 工作：document、spreadsheet、checklist、form、tool 的 Result adapter；共享保存/版本/状态协议。
@@ -303,7 +303,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S2.8 Export Service 与 P0 格式
 
-状态：`待开始`
+状态：`待人工验收`
 
 - 对应：EXP-01/02/03。
 - 工作：版本绑定导出任务、系统保存对话框、Markdown/DOCX/PDF/富文本、CSV/XLSX、JSON/PDF adapter；进度、取消、重试。
@@ -437,7 +437,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 | CTX-05         | S2.4                   | Adaptive Planner 已实现并验收          | 已完成      |
 | REV-01…04/06   | S2.5                   | schema v11 统一 Review Pipeline 已实现 | 已完成      |
 | OUT-01…04      | S2.7、S3.2…S3.4        | 五类 Result adapter 已实现             | 部分完成    |
-| EXP-01/02/03   | S1.5、S2.8             | 已有诚实导出入口，真实导出未实现       | 部分完成    |
+| EXP-01/02/03   | S1.5、S2.8             | Rust 本地导出及安全/合同回归见 LOG-0096 | 待人工验收 |
 | RES-01         | S1.1                   | Result 基础聚合已实现                  | 已完成      |
 | SEL-01         | S2.6                   | 六类选区动作与统一 Review 接线已实现   | 已完成      |
 | PRV-04         | S2.3/S4.2              | 处理位置与 Provider 失效已验收         | 部分完成    |
@@ -496,28 +496,29 @@ npm run tauri build -- --debug --no-bundle
 
 > 更新规则：开始步骤前先改状态并记 START；完成后先写证据再标完成。
 
-| 步骤                                   | 状态   | 最近记录 | 下一动作                         |
-| -------------------------------------- | ------ | -------- | -------------------------------- |
-| DOC-0 架构与实施文档                   | 已完成 | LOG-0003 | 已进入 S0.1                      |
-| S0.1 固化当前工作树基线                | 已完成 | LOG-0006 | 已于 2026-08-13 通过人工验收     |
-| S0.2 合同 fixture                      | 已完成 | LOG-0009 | 已于 2026-08-13 通过人工验收     |
-| S0.3 前端边界拆分                      | 已完成 | LOG-0013 | 已于 2026-08-13 通过人工验收     |
-| S0.4 Rust 边界拆分                     | 已完成 | LOG-0016 | 已于 2026-08-13 通过人工验收     |
-| S1.1 Result/schema v9                  | 已完成 | LOG-0023 | 已通过用户人工验收               |
-| S1.2 Task/Template                     | 已完成 | LOG-0026 | 已通过用户人工验收               |
-| S1.3 导航/双模式外壳                   | 已完成 | LOG-0032 | 已通过用户人工验收               |
-| S1.4 新手引导与首页                    | 已完成 | LOG-0038 | 用户已完成最终人工验收           |
-| S1.5 大众版工作台外壳                  | 已完成 | LOG-0041 | 用户已完成人工验收               |
-| S2.1 统一导入批次                      | 已验收 | LOG-0056 | 用户已明确验收通过               |
-| S2.2 表格与图片读取适配                | 已验收 | LOG-0063 | 用户已明确验收通过               |
-| S2.3 Context Manifest 与持续隐私可见性 | 已完成 | LOG-0071 | 已于 2026-08-21 通过用户人工验收 |
-| S2.4 自适应 Context Planner            | 已完成 | LOG-0076 | 已于 2026-08-21 通过用户人工验收 |
-| S2.5 统一 Review Request/Pipeline      | 已完成 | LOG-0085 | 用户已确认完成并已提交代码       |
-| S2.6 选区助手                          | 已完成 | LOG-0088 | 已于 2026-08-27 通过用户人工验收 |
-| S2.7 成果类型编辑适配                  | 待验收 | LOG-0091 | M05 对齐缺陷已修复，等待人工复验 |
-| S2.8…S4.8                              | 待开始 | —        | S2.7 完成并验收前不得提前实施    |
+| 步骤                                   | 状态       | 最近记录 | 下一动作                            |
+| -------------------------------------- | ---------- | -------- | ----------------------------------- |
+| DOC-0 架构与实施文档                   | 已完成     | LOG-0003 | 已进入 S0.1                         |
+| S0.1 固化当前工作树基线                | 已完成     | LOG-0006 | 已于 2026-08-13 通过人工验收        |
+| S0.2 合同 fixture                      | 已完成     | LOG-0009 | 已于 2026-08-13 通过人工验收        |
+| S0.3 前端边界拆分                      | 已完成     | LOG-0013 | 已于 2026-08-13 通过人工验收        |
+| S0.4 Rust 边界拆分                     | 已完成     | LOG-0016 | 已于 2026-08-13 通过人工验收        |
+| S1.1 Result/schema v9                  | 已完成     | LOG-0023 | 已通过用户人工验收                  |
+| S1.2 Task/Template                     | 已完成     | LOG-0026 | 已通过用户人工验收                  |
+| S1.3 导航/双模式外壳                   | 已完成     | LOG-0032 | 已通过用户人工验收                  |
+| S1.4 新手引导与首页                    | 已完成     | LOG-0038 | 用户已完成最终人工验收              |
+| S1.5 大众版工作台外壳                  | 已完成     | LOG-0041 | 用户已完成人工验收                  |
+| S2.1 统一导入批次                      | 已验收     | LOG-0056 | 用户已明确验收通过                  |
+| S2.2 表格与图片读取适配                | 已验收     | LOG-0063 | 用户已明确验收通过                  |
+| S2.3 Context Manifest 与持续隐私可见性 | 已完成     | LOG-0071 | 已于 2026-08-21 通过用户人工验收    |
+| S2.4 自适应 Context Planner            | 已完成     | LOG-0076 | 已于 2026-08-21 通过用户人工验收    |
+| S2.5 统一 Review Request/Pipeline      | 已完成     | LOG-0085 | 用户已确认完成并已提交代码          |
+| S2.6 选区助手                          | 已完成     | LOG-0088 | 已于 2026-08-27 通过用户人工验收    |
+| S2.7 成果类型编辑适配                  | 已完成     | LOG-0092 | 用户已于 2026-09-04 明确验收通过    |
+| S2.8 Export Service 与 P0 格式         | 待人工验收 | LOG-0099 | CSV 新建入口已明确，等待 M01—M05 复验 |
+| S2.9…S4.8                              | 待开始     | —        | 不得提前实施                        |
 
-S1.1—S2.6 均已通过自动验证和用户人工验收。S2.7 从干净 `main` / `14243d6` 开始，现已完成自动验证并停在人工验收；用户明确通过前不得进入 S2.8。
+S1.1—S2.7 均已通过自动验证和用户人工验收。O-03 已按用户确认的 ADR-021 关闭；S2.8 已完成实现并等待用户按 `S2_8_MANUAL_ACCEPTANCE.md` 验收；不得提前进入 S2.9。
 
 ## 10. 连续变更账本
 
@@ -1868,6 +1869,105 @@ S1.1—S2.6 均已通过自动验证和用户人工验收。S2.7 从干净 `main
 - 阶段边界：只修复 S2.7 人工验收缺陷；没有修改 Result 协议、Rust、schema、IPC、Capability、Provider、文件权限或数据。S2.7 继续待人工验收，S2.8 未开始。
 - 下一动作：从当前工作树重启应用并复验 [S2_7_MANUAL_ACCEPTANCE.md](S2_7_MANUAL_ACCEPTANCE.md) M05；用户明确回复“**S2.7 验收通过**”前不得开始 S2.8。
 
+### LOG-0092 — S2.7 — COMPLETE / S2.8 ENTRY AUTHORIZED
+
+- 时间：2026-09-04（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户验收：用户明确回复“`S2.7 验收通过`”，并授权开始下一阶段。
+- 提交基线与工作树：`main` / `7375f52`（`S2.7`）；记录前工作树干净。
+- 结论：S2.7 从 `待人工验收` 转为 `已完成`；五类 Result adapter、共享保存/版本协议及 M05 必填复选框修复通过人工验收。
+- S2.8 前置条件：计划明确要求先关闭 O-03。DOCX/PDF/XLSX 导出库、字体嵌入/替代和许可证分发方案会改变安装包、合规和输出一致性，不能由实现者静默选择；本记录只确认进入授权，不构成 S2.8 START。
+- 下一具体动作：由产品/架构/法务确认 O-03 方案并记录 ADR；随后追加 S2.8 START，再实施 Export Service。此前不修改导出业务代码、IPC、Capability 或 schema。
+
+### LOG-0093 — S2.8 — START / O-03 CLOSED
+
+- 时间：2026-09-04（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 用户授权与决策：用户明确回复“同意该方案”，接受 `docx-rs`（MIT）、`rust_xlsxwriter`（MIT OR Apache-2.0）、`printpdf`（MIT）及 Noto Sans CJK SC（SIL OFL 1.1）的本地导出方案；详见 ADR-021。O-03 转为已关闭。
+- 基线 commit 与开始前工作树：`main` / `7375f52`；仅有 LOG-0092 与架构状态文档修改，业务代码干净。
+- 目标与允许范围：实现绑定 `resultId + revisionId` 的 Export Service、Rust 系统保存对话框、文档 Markdown/DOCX/PDF/富文本、表格 CSV/XLSX、清单/表单 JSON/PDF adapters，以及可见进度、取消、失败重试和稳定错误。
+- 明确不做：不实施 S2.9 Context Pack、S3.x A2UI 扩展或 S4.x；不实现 Office/PDF 无损回写，不调用 Office/LibreOffice/外部转换服务，不放宽前端绝对路径、Provider、脚本、宏或遥测权限。
+- 安全与隐私：Rust 从 SQLite Result/Revision 与不透明存储引用重新读取内容；前端不得提交任意目标绝对路径。CSV/XLSX 文本防公式注入；导出只含成果内容，不含上下文、Prompt、协议调试字段或内部绝对路径。临时文件与最终提交必须避免半成品和静默覆盖。
+- Migration / IPC / Capability：预计不新增 schema migration；新增导出命令、DTO 和必要的最小 Capability，并同步命令注册、合同与权限测试。
+- 下一具体动作：先建立 Export domain/application 边界和各格式纯函数测试，再接入系统保存对话框、状态与前端工作台。
+
+### LOG-0094 — S2.8 — COMPLETE / PENDING MANUAL ACCEPTANCE
+
+- 时间：2026-09-04（Asia/Shanghai）
+- 执行者/会话：Codex `/root`
+- 基线 commit 与开始前工作树：`main` / `7375f52`；业务代码从 S2.7 已验收基线开始，保留 LOG-0092/0093 与 ADR-021 文档改动。
+- 实际修改：新增纯 Rust Export Service，强制绑定当前 `resultId + revisionId`；文档支持 Markdown/纯文本、DOCX、PDF、RTF，表格支持 CSV/XLSX，清单/表单支持 JSON/PDF，小工具支持 JSON。Rust 弹出系统保存对话框，采用同目录临时文件、同步与最终提交，拒绝已有目标和扩展名错配。新增准备/生成/写入/完成/取消进度、取消注册表、失败后 UI 重试与确定性 Web Mock。
+- 安全与隐私：前端只发送不透明 ID、格式与 Channel，不发送目标绝对路径；Rust 重新读取 Result 和精确 Revision，并拒绝非当前版本。CSV/XLSX 对去除前导空白后以 `= + - @` 开头的单元格添加单引号；响应只返回文件名，不返回路径。导出不读取 Chat、Context Manifest、Prompt、Provider 或调试数据，不记录正文；失败或取消不修改 Result/Revision。
+- 依赖与资产：固定 `docx-rs 0.4.22`、`rust_xlsxwriter 0.99.0`、`printpdf 0.7.0`；随包分发 Noto Sans CJK SC Regular 与 SIL OFL 1.1 文本，字体 SHA-256 为 `2C76254F6FC379FDDFCE0A7E84FB5385BB135D3E399294F6EEB6680D0365B74B`；新增 `THIRD_PARTY_NOTICES.md`。PDF 启用字体子集功能。
+- Migration / IPC / Capability：无 schema migration；新增 `export_result`、`cancel_export` 两个命令及最小 Capability，命令总数由 64 增为 66；build manifest、invoke handler、权限测试与 Tauri 生成 schema 同步更新。
+- 自动验证：`npm run lint` 通过；`npm run typecheck` 通过；`npm run test` 39 个文件、164 个测试全部通过；`npm run build` 通过；Rust stable 1.98.0 `cargo check --lib --jobs 1` 与 `cargo check --tests --jobs 1` 通过，覆盖含 `cfg(test)` 的生成器和权限测试编译。
+- 未完成的机器验证：本机执行 Rust test 链接阶段多次在第三方 `pxfm`、`allsorts`、`image`、`lopdf`、`docx-rs`、`tauri` 或 `serde` 随机出现 rustc `STATUS_ACCESS_VIOLATION`、ICE 或 LLVM out-of-memory；这不是测试断言失败，且设置 `RUST_MIN_STACK=33554432` 后相同依赖的 `cargo check --tests` 已通过。`npm run check` 的全库 Prettier 首步还会报告 189 个基线文件的行尾/格式差异，本阶段只格式化并核对实际修改文件，未批量改写无关代码。生成器运行时断言和真实桌面格式打开仍需按人工验收执行并记录，不把未运行误报为通过。
+- 兼容与回滚：P0 只承诺从规范内部格式生成基础结构，不承诺 Office/PDF 无损回写、复杂排版、宏、公式语义或嵌入对象保真。可删除两个 IPC、Export Service、三项依赖和字体资源回滚，不影响 schema、源 Result 或 Revision。
+- ADR / 开放问题：ADR-021 已落地，O-03 保持关闭；O-04 的 CSV/XLSX 导出转义已实现。没有开始 S2.9。
+- 状态与证据：S2.8 实现完成，进入人工验收；步骤见 `S2_8_MANUAL_ACCEPTANCE.md`。
+- 下一具体动作：用户运行 M01—M05 并回复“`S2.8 验收通过`”；此前不得开始 S2.9。
+
+### LOG-0095 — S2.8 — START / CORRECTION
+
+- 时间：2026-09-08（Asia/Shanghai）；执行者：Codex `/root`。
+- 用户授权：开始 S2.8；沿用已接受 ADR-021，本次继续已有实现。
+- 基线：`main` / `7375f52`；已有未提交 S2.8 代码、依赖、字体、权限生成文件和文档，均保留。
+- 修正 LOG-0094：Rust 运行测试尚未完成，且复核发现 CSV 默认表头导致首行遗漏、同步 IPC 阻塞风险，以及提交时覆盖竞争等未验证边界。恢复为进行中，不能以仅编译通过替代运行验证。
+- 允许范围：Export domain/application、两项导出 IPC、导出前端与 Mock、合同/测试、字体兼容性与第三方声明、S2.8 文档。无 schema migration，不进入 S2.9。
+- 下一动作：修复首行/空单元格保留、不可覆盖提交、后台生成/取消与版本绑定；运行导出文件内容和失败恢复测试，再更新验收证据。
+
+### LOG-0096 — S2.8 — PROGRESS / PENDING MANUAL ACCEPTANCE
+
+- 时间：2026-09-08（Asia/Shanghai）；执行者：Codex `/root`。
+- 基线与授权：`main` / `7375f52`，沿用 LOG-0095 的未提交工作树及 ADR-021；用户要求开始 S2.8，未授权跳过人工验收。
+- 实际修改：Export DTO 移至 domain，Result/Revision 复验、格式生成、取消状态和不可覆盖写入放在 application；IPC 使用后台线程执行原生对话框/生成，重读并校验冻结版本后提交。CSV 保留首行、不等长行、空单元格/跨行字段，CSV/XLSX 共用公式防护。DOCX 保留纯文本标记/缩进；结构化 PDF 输出可读标签；PDF 更换 TrueType 字体并按源字符重建 ToUnicode，缺字明确失败；RTF 保留 UTF-16 代理对。
+- 前端：独立 ExportResultModal，导出前等待保存、失败不导出旧版本、重复点击保护、离开成果页取消、状态/失败重试与中英文文案；Mock 明确不创建真实文件，取消、并发和版本变化行为有测试。
+- 文件与生成清单：完整路径见 [S2_8_VALIDATION.md](S2_8_VALIDATION.md)；许可证逐项清单见 `src-tauri/THIRD_PARTY_NOTICES.md`。新增共享 `contracts/v2/export.json` 与 Rust/TS 合同测试；生成权限/schema 单独列示。
+- Migration / IPC / Capability：schema 仍为 v11；仅 `export_result` / `cancel_export` 两个新 IPC，合计 66 个，注册、最小 Capability 和权限测试同步；不增加文件系统通配权限。
+- 自动验证：前端 lint/typecheck/build 通过；覆盖率运行 40 文件/170 测试通过（现有关键模块四项门槛均超过 70%，不是整个项目覆盖率）；Playwright Web Mock 11/11 通过；Rust 默认及 all-features 各 149 项测试通过，fmt、all-targets/all-features Clippy `-D warnings` 通过；all-features debug 桌面构建与隔离数据目录启动冒烟通过。具体命令与边界见验证文档。
+- 环境与保留问题：本机会出现 Rust/Node 并行 worker 随机崩溃；本次使用进程 CPU affinity=1、Rust stable 1.98.0、单编译任务、增大线程栈/禁用增量后完成运行验证，不改全局工具链。全库 Prettier 仍有历史格式/行尾差异，未宣称 `npm run check` 全绿；实际修改的 TS/TSX/JSON 和新增验收文档单独检查。
+- 字体与许可：Noto Sans SC 上游 Sans2.004 原始 VF TrueType SHA-256 `D68BAFCB48A2707749396AA12BBBD833CB70401F3A9A689FD2902C7E0D295964`；OFL、三项直接生成器及新增传递依赖许可证随包归档。替换的 OTF 仅移至忽略目录 `src-tauri/target/s2.8-replaced-font`，可恢复，未删除用户成果。
+- 安全/回滚：前端不提交路径/正文，Rust 从受控 Result 当前 Revision 生成；不读取 Chat、Context Manifest 或 Provider。临时文件使用 `persist_noclobber`，已有目标/竞争创建不覆盖；失败/取消不改源 Result/Revision。可整体撤销 S2.8 代码、依赖、权限/字体，无数据库迁移回滚。
+- 明确限制与未运行：P0 基础排版、表格按文本导出；生成器单次调用不可中断，取消在提交前生效，提交开始后不承诺取消。真实桌面系统保存对话框交互及 Word/Excel/PDF 阅读器视觉检查尚待用户验收；未运行正式安装器/签名发布。
+- ADR / 开放问题：O-03 保持按 ADR-021 关闭；O-04 导出防注入实现及自动验证完成，真实阅读器检查随 S2.8 验收。S2.9 未开始。
+- 状态与下一动作：S2.8 `待人工验收`，不是 `已完成`。按 [S2_8_MANUAL_ACCEPTANCE.md](S2_8_MANUAL_ACCEPTANCE.md) 完成 M01—M05；仅在用户明确回复“`S2.8 验收通过`”后记录验收并进入 S2.9。
+
+### LOG-0097 — S2.8 — START / ACCEPTANCE DEFECTS
+
+- 时间：2026-09-10（Asia/Shanghai）；执行者：Codex `/root`。
+- 用户反馈：Markdown 导出 PDF 将引用、反引号、代码围栏直接打印，缺少层级排版；保存对话框确认替换已有同名文件后仍失败。
+- 基线：`main` / `7375f52`；保留此前未提交 S2.8 改动、字体与许可证、生成文件。未获 S2.8 验收，不进入 S2.9。
+- 范围：Rust PDF Markdown 解析/排版、字体可读性、受控原子替换、相关回归与 S2.8 文档；不改数据库 schema、IPC 路径授权或 Provider 边界。
+- 行为修正：仅明确确认替换的原生目标允许替换，生成/取消失败必须保留原文件；新建目标继续禁止竞争覆盖，不以删除旧文件再写入实现。PDF 增加基础标题、段落、列表、引用、代码块与合理换行，不承诺完整浏览器/Office 排版。
+- 下一动作：补回归并修复，验证实际生成文件与已存在目标的成功/失败/取消保护；更新 M01/M04 验收步骤和证据。
+
+### LOG-0098 — S2.8 — PROGRESS / ACCEPTANCE DEFECT FIX
+
+- 时间：2026-09-10（Asia/Shanghai）；执行者：Codex `/root`；基线和已有改动归属同 LOG-0097。
+- PDF 修复：引入固定 `pulldown-cmark 0.13.0`（MIT，默认 HTML/CLI features 关闭）解析基础 Markdown；直接使用已锁定 `ttf-parser 0.19.2` 测量字宽。新 `application/export_pdf.rs` 输出标题层级、引用竖线、列表缩进、粗体、行内/块级代码背景及分页，不再按固定字符数折行。不读取链接或图片资源，不执行 HTML，字体原始字节不变。
+- 替换修复：新 `application/export_target.rs` 只接受 Rust 原生对话框返回的目标；Windows 默认覆盖确认后允许已存在普通文件的同目录临时文件原子替换。Rust 若补全扩展名导致目标变化，对已有最终目标另行原生确认。生成后复验目标 Hash/时间/大小，未确认的新目标继续 no-clobber；不是删除旧文件再写入。目录、符号链接、只读文件、应用管理目录和当前源成果被拒绝，防止绕过版本历史。
+- UI：文件被占用/无写权限显示关闭阅读器、检查权限或改名重试；冲突显示源或目标已变化。新增错误后重试单测，重试使用新 exportId，不改保存内容。
+- 文件完整列表：`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock`、`src-tauri/src/application/mod.rs`、`src-tauri/src/application/export.rs`、`src-tauri/src/application/export_pdf.rs`、`src-tauri/src/application/export_target.rs`、`src-tauri/src/commands.rs`、`src/features/results/components/ExportResultModal.tsx`、`src/features/results/components/ExportResultModal.test.tsx`、`src/app/i18n/messages.ts`、`src-tauri/THIRD_PARTY_NOTICES.md`、`src-tauri/assets/licenses/pulldown-cmark-0.13.0-MIT.txt`、`src-tauri/assets/licenses/unicase-2.9.0-MIT.txt`、`docs/V2_IMPLEMENTATION_PLAN.md`、`docs/V2_ARCHITECTURE.md`、`docs/S2_8_MANUAL_ACCEPTANCE.md`、`docs/S2_8_VALIDATION.md`。
+- Migration / IPC / Capability：无变化；schema v11 和 66 个命令保持，未增加路径或覆盖布尔值的前端 IPC 字段。Cargo.lock 由 Cargo 更新，新增 pulldown-cmark/unicase；新增许可证按现有资源规则随包携带。
+- 验证：前端 lint/typecheck/build 通过，40 文件/171 测试通过；导出 E2E 1/1 通过；Rust all-features 138 单测 + 17 集成测试通过（共 155），1 个产物生成测试默认 ignored，另以 `--ignored` 显式运行通过。fmt 和 all-targets/all-features Clippy `-D warnings` 通过。新增测试包括语法标记不泄漏、字号/背景绘制、实际宽度换行、纯文本保真、确认替换/取消/外部改动/竞争新建/Windows 占用以及源成果保护。
+- 视觉证据：使用用户截图所用验收文档生成 PDF，再经 Windows.Data.Pdf 实际渲染，检查首两页的层级、代码背景、引用和分页；产物在忽略目录 `src-tauri/target/s2.8-pdf-layout-preview`，不是用户数据。不以文本回读测试代替视觉检查。
+- 环境：本项目运行中的热重载编译争用 Cargo 缓存锁；已告知用户并停止核实属于本项目的开发 Cargo 进程，保留应用数据/成果，后续需重启桌面应用。使用当前进程 affinity=1、stable 1.98.0、单任务和离线锁定依赖验证，未改全局工具链。
+- 安全/隐私/回滚：覆盖必须来自原生确认；取消/生成或替换失败保留旧目标完整内容，新建目标竞争不覆盖，旧 Result/Revision 不变。撤销本条修改可回退至 LOG-0096 的禁止已有目标与简单 PDF，不影响数据库或其他成果。
+- 剩余与状态：S2.8 仍待人工验收。按更新后的 M01/M04 复验真实桌面导出与原生“替换”；阅读器独占文件时不能强行覆盖，需要关闭占用或换名。未执行正式发布/签名，未开始 S2.9；此前“已有文件一律失败”的验收规则被本条明确取代。
+
+### LOG-0099 — S2.8 — PROGRESS / M02 CSV CREATION DISCOVERABILITY FIX
+
+- 时间：2026-09-10（Asia/Shanghai）；执行者：Codex `/root`。
+- 用户反馈：M02 要求准备 CSV 表格，但“新建成果”界面看起来不支持 CSV 类型，导致人工验收无法继续。
+- 基线与工作树：`main` / `7375f52`；保留 LOG-0095—0098 的未提交 S2.8 工作树，不覆盖或重置已有改动。
+- 核查结果：S2.7 已实现 `spreadsheet + csv + .csv` 创建合同和回归；当前界面仅把选项显示为“表格”，选中后才在禁用的“内部格式”字段显示 `CSV`，能力存在但映射不够直观。
+- 允许范围：只改新建成果的表格选项文案、M02 操作说明及对应前端回归；不改 Result 类型/格式合同、数据库、IPC、Capability、导出器、Provider 或 S2.9。
+- 实际修改：新建成果下拉框单独显示“表格（CSV）”/“Spreadsheet (CSV)”，选中后仍自动绑定既有 `spreadsheet + csv + .csv`；成果列表继续显示领域类型“表格”。M02 验收单增加从成果页创建 CSV 的完整步骤。
+- 修改文件：`src/features/results/components/CreateTextResultModal.tsx`、`src/app/i18n/messages.ts`、`e2e/web-mock.spec.ts`、`docs/S2_8_MANUAL_ACCEPTANCE.md`、`docs/S2_8_VALIDATION.md`、`docs/V2_IMPLEMENTATION_PLAN.md`。没有生成源码文件。
+- 验证：`npm run lint`、`npm run typecheck`、`npm test -- --maxWorkers=1`（40 文件/171 测试）、`npm run build` 均通过；`npm run test:e2e -- --workers=1 --grep "creates and reopens typed spreadsheet"` 1/1 通过，覆盖选择“表格（CSV）”、创建 `.csv`、编辑、保存和重开。
+- Migration / IPC / Capability：无变化；不增加格式、路径或权限。兼容性上只改变创建下拉框文案，既有持久数据、Result 卡片标签和创建合同不变；可回退该文案及验收说明恢复。
+- 状态与下一动作：S2.8 恢复为 `待人工验收`。重启桌面应用后按更新后的 M02 创建“表格（CSV）”并继续 CSV/XLSX 阅读器检查；M01—M05 全部通过前不进入 S2.9。
+
 ### 新账本记录模板
 
 ```markdown
@@ -1915,6 +2015,19 @@ S1.1—S2.6 均已通过自动验证和用户人工验收。S2.7 从干净 `main
 | ADR-018 | 首期新建聚焦 UTF-8 文本，不追求 Office 无损兼容          | 已接受 | 用户决策 2026-08-13      |
 | ADR-019 | S2.4 使用内存确定性检索，不持久化正文索引                | 已接受 | 用户决策 2026-08-21      |
 | ADR-020 | Review 以 SQLite 为事实源，Patch/Result 复用成熟执行内核 | 已接受 | S2.5 架构落实 2026-08-24 |
+| ADR-021 | P0 导出采用纯 Rust 库与 OFL 字体的本地生成方案           | 已接受 | 用户决策 2026-09-04      |
+
+#### ADR-021 — P0 本地导出库、字体与许可证
+
+- 状态：已接受
+- 日期与决策人：2026-09-04，产品负责人
+- 背景：S2.8 需要 DOCX/PDF/XLSX 和结构化格式导出；必须在实现前关闭库、字体、许可证与处理位置边界。
+- 决策：DOCX 使用 `docx-rs`（MIT），XLSX 使用 `rust_xlsxwriter`（MIT OR Apache-2.0），PDF 使用 `printpdf`（MIT）；中文字体随安装包分发 Noto Sans CJK SC（SIL OFL 1.1）并优先子集嵌入。所有生成均在 Rust 本地完成，不调用 Office、LibreOffice 或外部转换服务。
+- 范围：P0 保证当前规范内部格式的基础结构导出，不承诺 DOCX/PDF/XLSX 无损回写、复杂排版、宏、公式语义或嵌入对象保真。
+- 合规：固定依赖版本并归档依赖许可证；安装包携带第三方声明与 OFL 文本。字体不得单独销售，修改字体不得冒用保留名称。
+- 安全/隐私：导出输入绑定 Result Revision；仅向用户通过系统对话框选择的目标提交生成文件；公式型表格文本必须转义；正文不得进入日志或遥测。
+- 迁移和回滚：不增加业务 schema；可移除 Export Service、生成库和字体资产回滚，不影响 Result、Revision 或源文件。
+- 关联：S2.8、EXP-01/02/03、O-03、O-04。
 
 ### 开放问题
 
@@ -1922,8 +2035,8 @@ S1.1—S2.6 均已通过自动验证和用户人工验收。S2.7 从干净 `main
 | ---- | ------------------------------------------------------ | -------------- | --------------- | ------------------------------------------- |
 | O-01 | 首次无需 Key 的内置模型/额度/本地方案                  | 产品           | —               | 产品决策关闭；技术项转 O-08                 |
 | O-02 | 托管本地成果默认目录和命名/迁移                        | 产品           | —               | 产品决策关闭                                |
-| O-03 | DOCX/PDF/XLSX 导出库、字体、许可证                     | 架构/法务      | S2.8            | 开放                                        |
-| O-04 | XLSX 公式、CSV 注入、图片 OCR 范围                     | 产品/安全      | —               | 读取范围与风险标记已关闭；导出转义留在 S2.8 |
+| O-03 | DOCX/PDF/XLSX 导出库、字体、许可证                     | 架构/法务      | S2.8            | 已按 ADR-021 关闭                           |
+| O-04 | XLSX 公式、CSV 注入、图片 OCR 范围                     | 产品/安全      | —               | 读取范围已关闭；导出转义实现并自动验证，待 S2.8 阅读器验收 |
 | O-05 | 本地检索、Embedding、索引清理策略                      | 架构/隐私      | S2.4            | 已按 ADR-019 关闭                           |
 | O-06 | 指标上传接收端、保留期、聚合方式和删除机制             | 产品/隐私      | S4.3            | 部分开放                                    |
 | O-07 | “A2UI 工作台”的版本号、安装包标识和升级兼容策略        | 产品/发布      | S4.8            | 部分开放                                    |
@@ -1946,11 +2059,11 @@ S1.1—S2.6 均已通过自动验证和用户人工验收。S2.7 从干净 `main
 
 ## 12. 交接摘要
 
-截至 LOG-0091：
+截至 LOG-0099：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能已完成并验收 S1.1 Result/schema v9、S1.2 Task/Template/schema v10/本地草稿 Orchestrator、S1.3 双模式导航外壳、S1.4 三步引导/首页、S1.5 专用成果工作台、S2.1 ImportBatch/系统选择/桌面原生拖放、S2.2 CSV/XLSX/图片读取适配、S2.3 Context Manifest、S2.4 Adaptive Context、S2.5 统一 Review/schema v11 和 S2.6 选区助手；S2.7 五类成果 adapter 已完成自动验证、待人工验收；Provider 图片多模态发送、Export 和产品事件尚未开始。
+- V2 产品功能已完成并验收 S1.1—S1.5、S2.1—S2.7，schema 为 v11。S2.8 本地版本绑定多格式导出已实现并完成自动回归，待人工验收；Provider 图片多模态发送、S2.9 和产品事件尚未开始。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
 - S2.2 已建立统一 `DocumentSource`、CSV/XLSX 受限结构化读取、公式/注入风险标记、图片原始视觉来源、8 MB 内本地预览、多批累积和工作区隔离的单项撤销，且已于 2026-08-20 通过用户验收。
@@ -1958,6 +2071,8 @@ S1.1—S2.6 均已通过自动验证和用户人工验收。S2.7 从干净 `main
 - S2.3 代码质量整改已把 `ChatPanel` 收敛为组合层，将 Context Manifest 编排、消息协议呈现和输入/拖放拆为独立模块；前端架构测试固定该依赖方向。Rust 应用层边界测试改为自动扫描整个 `src/application` 目录，不再漏掉新增 `context.rs`。大规模 Storage/DocumentSource 物理拆分留待 S2.3 验收后的独立重构基线。
 - S2.3 对已授权零字节文本目标只提供准确能力限制：Rust 明确识别空文件，跳过不可能成功的后台模型重试，前端隐藏手动重试且保持零写入。真正的安全首次写入已作为显式合同/E2E 场景排入 S2.5，当前没有放宽非空锚点或实现写入。
 - S2.4 已按 ADR-019 实现 Rust 可信 Planner、约 1600/200 字符确定性结构分块、本地词法/BM25-like 检索、中文 bigram、Full/Retrieval/Hybrid、32000 token 预算、可追溯块范围和进程内 workspace/source/hash 索引。Manifest 消费前会复验授权与 Hash；索引不会持久化，可手动清理，并在撤销、变化、切换、删除、清除数据或退出时失效。Schema 仍为 v10，仅新增 `clear_context_index` 最小 IPC；自动验证结果见 LOG-0073。
-- S2.5 已实现并通过用户验收：持久 Review/blocks、Patch 接入、AI `create_file`、空白文件首次写入、冲突三选项、幂等应用、撤销和跨重启恢复。S2.6 已实现并验收六类选区动作、Context Manifest 确认、`source=selection` Review 透传和解释只读模式。S2.7 已实现 document/spreadsheet/checklist/form/tool adapter 与共享保存/版本/复制协议；自动验证见 LOG-0090，人工步骤见 [S2_7_MANUAL_ACCEPTANCE.md](S2_7_MANUAL_ACCEPTANCE.md)。用户明确验收前不得开始 S2.8。
+- S2.5 已验收持久 Review、AI 创建/首次写入、冲突、幂等、撤销与恢复；S2.6 已验收六类选区动作和只读解释；S2.7 五类 adapter 已于 2026-09-04 验收（LOG-0092）。S2.8 真实 Rust 生成器、版本/权限/取消/防覆盖验证见 [S2_8_VALIDATION.md](S2_8_VALIDATION.md)，桌面步骤见 [S2_8_MANUAL_ACCEPTANCE.md](S2_8_MANUAL_ACCEPTANCE.md)。用户明确验收 S2.8 前不得开始 S2.9。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
+- S2.8 人工发现的 PDF 排版和原生确认替换缺陷已按 LOG-0098 修复并验证；当前等待用户复验，不沿用旧版 M04 的“一律拒绝已有文件”规则。
+- M02 的 CSV 创建能力原已存在；LOG-0099 将新建类型明确标为“表格（CSV）”并补充验收步骤，避免把领域类型“表格”和内部格式 CSV 的映射误判为不支持。
 - 如果文档与实际代码不一致，先记录差异并修正文档状态；不要为了符合文档而破坏性改写用户代码。

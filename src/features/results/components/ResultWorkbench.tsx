@@ -9,24 +9,14 @@ import {
   SaveOutlined,
   UndoOutlined,
 } from '@ant-design/icons';
-import {
-  Alert,
-  Button,
-  Drawer,
-  Empty,
-  Modal,
-  Segmented,
-  Skeleton,
-  Tag,
-  Tooltip,
-  message,
-} from 'antd';
+import { Alert, Button, Drawer, Empty, Modal, Segmented, Skeleton, Tag } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
 import type { FileSaveStatus, ResultAppliedReview } from '../../../shared/types/domain';
 import { resultAdapterDefinitions } from '../resultAdapters';
 import { useResultStore } from '../resultStore';
+import { ExportResultModal } from './ExportResultModal';
 import { ResultContentAdapter } from './ResultContentAdapter';
 import styles from './ResultWorkbench.module.css';
 
@@ -87,6 +77,7 @@ export function ResultWorkbench({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'preview' | 'edit'>('preview');
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     void openResult(resultId);
@@ -194,14 +185,13 @@ export function ResultWorkbench({
           >
             {t('saveAsCopy')}
           </Button>
-          <Tooltip title={t('exportResultPending')}>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={() => void message.info(t('exportResultPending'))}
-            >
-              {t('exportResult')}
-            </Button>
-          </Tooltip>
+          <Button
+            icon={<DownloadOutlined />}
+            disabled={activeDocument.result.a2uiSurfaceId !== null}
+            onClick={() => setExportOpen(true)}
+          >
+            {t('exportResult')}
+          </Button>
         </div>
       </header>
       {reviewUndoError ? (
@@ -216,6 +206,14 @@ export function ResultWorkbench({
         viewMode={viewMode}
         onChange={updateDraft}
       />
+
+      {exportOpen ? (
+        <ExportResultModal
+          key={activeDocument.result.id}
+          document={activeDocument}
+          onClose={() => setExportOpen(false)}
+        />
+      ) : null}
 
       <Modal
         open={diffOpen}

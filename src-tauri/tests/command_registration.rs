@@ -17,7 +17,7 @@ const NATIVE_COMMANDS: [&str; 13] = [
     "list_recovery_drafts",
 ];
 
-const RESULT_COMMANDS: [&str; 9] = [
+const RESULT_COMMANDS: [&str; 11] = [
     "list_results",
     "get_result",
     "create_text_result",
@@ -27,6 +27,8 @@ const RESULT_COMMANDS: [&str; 9] = [
     "read_result_revision",
     "restore_result_revision",
     "duplicate_result",
+    "export_result",
+    "cancel_export",
 ];
 const TASK_COMMANDS: [&str; 5] = [
     "list_task_templates",

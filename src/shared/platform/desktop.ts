@@ -44,6 +44,9 @@ import type {
   TaskDetail,
   TaskRunResult,
   TaskTemplate,
+  ExportResultInput,
+  ExportProgressEvent,
+  ExportResultOutput,
 } from '../types/domain';
 
 export interface BootstrapStatus {
@@ -159,6 +162,21 @@ export const desktopApi = {
   async duplicateResult(resultId: string): Promise<ResultDocument> {
     requireDesktop();
     return invoke<ResultDocument>('duplicate_result', { resultId });
+  },
+
+  async exportResult(
+    input: ExportResultInput,
+    onProgress: (event: ExportProgressEvent) => void
+  ): Promise<ExportResultOutput> {
+    requireDesktop();
+    const onEvent = new Channel<ExportProgressEvent>();
+    onEvent.onmessage = onProgress;
+    return invoke<ExportResultOutput>('export_result', { input, onEvent });
+  },
+
+  async cancelExport(exportId: string): Promise<boolean> {
+    requireDesktop();
+    return invoke<boolean>('cancel_export', { exportId });
   },
 
   async listTaskTemplates(): Promise<TaskTemplate[]> {

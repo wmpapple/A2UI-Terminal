@@ -182,6 +182,8 @@ pub fn run() {
             commands::read_result_revision,
             commands::restore_result_revision,
             commands::duplicate_result,
+            commands::export_result,
+            commands::cancel_export,
             commands::list_task_templates,
             commands::create_task,
             commands::answer_task_questions,

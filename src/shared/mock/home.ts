@@ -1,5 +1,8 @@
 import type {
   CreateTextResultInput,
+  ExportProgressEvent,
+  ExportResultInput,
+  ExportResultOutput,
   ResultDetail,
   ResultDocument,
   ResultRevision,
@@ -12,6 +15,11 @@ import type {
   TaskTemplate,
   TextResultFormat,
 } from '../types/domain';
+
+import { exportExtension, exportFormatsFor } from '../types/exportFormats';
+
+const activeExports = new Map<string, { cancelled: boolean; committing: boolean }>();
+const exportTurn = () => new Promise<void>((resolve) => setTimeout(resolve, 40));
 
 const templates: TaskTemplate[] = [
   {
@@ -409,6 +417,49 @@ export const webMockHomeGateway = {
     return clone(documentFor(record));
   },
 
+  async exportResult(
+    input: ExportResultInput,
+    onProgress: (event: ExportProgressEvent) => void
+  ): Promise<ExportResultOutput> {
+    const record = requireRecord(input.resultId);
+    if (record.detail.currentRevisionId !== input.revisionId)
+      throw new Error('成果版本已变化，请重新导出');
+    if (
+      record.detail.a2uiSurfaceId ||
+      !exportFormatsFor(record.detail.type, record.format).includes(input.format)
+    )
+      throw new Error('该成果类型不支持所选导出格式');
+    if (activeExports.size) throw new Error('已有导出任务正在进行');
+    const job = { cancelled: false, committing: false };
+    activeExports.set(input.exportId, job);
+    try {
+      onProgress({ exportId: input.exportId, stage: 'preparing', progress: 10 });
+      await exportTurn();
+      if (!job.cancelled)
+        onProgress({ exportId: input.exportId, stage: 'generating', progress: 50 });
+      await exportTurn();
+      if (job.cancelled) {
+        onProgress({ exportId: input.exportId, stage: 'cancelled', progress: 100 });
+        return { ...input, status: 'cancelled', fileName: null };
+      }
+      if (requireRecord(input.resultId).detail.currentRevisionId !== input.revisionId)
+        throw new Error('成果版本已变化，请重新导出');
+      job.committing = true;
+      onProgress({ exportId: input.exportId, stage: 'writing', progress: 80 });
+      onProgress({ exportId: input.exportId, stage: 'completed', progress: 100 });
+      return { ...input, status: 'completed', fileName: `result.${exportExtension(input.format)}` };
+    } finally {
+      activeExports.delete(input.exportId);
+    }
+  },
+
+  async cancelExport(exportId: string): Promise<boolean> {
+    const job = activeExports.get(exportId);
+    if (!job || job.committing) return false;
+    job.cancelled = true;
+    return true;
+  },
+
   async createTask(workspaceId: string, templateId: string): Promise<TaskDetail> {
     const template = templates.find((item) => item.id === templateId);
     if (!template) throw new Error('模板不存在或不可用');
@@ -541,6 +592,7 @@ export const webMockHomeGateway = {
 };
 
 export function resetWebMockHomeGateway(): void {
+  for (const job of activeExports.values()) job.cancelled = true;
   results = [...initialResults];
   tasks = new Map();
   sequence = 0;

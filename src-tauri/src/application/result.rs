@@ -800,7 +800,10 @@ struct ToolSetting {
     value: String,
 }
 
-fn validate_result_content(result_type: ResultType, content: &str) -> Result<(), AppError> {
+pub(crate) fn validate_result_content(
+    result_type: ResultType,
+    content: &str,
+) -> Result<(), AppError> {
     validate_content(content)?;
     match result_type {
         ResultType::Document => Ok(()),

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import workspace from '../../../contracts/v1/workspace.json';
 import chat from '../../../contracts/v1/chat.json';
 import patch from '../../../contracts/v1/patch.json';
@@ -12,7 +12,11 @@ import importDrop from '../../../contracts/v2/import-drop.json';
 import documentSource from '../../../contracts/v2/document-source.json';
 import contextManifest from '../../../contracts/v2/context-manifest.json';
 import review from '../../../contracts/v2/review.json';
+import exportFixture from '../../../contracts/v2/export.json';
 import {
+  isExportResultInput,
+  isExportResultOutput,
+  isExportProgressEvent,
   isA2uiProcessResult,
   isA2uiSurfaceProtocol,
   isAppErrorContract,
@@ -57,6 +61,36 @@ vi.mock('@tauri-apps/api/core', () => ({
 vi.mock('@tauri-apps/api/event', () => ({ listen: listenMock }));
 
 describe('shared Rust/TypeScript contract fixtures', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    listenMock.mockReset();
+  });
+  it('keeps export input opaque and sends a typed progress Channel', async () => {
+    expect(isExportResultInput(exportFixture.input)).toBe(true);
+    expect(isExportResultOutput(exportFixture.output)).toBe(true);
+    expect(isExportProgressEvent(exportFixture.event)).toBe(true);
+    expect(isExportResultInput({ ...exportFixture.input, path: '/untrusted' })).toBe(false);
+    expect(isExportProgressEvent({ ...exportFixture.event, progress: 101 })).toBe(false);
+    expect(isExportResultOutput({ ...exportFixture.output, status: 'unknown' })).toBe(false);
+    const original = window.__TAURI_INTERNALS__;
+    Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: {} });
+    try {
+      if (!isExportResultInput(exportFixture.input)) throw new Error('Invalid fixture');
+      invokeMock.mockResolvedValueOnce(exportFixture.output);
+      const handler = vi.fn();
+      expect(await desktopApi.exportResult(exportFixture.input, handler)).toEqual(
+        exportFixture.output
+      );
+      const [command, payload] = invokeMock.mock.calls.at(-1)!;
+      expect(command).toBe('export_result');
+      expect(Object.keys(payload).sort()).toEqual(['input', 'onEvent']);
+      expect(payload.input).toEqual(exportFixture.input);
+      payload.onEvent.onmessage(exportFixture.event);
+      expect(handler).toHaveBeenCalledWith(exportFixture.event);
+    } finally {
+      Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: original });
+    }
+  });
   it('accepts the five domain response fixtures and stable error envelope', () => {
     expect(isWorkspaceDocument(workspace)).toBe(true);
     expect(isChatSession(chat.session)).toBe(true);
@@ -147,6 +181,7 @@ describe('shared Rust/TypeScript contract fixtures', () => {
       listener({ payload: importDrop });
       expect(handler).toHaveBeenCalledWith(importDrop);
     } finally {
+      invokeMock.mockReset();
       Object.defineProperty(window, '__TAURI_INTERNALS__', {
         configurable: true,
         value: tauriInternals,

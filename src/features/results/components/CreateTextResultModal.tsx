@@ -85,7 +85,10 @@ export function CreateTextResultModal({ open, onCancel, onCreated }: Props) {
             onChange={changeType}
             options={(Object.keys(resultAdapterDefinitions) as ResultType[]).map((type) => ({
               value: type,
-              label: t(resultAdapterDefinitions[type].labelKey as MessageKey),
+              label:
+                type === 'spreadsheet'
+                  ? t('createResultTypeSpreadsheet')
+                  : t(resultAdapterDefinitions[type].labelKey as MessageKey),
             }))}
           />
         </Form.Item>

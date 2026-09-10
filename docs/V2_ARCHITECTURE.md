@@ -1,8 +1,8 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S2.6 已验收，S2.7 已完成自动验证、待人工验收
+> 文档状态：V2 目标架构基线；S1.1—S2.7 已验收，S2.8 验收缺陷已修复、待复验（见 LOG-0098）
 > 建立日期：2026-08-11  
-> 对照代码：`main` 分支 S2.7 开始基线 `14243d6`；当前 S2.7 工作树待人工验收
+> 对照代码：`main` 分支 S2.7 提交 `7375f52`；用户已于 2026-09-04 验收 S2.7
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
 > PRD SHA-256：`E56FD2303B6228C5FC7AB1936FB1C2B71229845D6780DFDA2ACE06D69347AA3C`
 
@@ -45,7 +45,7 @@ V2 的产品品类是“可信的 AI 成果工作台”。聊天是任务控制�
 - 桌面端：Tauri 2、Rust 2021、SQLite/rusqlite、Windows Credential Manager。
 - 测试：Vitest、Testing Library、Playwright、Rust unit/integration tests。
 - 正式支持 Windows；Web 运行时只允许确定性 Mock。
-- Tauri 主窗口通过 Capability 精确授权 55 个应用命令、updater 和 restart 权限；没有 Shell 权限。
+- Tauri 主窗口通过 Capability 精确授权 66 个应用命令、updater 和 restart 权限；没有 Shell 权限。
 - CSP 禁止远程脚本，当前因 Ant Design 运行时样式保留 `style-src 'unsafe-inline'`。
 
 ### 3.2 当前组件关系
@@ -96,7 +96,7 @@ React components
 | 导入     | ImportBatch、文本/DOCX/PDF、CSV/XLSX 基础数据和图片本地视觉来源                                                   | Context Manifest 与 Provider 多模态发送属于 S2.3        |
 | 上下文   | Rust 不可变 Manifest、来源/排除项、处理位置、一次确认和请求绑定                                                   | 没有 Full/Retrieval/Hybrid 策略、检索索引、Context Pack |
 | 审阅     | Review Request/blocks、`document_patch`、`create_file`、空文件首次写入、冲突/撤销；S2.6 选区修改已接入统一 Review | S3.3 A2UI 中风险 Action 的真实接线仍属后续步骤          |
-| 成果类型 | 文档/表格/清单/表单/小工具统一 adapter 与共享保存、版本、复制协议；A2UI 工具快照只读并自动保存状态                | S2.7 待人工验收；富格式编辑和导出仍属后续步骤           |
+| 成果类型 | 文档/表格/清单/表单/小工具统一 adapter 与共享保存、版本、复制协议；A2UI 工具快照只读并自动保存状态                | S2.7 已验收；富格式编辑不在 P0 范围                     |
 | 导出     | 无成果级导出服务                                                                                                  | 无 DOCX/PDF/富文本、CSV/XLSX、JSON 导出与导出审计       |
 | 模板     | S1.2 已实现并验收 4 个版本化内置文档模板和字段 Schema                                                             | 尚无个人模板、系统规则/上下文规则编辑和模板 UI          |
 | 模式     | S1.3 双模式外壳与 S1.5 成果专用工作台已实现                                                                       | S2.3 后接通成果 AI 上下文                               |
@@ -250,7 +250,7 @@ Result
 
 `[IMPLEMENTED — S1.5 ACCEPTED]` 用户可从首页或成果页主动创建 Markdown/纯文本 Result。Rust 只接受单层安全文件名和匹配扩展名，拒绝绝对路径、路径穿越、非法字符、系统保留名和同名覆盖；前端只获得 Result DTO 与 `result://` 引用。成功路径建立托管 UTF-8 文件、Result 和初始 Revision；SQLite 失败会补偿删除本次新建文件。手工编辑使用基础 Hash 冲突检查和现有版本保留规则，支持重开、历史预览/恢复、撤销与独立副本。S1.2 旧托管草稿缺少初始版本时在首次专用读取时惰性补录，不批量扫描或复制其他内容。
 
-`[IMPLEMENTED — S2.7 PENDING ACCEPTANCE]` Result 工作台按 `document | spreadsheet | checklist | form | tool` 选择受控 adapter，但继续复用既有 `create_text_result`、读取、Hash 冲突保存、Revision、恢复和复制协议，避免为每种 UI 建立写入旁路。document 使用 UTF-8 Markdown/纯文本；spreadsheet 使用 UTF-8 CSV 并按 RFC 风格引号解析；checklist、form、tool 使用有界受控 JSON，Rust 校验根结构、字段类型、唯一标识、数量与长度。普通 tool 提供安全键值配置编辑；由 A2UI Surface 形成的 tool 只显示已验证快照，控件动作在原 A2UI 事务内同步更新 Result 快照，不能在成果编辑器中执行脚本、HTML、宏或动态代码。DOCX/PDF/XLSX 无损回写与真实导出仍属于 S2.8，不在本阶段伪装实现。
+`[IMPLEMENTED — S2.7 ACCEPTED]` Result 工作台按 `document | spreadsheet | checklist | form | tool` 选择受控 adapter，但继续复用既有 `create_text_result`、读取、Hash 冲突保存、Revision、恢复和复制协议，避免为每种 UI 建立写入旁路。document 使用 UTF-8 Markdown/纯文本；spreadsheet 使用 UTF-8 CSV 并按 RFC 风格引号解析；checklist、form、tool 使用有界受控 JSON，Rust 校验根结构、字段类型、唯一标识、数量与长度。普通 tool 提供安全键值配置编辑；由 A2UI Surface 形成的 tool 只显示已验证快照，控件动作在原 A2UI 事务内同步更新 Result 快照，不能在成果编辑器中执行脚本、HTML、宏或动态代码。DOCX/PDF/XLSX 无损回写不在 P0 范围；S2.8 已实现从规范内部格式生成交付格式。
 
 ### 5.2 Task（任务）
 
@@ -508,7 +508,12 @@ S2.4 P0 的检索边界已经关闭并固定：
 - P0：文档 Markdown/DOCX/PDF/富文本，表格 CSV/XLSX，清单/表单 PDF 或结构化 JSON。
 - 导出不得包含未授权上下文、Prompt、内部协议调试字段或绝对路径。
 - 导出失败记录稳定错误码和可重试状态，不记录成果正文到日志。
+
+`[IMPLEMENTED — S2.8 PENDING ACCEPTANCE / ADR-021]` Export Service 在 Rust 内重新读取当前 Result 与精确 Revision，非当前版本按冲突拒绝。前端只提交 `exportId/resultId/revisionId/format` 并接收脱敏进度与文件名；目标绝对路径仅存在于 Rust 系统保存对话框和写入边界。文档可生成 Markdown/纯文本、DOCX、PDF、RTF，表格可生成 CSV/XLSX，清单/表单可生成 JSON/PDF；CSV/XLSX 对公式型文本统一添加单引号。输出使用新目标、同目录临时文件和同步提交，原生确认后允许替换已有普通目标；取消、格式错误或生成失败不会修改 Result/Revision，替换失败保留旧目标。实现固定纯 Rust 库版本，随包分发 Noto Sans CJK SC/OFL 与第三方声明，不调用 Office、LibreOffice、Provider 或外部转换服务。
+
 - PDF/DOCX/XLSX 生成器需单独做依赖、字体、许可证和公式注入安全审查。
+
+S2.8 实现补充（LOG-0098）：DTO 位于 `domain/export`，快照/生成协调位于 `application/export`，Markdown PDF 排版和目标提交分别由 `export_pdf`、`export_target` 隔离。原生对话框和 Channel 在后台任务编排。生成后复验当前 Revision/Hash 及目标指纹；新建用 `tempfile::persist_noclobber`，原生确认替换用同目录 `persist`，不先删除旧文件。应用管理目录和当前源成果不得作为导出覆盖目标。单次库生成期间取消需等待返回，提交开始后不能撤回。PDF 本地解析基础 Markdown，按真实字宽排版标题/引用/列表/代码块，修正 Unicode 映射；缺字/歧义明确失败。未加载图片/链接或执行 HTML；Web Mock 不创建文件。证据见 `S2_8_VALIDATION.md` 与 `S2_8_MANUAL_ACCEPTANCE.md`。
 
 ### 7.6 表格、图片与复杂文档边界
 
@@ -562,7 +567,7 @@ S2.4 P0 的检索边界已经关闭并固定：
 
 `[CURRENT — S1.3 ACCEPTED]` 两种模式渲染同一组 `WorkspaceLayout`、`WorkspaceSidebar`、`EditorPane` 和 `ChatPanel`，并共享同一 Zustand store、Gateway 与 Rust IPC。简单模式不渲染文件树、会话列表、Provider/Model 标识、A2UI Inspector、Endpoint 和 API Key 入口，但保留直接复用现有授权链路的“选择文件”和直接复用现有会话动作的“新对话”；专业模式恢复完整 V1 工具。模式切换不会重建业务 store、迁移 Result/Task 数据、改变上下文授权或扩大 Capability。
 
-`[CURRENT — S1.4 / S1.5 ACCEPTED; S2.7 PENDING ACCEPTANCE]` 首页已成为 Result/Task 产品入口，最近成果会按具体 Result ID 打开专用工作台；成果页提供五类本地 Result 列表与新建入口。简单模式显示成果区和 AI 助手外壳，专业模式在同一业务状态上增加既有文件树。AI 区不自动发送正文，导出入口不声称 S2.8 已完成。
+`[CURRENT — S1.4 / S1.5 / S2.7 ACCEPTED; S2.8 PENDING ACCEPTANCE]` 首页已成为 Result/Task 产品入口，最近成果会按具体 Result ID 打开专用工作台；成果页提供五类本地 Result 列表与新建入口。简单模式显示成果区和 AI 助手外壳，专业模式在同一业务状态上增加既有文件树。AI 区不自动发送正文；导出入口使用 Rust 版本绑定与系统保存对话框。
 
 ## 10. IPC 与事件合同
 
@@ -664,11 +669,11 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 | ------------- | --------------------------------------------------- | ------------------------------------------------- |
 | ONB/HOME      | app routing、home feature、Result queries           | S1.4 Current                                      |
 | IMP/TASK      | Import Service、DocumentSource、Task/Template       | Task/模板与 S2.1 Current；S2.2 已实现待验收       |
-| WS            | Result Workbench、typed editors、mode shell         | 五类 Result adapter Current（S2.7 待人工验收）    |
+| WS            | Result Workbench、typed editors、mode shell         | 五类 Result adapter Current（S2.7 已验收）        |
 | CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | Manifest/local-cloud Current；Planner/Pack Target |
 | REV-01…06     | Review Request + 现有 Patch/Revision 内核           | S2.5 Current（已验收）；Selection 来源已接线      |
 | OUT-01…06     | Result type adapters、A2UI、Action Policy           | 五类 adapter Current；S3.x Action 扩展仍为 Target |
-| EXP-01…04     | Export Service、export jobs、format adapters        | 入口 Current，真实导出 Target                     |
+| EXP-01…04     | Export Service、export jobs、format adapters        | EXP-01…03 Current，S2.8 待人工验收；其余 Target   |
 | RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target         |
 | SEL-01        | Selection controller → Review Pipeline              | S2.6 Current（已验收）                            |
 | PRV-04/MDL-05 | Processing options、local probe                     | Target                                            |
@@ -706,7 +711,7 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 
 | ID   | 问题                                                                       | 阻塞范围                    |
 | ---- | -------------------------------------------------------------------------- | --------------------------- |
-| O-03 | DOCX/PDF/XLSX 导出采用哪些库，字体与许可证如何处理？                       | V2-B 导出                   |
+| O-03 | 已按 ADR-021 关闭；本地 Rust 生成器和 OFL 字体，许可证归档见第三方声明     | S2.8 待人工验收             |
 | O-06 | 匿名指标上传接收端、保留期、聚合方式和删除机制是什么？                     | 指标与 Beta                 |
 | O-07 | “A2UI 工作台”从 0.1.9 开始采用什么版本号、安装包标识和升级兼容策略？       | V2-D 发布                   |
 | O-08 | 内置试用模型的供应商、服务端鉴权、额度、滥用控制、成本和失败降级如何实现？ | V2-A 首次完整生成、发布验收 |

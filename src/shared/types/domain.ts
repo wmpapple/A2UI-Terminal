@@ -128,6 +128,29 @@ export interface ResultRevision extends ResultRevisionSummary {
   content: string;
 }
 
+export type ExportFormat =
+  'markdown' | 'plain_text' | 'docx' | 'pdf' | 'rtf' | 'csv' | 'xlsx' | 'json';
+export type ExportStage =
+  'preparing' | 'generating' | 'writing' | 'completed' | 'cancelled' | 'failed';
+
+export interface ExportResultInput {
+  exportId: string;
+  resultId: string;
+  revisionId: string;
+  format: ExportFormat;
+}
+
+export interface ExportProgressEvent {
+  exportId: string;
+  stage: ExportStage;
+  progress: number;
+}
+
+export interface ExportResultOutput extends ExportResultInput {
+  status: 'completed' | 'cancelled';
+  fileName: string | null;
+}
+
 export interface WorkspaceFile {
   path: string;
   name: string;

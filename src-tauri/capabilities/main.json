@@ -71,6 +71,8 @@
     "allow-read-result-revision",
     "allow-restore-result-revision",
     "allow-duplicate-result",
+    "allow-export-result",
+    "allow-cancel-export",
     "allow-list-task-templates",
     "allow-create-task",
     "allow-answer-task-questions",

@@ -1,7 +1,11 @@
 import { webMockHomeGateway } from '../../shared/mock/home';
 import { desktopGateway } from '../../shared/platform/gateway';
 import { isWebMock } from '../../shared/platform/runtime';
-import type { CreateTextResultInput } from '../../shared/types/domain';
+import type {
+  CreateTextResultInput,
+  ExportProgressEvent,
+  ExportResultInput,
+} from '../../shared/types/domain';
 
 const gateway = () => (isWebMock() ? webMockHomeGateway : desktopGateway);
 
@@ -17,4 +21,7 @@ export const resultController = {
   restoreRevision: (resultId: string, revisionId: string, baseHash: string) =>
     gateway().restoreResultRevision(resultId, revisionId, baseHash),
   duplicate: (resultId: string) => gateway().duplicateResult(resultId),
+  export: (input: ExportResultInput, onProgress: (event: ExportProgressEvent) => void) =>
+    gateway().exportResult(input, onProgress),
+  cancelExport: (exportId: string) => gateway().cancelExport(exportId),
 };

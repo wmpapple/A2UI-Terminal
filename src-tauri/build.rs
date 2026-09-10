@@ -64,6 +64,8 @@ fn main() {
         "read_result_revision",
         "restore_result_revision",
         "duplicate_result",
+        "export_result",
+        "cancel_export",
         "list_task_templates",
         "create_task",
         "answer_task_questions",
