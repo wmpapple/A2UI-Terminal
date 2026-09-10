@@ -291,6 +291,31 @@ export interface RevokeDocumentSourceResult {
   originalFileDeleted: false;
 }
 
+export interface ContextPackItem {
+  sourceId: string;
+  label: string;
+}
+
+export interface ContextPack {
+  id: string;
+  workspaceId: string;
+  name: string;
+  items: ContextPackItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateContextPackInput {
+  workspaceId: string;
+  name: string;
+  sourceIds: string[];
+}
+
+export interface DeleteContextPackOutput {
+  deleted: boolean;
+  originalFilesDeleted: false;
+}
+
 export interface ImportDropBounds {
   left: number;
   top: number;
@@ -439,6 +464,7 @@ export interface ContextManifestInput {
   candidates: ContextCandidate[];
   includeRecentMessages: boolean;
   recentMessageCount: number;
+  contextPackIds: string[];
 }
 
 export interface ContextManifestSource {
@@ -515,6 +541,7 @@ export interface ContextSelection {
   recentMessageCount: number;
   projectFiles: string[];
   documentSourceIds?: string[];
+  contextPackIds?: string[];
 }
 
 export type PatchOperation = 'replace' | 'insert_before' | 'insert_after' | 'delete';

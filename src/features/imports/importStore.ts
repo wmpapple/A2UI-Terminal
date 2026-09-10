@@ -8,6 +8,7 @@ import type {
 } from '../../shared/types/domain';
 import { errorDetails } from '../../stores/support';
 import { importController } from './importController';
+import { useContextPackStore } from '../contextPacks/contextPackStore';
 
 const mergeWorkspaceSources = (
   existing: DocumentSource[],
@@ -195,6 +196,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
     set({ revokingSourceId: sourceId, error: null });
     try {
       await importController.revokeSource(workspaceId, sourceId);
+      useContextPackStore.getState().forgetSource(workspaceId, sourceId);
       set((state) => ({
         sources: state.sources.filter(
           (source) => source.workspaceId !== workspaceId || source.id !== sourceId

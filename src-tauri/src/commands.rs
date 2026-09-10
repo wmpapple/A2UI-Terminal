@@ -9,10 +9,11 @@ use crate::ai::{
 pub use crate::application::chat::{ChatStreamEvent, ChatStreamResult};
 pub use crate::application::provider::{ProviderConnectionResult, SecretStatus};
 use crate::application::{
-    adapters, chat, context, export as export_service, import as import_service, provider, review,
-    revision, workspace as workspace_service,
+    adapters, chat, context, context_pack, export as export_service, import as import_service,
+    provider, review, revision, workspace as workspace_service,
 };
 use crate::document_source::{DocumentSource, DocumentSourceContent};
+use crate::domain::context_pack::{ContextPack, CreateContextPackInput, DeleteContextPackOutput};
 use crate::domain::import::{
     ConfirmImportInput, ImportBatch, ImportConfirmation, SetImportDropTargetInput,
 };
@@ -634,6 +635,33 @@ pub fn revoke_document_source(
         revoked: true,
         original_file_deleted: false,
     })
+}
+
+#[tauri::command]
+pub fn list_context_packs(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> Result<Vec<ContextPack>, AppError> {
+    context_pack::list(&state.storage, &workspace_id)
+}
+
+#[tauri::command]
+pub fn create_context_pack(
+    state: State<'_, AppState>,
+    input: CreateContextPackInput,
+) -> Result<ContextPack, AppError> {
+    context_pack::create(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn delete_context_pack(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    pack_id: String,
+) -> Result<DeleteContextPackOutput, AppError> {
+    let result = context_pack::delete(&state.storage, &workspace_id, &pack_id)?;
+    invalidate_pending_context(state.inner())?;
+    Ok(result)
 }
 
 #[tauri::command]

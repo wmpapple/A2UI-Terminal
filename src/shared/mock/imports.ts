@@ -5,6 +5,8 @@ import type {
   ImportItem,
   DocumentSource,
   DocumentSourceContent,
+  ContextPack,
+  CreateContextPackInput,
   SetImportDropTargetInput,
   WorkspaceDocument,
 } from '../types/domain';
@@ -12,6 +14,8 @@ import type {
 const clone = <T>(value: T): T => structuredClone(value);
 let activeBatch: ImportBatch | null = null;
 let authorizedSources: DocumentSource[] = [];
+let contextPacks: ContextPack[] = [];
+let contextPackSequence = 0;
 
 const items = (): ImportItem[] => [
   {
@@ -285,11 +289,78 @@ export const webMockImportGateway = {
     authorizedSources = authorizedSources.filter(
       (source) => source.workspaceId !== workspaceId || source.id !== sourceId
     );
+    contextPacks = contextPacks
+      .map((pack) => ({
+        ...pack,
+        items: pack.items.filter((item) => item.sourceId !== sourceId),
+      }))
+      .filter((pack) => pack.items.length > 0);
     return { revoked: true, originalFileDeleted: false as const };
+  },
+
+  async listContextPacks(workspaceId: string): Promise<ContextPack[]> {
+    return clone(contextPacks.filter((pack) => pack.workspaceId === workspaceId));
+  },
+
+  async createContextPack(input: CreateContextPackInput): Promise<ContextPack> {
+    const name = input.name.trim();
+    if (
+      !name ||
+      [...name].length > 80 ||
+      input.sourceIds.length < 1 ||
+      input.sourceIds.length > 20
+    ) {
+      throw new Error('资料包必须包含 1—20 项已授权来源，名称不能超过 80 个字符');
+    }
+    if (new Set(input.sourceIds).size !== input.sourceIds.length) {
+      throw new Error('资料包不能重复引用同一来源');
+    }
+    if (contextPacks.filter((pack) => pack.workspaceId === input.workspaceId).length >= 50) {
+      throw new Error('每个工作区最多保存 50 个资料包');
+    }
+    const sources = input.sourceIds.map((sourceId) =>
+      authorizedSources.find(
+        (source) => source.workspaceId === input.workspaceId && source.id === sourceId
+      )
+    );
+    if (sources.some((source) => !source)) {
+      throw new Error('资料来源不存在或未获当前工作区授权');
+    }
+    if (
+      contextPacks.some(
+        (pack) =>
+          pack.workspaceId === input.workspaceId &&
+          pack.name.toLocaleLowerCase() === name.toLocaleLowerCase()
+      )
+    ) {
+      throw new Error('当前工作区已有同名资料包');
+    }
+    const timestamp = '2026-09-10 11:00:00';
+    const pack: ContextPack = {
+      id: `web-mock-context-pack-${++contextPackSequence}`,
+      workspaceId: input.workspaceId,
+      name,
+      items: sources.map((source) => ({ sourceId: source!.id, label: source!.name })),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    contextPacks = [pack, ...contextPacks];
+    return clone(pack);
+  },
+
+  async deleteContextPack(workspaceId: string, packId: string) {
+    const existing = contextPacks.find(
+      (pack) => pack.workspaceId === workspaceId && pack.id === packId
+    );
+    if (!existing) throw new Error('资料包不存在或不属于当前工作区');
+    contextPacks = contextPacks.filter((pack) => pack.id !== packId);
+    return { deleted: true, originalFilesDeleted: false as const };
   },
 };
 
 export const resetWebMockImports = () => {
   activeBatch = null;
   authorizedSources = [];
+  contextPacks = [];
+  contextPackSequence = 0;
 };

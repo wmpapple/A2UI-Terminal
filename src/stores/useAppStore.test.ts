@@ -29,6 +29,8 @@ beforeEach(() => {
     activeSurfaceId: '',
     activeInspectionId: '',
     a2uiNotice: null,
+    contextBySession: {},
+    contextReviewKeyBySession: {},
   });
 });
 
@@ -90,6 +92,32 @@ describe('workspace review flow', () => {
       .sendChat('润色当前选区并返回 document_patch JSON', 'web-manifest', 'selection', false);
     expect(useAppStore.getState().pendingDiff?.source).toBe('selection');
     expect(useAppStore.getState().files[0].content).toBe(before);
+  });
+
+  it('forgets revoked source and deleted pack selections before later requests', () => {
+    useAppStore.setState({
+      contextBySession: {
+        welcome: {
+          selection: false,
+          currentFile: false,
+          recentMessages: false,
+          recentMessageCount: 3,
+          projectFiles: [],
+          documentSourceIds: ['source-1', 'source-2'],
+          contextPackIds: ['pack-1', 'pack-2'],
+        },
+      },
+      contextReviewKeyBySession: { welcome: 'stale-confirmation' },
+    });
+
+    useAppStore.getState().forgetAuthorizedSource('source-1');
+    useAppStore.getState().forgetContextPack('pack-1');
+
+    expect(useAppStore.getState().contextBySession.welcome).toMatchObject({
+      documentSourceIds: ['source-2'],
+      contextPackIds: ['pack-2'],
+    });
+    expect(useAppStore.getState().contextReviewKeyBySession).toEqual({});
   });
 
   it('keeps selection explanations read-only', async () => {

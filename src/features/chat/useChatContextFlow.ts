@@ -15,6 +15,7 @@ import {
   processingLocationForProvider,
 } from '../context/contextManifest';
 import { useImportStore } from '../imports/importStore';
+import { useContextPackStore } from '../contextPacks/contextPackStore';
 import { chatController } from './chatController';
 
 const defaultContext: ContextSelection = {
@@ -24,6 +25,8 @@ const defaultContext: ContextSelection = {
   recentMessageCount: 3,
   projectFiles: [],
 };
+
+const PENDING_CONTEXT_PACK_REVIEW = 'pending-context-pack-manifest';
 
 type ContextIntent = 'review' | 'send';
 
@@ -46,6 +49,8 @@ export function useChatContextFlow() {
   const sendChat = useAppStore((state) => state.sendChat);
   const documentSources = useImportStore((state) => state.sources);
   const loadDocumentSources = useImportStore((state) => state.loadSources);
+  const contextPacks = useContextPackStore((state) => state.packs);
+  const loadContextPacks = useContextPackStore((state) => state.load);
   const [prompt, setPrompt] = useState('');
   const [contextOpen, setContextOpen] = useState(false);
   const [contextIntent, setContextIntent] = useState<ContextIntent>('send');
@@ -101,8 +106,10 @@ export function useChatContextFlow() {
     : false;
 
   useEffect(() => {
-    if (workspace?.id && runtimeMode === 'desktop') void loadDocumentSources(workspace.id);
-  }, [loadDocumentSources, runtimeMode, workspace?.id]);
+    if (!workspace?.id) return;
+    if (runtimeMode === 'desktop') void loadDocumentSources(workspace.id);
+    void loadContextPacks(workspace.id);
+  }, [loadContextPacks, loadDocumentSources, runtimeMode, workspace?.id]);
 
   const invalidateManifest = () => {
     setPlannedManifest(null);
@@ -116,7 +123,12 @@ export function useChatContextFlow() {
   };
 
   const sendNow = (request: string, selection: ContextSelection, manifestId: string) => {
-    setSessionContext(activeSessionId, selection);
+    const rememberedSelection = { ...selection, documentSourceIds: [] };
+    setSessionContext(activeSessionId, rememberedSelection);
+    setSessionContextReviewKey(
+      activeSessionId,
+      JSON.stringify([providerKey, contextFingerprint(rememberedSelection)])
+    );
     setPrompt('');
     invalidateManifest();
     void sendChat(request, manifestId);
@@ -138,7 +150,7 @@ export function useChatContextFlow() {
       selectedText,
     });
     return runtimeMode === 'web-mock'
-      ? createWebMockManifest(input, processingLocation)
+      ? createWebMockManifest(input, processingLocation, contextPacks)
       : chatController.planContext(input);
   };
 
@@ -181,6 +193,12 @@ export function useChatContextFlow() {
       return;
     }
     if (!contextReviewed) {
+      if ((effectiveContext.contextPackIds?.length ?? 0) > 0) {
+        setContextIntent('send');
+        invalidateManifest();
+        setContextOpen(true);
+        return;
+      }
       message.info(t('contextChangePrompt'));
       return;
     }
@@ -223,7 +241,12 @@ export function useChatContextFlow() {
     const normalized = normalizeContextSelection(selection, selectedText);
     const fingerprint = contextFingerprint(normalized);
     setSessionContext(activeSessionId, normalized);
-    setSessionContextReviewKey(activeSessionId, JSON.stringify([providerKey, fingerprint]));
+    setSessionContextReviewKey(
+      activeSessionId,
+      contextIntent === 'review' && (normalized.contextPackIds?.length ?? 0) > 0
+        ? PENDING_CONTEXT_PACK_REVIEW
+        : JSON.stringify([providerKey, fingerprint])
+    );
     if (contextIntent === 'review' || !manifestId) {
       setContextOpen(false);
       return;

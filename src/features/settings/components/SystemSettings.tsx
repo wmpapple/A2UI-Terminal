@@ -4,7 +4,7 @@ import {
   FileProtectOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Input, Modal, Progress, Tag, message } from 'antd';
+import { Alert, Button, Divider, Input, Modal, Progress, Tag, message } from 'antd';
 import { useState, useSyncExternalStore } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { getRuntimeMode } from '../../../shared/platform/runtime';
@@ -16,6 +16,7 @@ import {
 } from '../appUpdater';
 import styles from './SystemSettings.module.css';
 import { systemController } from '../systemController';
+import { ContextPackSettings } from '../../contextPacks/components/ContextPackSettings';
 
 const CLEAR_CONFIRMATION = 'DELETE_ALL_LOCAL_DATA';
 
@@ -116,6 +117,8 @@ export function SystemSettings() {
           </div>
         </>
       )}
+      <Divider />
+      <ContextPackSettings />
       <Modal
         open={clearOpen}
         title={t('clearAllLocalData')}

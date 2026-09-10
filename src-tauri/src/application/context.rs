@@ -12,6 +12,7 @@ pub fn plan(
     manifests: &mut HashMap<String, PendingContextManifest>,
     input: ContextManifestInput,
 ) -> Result<ContextManifest, AppError> {
+    let input = crate::application::context_pack::expand_manifest_input(storage, input)?;
     let pending = ai::plan_context_manifest(storage, index, input)?;
     let view = pending.view.clone();
     manifests.clear();

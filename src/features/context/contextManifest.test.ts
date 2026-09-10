@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { DocumentSource, ProviderConfig } from '../../shared/types/domain';
-import { buildContextManifestInput, processingLocationForProvider } from './contextManifest';
+import {
+  buildContextManifestInput,
+  createWebMockManifest,
+  processingLocationForProvider,
+} from './contextManifest';
 
 const cloudProvider: ProviderConfig = {
   id: 'openai',
@@ -42,6 +46,7 @@ describe('context manifest input', () => {
         recentMessageCount: 3,
         projectFiles: [],
         documentSourceIds: ['table-source'],
+        contextPackIds: ['pack-1'],
       },
       files: [
         {
@@ -71,7 +76,51 @@ describe('context manifest input', () => {
         expect.objectContaining({ sourceId: 'table-source', selected: true }),
       ])
     );
+    expect(input.contextPackIds).toEqual(['pack-1']);
     expect(JSON.stringify(input)).not.toContain('UNSELECTED_BODY_MUST_NOT_CROSS_IPC');
+  });
+
+  it('expands selected Web Mock packs into concrete manifest sources', () => {
+    const input = buildContextManifestInput({
+      workspaceId: 'workspace',
+      sessionId: 'session',
+      providerId: 'openai',
+      prompt: 'summarize',
+      selection: {
+        selection: false,
+        currentFile: false,
+        recentMessages: false,
+        recentMessageCount: 3,
+        projectFiles: [],
+        contextPackIds: ['pack-1'],
+      },
+      files: [],
+      documentSources: [],
+      activePath: '',
+      selectedText: '',
+    });
+
+    const manifest = createWebMockManifest(input, 'cloud', [
+      {
+        id: 'pack-1',
+        workspaceId: 'workspace',
+        name: 'Research pack',
+        items: [
+          { sourceId: 'source-1', label: 'notes.md' },
+          { sourceId: 'source-2', label: 'data.csv' },
+        ],
+        createdAt: '1',
+        updatedAt: '1',
+      },
+    ]);
+
+    expect(manifest.includedSources).toEqual([
+      expect.objectContaining({ sourceRef: 'source-1', label: 'notes.md' }),
+      expect.objectContaining({ sourceRef: 'source-2', label: 'data.csv' }),
+    ]);
+    expect(() =>
+      createWebMockManifest({ ...input, contextPackIds: ['missing-pack'] }, 'cloud', [])
+    ).toThrow('资料包不存在或不属于当前工作区');
   });
 
   it('merges authorized-source selection into an existing workspace file candidate', () => {

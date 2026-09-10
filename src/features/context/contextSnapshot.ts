@@ -21,6 +21,7 @@ export const normalizeContextSelection = (
   selection: selection.selection && selectedText.length > 0,
   projectFiles: selection.projectFiles.filter((path) => !isSensitivePath(path)),
   documentSourceIds: selection.documentSourceIds ?? [],
+  contextPackIds: selection.contextPackIds ?? [],
 });
 
 export const contentFingerprint = (value: string): string => {
@@ -61,6 +62,7 @@ export const contextReviewFingerprint = ({
     recentMessageCount: normalized.recentMessageCount,
     projectFiles: [...normalized.projectFiles].sort(),
     documentSourceIds: [...(normalized.documentSourceIds ?? [])].sort(),
+    contextPackIds: [...(normalized.contextPackIds ?? [])].sort(),
     activePath: normalized.currentFile || normalized.selection ? activePath : '',
     selectedText: normalized.selection ? contentFingerprint(selectedText) : '',
     fileVersions,

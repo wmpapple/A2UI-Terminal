@@ -40,6 +40,9 @@ import type {
   DocumentSource,
   DocumentSourceContent,
   RevokeDocumentSourceResult,
+  ContextPack,
+  CreateContextPackInput,
+  DeleteContextPackOutput,
   SetImportDropTargetInput,
   TaskDetail,
   TaskRunResult,
@@ -339,6 +342,21 @@ export const desktopApi = {
       workspaceId,
       sourceId,
     });
+  },
+
+  async listContextPacks(workspaceId: string): Promise<ContextPack[]> {
+    requireDesktop();
+    return invoke<ContextPack[]>('list_context_packs', { workspaceId });
+  },
+
+  async createContextPack(input: CreateContextPackInput): Promise<ContextPack> {
+    requireDesktop();
+    return invoke<ContextPack>('create_context_pack', { input });
+  },
+
+  async deleteContextPack(workspaceId: string, packId: string): Promise<DeleteContextPackOutput> {
+    requireDesktop();
+    return invoke<DeleteContextPackOutput>('delete_context_pack', { workspaceId, packId });
   },
 
   async saveContextFile(

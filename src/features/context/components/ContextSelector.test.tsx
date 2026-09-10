@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../app/i18n/I18nProvider';
 import { useAppStore } from '../../../stores/useAppStore';
 import { useImportStore } from '../../imports/importStore';
+import { useContextPackStore } from '../../contextPacks/contextPackStore';
 import { ContextSelector } from './ContextSelector';
 
 const initialSelection = {
@@ -192,5 +193,108 @@ describe('ContextSelector', () => {
     );
 
     expect(screen.getAllByText('long.md')).toHaveLength(2);
+  });
+
+  it('selects a remembered pack and previews each concrete source reference', () => {
+    useAppStore.setState({
+      workspace: { id: 'workspace', name: 'Fixture', available: true, kind: 'directory' },
+      activePath: '',
+      selectedText: '',
+      files: [],
+    });
+    useImportStore.setState({ sources: [] });
+    useContextPackStore.setState({
+      packs: [
+        {
+          id: 'pack-1',
+          workspaceId: 'workspace',
+          name: 'Research pack',
+          items: [
+            { sourceId: 'source-1', label: 'notes.md' },
+            { sourceId: 'source-2', label: 'data.csv' },
+          ],
+          createdAt: '1',
+          updatedAt: '1',
+        },
+      ],
+      loading: false,
+      error: null,
+    });
+
+    render(
+      <I18nProvider>
+        <ContextSelector
+          open
+          prompt="summarize"
+          initialSelection={{ ...initialSelection, currentFile: false }}
+          onCancel={() => undefined}
+          onConfirm={() => undefined}
+        />
+      </I18nProvider>
+    );
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Research pack/ }));
+    expect(screen.getByText(/Research pack.*notes\.md/)).toBeInTheDocument();
+    expect(screen.getByText(/Research pack.*data\.csv/)).toBeInTheDocument();
+  });
+
+  it('reopens from current session state instead of retaining the previous temporary selection', async () => {
+    useAppStore.setState({
+      workspace: { id: 'workspace', name: 'Fixture', available: true, kind: 'directory' },
+      activePath: '',
+      selectedText: '',
+      files: [],
+    });
+    useImportStore.setState({
+      sources: [
+        {
+          id: 'source-1',
+          workspaceId: 'workspace',
+          name: 'notes.md',
+          extension: 'md',
+          kind: 'text',
+          capability: 'editable_text',
+          mimeType: 'text/markdown',
+          sizeBytes: 10,
+          contentHash: 'a'.repeat(64),
+          editable: true,
+          warnings: [],
+          table: null,
+          image: null,
+        },
+      ],
+    });
+    const closedSelection = {
+      ...initialSelection,
+      currentFile: false,
+      documentSourceIds: ['source-1'],
+    };
+    const { rerender } = render(
+      <I18nProvider>
+        <ContextSelector
+          open={false}
+          prompt="summarize"
+          initialSelection={closedSelection}
+          onCancel={() => undefined}
+          onConfirm={() => undefined}
+        />
+      </I18nProvider>
+    );
+
+    rerender(
+      <I18nProvider>
+        <ContextSelector
+          open
+          prompt="summarize"
+          initialSelection={{ ...closedSelection, documentSourceIds: [] }}
+          onCancel={() => undefined}
+          onConfirm={() => undefined}
+        />
+      </I18nProvider>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', { name: /notes\.md/ })).not.toBeChecked()
+    );
   });
 });

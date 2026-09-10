@@ -13,6 +13,7 @@ import documentSource from '../../../contracts/v2/document-source.json';
 import contextManifest from '../../../contracts/v2/context-manifest.json';
 import review from '../../../contracts/v2/review.json';
 import exportFixture from '../../../contracts/v2/export.json';
+import contextPackFixture from '../../../contracts/v2/context-pack.json';
 import {
   isExportResultInput,
   isExportResultOutput,
@@ -27,6 +28,7 @@ import {
   isDocumentSource,
   isDocumentSourceContent,
   isContextManifest,
+  isContextPack,
   isDocumentVersion,
   isDocumentVersionSummary,
   isImportBatch,
@@ -118,8 +120,43 @@ describe('shared Rust/TypeScript contract fixtures', () => {
     expect(isDocumentSource(documentSource.source)).toBe(true);
     expect(isDocumentSourceContent(documentSource)).toBe(true);
     expect(isContextManifest(contextManifest)).toBe(true);
+    expect(isContextPack(contextPackFixture.pack)).toBe(true);
     expect(isReviewRequest(review.request)).toBe(true);
     expect(isReviewApplication(review.application)).toBe(true);
+  });
+
+  it('keeps Context Pack IPC scoped to opaque workspace and source identifiers', async () => {
+    expect(isContextPack(contextPackFixture.pack)).toBe(true);
+    expect(
+      isContextPack({
+        ...contextPackFixture.pack,
+        items: new Array(21).fill({ sourceId: 'x', label: 'x' }),
+      })
+    ).toBe(false);
+    const original = window.__TAURI_INTERNALS__;
+    Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: {} });
+    try {
+      invokeMock.mockResolvedValueOnce(contextPackFixture.pack);
+      await expect(desktopApi.createContextPack(contextPackFixture.createInput)).resolves.toEqual(
+        contextPackFixture.pack
+      );
+      expect(invokeMock).toHaveBeenLastCalledWith('create_context_pack', {
+        input: contextPackFixture.createInput,
+      });
+      invokeMock.mockResolvedValueOnce(contextPackFixture.deleteOutput);
+      await expect(
+        desktopApi.deleteContextPack(
+          contextPackFixture.pack.workspaceId,
+          contextPackFixture.pack.id
+        )
+      ).resolves.toEqual(contextPackFixture.deleteOutput);
+      expect(invokeMock).toHaveBeenLastCalledWith('delete_context_pack', {
+        workspaceId: contextPackFixture.pack.workspaceId,
+        packId: contextPackFixture.pack.id,
+      });
+    } finally {
+      Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: original });
+    }
   });
 
   it('allows additive fields on trusted Rust responses for forward compatibility', () => {

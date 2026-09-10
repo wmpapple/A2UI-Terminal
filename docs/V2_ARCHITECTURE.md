@@ -82,28 +82,28 @@ React components
 - 流式响应、停止、分阶段超时、稳定错误码和部分响应保留。
 - schema v11 统一 Review Request：聊天、来源适配、逐块接受/拒绝、安全应用、冲突三选项、跨重启恢复和撤销；既有 `document_patch`/Revision 内核继续承担真实写入与版本审计。
 - A2UI Protocol V1、13 个固定组件、严格 Schema、增量更新、Action 审计和 Inspector。
-- SQLite schema v11、迁移完整性检查、外键检查、WAL 和崩溃恢复；v9 Result、v10 Task/Template 已验收，v11 Review Pipeline 待人工验收。
+- SQLite schema v12、迁移完整性检查、外键检查、WAL 和崩溃恢复；v9 Result、v10 Task/Template、v11 Review Pipeline 已验收，v12 Context Pack 待人工验收。
 - Windows CI、内部未签名包、正式签名/Updater 工作流框架、脱敏诊断和本地数据清除。
 
 ### 3.4 当前尚未具备的 V2 核心
 
 `[CURRENT GAP]`
 
-| 领域     | 当前状态                                                                                                          | V2 缺口                                                 |
-| -------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| 成果     | Result 聚合、文本新建/重开/保存/版本/复制、成果 UI 和导出入口                                                     | 尚无归档和真实多格式导出                                |
-| 任务     | S1.2 已实现并验收本地 Task、结构化补问和草稿 Orchestrator                                                         | 尚无任务首页、上下文 Manifest 和真实生成编排            |
-| 导入     | ImportBatch、文本/DOCX/PDF、CSV/XLSX 基础数据和图片本地视觉来源                                                   | Context Manifest 与 Provider 多模态发送属于 S2.3        |
-| 上下文   | Rust 不可变 Manifest、来源/排除项、处理位置、一次确认和请求绑定                                                   | 没有 Full/Retrieval/Hybrid 策略、检索索引、Context Pack |
-| 审阅     | Review Request/blocks、`document_patch`、`create_file`、空文件首次写入、冲突/撤销；S2.6 选区修改已接入统一 Review | S3.3 A2UI 中风险 Action 的真实接线仍属后续步骤          |
-| 成果类型 | 文档/表格/清单/表单/小工具统一 adapter 与共享保存、版本、复制协议；A2UI 工具快照只读并自动保存状态                | S2.7 已验收；富格式编辑不在 P0 范围                     |
-| 导出     | 无成果级导出服务                                                                                                  | 无 DOCX/PDF/富文本、CSV/XLSX、JSON 导出与导出审计       |
-| 模板     | S1.2 已实现并验收 4 个版本化内置文档模板和字段 Schema                                                             | 尚无个人模板、系统规则/上下文规则编辑和模板 UI          |
-| 模式     | S1.3 双模式外壳与 S1.5 成果专用工作台已实现                                                                       | S2.3 后接通成果 AI 上下文                               |
-| 首页     | S1.4 已验收引导/六类入口，S1.5 已接入新建和特定 Result 重开                                                       | 完整导入和真实模型路径仍属后续阶段                      |
-| 模型路径 | 首次使用需要自行配置 Key                                                                                          | 无内置可用路径、本地模型探测、本机/云端持续标识         |
-| 指标     | 有安全审计，没有产品事件体系                                                                                      | 无 WUO、激活、审阅、保存、导出、恢复等隐私安全埋点      |
-| 搜索     | 无统一搜索                                                                                                        | 无成果、资料包元数据和授权正文索引                      |
+| 领域     | 当前状态                                                                                                          | V2 缺口                                             |
+| -------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| 成果     | Result 聚合、五类 adapter、保存/版本/复制，以及 DOCX/PDF/RTF/CSV/XLSX/JSON P0 导出                                | 尚无归档、复杂富格式保真和发布级导出                |
+| 任务     | S1.2 已实现并验收本地 Task、结构化补问和草稿 Orchestrator；首页与 Context Manifest 已接通                         | 尚无完整真实生成任务编排                            |
+| 导入     | ImportBatch、文本/DOCX/PDF、CSV/XLSX 基础数据、图片本地视觉来源与 Context Manifest                                | Provider 图片多模态发送尚未实现                     |
+| 上下文   | Rust 不可变 Manifest、Full/Retrieval/Hybrid Planner、内存检索索引、一次确认和 Context Pack                        | 持久 Embedding 与全局检索属于后续步骤               |
+| 审阅     | Review Request/blocks、`document_patch`、`create_file`、空文件首次写入、冲突/撤销；S2.6 选区修改已接入统一 Review | S3.3 A2UI 中风险 Action 的真实接线仍属后续步骤      |
+| 成果类型 | 文档/表格/清单/表单/小工具统一 adapter 与共享保存、版本、复制协议；A2UI 工具快照只读并自动保存状态                | S2.7 已验收；富格式编辑不在 P0 范围                 |
+| 导出     | 绑定 Result Revision 的受控 DOCX/PDF/RTF/CSV/XLSX/JSON 导出与原子文件提交                                         | 复杂版式、宏、公式计算和 Office/PDF 无损回写不在 P0 |
+| 模板     | S1.2 已实现并验收 4 个版本化内置文档模板和字段 Schema                                                             | 尚无个人模板、系统规则/上下文规则编辑和模板 UI      |
+| 模式     | S1.3 双模式外壳与 S1.5 成果专用工作台已实现                                                                       | S2.3 后接通成果 AI 上下文                           |
+| 首页     | S1.4 已验收引导/六类入口，S1.5 已接入新建和特定 Result 重开                                                       | 完整导入和真实模型路径仍属后续阶段                  |
+| 模型路径 | 首次使用需要自行配置 Key                                                                                          | 无内置可用路径、本地模型探测、本机/云端持续标识     |
+| 指标     | 有安全审计，没有产品事件体系                                                                                      | 无 WUO、激活、审阅、保存、导出、恢复等隐私安全埋点  |
+| 搜索     | 无统一搜索                                                                                                        | 无成果、资料包元数据和授权正文索引                  |
 
 ### 3.5 当前结构热点
 
@@ -323,9 +323,11 @@ ContextPack（可复用授权集合）
 
 交互层采用“单对话一次主动弹窗、逐请求一次性 Manifest”：首次发送主动展示清单；后续范围和 Provider 未变化时在后台生成并确认新的 Manifest，不复用旧 ID。前端待确认清单同时绑定 Provider 指纹、上下文指纹和 Prompt 内容指纹，任一输入变化即从界面失效；Rust Prompt Hash 继续作为最终拒绝边界。已确认的范围/Provider 指纹属于工作区级会话状态，跨工作台与设置页导航保留，切换/移除工作区时清空。Provider store 在活动 Provider 的 Endpoint/Model/Temperature/Proxy 被保存修改或活动 Provider 被切换后，显式失效所有已有消息会话；该事件规则同时覆盖尚无新版本确认指纹的历史会话。范围、文件内容或 Provider 变化时只提示用户点击“修改发送清单”，不主动弹窗且不调用 Provider。后台 Manifest 新发现敏感内容时不得代替用户确认，只保留待确认清单并提示用户主动打开后明确确认。
 
+`[IMPLEMENTED — S2.9 PENDING ACCEPTANCE]` schema v12 以 `context_packs/context_pack_items` 保存工作区级引用集合。创建输入只有工作区 ID、名称和来源 ID；Rust 在 `plan_context` 内按当前工作区展开 Pack，再由既有 Planner 逐项复读来源、校验授权和生成不可变 Manifest。前端直接勾选的授权资料在一次发送后清除，Pack 选择可在会话中记住；通过“修改发送清单”首次挂载 Pack 后，下一次真实发送必须再次展示 Rust 可信清单，不能把保存 Pack 选择视作已确认 Manifest。删除 Pack 只删引用集合；撤销来源通过外键清理引用和空 Pack，同时清理内存索引、旧会话选择与待确认 Manifest，绝不删除磁盘原文件。
+
 前端聊天区域按职责拆为 `ChatPanel` 组合层、`useChatContextFlow` 上下文编排、`ChatMessageList` 协议呈现和 `ChatComposer` 输入/拖放交互。React 组件不直接调用 Desktop Gateway，Context Manifest 编排只通过 `chatController` 进入平台边界；架构测试限制组合层规模并检查这一依赖方向。
 
-处理位置仅把精确 loopback 主机判为 `local`，其余均为 `cloud`。云端疑似敏感内容要求额外确认。当前 OpenAI-Compatible 文本发送合同没有可信图片字段，因此图片会保留原始 Hash 并明确列入排除项；表格由 Rust 受限解析后以结构化 JSON 文本加入上下文。S2.3 没有实现检索、chunk、Embedding、索引、Context Pack 或成果专用 Review 链路。
+处理位置仅把精确 loopback 主机判为 `local`，其余均为 `cloud`。云端疑似敏感内容要求额外确认。当前 OpenAI-Compatible 文本发送合同没有可信图片字段，因此图片会保留原始 Hash 并明确列入排除项；表格由 Rust 受限解析后以结构化 JSON 文本加入上下文。当前检索为本机内存 lexical index，不是持久 Embedding；成果专用 Review 已在 S2.5 接入统一 Pipeline。
 
 ### 5.5 Template
 
@@ -348,10 +350,11 @@ Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字
 - `task_templates`（版本化内置模板；不保存用户源文）
 - `tasks`（状态、结构化回答、最多 3 个当前必要问题计数和 Result 绑定）
 - `review_requests` / `review_blocks`（schema v11；候选 payload、逐块决定、应用/冲突/撤销关联）
+- `context_packs` / `context_pack_items`（schema v12；工作区级来源引用集合，不存正文）
 
 ### 6.2 V2 目标表
 
-`[CURRENT + TARGET]` 从 v9 起只做前向、连续、事务迁移；v9 Result、v10 Task/Template 与 v11 Review 已落地：
+`[CURRENT + TARGET]` 从 v9 起只做前向、连续、事务迁移；v9 Result、v10 Task/Template、v11 Review 与 v12 Context Pack 已落地：
 
 | 表                                     | 作用                                       | 关键关系                                           |
 | -------------------------------------- | ------------------------------------------ | -------------------------------------------------- |
@@ -361,7 +364,7 @@ Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字
 | `review_blocks`                        | 语义块决定（v11 已落地）                   | review request                                     |
 | `context_manifests`                    | 一次实际发送的策略、模式与汇总             | task、session/request                              |
 | `context_manifest_sources`             | 来源元数据，不存长期正文                   | manifest                                           |
-| `context_packs` / `context_pack_items` | 可复用资料引用集合                         | workspace                                          |
+| `context_packs` / `context_pack_items` | 可复用资料引用集合（v12 已落地）           | workspace、workspace file source                   |
 | `task_templates`                       | 内置/个人模板及版本（v10 内置基础已落地）  | 当前为全局内置；个人模板后续                       |
 | `export_jobs`                          | 导出格式、版本、状态、脱敏错误             | result/revision                                    |
 | `product_events`                       | 本地隐私安全行为事件                       | optional task/result                               |
@@ -379,6 +382,8 @@ Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字
 v10 迁移额外保证：v9 Result 原样保留，内置模板以 `(id, version)` 幂等播种，Task/Result 必须属于同一工作区且一个 Task 最多绑定一个 Result；迁移失败时任务表、模板表和 `user_version` 一并回滚。
 
 v11 迁移只新增 Review 表和索引，保留旧 Patch/Revision/Result；外键级联只删除应用记录，不触碰真实文件。迁移失败时两张 Review 表和 `user_version` 一并回滚。清除本地数据会删除 Review 记录，但真实项目文件和“我的成果”文件仍遵循各自明确删除/撤销语义。
+
+v12 迁移只新增 Context Pack 头、来源引用和索引；Pack 名称在工作区内大小写不敏感唯一，引用通过 `workspace_files.source_id` 外键级联。撤销来源只删除授权记录及其 Pack 引用，空 Pack 随后清理；不执行任何磁盘文件删除。迁移失败时两张 Pack 表和 `user_version` 一并回滚。
 
 ### 6.3 状态所有权
 
@@ -453,7 +458,7 @@ S1.2 已验收并开放上述流程的本地准备子集：创建 Task → 校�
 - DOCX/XLSX 预检压缩条目数、单条目/总展开量、压缩比、路径穿越和必要结构；宏、外部关系、嵌入对象只报告且绝不执行或访问。PDF 检查签名并预读文本层；扫描文档明确提示后续 OCR/视觉能力。
 - S2.2 引入统一 `DocumentSource`，把“用户已授权的本地来源”与“可在文本编辑器打开的 `WorkspaceDocument`”分开。文本仍生成 `WorkspaceDocument`；表格和图片只生成持久化 `sourceId` 与脱敏元数据，通过 `list_document_sources` / `read_document_source` 读取。两个读取命令都从 SQLite 授权记录反查路径，不接受前端路径。
 - 已确认来源属于工作区级累积集合，不属于最后一个 `ImportBatch` 的临时结果。每次确认后前端必须调用 `list_document_sources(workspaceId)` 重新取得完整授权事实；刷新异常时可以按 `sourceId` 合并当前批作为显示兜底，但不能将已成功确认误报为失败。SQLite 继续按 `(workspace_id, absolute_path)` 去重；Web Mock 必须保持同样的追加与去重语义。
-- 用户可以通过 `revoke_document_source(workspaceId, sourceId)` 撤销单项授权。Rust 必须在同一条删除条件中校验工作区和来源归属，跨工作区、未知或已撤销 ID 都返回“来源不存在或未获当前工作区授权”；成功只删除 `workspace_files` 记录，响应固定声明 `originalFileDeleted=false`。前端在二次确认后关闭对应预览、内存文本、版本预览和已保存上下文选择，再重新取得完整来源列表。该动作不删除磁盘原文件，也不自动删除已经生成的 Result 或历史记录。
+- 用户可以通过 `revoke_document_source(workspaceId, sourceId)` 撤销单项授权。Rust 必须在同一条删除条件中校验工作区和来源归属，跨工作区、未知或已撤销 ID 都返回“来源不存在或未获当前工作区授权”；成功删除 `workspace_files` 授权记录，外键同步删除 Pack 引用并清理空 Pack，响应固定声明 `originalFileDeleted=false`。命令随后清理该来源的内存检索项并使全部待确认 Manifest 失效。前端在二次确认后关闭对应预览、内存文本、版本预览和已保存上下文/Pack 选择，再重新取得完整来源列表。该动作不删除磁盘原文件，也不自动删除已经生成的 Result 或历史记录。
 - CSV 使用 RFC 风格引号/跨行字段解析；XLSX 只读取共享字符串、内联字符串、布尔值、数值和公式缓存值，不计算公式。上限为 32 个工作表、每表 10000 行/256 列、总计 100000 个网格单元格、单元格 32768 字符。公式与以 `= + - @` 起始的 CSV 文本标为公式注入风险，原值不改写；S2.8 导出必须调用转义策略。
 - 图片保留原始文件字节作为未来多模态来源，只读取签名、尺寸和动画能力元数据；边长上限 32768 像素，总像素上限 4000 万。小于等于 8 MB 的图片可生成仅供当前本机 UI 使用的 `data:` 预览，较大图片仍保留原始来源但不跨 IPC 复制。当前 `visualModelAvailable=false`，UI 必须明确“尚未发送给 AI”；发送授权严格属于 S2.3。
 - 确认前会再次检查文件，防止选择后替换或膨胀；确认的多个可读文件在单个 SQLite 事务中建立引用。来源文件只读，不复制、不修改，也不调用 Provider。

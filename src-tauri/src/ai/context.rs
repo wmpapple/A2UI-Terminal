@@ -62,6 +62,8 @@ pub struct ContextManifestInput {
     pub candidates: Vec<ContextCandidate>,
     pub include_recent_messages: bool,
     pub recent_message_count: u32,
+    #[serde(default)]
+    pub context_pack_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -768,6 +770,7 @@ mod tests {
                 ],
                 include_recent_messages: false,
                 recent_message_count: 0,
+                context_pack_ids: Vec::new(),
             },
         )
         .unwrap();
@@ -867,6 +870,7 @@ mod tests {
                 candidates: Vec::new(),
                 include_recent_messages: false,
                 recent_message_count: 0,
+                context_pack_ids: Vec::new(),
             },
         )
         .unwrap();

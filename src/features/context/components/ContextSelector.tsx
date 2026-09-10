@@ -1,5 +1,5 @@
 import { Alert, Button, Checkbox, Divider, Modal, Progress, Select, Tag } from 'antd';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type {
   ContextManifest,
@@ -8,6 +8,7 @@ import type {
 } from '../../../shared/types/domain';
 import { useAppStore } from '../../../stores/useAppStore';
 import { useImportStore } from '../../imports/importStore';
+import { useContextPackStore } from '../../contextPacks/contextPackStore';
 import {
   buildContextSnapshot,
   isSensitivePath,
@@ -64,10 +65,21 @@ export function ContextSelector({
   const documentSources = useImportStore((state) => state.sources).filter(
     (source) => source.workspaceId === workspace?.id
   );
+  const contextPacks = useContextPackStore((state) => state.packs).filter(
+    (pack) => pack.workspaceId === workspace?.id
+  );
   const [sensitiveConfirmed, setSensitiveConfirmed] = useState(false);
   const [selection, setSelection] = useState<ContextSelection>(() =>
     normalizeContextSelection(initialSelection, selectedText)
   );
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open && !wasOpen.current) {
+      setSelection(normalizeContextSelection(initialSelection, selectedText));
+      setSensitiveConfirmed(false);
+    }
+    wasOpen.current = open;
+  }, [initialSelection, open, selectedText]);
   const recentMessages = useMemo(
     () => sessions.find((session) => session.id === activeSessionId)?.messages ?? [],
     [activeSessionId, sessions]
@@ -99,6 +111,10 @@ export function ContextSelector({
       (source) => selectedIds.has(source.id) && !alreadyVisibleSourceIds.has(source.id)
     );
   }, [activePath, documentSources, files, selection]);
+  const selectedContextPacks = useMemo(() => {
+    const selectedIds = new Set(selection.contextPackIds ?? []);
+    return contextPacks.filter((pack) => selectedIds.has(pack.id));
+  }, [contextPacks, selection.contextPackIds]);
 
   const updateSelection = (next: ContextSelection) => {
     setSelection(next);
@@ -204,7 +220,8 @@ export function ContextSelector({
         </Checkbox.Group>
         {documentSources.length > 0 && (
           <>
-            <Divider>{t('authorizedSources')}</Divider>
+            <Divider>{t('oneTimeAuthorizedSources')}</Divider>
+            <Alert type="info" showIcon title={t('oneTimeSourceHint')} />
             <Checkbox.Group
               value={selection.documentSourceIds ?? []}
               onChange={(sourceIds) =>
@@ -229,6 +246,25 @@ export function ContextSelector({
             </Checkbox.Group>
           </>
         )}
+        {contextPacks.length > 0 && (
+          <>
+            <Divider>{t('workspaceContextPacks')}</Divider>
+            <Alert type="info" showIcon title={t('contextPackExpandHint')} />
+            <Checkbox.Group
+              value={selection.contextPackIds ?? []}
+              onChange={(packIds) =>
+                updateSelection({ ...selection, contextPackIds: packIds as string[] })
+              }
+              className={styles.fileOptions}
+            >
+              {contextPacks.map((pack) => (
+                <Checkbox value={pack.id} key={pack.id}>
+                  {pack.name} <Tag>{pack.items.length}</Tag>
+                </Checkbox>
+              ))}
+            </Checkbox.Group>
+          </>
+        )}
         <Divider>{t(manifest ? 'finalSendList' : 'selectionPreview')}</Divider>
         <div className={styles.sourceList}>
           {snapshot.sources.length === 0 &&
@@ -245,6 +281,13 @@ export function ContextSelector({
               {source.name}
             </Tag>
           ))}
+          {selectedContextPacks.flatMap((pack) =>
+            pack.items.map((item) => (
+              <Tag key={`pack:${pack.id}:${item.sourceId}`} color="geekblue">
+                {pack.name} · {item.label}
+              </Tag>
+            ))
+          )}
           {selection.recentMessages && (
             <Tag color="purple">
               {t('recentMessageCountValue').replace(

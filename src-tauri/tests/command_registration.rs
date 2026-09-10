@@ -46,10 +46,13 @@ const IMPORT_COMMANDS: [&str; 7] = [
     "read_document_source",
     "revoke_document_source",
 ];
-const CONTEXT_COMMANDS: [&str; 3] = [
+const CONTEXT_COMMANDS: [&str; 6] = [
     "plan_context",
     "clear_context_index",
     "confirm_context_manifest",
+    "list_context_packs",
+    "create_context_pack",
+    "delete_context_pack",
 ];
 const REVIEW_COMMANDS: [&str; 8] = [
     "create_review_request",

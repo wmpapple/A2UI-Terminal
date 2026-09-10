@@ -1,6 +1,7 @@
 pub mod adapters;
 pub mod chat;
 pub mod context;
+pub mod context_pack;
 pub mod export;
 mod export_pdf;
 pub mod export_target;

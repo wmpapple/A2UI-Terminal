@@ -7,6 +7,7 @@ import type {
   ChatStreamEvent,
   ChatStreamResult,
   ContextManifest,
+  ContextPack,
   DocumentPatch,
   DocumentSource,
   DocumentSourceContent,
@@ -229,6 +230,20 @@ export const isContextManifest = (value: unknown): value is ContextManifest =>
   isString(value.createdAt) &&
   isString(value.expiresAt) &&
   isNullableString(value.confirmedAt);
+
+const isContextPackItem = (value: unknown): boolean =>
+  isObject(value) && isString(value.sourceId) && isString(value.label);
+
+export const isContextPack = (value: unknown): value is ContextPack =>
+  isObject(value) &&
+  isString(value.id) &&
+  isString(value.workspaceId) &&
+  isString(value.name) &&
+  Array.isArray(value.items) &&
+  value.items.length <= 20 &&
+  value.items.every(isContextPackItem) &&
+  isString(value.createdAt) &&
+  isString(value.updatedAt);
 
 const isTableLimits = (value: unknown): boolean =>
   isObject(value) &&

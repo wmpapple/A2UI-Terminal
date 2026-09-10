@@ -2,6 +2,9 @@ use a2ui_terminal_lib::a2ui::{A2uiProcessResult, SurfaceMessage};
 use a2ui_terminal_lib::ai::ContextManifest;
 use a2ui_terminal_lib::commands::{ChatStreamEvent, ChatStreamResult};
 use a2ui_terminal_lib::document_source::DocumentSourceContent;
+use a2ui_terminal_lib::domain::context_pack::{
+    ContextPack, CreateContextPackInput, DeleteContextPackOutput,
+};
 use a2ui_terminal_lib::domain::import::{ImportBatch, ImportDropOutcome};
 use a2ui_terminal_lib::domain::result::{
     ResultDetail, ResultDocument, ResultRevision, ResultSummary,
@@ -30,6 +33,22 @@ const DOCUMENT_SOURCE_FIXTURE: &str = include_str!("../../contracts/v2/document-
 const CONTEXT_MANIFEST_FIXTURE: &str = include_str!("../../contracts/v2/context-manifest.json");
 const REVIEW_FIXTURE: &str = include_str!("../../contracts/v2/review.json");
 const EXPORT_FIXTURE: &str = include_str!("../../contracts/v2/export.json");
+const CONTEXT_PACK_FIXTURE: &str = include_str!("../../contracts/v2/context-pack.json");
+
+#[test]
+fn context_pack_contract_keeps_create_input_opaque() {
+    let fixture: Value = serde_json::from_str(CONTEXT_PACK_FIXTURE).unwrap();
+    assert_round_trip::<ContextPack>(&fixture["pack"]);
+    assert_round_trip::<DeleteContextPackOutput>(&fixture["deleteOutput"]);
+    let input: CreateContextPackInput =
+        serde_json::from_value(fixture["createInput"].clone()).unwrap();
+    assert_eq!(input.source_ids.len(), 2);
+    for field in ["content", "absolutePath", "prompt", "providerId"] {
+        let mut untrusted = fixture["createInput"].clone();
+        untrusted[field] = Value::String("not allowed".into());
+        assert!(serde_json::from_value::<CreateContextPackInput>(untrusted).is_err());
+    }
+}
 
 #[test]
 fn export_contract_binds_revision_and_rejects_frontend_paths_or_content() {

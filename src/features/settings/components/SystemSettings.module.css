@@ -41,3 +41,54 @@
   user-select: all;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
 }
+
+.contextSection {
+  display: grid;
+  gap: 12px;
+}
+
+.packComposer {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.7fr) minmax(220px, 1.3fr) auto;
+  gap: 8px;
+}
+
+.managedList {
+  display: grid;
+  gap: 8px;
+}
+
+.managedItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+.managedItem > div {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 3px;
+}
+
+.managedItem span {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+  .packComposer {
+    grid-template-columns: 1fr;
+  }
+
+  .managedItem {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}

@@ -76,6 +76,7 @@ export interface AppState {
   restoreWorkspace: (workspaceId: string) => Promise<void>;
   removeCurrentWorkspace: () => Promise<void>;
   forgetAuthorizedSource: (sourceId: string) => void;
+  forgetContextPack: (packId: string) => void;
   openFile: (path: string) => void | Promise<void>;
   closeFile: (path: string) => void;
   updateFile: (path: string, content: string, expectedWorkspaceId?: string) => void;

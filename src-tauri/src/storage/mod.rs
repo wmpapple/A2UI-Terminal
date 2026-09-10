@@ -9,7 +9,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 11;
+const SCHEMA_VERSION: i64 = 12;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -21,6 +21,7 @@ const MIGRATION_V8: &str = include_str!("../../migrations/0008_crash_recovery.sq
 const MIGRATION_V9: &str = include_str!("../../migrations/0009_results.sql");
 const MIGRATION_V10: &str = include_str!("../../migrations/0010_tasks_and_templates.sql");
 const MIGRATION_V11: &str = include_str!("../../migrations/0011_review_pipeline.sql");
+const MIGRATION_V12: &str = include_str!("../../migrations/0012_context_packs.sql");
 const MIGRATIONS: &[(i64, &str)] = &[
     (1, MIGRATION_V1),
     (2, MIGRATION_V2),
@@ -33,6 +34,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (9, MIGRATION_V9),
     (10, MIGRATION_V10),
     (11, MIGRATION_V11),
+    (12, MIGRATION_V12),
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -66,12 +68,37 @@ pub struct NewWorkspaceFileRow<'a> {
     pub virtual_path: &'a str,
 }
 
+#[derive(Debug, Clone)]
+pub struct ContextPackRow {
+    pub id: String,
+    pub workspace_id: String,
+    pub name: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ContextPackItemRow {
+    pub source_id: String,
+    pub label: String,
+}
+
 fn workspace_file_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<WorkspaceFileRow> {
     Ok(WorkspaceFileRow {
         source_id: row.get(0)?,
         workspace_id: row.get(1)?,
         absolute_path: row.get(2)?,
         virtual_path: row.get(3)?,
+    })
+}
+
+fn context_pack_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ContextPackRow> {
+    Ok(ContextPackRow {
+        id: row.get(0)?,
+        workspace_id: row.get(1)?,
+        name: row.get(2)?,
+        created_at: row.get(3)?,
+        updated_at: row.get(4)?,
     })
 }
 
@@ -1192,12 +1219,129 @@ impl Storage {
         )? > 0;
         if removed {
             transaction.execute(
+                "DELETE FROM context_packs
+                 WHERE workspace_id = ?1
+                   AND NOT EXISTS (
+                     SELECT 1 FROM context_pack_items
+                     WHERE context_pack_items.pack_id = context_packs.id
+                   )",
+                [workspace_id],
+            )?;
+            transaction.execute(
                 "UPDATE workspaces SET updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
                 [workspace_id],
             )?;
         }
         transaction.commit()?;
         Ok(removed)
+    }
+
+    pub fn create_context_pack(
+        &self,
+        pack_id: &str,
+        workspace_id: &str,
+        name: &str,
+        source_ids: &[String],
+    ) -> Result<(), AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let authorized_count = source_ids.iter().try_fold(0usize, |count, source_id| {
+            let found = transaction
+                .query_row(
+                    "SELECT 1 FROM workspace_files WHERE workspace_id = ?1 AND source_id = ?2",
+                    params![workspace_id, source_id],
+                    |_| Ok(true),
+                )
+                .optional()?
+                .unwrap_or(false);
+            Ok::<usize, rusqlite::Error>(count + usize::from(found))
+        })?;
+        if authorized_count != source_ids.len() {
+            return Err(AppError::InvalidInput(
+                "资料来源不存在或未获当前工作区授权".into(),
+            ));
+        }
+        transaction.execute(
+            "INSERT INTO context_packs(id, workspace_id, name) VALUES (?1, ?2, ?3)",
+            params![pack_id, workspace_id, name],
+        )?;
+        for (position, source_id) in source_ids.iter().enumerate() {
+            transaction.execute(
+                "INSERT INTO context_pack_items(pack_id, source_id, position)
+                 VALUES (?1, ?2, ?3)",
+                params![pack_id, source_id, position as i64],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn context_packs(&self, workspace_id: &str) -> Result<Vec<ContextPackRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut statement = connection.prepare(
+            "SELECT id, workspace_id, name, created_at, updated_at
+             FROM context_packs WHERE workspace_id = ?1
+             ORDER BY updated_at DESC, id DESC",
+        )?;
+        let rows = statement.query_map([workspace_id], context_pack_from_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn context_pack(
+        &self,
+        workspace_id: &str,
+        pack_id: &str,
+    ) -> Result<Option<ContextPackRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT id, workspace_id, name, created_at, updated_at
+                 FROM context_packs WHERE workspace_id = ?1 AND id = ?2",
+                params![workspace_id, pack_id],
+                context_pack_from_row,
+            )
+            .optional()?)
+    }
+
+    pub fn context_pack_items(&self, pack_id: &str) -> Result<Vec<ContextPackItemRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut statement = connection.prepare(
+            "SELECT item.source_id, file.virtual_path
+             FROM context_pack_items item
+             JOIN workspace_files file ON file.source_id = item.source_id
+             WHERE item.pack_id = ?1
+             ORDER BY item.position",
+        )?;
+        let rows = statement.query_map([pack_id], |row| {
+            Ok(ContextPackItemRow {
+                source_id: row.get(0)?,
+                label: row.get(1)?,
+            })
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn delete_context_pack(&self, workspace_id: &str, pack_id: &str) -> Result<bool, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection.execute(
+            "DELETE FROM context_packs WHERE workspace_id = ?1 AND id = ?2",
+            params![workspace_id, pack_id],
+        )? > 0)
     }
 
     pub fn workspace(&self, workspace_id: &str) -> Result<Option<WorkspaceRow>, AppError> {
@@ -3096,6 +3240,8 @@ mod tests {
             "tasks",
             "review_requests",
             "review_blocks",
+            "context_packs",
+            "context_pack_items",
         ] {
             assert!(
                 storage.table_exists(table).unwrap(),
@@ -3380,6 +3526,37 @@ mod tests {
         assert!(!connection
             .query_row(
                 "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'review_requests'",
+                [],
+                |_| Ok(true),
+            )
+            .optional()
+            .unwrap()
+            .unwrap_or(false));
+    }
+
+    #[test]
+    fn failed_v12_migration_rolls_back_context_pack_tables_and_schema_version() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        Storage::configure(&connection).unwrap();
+        Storage::migrate_to(&mut connection, 11, MIGRATIONS).unwrap();
+        let failure = Storage::migrate_to(
+            &mut connection,
+            12,
+            &[(
+                12,
+                "CREATE TABLE context_packs(id TEXT); INSERT INTO missing_table VALUES (1);",
+            )],
+        );
+        assert!(failure.is_err());
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .unwrap(),
+            11
+        );
+        assert!(!connection
+            .query_row(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'context_packs'",
                 [],
                 |_| Ok(true),
             )

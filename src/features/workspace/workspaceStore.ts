@@ -21,6 +21,7 @@ type WorkspaceActions = Pick<
   | 'restoreWorkspace'
   | 'removeCurrentWorkspace'
   | 'forgetAuthorizedSource'
+  | 'forgetContextPack'
   | 'openFile'
   | 'closeFile'
   | 'updateFile'
@@ -564,6 +565,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
               },
             ])
           ),
+          contextReviewKeyBySession: {},
           selectedText: removedPaths.has(state.activePath) ? '' : state.selectedText,
           documentVersions: clearingHistory ? [] : state.documentVersions,
           versionPreview: clearingHistory ? null : state.versionPreview,
@@ -572,6 +574,20 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
           versionHistoryError: clearingHistory ? null : state.versionHistoryError,
         };
       }),
+
+    forgetContextPack: (packId) =>
+      set((state) => ({
+        contextBySession: Object.fromEntries(
+          Object.entries(state.contextBySession).map(([sessionId, context]) => [
+            sessionId,
+            {
+              ...context,
+              contextPackIds: (context.contextPackIds ?? []).filter((id) => id !== packId),
+            },
+          ])
+        ),
+        contextReviewKeyBySession: {},
+      })),
 
     openFile: (path) => {
       if (get().runtimeMode === 'web-mock') {

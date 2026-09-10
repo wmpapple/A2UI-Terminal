@@ -3,6 +3,7 @@ import type {
   ContextManifest,
   ContextManifestInput,
   ContextManifestSource,
+  ContextPack,
   ContextSelection,
   DocumentSource,
   ProcessingLocation,
@@ -95,14 +96,35 @@ export const buildContextManifestInput = ({
     candidates,
     includeRecentMessages: selection.recentMessages,
     recentMessageCount: selection.recentMessages ? selection.recentMessageCount : 0,
+    contextPackIds: selection.contextPackIds ?? [],
   };
 };
 
 export const createWebMockManifest = (
   input: ContextManifestInput,
-  processingLocation: ProcessingLocation
+  processingLocation: ProcessingLocation,
+  contextPacks: ContextPack[] = []
 ): ContextManifest => {
   const selectedCandidates = input.candidates.filter((candidate) => candidate.selected);
+  const knownSourceIds = new Set(
+    selectedCandidates.flatMap((candidate) => candidate.sourceId ?? [])
+  );
+  for (const packId of input.contextPackIds) {
+    const pack = contextPacks.find(
+      (candidate) => candidate.id === packId && candidate.workspaceId === input.workspaceId
+    );
+    if (!pack) throw new Error('资料包不存在或不属于当前工作区');
+    for (const item of pack.items) {
+      if (knownSourceIds.has(item.sourceId)) continue;
+      knownSourceIds.add(item.sourceId);
+      selectedCandidates.push({
+        kind: 'attached_document',
+        label: item.label,
+        selected: true,
+        sourceId: item.sourceId,
+      });
+    }
+  }
   const selectedCharacters = selectedCandidates.reduce(
     (sum, candidate) => sum + (candidate.content?.length ?? 0),
     0

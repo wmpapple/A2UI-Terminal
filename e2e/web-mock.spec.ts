@@ -464,3 +464,89 @@ test('reviews and locally previews text, table, and image sources before any AI 
   await expect(imageSource).toHaveCount(0);
   await expect(tableSource).toBeVisible();
 });
+
+test('remembers context packs, expands them for confirmation, and revokes references safely', async ({
+  page,
+}) => {
+  await skipOnboarding(page);
+  await page.getByRole('button', { name: /选择资料/ }).click();
+  const confirmation = page.getByRole('dialog', { name: '确认读取范围' });
+  await confirmation.getByRole('checkbox', { name: /meeting-notes.md/ }).uncheck();
+  await confirmation.getByRole('checkbox', { name: /research-report.docx/ }).uncheck();
+  await confirmation.getByRole('checkbox', { name: /whiteboard.png/ }).uncheck();
+  await confirmation.getByRole('button', { name: '确认加入资料' }).click();
+
+  const navigation = page.getByRole('navigation', { name: '主导航' });
+  await navigation.getByRole('button', { name: /工作台/ }).click();
+  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('仅本次分析销售表');
+  await page.getByRole('button', { name: /send 发送/ }).click();
+  const oneTimeReview = page.getByRole('dialog', { name: '发送前确认上下文' });
+  await oneTimeReview.getByRole('checkbox', { name: /sales.xlsx/ }).click();
+  await oneTimeReview.getByRole('button', { name: '生成发送清单' }).click();
+  await expect(oneTimeReview.getByText(/sales.xlsx/).last()).toBeVisible();
+  await oneTimeReview.getByRole('button', { name: '确认并发送' }).click();
+  await expect(oneTimeReview).toBeHidden();
+
+  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('再次分析销售表');
+  await page.getByRole('button', { name: /send 发送/ }).click();
+  await expect(oneTimeReview).toBeHidden();
+  await expect(page.getByText('再次分析销售表', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '修改发送清单' }).click();
+  await expect(oneTimeReview).toBeVisible();
+  await expect(oneTimeReview.getByRole('checkbox', { name: /sales.xlsx/ })).not.toBeChecked();
+  await oneTimeReview.getByRole('button', { name: 'Close' }).click();
+
+  await navigation.getByRole('button', { name: /设置$/ }).click();
+  const manager = page.getByTestId('context-pack-settings');
+  await expect(manager).toBeVisible();
+  await manager.getByTestId('context-pack-name').fill('季度数据');
+  await manager.getByTestId('context-pack-sources').click();
+  await page.getByText('sales.xlsx', { exact: true }).last().click();
+  await manager.getByTestId('create-context-pack').click();
+
+  const pack = manager.getByTestId('context-pack-item').filter({ hasText: '季度数据' });
+  await expect(pack).toContainText('sales.xlsx');
+
+  await navigation.getByRole('button', { name: /工作台/ }).click();
+  await page.getByRole('button', { name: '修改发送清单' }).click();
+  const savedContext = page.getByRole('dialog', { name: '发送前确认上下文' });
+  await savedContext.getByRole('checkbox', { name: /季度数据/ }).click();
+  await savedContext.getByRole('button', { name: '保存上下文' }).click();
+  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('总结季度数据');
+  await page.getByRole('button', { name: /send 发送/ }).click();
+  const review = page.getByRole('dialog', { name: '发送前确认上下文' });
+  await expect(review.getByRole('checkbox', { name: /季度数据/ })).toBeChecked();
+  await review.getByRole('button', { name: '生成发送清单' }).click();
+  await expect(review.getByText(/sales.xlsx/).last()).toBeVisible();
+  await review.getByRole('button', { name: '确认并发送' }).click();
+  await expect(review).toBeHidden();
+
+  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('继续总结季度数据');
+  await page.getByRole('button', { name: /send 发送/ }).click();
+  await expect(review).toBeHidden();
+  await expect(page.getByText('继续总结季度数据', { exact: true })).toBeVisible();
+
+  await navigation.getByRole('button', { name: /设置$/ }).click();
+  const rememberedPack = page.getByTestId('context-pack-item').filter({ hasText: '季度数据' });
+  await rememberedPack.getByTestId('delete-context-pack').click();
+  await page.getByRole('button', { name: '删除资料包' }).last().click();
+  await expect(rememberedPack).toHaveCount(0);
+
+  const source = page.getByTestId('authorized-source-item').filter({ hasText: 'sales.xlsx' });
+  await expect(source).toBeVisible();
+
+  await manager.getByTestId('context-pack-name').fill('待撤销数据');
+  await manager.getByTestId('context-pack-sources').click();
+  await page.getByText('sales.xlsx', { exact: true }).last().click();
+  await manager.getByTestId('create-context-pack').click();
+  await expect(
+    page.getByTestId('context-pack-item').filter({ hasText: '待撤销数据' })
+  ).toBeVisible();
+
+  await source.getByTestId('revoke-authorized-source').click();
+  await page.getByRole('button', { name: '取消授权' }).click();
+  await expect(source).toHaveCount(0);
+  await expect(page.getByTestId('context-pack-item').filter({ hasText: '待撤销数据' })).toHaveCount(
+    0
+  );
+});

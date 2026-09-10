@@ -1,0 +1,22 @@
+{
+  "createInput": {
+    "workspaceId": "workspace-contract-v2",
+    "name": "项目资料",
+    "sourceIds": ["source-meeting", "source-table"]
+  },
+  "pack": {
+    "id": "550e8400-e29b-41d4-a716-446655440030",
+    "workspaceId": "workspace-contract-v2",
+    "name": "项目资料",
+    "items": [
+      { "sourceId": "source-meeting", "label": "meeting.md" },
+      { "sourceId": "source-table", "label": "sales.csv" }
+    ],
+    "createdAt": "2026-09-10 11:00:00",
+    "updatedAt": "2026-09-10 11:00:00"
+  },
+  "deleteOutput": {
+    "deleted": true,
+    "originalFilesDeleted": false
+  }
+}
