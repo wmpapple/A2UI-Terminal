@@ -10,7 +10,10 @@ rust-version = "1.85"
 
 [lib]
 name = "a2ui_terminal_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+# V2 currently ships and accepts Windows desktop only. Desktop builds and Rust
+# integration tests consume the rlib; staticlib/cdylib are required only when a
+# future stage explicitly enables Tauri mobile targets.
+crate-type = ["rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }

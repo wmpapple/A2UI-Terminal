@@ -2,6 +2,7 @@ import type {
   ExportResultInput,
   ExportResultOutput,
   ExportProgressEvent,
+  A2uiCapabilities,
   A2uiProcessResult,
   ChatSession,
   ChatStreamEvent,
@@ -701,7 +702,14 @@ const isA2uiValidation = (value: unknown): boolean =>
   isBoolean(value.valid) &&
   isStringArray(value.errors) &&
   isStringArray(value.warnings) &&
-  isNumber(value.durationMs);
+  isNumber(value.durationMs) &&
+  (value.errorCode === undefined || isNullableString(value.errorCode)) &&
+  (value.negotiation === undefined ||
+    (isObject(value.negotiation) &&
+      isNullableString(value.negotiation.receivedVersion) &&
+      isNullableString(value.negotiation.selectedVersion) &&
+      isNullableString(value.negotiation.catalogId) &&
+      isBoolean(value.negotiation.compatible)));
 
 const isA2uiSurface = (value: unknown): boolean =>
   isObject(value) &&
@@ -710,6 +718,8 @@ const isA2uiSurface = (value: unknown): boolean =>
   isString(value.sessionId) &&
   isString(value.messageId) &&
   isNumber(value.revision) &&
+  isString(value.protocolVersion) &&
+  isNullableString(value.catalogId) &&
   isA2uiNode(value.root) &&
   isObject(value.data) &&
   isString(value.rawMessage) &&
@@ -729,6 +739,27 @@ export const isA2uiProcessResult = (value: unknown): value is A2uiProcessResult 
   isObject(value) &&
   (value.surface === null || isA2uiSurface(value.surface)) &&
   isA2uiInspection(value.inspection);
+
+export const isA2uiCapabilities = (value: unknown): value is A2uiCapabilities =>
+  isObject(value) &&
+  value.protocol === 'A2UI' &&
+  isString(value.preferredVersion) &&
+  isStringArray(value.supportedVersions) &&
+  isObject(value.rendererCapabilities) &&
+  isObject(value.rendererCapabilities['v0.9']) &&
+  isStringArray(value.rendererCapabilities['v0.9'].supportedCatalogIds) &&
+  isObject(value.catalog) &&
+  isString(value.catalog.catalogId) &&
+  isBoolean(value.catalog.acceptsInlineCatalogs) &&
+  isStringArray(value.catalog.components) &&
+  value.catalog.components.every((component) => a2uiComponents.has(component)) &&
+  isStringArray(value.catalog.actions) &&
+  value.catalog.actions.every((action) => a2uiActions.has(action)) &&
+  isStringArray(value.catalog.incrementalMessages) &&
+  isObject(value.legacyProfile) &&
+  value.legacyProfile.version === '1.0' &&
+  isStringArray(value.legacyProfile.messageTypes) &&
+  isBoolean(value.legacyProfile.compatibilityOnly);
 
 export const isA2uiSurfaceProtocol = (value: unknown): boolean =>
   isObject(value) &&

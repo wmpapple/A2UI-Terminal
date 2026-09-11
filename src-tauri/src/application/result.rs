@@ -1187,6 +1187,7 @@ mod tests {
                 &workspace.id,
                 &session.id,
                 "message-tool",
+                "1.0",
                 1,
                 state_json,
                 "{}",

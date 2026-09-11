@@ -1,0 +1,36 @@
+{
+  "protocol": "A2UI",
+  "preferredVersion": "v0.9.1",
+  "supportedVersions": ["v0.9.1", "v0.9"],
+  "rendererCapabilities": {
+    "v0.9": {
+      "supportedCatalogIds": ["urn:a2ui-terminal:catalog:basic:v1"]
+    }
+  },
+  "catalog": {
+    "catalogId": "urn:a2ui-terminal:catalog:basic:v1",
+    "acceptsInlineCatalogs": false,
+    "components": [
+      "Row",
+      "Column",
+      "Stack",
+      "Text",
+      "Card",
+      "Badge",
+      "Progress",
+      "TextField",
+      "Select",
+      "Checkbox",
+      "Button",
+      "Tabs",
+      "Form"
+    ],
+    "actions": ["set_state", "submit_form", "request_patch"],
+    "incrementalMessages": ["updateComponents", "updateDataModel"]
+  },
+  "legacyProfile": {
+    "version": "1.0",
+    "messageTypes": ["a2ui_surface", "a2ui_update"],
+    "compatibilityOnly": true
+  }
+}

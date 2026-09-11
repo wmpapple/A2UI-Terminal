@@ -81,6 +81,41 @@ describe('ChatPanel patch presentation', () => {
     expect(screen.queryByText(/MACHINE_ONLY_PROTOCOL/)).not.toBeInTheDocument();
   });
 
+  it('hides the standard A2UI DataPart behind a human-readable Surface status', () => {
+    const rawA2ui =
+      '{"data":[{"version":"v0.9.1","createSurface":{"surfaceId":"contact-form","catalogId":"urn:a2ui-terminal:catalog:basic:v1"}},{"version":"v0.9.1","updateComponents":{"surfaceId":"contact-form","components":[]}}],"kind":"data","metadata":{"mimeType":"application/a2ui+json"}}';
+    useAppStore.setState({
+      sessions: [
+        {
+          id: 'session',
+          title: 'test',
+          messages: [
+            {
+              id: 'assistant',
+              role: 'assistant',
+              content: rawA2ui,
+              status: 'complete',
+              errorCode: 'A2UI_READY',
+            },
+          ],
+        },
+      ],
+      activeSessionId: 'session',
+      chatRequestId: null,
+    });
+
+    render(
+      <I18nProvider>
+        <ChatPanel />
+      </I18nProvider>
+    );
+
+    expect(screen.getByText('A2UI Surface 已通过安全校验')).toBeInTheDocument();
+    expect(screen.getByText('打开 Surface')).toBeInTheDocument();
+    expect(screen.queryByText(/createSurface/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/application\/a2ui\+json/)).not.toBeInTheDocument();
+  });
+
   it('hides create-file JSON and explains where acceptance will save the result', () => {
     useAppStore.setState({
       sessions: [

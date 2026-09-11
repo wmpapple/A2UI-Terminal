@@ -53,6 +53,7 @@ fn main() {
         "discard_review",
         "resolve_review_conflict",
         "undo_review",
+        "get_a2ui_capabilities",
         "process_a2ui_message",
         "list_a2ui_surfaces",
         "list_a2ui_inspections",

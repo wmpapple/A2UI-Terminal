@@ -1,10 +1,14 @@
+mod capabilities;
 mod policy;
 mod protocol;
+mod standard;
 
+pub use capabilities::{capabilities as get_capabilities, A2uiCapabilities, CATALOG_ID};
 pub use protocol::{is_component_allowed, SurfaceMessage, ALLOWED_COMPONENTS, SCHEMA_VERSION};
 
 use crate::error::AppError;
 use crate::storage::{A2uiInspectionRow, A2uiSurfaceRow, Storage};
+use capabilities::{is_supported_version, LEGACY_PROTOCOL_VERSION};
 use policy::{evaluate, ActionDecision, ActionRisk};
 use protocol::{
     apply_update, find_node, normalize_surface, validate_runtime_value, validate_surface, A2uiNode,
@@ -22,6 +26,19 @@ pub struct A2uiValidation {
     pub errors: Vec<String>,
     pub warnings: Vec<String>,
     pub duration_ms: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub negotiation: Option<A2uiNegotiationEvidence>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct A2uiNegotiationEvidence {
+    pub received_version: Option<String>,
+    pub selected_version: Option<String>,
+    pub catalog_id: Option<String>,
+    pub compatible: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,6 +63,8 @@ pub struct A2uiSurfaceView {
     pub session_id: String,
     pub message_id: String,
     pub revision: u64,
+    pub protocol_version: String,
+    pub catalog_id: Option<String>,
     pub root: A2uiNode,
     pub data: serde_json::Map<String, Value>,
     pub raw_message: String,
@@ -102,7 +121,13 @@ pub struct ActionExecutionResult {
 
 pub fn looks_like_a2ui_candidate(raw: &str) -> bool {
     let lower = raw.to_ascii_lowercase();
-    lower.contains("a2ui_surface") || lower.contains("a2ui_update")
+    lower.contains("a2ui_surface")
+        || lower.contains("a2ui_update")
+        || lower.contains("application/a2ui+json")
+        || lower.contains("createsurface")
+        || lower.contains("updatecomponents")
+        || lower.contains("updatedatamodel")
+        || lower.contains("deletesurface")
 }
 
 pub fn process_message(
@@ -122,6 +147,7 @@ pub fn process_message(
     let inspection_id = Uuid::new_v4().to_string();
     let stored_raw = truncate_utf8(&request.raw_message, MAX_MESSAGE_BYTES);
     let mut surface_id = None;
+    let mut negotiation = None;
     let result = if request.raw_message.len() > MAX_MESSAGE_BYTES {
         Err(vec![format!(
             "A2UI 消息不能超过 {} KiB",
@@ -135,14 +161,22 @@ pub fn process_message(
                     .map_err(|error| vec![format!("A2UI JSON 无效：{error}")])
             })
             .and_then(|value| {
-                surface_id = value
-                    .get("surfaceId")
-                    .and_then(Value::as_str)
-                    .map(str::to_string);
+                surface_id = observed_surface_id(&value);
+                negotiation = negotiation_evidence(&value);
                 match value.get("type").and_then(Value::as_str) {
                     Some("a2ui_surface") => parse_full_surface(value),
                     Some("a2ui_update") => parse_update(storage, &request.workspace_id, value),
-                    _ => Err(vec!["A2UI type 必须是 a2ui_surface 或 a2ui_update".into()]),
+                    _ if value.get("data").is_some() => {
+                        parse_standard_data_part(storage, &request.workspace_id, value)
+                    }
+                    _ if is_unwrapped_standard_message(&value) => Err(vec![
+                        "官方 A2UI 消息必须放入 kind=data、metadata.mimeType=application/a2ui+json 的 DataPart.data 数组"
+                            .into(),
+                    ]),
+                    _ => Err(vec![
+                        "A2UI 消息必须是受支持的官方 DataPart，或旧版 a2ui_surface/a2ui_update"
+                            .into(),
+                    ]),
                 }
             })
     };
@@ -154,6 +188,8 @@ pub fn process_message(
                 errors: Vec::new(),
                 warnings,
                 duration_ms,
+                error_code: None,
+                negotiation,
             };
             let state_json =
                 serde_json::to_string(&state).map_err(|_| AppError::StateUnavailable)?;
@@ -165,6 +201,7 @@ pub fn process_message(
                 &request.workspace_id,
                 &request.session_id,
                 &request.message_id,
+                &state.protocol_version,
                 state.revision,
                 &state_json,
                 stored_raw,
@@ -192,6 +229,8 @@ pub fn process_message(
                 errors,
                 warnings: Vec::new(),
                 duration_ms,
+                error_code: Some(negotiation_error_code(negotiation.as_ref()).into()),
+                negotiation,
             };
             let validation_json =
                 serde_json::to_string(&validation).map_err(|_| AppError::StateUnavailable)?;
@@ -356,6 +395,8 @@ fn parse_full_surface(value: Value) -> Result<(A2uiSurfaceState, Vec<String>), V
         ]);
     }
     let mut state = A2uiSurfaceState {
+        protocol_version: LEGACY_PROTOCOL_VERSION.into(),
+        catalog_id: None,
         surface_id: message.surface_id,
         revision: message.revision,
         root: message.root,
@@ -363,6 +404,32 @@ fn parse_full_surface(value: Value) -> Result<(A2uiSurfaceState, Vec<String>), V
     };
     let mut warnings = normalize_surface(&mut state)?;
     warnings.extend(validate_surface(&state)?);
+    Ok((state, warnings))
+}
+
+fn parse_standard_data_part(
+    storage: &Storage,
+    workspace_id: &str,
+    value: Value,
+) -> Result<(A2uiSurfaceState, Vec<String>), Vec<String>> {
+    let candidate_surface_id = standard::observed_surface_id(&value)
+        .ok_or_else(|| vec!["官方 A2UI DataPart 缺少 surfaceId".into()])?;
+    let current = storage
+        .a2ui_surface(workspace_id, &candidate_surface_id)
+        .map_err(|error| vec![error.to_string()])?
+        .map(|row| {
+            serde_json::from_str::<A2uiSurfaceState>(&row.state_json)
+                .map_err(|_| vec!["现有 Surface 状态损坏".into()])
+        })
+        .transpose()?;
+    let batch = standard::apply_data_part(value, current)?;
+    let mut state = batch.state;
+    let mut warnings = normalize_surface(&mut state)?;
+    warnings.extend(validate_surface(&state)?);
+    warnings.push(format!(
+        "已协商 A2UI {}，Catalog {}",
+        batch.version, batch.catalog_id
+    ));
     Ok((state, warnings))
 }
 
@@ -380,6 +447,113 @@ fn parse_update(
     let current: A2uiSurfaceState =
         serde_json::from_str(&row.state_json).map_err(|_| vec!["现有 Surface 状态损坏".into()])?;
     apply_update(&current, update)
+}
+
+fn is_unwrapped_standard_message(value: &Value) -> bool {
+    [
+        "createSurface",
+        "updateComponents",
+        "updateDataModel",
+        "deleteSurface",
+    ]
+    .into_iter()
+    .any(|key| value.get(key).is_some())
+}
+
+fn observed_surface_id(value: &Value) -> Option<String> {
+    value
+        .get("surfaceId")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| standard::observed_surface_id(value))
+        .or_else(|| {
+            [
+                "createSurface",
+                "updateComponents",
+                "updateDataModel",
+                "deleteSurface",
+            ]
+            .into_iter()
+            .find_map(|key| {
+                value
+                    .get(key)
+                    .and_then(|body| body.get("surfaceId"))
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+            })
+        })
+}
+
+fn negotiation_evidence(value: &Value) -> Option<A2uiNegotiationEvidence> {
+    if value.get("type").is_some() {
+        let received_version = value
+            .get("version")
+            .and_then(Value::as_str)
+            .map(str::to_string);
+        let compatible = received_version.as_deref() == Some(LEGACY_PROTOCOL_VERSION);
+        return Some(A2uiNegotiationEvidence {
+            received_version,
+            selected_version: compatible.then(|| LEGACY_PROTOCOL_VERSION.into()),
+            catalog_id: None,
+            compatible,
+        });
+    }
+
+    let first = value
+        .get("data")
+        .and_then(Value::as_array)
+        .and_then(|messages| messages.first())
+        .unwrap_or(value);
+    if !is_unwrapped_standard_message(first) {
+        return None;
+    }
+    let received_version = first
+        .get("version")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let catalog_id = value
+        .get("data")
+        .and_then(Value::as_array)
+        .and_then(|messages| {
+            messages.iter().find_map(|message| {
+                message
+                    .get("createSurface")
+                    .and_then(|body| body.get("catalogId"))
+                    .and_then(Value::as_str)
+            })
+        })
+        .or_else(|| {
+            value
+                .get("createSurface")
+                .and_then(|body| body.get("catalogId"))
+                .and_then(Value::as_str)
+        })
+        .map(str::to_string);
+    let version_compatible = received_version
+        .as_deref()
+        .is_some_and(is_supported_version);
+    let catalog_compatible = catalog_id.as_deref().is_none_or(|id| id == CATALOG_ID);
+    Some(A2uiNegotiationEvidence {
+        received_version: received_version.clone(),
+        selected_version: version_compatible.then_some(received_version).flatten(),
+        catalog_id,
+        compatible: version_compatible && catalog_compatible,
+    })
+}
+
+fn negotiation_error_code(evidence: Option<&A2uiNegotiationEvidence>) -> &'static str {
+    match evidence {
+        Some(value) if value.selected_version.is_none() => "A2UI_PROTOCOL_INCOMPATIBLE",
+        Some(value)
+            if value
+                .catalog_id
+                .as_deref()
+                .is_some_and(|catalog| catalog != CATALOG_ID) =>
+        {
+            "A2UI_CATALOG_UNSUPPORTED"
+        }
+        _ => "A2UI_VALIDATION_FAILED",
+    }
 }
 
 fn load_surface(
@@ -436,6 +610,8 @@ fn surface_from_row(storage: &Storage, row: A2uiSurfaceRow) -> Result<A2uiSurfac
         session_id: row.session_id,
         message_id: row.message_id,
         revision: state.revision,
+        protocol_version: state.protocol_version.clone(),
+        catalog_id: state.catalog_id.clone(),
         root: state.root,
         data: state.data,
         raw_message: row.raw_message,
@@ -697,6 +873,8 @@ mod tests {
             errors: Vec::new(),
             warnings: Vec::new(),
             duration_ms: 0,
+            error_code: None,
+            negotiation: None,
         })
         .unwrap();
         storage
@@ -706,6 +884,7 @@ mod tests {
                 &workspace_id,
                 &session_id,
                 &Uuid::new_v4().to_string(),
+                LEGACY_PROTOCOL_VERSION,
                 1,
                 &state.to_string(),
                 &state.to_string(),

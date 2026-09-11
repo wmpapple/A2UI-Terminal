@@ -140,6 +140,8 @@ export const createMockA2ui = (): { surface: A2uiSurface; inspection: A2uiInspec
     sessionId: 'welcome',
     messageId: 'web-mock-a2ui',
     revision: 1,
+    protocolVersion: '1.0',
+    catalogId: null,
     rawMessage,
     validation,
     events: [],

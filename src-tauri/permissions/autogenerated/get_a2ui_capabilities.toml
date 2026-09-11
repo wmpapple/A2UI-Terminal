@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-a2ui-capabilities"
+description = "Enables the get_a2ui_capabilities command without any pre-configured scope."
+commands.allow = ["get_a2ui_capabilities"]
+
+[[permission]]
+identifier = "deny-get-a2ui-capabilities"
+description = "Denies the get_a2ui_capabilities command without any pre-configured scope."
+commands.deny = ["get_a2ui_capabilities"]

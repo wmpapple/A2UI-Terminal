@@ -1,4 +1,4 @@
-use a2ui_terminal_lib::a2ui::{A2uiProcessResult, SurfaceMessage};
+use a2ui_terminal_lib::a2ui::{A2uiCapabilities, A2uiProcessResult, SurfaceMessage};
 use a2ui_terminal_lib::ai::ContextManifest;
 use a2ui_terminal_lib::commands::{ChatStreamEvent, ChatStreamResult};
 use a2ui_terminal_lib::document_source::DocumentSourceContent;
@@ -34,6 +34,7 @@ const CONTEXT_MANIFEST_FIXTURE: &str = include_str!("../../contracts/v2/context-
 const REVIEW_FIXTURE: &str = include_str!("../../contracts/v2/review.json");
 const EXPORT_FIXTURE: &str = include_str!("../../contracts/v2/export.json");
 const CONTEXT_PACK_FIXTURE: &str = include_str!("../../contracts/v2/context-pack.json");
+const A2UI_CAPABILITIES_FIXTURE: &str = include_str!("../../contracts/v2/a2ui-capabilities.json");
 
 #[test]
 fn context_pack_contract_keeps_create_input_opaque() {
@@ -100,6 +101,16 @@ fn rust_serde_matches_all_shared_response_fixtures() {
     let revision: Value = serde_json::from_str(REVISION_FIXTURE).unwrap();
     assert_round_trip::<DocumentVersionSummary>(&revision["summary"]);
     assert_round_trip::<DocumentVersion>(&revision["document"]);
+}
+
+#[test]
+fn a2ui_capabilities_match_the_shared_fixture() {
+    let fixture: Value = serde_json::from_str(A2UI_CAPABILITIES_FIXTURE).unwrap();
+    assert_round_trip::<A2uiCapabilities>(&fixture);
+    assert_eq!(
+        serde_json::to_value(a2ui_terminal_lib::a2ui::get_capabilities()).unwrap(),
+        fixture
+    );
 }
 
 #[test]

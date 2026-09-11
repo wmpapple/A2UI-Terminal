@@ -10,6 +10,7 @@
     "lint": "eslint src vite.config.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --passWithNoTests",
+    "test:a2ui-conformance": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-a2ui-conformance.ps1",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",

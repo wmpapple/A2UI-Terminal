@@ -5,9 +5,11 @@ import {
   SafetyOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Empty, Popconfirm, Select, Tabs, Tag } from 'antd';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
+import type { A2uiCapabilities } from '../../../shared/types/domain';
 import { useAppStore } from '../../../stores/useAppStore';
+import { a2uiController } from '../a2uiController';
 import { A2uiRuntime } from '../runtime/A2uiRuntime';
 import styles from './A2uiWorkbench.module.css';
 
@@ -19,6 +21,7 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
   const { t } = useI18n();
   const surfaces = useAppStore((state) => state.a2uiSurfaces);
   const inspections = useAppStore((state) => state.a2uiInspections);
+  const runtimeMode = useAppStore((state) => state.runtimeMode);
   const activeSurfaceId = useAppStore((state) => state.activeSurfaceId);
   const activeInspectionId = useAppStore((state) => state.activeInspectionId);
   const actionLoading = useAppStore((state) => state.a2uiActionLoading);
@@ -31,6 +34,7 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
   const [copied, setCopied] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [capabilities, setCapabilities] = useState<A2uiCapabilities | null>(null);
   const surface = surfaces.find((item) => item.surfaceId === activeSurfaceId) ?? surfaces[0];
   const inspection =
     inspections.find((item) => item.id === activeInspectionId) ??
@@ -54,6 +58,20 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
     [rawMessage, surface, validation]
   );
 
+  useEffect(() => {
+    if (runtimeMode !== 'desktop') return;
+    let active = true;
+    void a2uiController
+      .getCapabilities()
+      .then((value) => {
+        if (active) setCapabilities(value);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [runtimeMode]);
+
   if (!surface && !inspection) {
     return (
       <div className={styles.empty}>
@@ -68,6 +86,7 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
         <div>
           <SafetyOutlined />
           <strong>{t('a2uiRuntime')}</strong>
+          {capabilities ? <Tag color="blue">A2UI {capabilities.preferredVersion}</Tag> : null}
           {showInspector && surface ? <Tag color="purple">r{surface.revision}</Tag> : null}
         </div>
         <div className={styles.headerActions}>
@@ -178,6 +197,23 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
                         title={validation?.valid ? t('schemaPassed') : t('schemaFailed')}
                         description={`${validation?.durationMs ?? 0} ms`}
                       />
+                      {validation?.errorCode ? <Tag color="red">{validation.errorCode}</Tag> : null}
+                      {validation?.negotiation ? (
+                        <p>
+                          {t('a2uiNegotiation')}：
+                          {validation.negotiation.receivedVersion ?? t('unknown')} →{' '}
+                          {validation.negotiation.selectedVersion ?? t('notSupported')}
+                          {validation.negotiation.catalogId
+                            ? ` · ${validation.negotiation.catalogId}`
+                            : ''}
+                        </p>
+                      ) : null}
+                      {capabilities ? (
+                        <p>
+                          {t('a2uiCatalogCapability')}：{capabilities.catalog.catalogId} ·{' '}
+                          {capabilities.catalog.components.length} {t('components')}
+                        </p>
+                      ) : null}
                       {validation?.errors.map((error) => (
                         <p key={error}>{error}</p>
                       ))}

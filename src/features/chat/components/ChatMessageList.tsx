@@ -138,7 +138,10 @@ export function ChatMessageList({
             chatMessage.content
           );
         const containsA2uiProtocol =
-          chatMessage.role === 'assistant' && /a2ui_(surface|update)/i.test(chatMessage.content);
+          chatMessage.role === 'assistant' &&
+          /a2ui_(surface|update)|application\/a2ui\+json|["'](?:createSurface|updateComponents|updateDataModel|deleteSurface)["']/i.test(
+            chatMessage.content
+          );
         const reviewReady = ['PATCH_READY', 'CREATE_REVIEW_READY', 'REPLACE_REVIEW_READY'].includes(
           chatMessage.errorCode ?? ''
         );
@@ -148,6 +151,8 @@ export function ChatMessageList({
         const patchFailureReason = validationFailureReason(chatMessage.protocolError);
         const emptyFileReviewRequired = patchFailureReason?.startsWith('目标文件为空');
         const a2uiFailed = chatMessage.errorCode === 'A2UI_VALIDATION_FAILED';
+        const a2uiReady = chatMessage.errorCode === 'A2UI_READY';
+        const a2uiResponse = containsA2uiProtocol || a2uiReady || a2uiFailed;
         const unverifiedCompletionClaim =
           chatMessage.errorCode === 'UNVERIFIED_FILE_COMPLETION_CLAIM' ||
           (chatMessage.role === 'assistant' &&
@@ -184,7 +189,7 @@ export function ChatMessageList({
               <div className={styles.protocolError}>
                 <Alert type="info" showIcon title={t('a2uiGenerating')} />
               </div>
-            ) : containsA2uiProtocol ? (
+            ) : a2uiResponse ? (
               <div className={styles.protocolError}>
                 <Alert
                   type={a2uiFailed ? 'warning' : 'success'}

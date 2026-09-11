@@ -29,11 +29,19 @@ pub const ALLOWED_COMPONENTS: &[&str] = &[
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct A2uiSurfaceState {
+    #[serde(default = "legacy_protocol_version")]
+    pub protocol_version: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub catalog_id: Option<String>,
     pub surface_id: String,
     pub revision: u64,
     pub root: A2uiNode,
     #[serde(default)]
     pub data: Map<String, Value>,
+}
+
+fn legacy_protocol_version() -> String {
+    SCHEMA_VERSION.into()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -669,7 +677,7 @@ fn valid_id(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
 }
 
-fn valid_key(value: &str) -> bool {
+pub(super) fn valid_key(value: &str) -> bool {
     valid_id(value) && !value.starts_with('.')
 }
 

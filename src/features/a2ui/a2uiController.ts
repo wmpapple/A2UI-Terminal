@@ -1,6 +1,7 @@
 import { desktopGateway } from '../../shared/platform/gateway';
 
 export const a2uiController = {
+  getCapabilities: () => desktopGateway.getA2uiCapabilities(),
   listHistory: async (workspaceId: string) => {
     const [surfaces, inspections] = await Promise.all([
       desktopGateway.listA2uiSurfaces(workspaceId),

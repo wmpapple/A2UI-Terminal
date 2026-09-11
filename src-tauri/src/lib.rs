@@ -171,6 +171,7 @@ pub fn run() {
             commands::discard_review,
             commands::resolve_review_conflict,
             commands::undo_review,
+            commands::get_a2ui_capabilities,
             commands::process_a2ui_message,
             commands::list_a2ui_surfaces,
             commands::list_a2ui_inspections,

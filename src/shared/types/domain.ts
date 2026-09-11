@@ -701,6 +701,38 @@ export interface A2uiValidation {
   errors: string[];
   warnings: string[];
   durationMs: number;
+  errorCode?: string | null;
+  negotiation?: A2uiNegotiationEvidence | null;
+}
+
+export interface A2uiNegotiationEvidence {
+  receivedVersion: string | null;
+  selectedVersion: string | null;
+  catalogId: string | null;
+  compatible: boolean;
+}
+
+export interface A2uiCapabilities {
+  protocol: 'A2UI';
+  preferredVersion: string;
+  supportedVersions: string[];
+  rendererCapabilities: {
+    'v0.9': {
+      supportedCatalogIds: string[];
+    };
+  };
+  catalog: {
+    catalogId: string;
+    acceptsInlineCatalogs: boolean;
+    components: A2uiComponentName[];
+    actions: Array<'set_state' | 'submit_form' | 'request_patch'>;
+    incrementalMessages: Array<'updateComponents' | 'updateDataModel'>;
+  };
+  legacyProfile: {
+    version: '1.0';
+    messageTypes: Array<'a2ui_surface' | 'a2ui_update'>;
+    compatibilityOnly: boolean;
+  };
 }
 
 export interface A2uiEvent {
@@ -721,6 +753,8 @@ export interface A2uiSurface {
   sessionId: string;
   messageId: string;
   revision: number;
+  protocolVersion: string;
+  catalogId: string | null;
   root: A2uiNode;
   data: Record<string, unknown>;
   rawMessage: string;

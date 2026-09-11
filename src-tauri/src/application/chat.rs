@@ -10,9 +10,12 @@ use crate::repository::provider::ProviderRepository;
 use crate::security::{validate_provider_id, SecretStore};
 use crate::storage::{ChatSessionRecord, Storage};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Instant;
+
+const MAX_A2UI_REPAIR_ERROR_CHARS: usize = 1200;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(
@@ -188,8 +191,14 @@ where
                     role: "user".into(),
                     content: "Your previous review proposal was invalid or truncated. Regenerate it once as compact JSON only. For document_patch use at most 3 changes, exact non-empty anchors up to 500 characters, and content up to 1500 characters. For create_file or replace_empty_file include the full candidate content. Do not include hashes or absolute paths.".into(),
                 });
-                match ai::stream_chat(&config, &api_key, &retry_messages, cancellation, |_| Ok(()))
-                    .await
+                match ai::stream_chat(
+                    &config,
+                    &api_key,
+                    &retry_messages,
+                    cancellation.clone(),
+                    |_| Ok(()),
+                )
+                .await
                 {
                     Ok(retried) => {
                         content = retried;
@@ -229,7 +238,7 @@ where
             } else {
                 None
             };
-            let a2ui_result =
+            let mut a2ui_result =
                 if !request.explanation_only && validated_review.is_none() && patch_error.is_none()
                 {
                     a2ui::process_message(
@@ -244,6 +253,49 @@ where
                 } else {
                     None
                 };
+            if let Some(repair_prompt) = a2ui_result.as_ref().and_then(a2ui_repair_prompt) {
+                let mut retry_messages = messages.clone();
+                retry_messages.push(ProviderMessage {
+                    role: "assistant".into(),
+                    content: content.clone(),
+                });
+                retry_messages.push(ProviderMessage {
+                    role: "user".into(),
+                    content: repair_prompt,
+                });
+                match ai::stream_chat(&config, &api_key, &retry_messages, cancellation, |_| Ok(()))
+                    .await
+                {
+                    Ok(retried) => {
+                        if let Some(retried_result) = a2ui::process_message(
+                            storage,
+                            &ProcessA2uiRequest {
+                                workspace_id: request.workspace_id.clone(),
+                                session_id: request.session_id.clone(),
+                                message_id: request.assistant_message_id.clone(),
+                                raw_message: retried.clone(),
+                            },
+                        )? {
+                            content = retried;
+                            a2ui_result = Some(retried_result);
+                        }
+                    }
+                    Err(AppError::RequestCancelled) => {
+                        repository.update_assistant(
+                            &request.assistant_message_id,
+                            &partial,
+                            "stopped",
+                            None,
+                        )?;
+                        let _ = emit(ChatStreamEvent::Stopped {
+                            request_id: request.request_id.clone(),
+                            message_id: request.assistant_message_id.clone(),
+                        });
+                        return Ok(stopped_result(request, partial));
+                    }
+                    Err(_) => {}
+                }
+            }
             let unverified_completion_claim = validated_review.is_none()
                 && patch_error.is_none()
                 && a2ui_result.is_none()
@@ -271,10 +323,13 @@ where
             } else {
                 None
             };
-            let assistant_content = validated_review
-                .as_ref()
-                .map(review_completion_content)
-                .unwrap_or_else(|| content.clone());
+            let assistant_content = if let Some(review) = validated_review.as_ref() {
+                review_completion_content(review)
+            } else if let Some(result) = a2ui_result.as_ref() {
+                a2ui_completion_content(result)
+            } else {
+                content.clone()
+            };
             repository.update_assistant(
                 &request.assistant_message_id,
                 &assistant_content,
@@ -448,7 +503,74 @@ fn claims_unverified_file_completion(raw: &str) -> bool {
         })
 }
 
+fn a2ui_form_example() -> String {
+    let capabilities = a2ui::get_capabilities();
+    let version = capabilities.preferred_version;
+    let catalog_id = capabilities.catalog.catalog_id;
+    json!({
+        "data": [
+            {
+                "version": &version,
+                "createSurface": {
+                    "surfaceId": "profile-form",
+                    "catalogId": &catalog_id
+                }
+            },
+            {
+                "version": &version,
+                "updateComponents": {
+                    "surfaceId": "profile-form",
+                    "components": [
+                        {
+                            "id": "root",
+                            "component": "Column",
+                            "props": {"gap": "md"},
+                            "children": ["title", "form"]
+                        },
+                        {
+                            "id": "title",
+                            "component": "Text",
+                            "props": {"text": "Contact form", "variant": "title"}
+                        },
+                        {
+                            "id": "form",
+                            "component": "Form",
+                            "props": {"name": "contact"},
+                            "children": ["name-input", "submit-button"],
+                            "actions": {"submit": {"type": "submit_form"}}
+                        },
+                        {
+                            "id": "name-input",
+                            "component": "TextField",
+                            "props": {"name": "name", "label": "Name", "required": true},
+                            "actions": {"change": {"type": "set_state", "target": "name"}}
+                        },
+                        {
+                            "id": "submit-button",
+                            "component": "Button",
+                            "props": {"label": "Submit", "variant": "primary"},
+                            "actions": {"click": {"type": "submit_form"}}
+                        }
+                    ]
+                }
+            },
+            {
+                "version": &version,
+                "updateDataModel": {
+                    "surfaceId": "profile-form",
+                    "path": "/",
+                    "value": {"name": ""}
+                }
+            }
+        ],
+        "kind": "data",
+        "metadata": {"mimeType": "application/a2ui+json"}
+    })
+    .to_string()
+}
+
 fn semantic_patch_system_prompt(workspace_id: &str) -> String {
+    let a2ui_form_example = a2ui_form_example();
     format!(
         r#"You are A2UI Terminal's coding assistant. Never claim a file was changed.
 When modifying a supplied non-empty editable file, return exactly one JSON object and no prose. It must use this schema:
@@ -456,9 +578,25 @@ When modifying a supplied non-empty editable file, return exactly one JSON objec
 Keep the patch compact: at most 3 changes, each anchor at most 500 characters, and each content at most 1500 characters. Never repeat unchanged file content. Do not calculate or include baseRevision, baseHash, or beforeHash; the trusted Rust runtime derives them from the current disk contents. Only propose changes for explicitly supplied editable text context. Do not use regex anchors, absolute paths, traversal, guessed content, or duplicate/overlapping anchors.
 When the user asks to create a new text document and no editable target was supplied, return: {{"version":"1.0","type":"create_file","workspaceId":"{workspace_id}","summary":"short summary","title":"result title","fileName":"safe-name.md","format":"markdown","content":"full candidate content","reason":"reason","risk":"low|medium|high"}}. The fileName must be one safe relative name ending in .md, .markdown, or .txt; never use a path. No file exists until the user accepts the review.
 When the explicitly supplied editable target is empty, return: {{"version":"1.0","type":"replace_empty_file","workspaceId":"{workspace_id}","summary":"short summary","path":"exact context label","content":"full candidate content","reason":"reason","risk":"low|medium|high"}}. Never use this type for a non-empty file. No content is written until the user accepts the review.
-When the user explicitly asks for an interactive form, dashboard, or UI instead of a file change, return exactly one compact JSON object with version "1.0", type "a2ui_surface", a safe surfaceId, revision 1, one root component node, and optional data. Every node uses {{"id":"safe-id","component":"CatalogName","props":{{}},"children":[],"actions":{{}}}}. CatalogName must be one of Row, Column, Stack, Text, Card, Badge, Progress, TextField, Select, Checkbox, Button, Tabs, Form. Every TextField, Select, and Checkbox with props.name MUST declare {{"change":{{"type":"set_state","target":"theSameName"}}}} so the input is editable. Select options MUST use objects such as [{{"label":"Admin","value":"admin"}}], never string arrays. Select options are suggestions and custom text is allowed by default; use props.allowCustom=false only when the user explicitly requires a fixed enumeration. Event keys MUST be exactly click, change, submit, or tab_change; never use on_click, onClick, or other on-prefixed names. The actions object maps event names to action objects, never to strings. Use exact shapes such as {{"change":{{"type":"set_state","target":"fieldName"}}}}, {{"submit":{{"type":"submit_form"}}}}, or {{"click":{{"type":"request_patch"}}}}. Actions may only be set_state, submit_form, or request_patch. Never emit HTML, script, iframe, URLs, commands, or dynamic components. Later changes to an existing surface may use type "a2ui_update" with the next revision and operations set_data, remove_data, replace_props, or replace_children.
+When the user explicitly asks for an interactive form, dashboard, or UI instead of a file change, use the negotiated A2UI v0.9.1 renderer profile. Return exactly one compact A2A DataPart JSON object and no prose. Use this complete valid form as the structural template: {a2ui_form_example}. Components are a flat list. A children entry is only a reference and NEVER creates a component: every referenced child id MUST have its own complete object in the same components array, every id MUST be unique, root MUST exist, and every component MUST be reachable from root. Before answering, compare the referenced-id set with the defined-id set and do not omit title, input, button, form, tab, or other referenced definitions. Catalog components are only Row, Column, Stack, Text, Card, Badge, Progress, TextField, Select, Checkbox, Button, Tabs, Form. Every TextField, Select, and Checkbox with props.name MUST declare {{"change":{{"type":"set_state","target":"theSameName"}}}} in actions. Select options MUST use label/value objects. Event keys are only click, change, submit, or tab_change; Actions are only set_state, submit_form, or request_patch. Never emit inline catalogs, HTML, script, iframe, URLs, commands, dynamic components, sendDataModel=true, or deleteSurface. Later changes to an existing surface use the same DataPart envelope with updateComponents and/or updateDataModel for that surface, without createSurface.
 If neither a safe patch nor a safe A2UI Surface is appropriate, answer with ordinary guidance text."#
     )
+}
+
+fn a2ui_repair_prompt(result: &A2uiProcessResult) -> Option<String> {
+    (!result.inspection.validation.valid).then(|| {
+        let errors = result
+            .inspection
+            .validation
+            .errors
+            .join("; ")
+            .chars()
+            .take(MAX_A2UI_REPAIR_ERROR_CHARS)
+            .collect::<String>();
+        format!(
+            "Your previous A2UI DataPart was rejected by the trusted validator: {errors}. Regenerate the entire DataPart once as JSON only. Preserve the user's requested UI. Every id referenced by children must also appear exactly once as a complete components-array object; references do not create components. Recheck version, catalogId, component props, event names, actions, root reachability, and the DataPart envelope before answering."
+        )
+    })
 }
 
 fn review_completion_content(review: &ReviewRequest) -> String {
@@ -475,6 +613,15 @@ fn review_completion_content(review: &ReviewRequest) -> String {
     }
 }
 
+fn a2ui_completion_content(result: &A2uiProcessResult) -> String {
+    if result.inspection.validation.valid {
+        "交互界面已生成并通过安全校验，已在工作台的 Surface 区域打开。原始协议仅在 Inspector 中提供给开发者查看。".into()
+    } else {
+        "交互界面未通过安全校验，因此没有渲染。你可以重试；技术详情和原始协议已保留在 Inspector。"
+            .into()
+    }
+}
+
 fn should_retry_invalid_review(
     content: &str,
     review_result: &Result<ReviewRequest, AppError>,
@@ -488,12 +635,17 @@ fn should_retry_invalid_review(
 #[cfg(test)]
 mod tests {
     use super::{
-        claims_unverified_file_completion, review_completion_content, should_retry_invalid_review,
+        a2ui_completion_content, a2ui_form_example, a2ui_repair_prompt,
+        claims_unverified_file_completion, review_completion_content, semantic_patch_system_prompt,
+        should_retry_invalid_review,
     };
+    use crate::a2ui;
     use crate::domain::review::{
         ReviewOperationKind, ReviewRequest, ReviewRisk, ReviewSource, ReviewStatus,
     };
     use crate::error::AppError;
+    use crate::storage::Storage;
+    use uuid::Uuid;
 
     #[test]
     fn retries_any_invalid_review_candidate_once() {
@@ -564,5 +716,83 @@ mod tests {
                 "blocked truthful guidance: {guidance}"
             );
         }
+    }
+
+    #[test]
+    fn system_prompt_matches_the_rust_owned_a2ui_capabilities() {
+        let prompt = semantic_patch_system_prompt("workspace");
+        let capabilities = a2ui::get_capabilities();
+        assert!(prompt.contains(&format!("A2UI {}", capabilities.preferred_version)));
+        assert!(prompt.contains(&capabilities.catalog.catalog_id));
+        for component in capabilities.catalog.components {
+            assert!(prompt.contains(&component), "missing component {component}");
+        }
+        for action in capabilities.catalog.actions {
+            assert!(prompt.contains(&action), "missing action {action}");
+        }
+    }
+
+    #[test]
+    fn system_prompt_form_example_passes_the_real_a2ui_validator() {
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace_id = Uuid::new_v4().to_string();
+        let session_id = Uuid::new_v4().to_string();
+        storage
+            .upsert_workspace(&workspace_id, "A2UI prompt", "C:\\a2ui-prompt")
+            .unwrap();
+        storage
+            .create_session(&workspace_id, &session_id, "Prompt")
+            .unwrap();
+
+        let outcome = a2ui::process_message(
+            &storage,
+            &a2ui::ProcessA2uiRequest {
+                workspace_id,
+                session_id,
+                message_id: Uuid::new_v4().to_string(),
+                raw_message: a2ui_form_example(),
+            },
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!(outcome.inspection.validation.valid);
+        let surface = outcome.surface.as_ref().unwrap();
+        assert_eq!(surface.root.id, "root");
+        assert_eq!(surface.root.children.len(), 2);
+        assert!(a2ui_repair_prompt(&outcome).is_none());
+        let content = a2ui_completion_content(&outcome);
+        assert!(content.contains("通过安全校验"));
+        assert!(!content.contains("createSurface"));
+    }
+
+    #[test]
+    fn invalid_a2ui_result_produces_a_bounded_repair_instruction() {
+        let result = a2ui::A2uiProcessResult {
+            inspection: a2ui::A2uiInspectionView {
+                id: "inspection".into(),
+                message_id: "message".into(),
+                surface_id: Some("form".into()),
+                raw_message: "{}".into(),
+                validation: a2ui::A2uiValidation {
+                    valid: false,
+                    errors: vec![format!("A2UI 组件引用不存在：title {}", "x".repeat(5000))],
+                    warnings: vec![],
+                    duration_ms: 0,
+                    error_code: Some("A2UI_VALIDATION_FAILED".into()),
+                    negotiation: None,
+                },
+                created_at: None,
+            },
+            surface: None,
+        };
+
+        let prompt = a2ui_repair_prompt(&result).unwrap();
+        assert!(prompt.contains("A2UI 组件引用不存在：title"));
+        assert!(prompt.contains("references do not create components"));
+        assert!(prompt.chars().count() < 1800);
+        let content = a2ui_completion_content(&result);
+        assert!(content.contains("没有渲染"));
+        assert!(!content.contains("组件引用不存在"));
     }
 }

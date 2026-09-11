@@ -82,7 +82,7 @@ React components
 - 流式响应、停止、分阶段超时、稳定错误码和部分响应保留。
 - schema v11 统一 Review Request：聊天、来源适配、逐块接受/拒绝、安全应用、冲突三选项、跨重启恢复和撤销；既有 `document_patch`/Revision 内核继续承担真实写入与版本审计。
 - A2UI Protocol V1、13 个固定组件、严格 Schema、增量更新、Action 审计和 Inspector。
-- SQLite schema v12、迁移完整性检查、外键检查、WAL 和崩溃恢复；v9 Result、v10 Task/Template、v11 Review Pipeline 已验收，v12 Context Pack 待人工验收。
+- SQLite schema v12、迁移完整性检查、外键检查、WAL 和崩溃恢复；v9 Result、v10 Task/Template、v11 Review Pipeline、v12 Context Pack 均已验收。
 - Windows CI、内部未签名包、正式签名/Updater 工作流框架、脱敏诊断和本地数据清除。
 
 ### 3.4 当前尚未具备的 V2 核心
@@ -542,6 +542,8 @@ S2.8 实现补充（LOG-0098）：DTO 位于 `domain/export`，快照/生成协�
 - 模型生成的 HTML、JavaScript、React、iframe、URL 自动加载或动态 npm 永久拒绝。
 - 已验证 Surface 继续持久化到 SQLite 作为历史；恢复工作区只载入历史，不自动切换中央视图。用户可关闭当前交互成果回到编辑器，关闭不等于删除。永久删除使用独立危险按钮与不可撤销确认，经最小 `delete_a2ui_surface` Capability 到 Rust；Rust 复核工作区归属，并原子删除 Surface、同 Surface 检查/事件和自动关联 Result，不删除真实文件。取消或失败时零删除。
 
+`[IMPLEMENTED — S3.1 PENDING ACCEPTANCE / ADR-022]` 当前生产协议固定到官方 A2UI `v0.9.1`，并兼容其 Schema 声明的 `v0.9`；官方 `createSurface`、`updateComponents`、`updateDataModel` 消息必须位于 A2A `kind=data`、`metadata.mimeType=application/a2ui+json` 的 DataPart 中。Rust 对一个 DataPart 内的单一 `surfaceId` 原子组装、校验并提交，失败时只保存 Inspector 证据，不覆盖最后一个有效 Surface。Provider 首次生成非法 A2UI 时允许一次静默、受限的重新生成：重试只携带原 Provider 输出与截断后的校验错误，原失败检查记录继续保留，重试结果仍必须完整经过同一 Rust 校验器，不能自动补节点或放宽规则。聊天记录只保存用户可理解的成功/失败说明，协议 JSON 不作为普通聊天正文展示；完整原文仍受限保存在 Inspector 供开发排错。客户端能力中的 `v0.9.supportedCatalogIds` 只声明 `urn:a2ui-terminal:catalog:basic:v1`；该本地 Catalog 仍只有现有 13 个组件和 3 个 Action，因此不冒充官方完整 Basic Catalog，官方 Basic fixture 会在 Catalog 协商处安全拒绝。inline Catalog、`sendDataModel=true`、模型 `deleteSurface`、未知组件/Action、混合/不兼容版本、不可达或循环组件树均拒绝渲染。历史私有 `version=1.0` 的 `a2ui_surface/a2ui_update` 仅作兼容读取与既有链路支持，不代表官方 A2UI 1.0，也不能被官方增量消息更新。只读 `get_a2ui_capabilities` IPC 返回 Rust 生成的精确能力合同；Inspector 展示收到/选择的版本、Catalog 与稳定错误码。
+
 ## 8. Provider 与处理位置
 
 `[DECISION]` Provider 是基础设施，不进入产品主信息架构。
@@ -658,6 +660,7 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 - Security test：路径越权、公式注入、Zip Bomb、恶意 DOCX/XLSX、任意 A2UI、遥测泄露。
 - Windows desktop E2E/冒烟：真实文件授权、保存、恢复、导出、安装/升级。
 - A2UI conformance：合法/非法 fixture、未知组件/Action、版本不兼容、增量 revision。
+- `[IMPLEMENTED — S3.1 ACCEPTANCE ENV]` Windows 桌面验收通过 `npm run test:a2ui-conformance` 固定 stable、单任务、串行执行和隔离 target；当前库只生成桌面与测试需要的 `rlib`。`staticlib/cdylib` 属于尚未立项的 Tauri 移动端产物，未来启用 Android/iOS 前必须恢复并新增移动构建门禁。
 
 ### 13.2 发布阻断条件
 
@@ -678,13 +681,13 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 | CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | Manifest/local-cloud Current；Planner/Pack Target |
 | REV-01…06     | Review Request + 现有 Patch/Revision 内核           | S2.5 Current（已验收）；Selection 来源已接线      |
 | OUT-01…06     | Result type adapters、A2UI、Action Policy           | 五类 adapter Current；S3.x Action 扩展仍为 Target |
-| EXP-01…04     | Export Service、export jobs、format adapters        | EXP-01…03 Current，S2.8 待人工验收；其余 Target   |
+| EXP-01…04     | Export Service、export jobs、format adapters        | EXP-01…03 Current（S2.8 已验收）；其余 Target     |
 | RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target         |
 | SEL-01        | Selection controller → Review Pipeline              | S2.6 Current（已验收）                            |
 | PRV-04/MDL-05 | Processing options、local probe                     | Target                                            |
 | SRCH-01       | 授权索引和 Search Service                           | P1 Target                                         |
 | ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                            |
-| A2UI-06       | capability negotiation + conformance CI             | Target                                            |
+| A2UI-06       | capability negotiation + conformance CI             | S3.1 Current（待人工验收）                        |
 | UX-08         | Import suggestions mapped to Result type            | P1 Target                                         |
 
 完整实施顺序、逐步验收和变更记录见实施文档；这里的 `Target` 不代表已经承诺具体版本日期。
@@ -711,12 +714,13 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 16. 匿名指标默认关闭，首次核心闭环完成后才邀请用户主动开启。
 17. 用户可主动新建文本成果；AI 只能提议创建文件，用户接受 Review 前不得发生真实写入。
 18. 首期规范编辑格式为 UTF-8 Markdown/纯文本，不以完整 Office/PDF/XLSX 结构兼容或无损回写为目标。
+19. A2UI 生产协议固定官方 v0.9.1 与本地自定义 Catalog；私有 1.0 仅兼容，不冒充官方 1.0。
 
 ### 15.2 实施前必须关闭的开放问题
 
 | ID   | 问题                                                                       | 阻塞范围                    |
 | ---- | -------------------------------------------------------------------------- | --------------------------- |
-| O-03 | 已按 ADR-021 关闭；本地 Rust 生成器和 OFL 字体，许可证归档见第三方声明     | S2.8 待人工验收             |
+| O-03 | 已按 ADR-021 关闭；本地 Rust 生成器和 OFL 字体，许可证归档见第三方声明     | 已关闭，不再阻塞            |
 | O-06 | 匿名指标上传接收端、保留期、聚合方式和删除机制是什么？                     | 指标与 Beta                 |
 | O-07 | “A2UI 工作台”从 0.1.9 开始采用什么版本号、安装包标识和升级兼容策略？       | V2-D 发布                   |
 | O-08 | 内置试用模型的供应商、服务端鉴权、额度、滥用控制、成本和失败降级如何实现？ | V2-A 首次完整生成、发布验收 |

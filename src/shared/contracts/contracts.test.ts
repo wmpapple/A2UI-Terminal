@@ -14,11 +14,13 @@ import contextManifest from '../../../contracts/v2/context-manifest.json';
 import review from '../../../contracts/v2/review.json';
 import exportFixture from '../../../contracts/v2/export.json';
 import contextPackFixture from '../../../contracts/v2/context-pack.json';
+import a2uiCapabilities from '../../../contracts/v2/a2ui-capabilities.json';
 import {
   isExportResultInput,
   isExportResultOutput,
   isExportProgressEvent,
   isA2uiProcessResult,
+  isA2uiCapabilities,
   isA2uiSurfaceProtocol,
   isAppErrorContract,
   isChatSession,
@@ -103,6 +105,7 @@ describe('shared Rust/TypeScript contract fixtures', () => {
     expect(isPatchApplication(patch.application)).toBe(true);
     expect(isA2uiSurfaceProtocol(a2ui.protocol)).toBe(true);
     expect(isA2uiProcessResult(a2ui.processResult)).toBe(true);
+    expect(isA2uiCapabilities(a2uiCapabilities)).toBe(true);
     expect(isDocumentVersionSummary(revision.summary)).toBe(true);
     expect(isDocumentVersion(revision.document)).toBe(true);
     expect(isAppErrorContract(error)).toBe(true);

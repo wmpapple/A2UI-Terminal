@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import { getRuntimeMode } from './runtime';
 import type {
   A2uiActionResult,
+  A2uiCapabilities,
   A2uiInspection,
   A2uiProcessResult,
   A2uiSurface,
@@ -575,6 +576,11 @@ export const desktopApi = {
   }): Promise<A2uiProcessResult | null> {
     requireDesktop();
     return invoke<A2uiProcessResult | null>('process_a2ui_message', { request });
+  },
+
+  async getA2uiCapabilities(): Promise<A2uiCapabilities> {
+    requireDesktop();
+    return invoke<A2uiCapabilities>('get_a2ui_capabilities');
   },
 
   async listA2uiSurfaces(workspaceId: string): Promise<A2uiSurface[]> {

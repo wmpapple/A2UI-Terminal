@@ -42,9 +42,16 @@ describe('A2uiWorkbench', () => {
           rawMessage: '{"component":"Script"}',
           validation: {
             valid: false,
+            errorCode: 'A2UI_PROTOCOL_INCOMPATIBLE',
             errors: ['未注册组件：Script'],
             warnings: [],
             durationMs: 1,
+            negotiation: {
+              receivedVersion: 'v1.0',
+              selectedVersion: null,
+              catalogId: 'urn:a2ui-terminal:catalog:basic:v1',
+              compatible: false,
+            },
           },
           createdAt: null,
         },
@@ -58,6 +65,9 @@ describe('A2uiWorkbench', () => {
       </I18nProvider>
     );
     expect(screen.getByText('Surface 已被安全拒绝，不会渲染')).toBeInTheDocument();
+    expect(screen.getByText('A2UI_PROTOCOL_INCOMPATIBLE')).toBeInTheDocument();
+    expect(screen.getByText(/v1\.0/)).toBeInTheDocument();
+    expect(screen.getByText(/urn:a2ui-terminal:catalog:basic:v1/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/A2UI Surface/)).not.toBeInTheDocument();
   });
 

@@ -1,0 +1,168 @@
+{
+  "validInitial": {
+    "data": [
+      {
+        "version": "v0.9.1",
+        "createSurface": {
+          "surfaceId": "conformance-profile",
+          "catalogId": "urn:a2ui-terminal:catalog:basic:v1"
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateComponents": {
+          "surfaceId": "conformance-profile",
+          "components": [
+            {
+              "id": "root",
+              "component": "Column",
+              "props": { "gap": "md" },
+              "children": ["title"]
+            },
+            {
+              "id": "title",
+              "component": "Text",
+              "props": { "text": "A2UI v0.9.1", "variant": "title" }
+            }
+          ]
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateDataModel": {
+          "surfaceId": "conformance-profile",
+          "path": "/status",
+          "value": "ready"
+        }
+      }
+    ],
+    "kind": "data",
+    "metadata": { "mimeType": "application/a2ui+json" }
+  },
+  "validIncremental": {
+    "data": [
+      {
+        "version": "v0.9.1",
+        "updateComponents": {
+          "surfaceId": "conformance-profile",
+          "components": [
+            {
+              "id": "title",
+              "component": "Text",
+              "props": { "text": "Incremental update", "variant": "title" }
+            }
+          ]
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateDataModel": {
+          "surfaceId": "conformance-profile",
+          "path": "/status",
+          "value": "updated"
+        }
+      }
+    ],
+    "kind": "data",
+    "metadata": { "mimeType": "application/a2ui+json" }
+  },
+  "validCompatibleV09": {
+    "data": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "compatible-v09",
+          "catalogId": "urn:a2ui-terminal:catalog:basic:v1"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "compatible-v09",
+          "components": [
+            {
+              "id": "root",
+              "component": "Text",
+              "props": { "text": "Compatible v0.9" }
+            }
+          ]
+        }
+      }
+    ],
+    "kind": "data",
+    "metadata": { "mimeType": "application/a2ui+json" }
+  },
+  "invalidVersion": {
+    "data": [
+      {
+        "version": "v1.0",
+        "createSurface": {
+          "surfaceId": "unsupported-version",
+          "catalogId": "urn:a2ui-terminal:catalog:basic:v1"
+        }
+      }
+    ],
+    "kind": "data",
+    "metadata": { "mimeType": "application/a2ui+json" }
+  },
+  "invalidCatalog": {
+    "data": [
+      {
+        "version": "v0.9.1",
+        "createSurface": {
+          "surfaceId": "unsupported-catalog",
+          "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
+        }
+      }
+    ],
+    "kind": "data",
+    "metadata": { "mimeType": "application/a2ui+json" }
+  },
+  "unknownComponent": {
+    "data": [
+      {
+        "version": "v0.9.1",
+        "createSurface": {
+          "surfaceId": "unknown-component",
+          "catalogId": "urn:a2ui-terminal:catalog:basic:v1"
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateComponents": {
+          "surfaceId": "unknown-component",
+          "components": [{ "id": "root", "component": "iframe", "props": {} }]
+        }
+      }
+    ],
+    "kind": "data",
+    "metadata": { "mimeType": "application/a2ui+json" }
+  },
+  "unknownAction": {
+    "data": [
+      {
+        "version": "v0.9.1",
+        "createSurface": {
+          "surfaceId": "unknown-action",
+          "catalogId": "urn:a2ui-terminal:catalog:basic:v1"
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateComponents": {
+          "surfaceId": "unknown-action",
+          "components": [
+            {
+              "id": "root",
+              "component": "Button",
+              "props": { "label": "Run" },
+              "actions": { "click": { "type": "run_shell" } }
+            }
+          ]
+        }
+      }
+    ],
+    "kind": "data",
+    "metadata": { "mimeType": "application/a2ui+json" }
+  }
+}

@@ -34,6 +34,8 @@
       "sessionId": "session-contract-v1",
       "messageId": "message-assistant-v1",
       "revision": 1,
+      "protocolVersion": "1.0",
+      "catalogId": null,
       "root": {
         "id": "root",
         "component": "Column",

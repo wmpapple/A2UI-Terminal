@@ -2042,6 +2042,7 @@ impl Storage {
         workspace_id: &str,
         session_id: &str,
         message_id: &str,
+        protocol_version: &str,
         revision: u64,
         state_json: &str,
         raw_message: &str,
@@ -2066,7 +2067,7 @@ impl Storage {
             "INSERT INTO a2ui_surfaces
              (id, surface_id, workspace_id, session_id, message_id, protocol_version,
               revision, state_json, raw_message, validation_json)
-             VALUES (?1, ?2, ?3, ?4, ?5, '1.0', ?6, ?7, ?8, ?9)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
              ON CONFLICT(workspace_id, surface_id) DO UPDATE SET
                 session_id = excluded.session_id,
                 message_id = excluded.message_id,
@@ -2082,6 +2083,7 @@ impl Storage {
                 workspace_id,
                 session_id,
                 message_id,
+                protocol_version,
                 revision as i64,
                 state_json,
                 raw_message,
@@ -3759,6 +3761,7 @@ mod tests {
                 &workspace_a.id,
                 &session_a.id,
                 "message-a",
+                "1.0",
                 1,
                 state_json,
                 "{}",
@@ -3774,6 +3777,7 @@ mod tests {
                 &workspace_b.id,
                 &session_b.id,
                 "message-b",
+                "1.0",
                 1,
                 state_json,
                 "{}",

@@ -17,6 +17,8 @@ const surface: A2uiSurface = {
   sessionId: 'session',
   messageId: 'message',
   revision: 1,
+  protocolVersion: 'v0.9.1',
+  catalogId: 'urn:a2ui-terminal:catalog:basic:v1',
   data: { name: 'Ada', role: 'developer', enabled: true },
   rawMessage: '{}',
   validation: { valid: true, errors: [], warnings: [], durationMs: 1 },

@@ -1,10 +1,59 @@
-# A2UI Protocol V1
+# A2UI Protocol 与本地 Catalog
+
+> 当前首选协议是官方 A2UI `v0.9.1`；本文后半的 `version: "1.0"` 是项目早期私有兼容格式，不是官方 A2UI 1.0。
+
+## 当前标准配置（S3.1）
+
+- 上游规范固定到 `a2ui-project/a2ui` commit `981e82f1a3cef88456416fa6fd80d8490964df01` 的 `specification/v0_9_1`，避免 CI 随上游主分支漂移。
+- 首选版本为 `v0.9.1`，兼容官方 Schema 同时列出的 `v0.9`。
+- 客户端 `v0.9.supportedCatalogIds` 只声明 `urn:a2ui-terminal:catalog:basic:v1`；不声明 inline Catalog。
+- 本地 Catalog 复用现有安全 Runtime 的 13 个组件和 3 个 Action，不宣称支持官方完整 Basic Catalog。S3.2 才扩展大众 Catalog。
+- 只有 Rust 完成消息 Schema、版本、Catalog、树结构、Props、Action 与资源限制校验后，Surface 才能持久化和渲染。
+
+只读 `get_a2ui_capabilities` 返回的 `rendererCapabilities.v0.9` 可直接作为官方 `a2uiClientCapabilities` 的版本能力对象；其余字段是本应用用于 Inspector 和合同校验的补充说明。能力合同固定在 `contracts/v2/a2ui-capabilities.json`。
+
+当前模型输出使用 A2A DataPart 包裹一个或多个官方服务端消息：
+
+```json
+{
+  "data": [
+    {
+      "version": "v0.9.1",
+      "createSurface": {
+        "surfaceId": "profile-form",
+        "catalogId": "urn:a2ui-terminal:catalog:basic:v1"
+      }
+    },
+    {
+      "version": "v0.9.1",
+      "updateComponents": {
+        "surfaceId": "profile-form",
+        "components": [
+          {
+            "id": "root",
+            "component": "Text",
+            "props": { "text": "Hello" },
+            "children": [],
+            "actions": {}
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "data",
+  "metadata": { "mimeType": "application/a2ui+json" }
+}
+```
+
+DataPart 内只能处理一个 `surfaceId` 和一个协议版本，并作为一个事务提交。`updateComponents` 按组件 `id` 替换/增加扁平节点，所有节点必须从 `root` 可达且不得成环；`children` 是子组件 ID。`props/actions` 是本地 Catalog 明确定义的组件字段。`updateDataModel` 支持根对象和单个顶层 JSON Pointer；省略 `value` 删除目标，显式 `null` 保留为 JSON null。`deleteSurface` 必须由用户点击界面危险操作并确认，模型消息无删除权限。
+
+不兼容版本、非本地 Catalog、inline Catalog、`sendDataModel=true`、未知组件/Action 或任何验证失败只产生 Inspector 记录，不创建、不更新 Surface。Inspector 保留收到的版本、协商结果、Catalog、稳定错误码与脱敏原始消息。
 
 ## 信任模型
 
 模型输出始终是不可信输入。桌面端只有 Rust 校验通过的 Surface 才能进入前端 Runtime；Web 只使用仓库内确定性 Mock。Runtime 不执行 HTML、Script、iframe、URL、系统命令、动态 npm 组件或模型生成代码。
 
-## 完整 Surface
+## 旧版私有 1.0：完整 Surface
 
 ```json
 {
@@ -35,7 +84,7 @@
 
 `surfaceId`、组件 `id` 和 data key 只能使用字母、数字、`-`、`_`、`.`，长度不超过 80。`revision` 从 1 开始。
 
-## 增量更新
+## 旧版私有 1.0：增量更新
 
 ```json
 {

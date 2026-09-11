@@ -315,6 +315,12 @@
           "markdownDescription": "Enables the export_result command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_a2ui_capabilities command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-a2ui-capabilities",
+          "markdownDescription": "Enables the get_a2ui_capabilities command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_bootstrap_status command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-bootstrap-status",
@@ -757,6 +763,12 @@
           "type": "string",
           "const": "deny-export-result",
           "markdownDescription": "Denies the export_result command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_a2ui_capabilities command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-a2ui-capabilities",
+          "markdownDescription": "Denies the get_a2ui_capabilities command without any pre-configured scope."
         },
         {
           "description": "Denies the get_bootstrap_status command without any pre-configured scope.",

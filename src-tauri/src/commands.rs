@@ -1,6 +1,6 @@
 use crate::a2ui::{
-    A2uiInspectionView, A2uiProcessResult, A2uiSurfaceView, ActionExecutionResult,
-    ExecuteActionRequest, ProcessA2uiRequest,
+    A2uiCapabilities, A2uiInspectionView, A2uiProcessResult, A2uiSurfaceView,
+    ActionExecutionResult, ExecuteActionRequest, ProcessA2uiRequest,
 };
 use crate::ai::{
     ChatRequest, ConfirmContextManifestInput, ContextManifest, ContextManifestInput,
@@ -939,6 +939,11 @@ pub fn undo_review(
     input: ApplyReviewInput,
 ) -> Result<ReviewApplication, AppError> {
     review::undo(&state.storage, &state.managed_results_dir, input)
+}
+
+#[tauri::command]
+pub fn get_a2ui_capabilities() -> A2uiCapabilities {
+    crate::a2ui::get_capabilities()
 }
 
 #[tauri::command]
