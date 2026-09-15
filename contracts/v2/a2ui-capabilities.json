@@ -23,7 +23,13 @@
       "Checkbox",
       "Button",
       "Tabs",
-      "Form"
+      "Form",
+      "Checklist",
+      "Owner",
+      "Date",
+      "Status",
+      "Table",
+      "IssueCard"
     ],
     "actions": ["set_state", "submit_form", "request_patch"],
     "incrementalMessages": ["updateComponents", "updateDataModel"]

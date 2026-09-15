@@ -125,6 +125,12 @@ const a2uiComponents = new Set([
   'Button',
   'Tabs',
   'Form',
+  'Checklist',
+  'Owner',
+  'Date',
+  'Status',
+  'Table',
+  'IssueCard',
 ]);
 const a2uiActions = new Set(['set_state', 'submit_form', 'request_patch']);
 const resultTypes = new Set(['document', 'spreadsheet', 'checklist', 'form', 'tool']);

@@ -12,6 +12,12 @@ export const basicCatalog = [
   'Button',
   'Tabs',
   'Form',
+  'Checklist',
+  'Owner',
+  'Date',
+  'Status',
+  'Table',
+  'IssueCard',
 ] as const;
 
 export type BasicComponentName = (typeof basicCatalog)[number];

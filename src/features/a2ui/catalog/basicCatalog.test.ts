@@ -8,7 +8,10 @@ describe('Basic Catalog allowlist', () => {
     expect(isBasicComponent('iframe')).toBe(false);
   });
 
-  it('contains exactly the approved first 13 components', () => {
-    expect(new Set(basicCatalog).size).toBe(13);
+  it('contains exactly the approved 13 base and 6 S3.2 components', () => {
+    expect(new Set(basicCatalog).size).toBe(19);
+    expect(basicCatalog).toEqual(
+      expect.arrayContaining(['Checklist', 'Owner', 'Date', 'Status', 'Table', 'IssueCard'])
+    );
   });
 });

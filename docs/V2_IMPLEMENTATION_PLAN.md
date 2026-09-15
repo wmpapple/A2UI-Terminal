@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S3.1 自动验证与验收缺陷修复完成，待用户人工复验（LOG-0108）；不得开始 S3.2**
+> 当前状态：**S3.1 已通过用户人工验收；S3.2 人工验收缺陷已修复、待用户复验（LOG-0113），不得开始 S3.3**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -322,7 +322,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S3.1 A2UI 标准一致性与版本协商
 
-状态：`待人工验收`
+状态：`已完成`
 
 - 对应：A2UI-06。
 - 工作：官方合法/非法 fixture、协议版本协商、Catalog capability、兼容失败安全降级。
@@ -330,7 +330,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S3.2 大众 Catalog 扩展
 
-状态：`待开始`
+状态：`待人工验收`
 
 - 对应：OUT-02/03、附录 B。
 - 工作：为清单、负责人、日期、状态、表格、IssueCard 等建立最小可信组件；每个组件独立 Props Schema。
@@ -442,7 +442,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 | SEL-01         | S2.6                   | 六类选区动作与统一 Review 接线已实现    | 已完成      |
 | PRV-04         | S2.3/S4.2              | 处理位置与 Provider 失效已验收          | 部分完成    |
 | ARC-03         | S0.4                   | 统一 compatible 传输层部分已有          | 部分完成    |
-| A2UI-06        | S3.1                   | 官方 v0.9.1 协商、fixture 与安全降级    | 待人工验收  |
+| A2UI-06        | S3.1                   | 官方 v0.9.1 协商、fixture 与安全降级    | 已完成      |
 
 ## 6. 验证命令基线
 
@@ -517,10 +517,11 @@ npm run tauri build -- --debug --no-bundle
 | S2.7 成果类型编辑适配                  | 已完成     | LOG-0092 | 用户已于 2026-09-04 明确验收通过 |
 | S2.8 Export Service 与 P0 格式         | 已完成     | LOG-0100 | 用户已于 2026-09-10 明确验收通过 |
 | S2.9 Context Pack 与授权撤销           | 已完成     | LOG-0103 | 用户已于 2026-09-10 明确验收通过 |
-| S3.1 A2UI 标准一致性与版本协商         | 待人工复验 | LOG-0108 | 缺陷修复与自动门禁完成；不得开始 S3.2 |
-| S3.2…S4.8                              | 待开始     | —        | 不得提前实施                     |
+| S3.1 A2UI 标准一致性与版本协商         | 已完成     | LOG-0109 | 用户已于 2026-09-11 明确验收通过 |
+| S3.2 大众 Catalog 扩展                 | 待人工复验 | LOG-0113 | 重启桌面后复验 M01—M06           |
+| S3.3…S4.8                              | 待开始     | —        | 不得提前实施                     |
 
-S1.1—S2.9 均已通过自动验证和用户人工验收。S3.1 实现与自动验证完成，等待用户按人工验收单确认；不得提前进入 S3.2。
+S1.1—S3.1 均已通过自动验证和用户人工验收。S3.2 实现与自动验证完成，等待用户按人工验收单确认；不得提前进入 S3.3。
 
 ## 10. 连续变更账本
 
@@ -2074,6 +2075,66 @@ S1.1—S2.9 均已通过自动验证和用户人工验收。S3.1 实现与自动
 - Migration / IPC / Capability：无 schema migration，不新增 IPC、Capability、运行时文件/网络/Shell/剪贴板/遥测权限；只调整开发与验收构建产物。
 - 状态与下一动作：S3.1 继续为 `待人工复验`，不得进入 S3.2。用户在项目根目录只需执行 `npm run test:a2ui-conformance`，看到 5/5 后继续 M05。
 
+### LOG-0109 — S3.1 — COMPLETE / USER ACCEPTANCE
+
+- 时间：2026-09-11（Asia/Shanghai）；执行者/会话：用户与 Codex `/root`。
+- 用户验收：用户明确回复“`S3.1验收通过，开始下一阶段`”；S3.1 的官方 A2UI v0.9.1/v0.9 协商、本地 Catalog capability、安全降级、Inspector 证据、真实 Provider 表单交互及 Windows conformance 门禁整体通过。
+- 提交基线与工作树：S3.1 已由用户提交为 `8222b9e`（`s3.1完成`）；记录时工作树干净。
+- 结论：S3.1 从 `待人工复验` 转为 `已完成`；A2UI-06 验收关闭。既有官方协议、本地 Catalog 与私有 1.0 兼容边界保持不变。
+- Migration / IPC / Capability：本条只归档验收，不修改 schema、IPC、Capability 或运行配置；schema 保持 v12。
+- 下一具体动作：开始 S3.2 大众 Catalog 扩展；不得提前实施 S3.3。
+
+### LOG-0110 — S3.2 — START
+
+- 时间：2026-09-11（Asia/Shanghai）；执行者/会话：Codex `/root`。
+- 基线 commit 与开始前工作树：`main` / `8222b9e`；开始前工作树干净，S3.1 已独立提交并通过用户人工验收。
+- 用户授权：用户明确要求在 S3.1 验收通过后开始下一阶段。
+- 目标与允许范围：为清单、负责人、日期、状态、表格和 `IssueCard` 建立固定映射的最小可信组件；每个新增组件使用独立 Props Schema，并补齐键盘、语义化结构、可访问名称和自动回归。
+- 文档差异：计划引用“附录 B”，但当前仓库没有独立附录 B 或 PRD 源文件；本步骤以 S3.2 条目明确列出的六类组件、既有 ADR-007/022 和 A2UI 安全红线为边界，不据此扩展未授权能力。
+- 安全与隐私：Rust 仍是唯一信任边界；仅允许声明式 Props 与现有低风险 `set_state`/`submit_form` 行为。禁止 HTML、JavaScript、iframe、远程 URL、dynamic import、动态 npm、系统命令以及新增文件/网络/剪贴板/遥测权限。
+- 预计 Migration / IPC / Capability：不做 schema migration，不新增 IPC 或 Tauri Capability；在既有本地 Catalog ID 内扩展固定组件清单、Rust Props 校验、前端固定渲染映射、Provider 提示和合同 fixture。
+- 明确不做：不实施 S3.3 中风险 Action→Review、不实现 S3.4 真实小工具闭环、不开放任意代码/资源加载，也不宣称支持官方完整 Basic Catalog。
+- 下一具体动作：先固化新增组件 Props 合同和正反 fixture，再实现 Rust 校验与前端固定、无障碍渲染，最后运行相关与完整质量门并生成 S3.2 人工验收单。
+
+### LOG-0111 — S3.2 — PROGRESS / READY FOR ACCEPTANCE
+
+- 时间：2026-09-11（Asia/Shanghai）；执行者/会话：Codex `/root`。
+- 基线与工作树：基线 `main` / `8222b9e`；本条延续 LOG-0110 的 S3.2 未提交工作树，不包含用户并行业务改动。
+- 实际修改：本地 Catalog 从 13 个基础组件扩展为 19 个固定组件，新增 `Checklist`、`Owner`、`Date`、`Status`、`Table`、`IssueCard`。Rust 为全部组件维护独立 Props 字段清单，并以六个专用校验入口约束新增组件的必填字段、唯一 key、有效日期、行列/单元格类型、状态和优先级枚举；非法输入不会进入持久化或渲染。
+- Runtime 与可访问性：前端继续使用显式 `switch`，清单/日期支持键盘和现有低风险 `set_state`，表格使用语义化 caption/列头/单元格及可聚焦滚动区域，负责人、状态、日期和 IssueCard 使用可访问名称与原生语义。架构测试禁止 A2UI Runtime 使用 dynamic import、任意 HTML、`srcDoc` 或 iframe。
+- Provider/合同：Provider 提示从 Rust capability 动态生成 19 个组件和 3 个 Action，并加入六类 Props 说明；共享 capability fixture、TypeScript 类型/guard 和官方 DataPart conformance fixture 同步更新。合法六组件 fixture 完整渲染，非法日期 Props 返回 `A2UI_VALIDATION_FAILED`。
+- 修改文件：`src-tauri/src/a2ui/protocol.rs`、`src-tauri/src/application/chat.rs`、`src-tauri/tests/a2ui_conformance.rs`；前端 Catalog、Runtime/CSS/测试、共享类型/guard、架构测试；`contracts/v2/a2ui-capabilities.json`、`contracts/a2ui/v0_9_1/{README.md,runtime-cases.json}`；架构、协议、计划和 S3.2 验收文档。
+- 新增文件：[S3_2_VALIDATION.md](S3_2_VALIDATION.md)、[S3_2_MANUAL_ACCEPTANCE.md](S3_2_MANUAL_ACCEPTANCE.md)。
+- Migration / IPC / Capability：schema 保持 v12；不新增 IPC 或 Tauri Capability。既有只读 `get_a2ui_capabilities` 返回扩展后的固定清单；没有新增文件、网络、Shell、剪贴板、Provider、遥测或远程资源权限。
+- 自动验证：前端 lint/typecheck、41 文件 182 项测试和生产构建通过；全量 Web Mock E2E 12/12 通过。Rust conformance 6/6；完整 all-features 测试共 176 项通过、1 项人工 PDF 预览按设计忽略；all-targets/all-features Clippy `-D warnings` 与 Rust fmt 通过。全仓 `npm run format:check` 仍被 157 个既有未格式化文件阻塞，本轮变更文件已定向格式化且未机械改写历史文件。完整命令和环境记录见 [S3_2_VALIDATION.md](S3_2_VALIDATION.md)。
+- 中途环境失败：默认 target 的一次 Rust 定向重编译在进入测试前发生已知 Windows `STATUS_ACCESS_VIOLATION`；使用 S3.1 固化的单核、禁用增量和隔离 target 后完成全量验证，未把环境崩溃计作通过证据。
+- 安全、兼容与回滚：仍不支持官方完整 Basic Catalog；HTML/JS/URL/动态代码和未知 Props 默认拒绝。无数据迁移；旧版本读取含新增组件的 Surface 时会安全拒绝未知组件而非部分渲染。S3.3 Action→Review 未开始。
+- ADR / 开放问题：不新增 ADR、不关闭开放问题。“附录 B”源文件缺失作为文档差异保留；当前实现严格限于 S3.2 条目明确列出的六类组件。
+- 状态与证据：S3.2 实现与自动验证完成，状态为 `待人工验收`，不是 `COMPLETE`。
+- 下一具体动作：用户在 Windows 桌面应用按 [S3_2_MANUAL_ACCEPTANCE.md](S3_2_MANUAL_ACCEPTANCE.md) 完成 M01—M05，并回复“`S3.2 验收通过`”；此前不得进入 S3.3。
+
+### LOG-0112 — S3.2 — ACCEPTANCE GENERATION DEFECT / CORRECTION
+
+- 时间：2026-09-15（Asia/Shanghai）；执行者/会话：用户与 Codex `/root`。
+- 人工验收缺陷：M01 使用 Qwen/Qwen3.5-35B-A3B 生成六组件项目面板时，首次输出与一次自动重试均返回相同的 2354 字符非法 JSON。Rust 正确返回 `A2UI_VALIDATION_FAILED` 并拒绝渲染，但现有修复策略未能让 Provider 产生新的合法结构。
+- 证据与根因：只读检查本机最近两条 Inspector 记录，二者长度、内容和 SHA-256 前缀一致；错误位置是相邻组件之间缺少对象起始 `{`。现有重试把完整错误输出作为 assistant 消息再次提交，确定性 Provider 因而原样复现；不是 Rust Schema 误判、Catalog 缺失或流式截断。
+- 修复：新增一个仅含 root 与六类大众组件的紧凑项目面板模板，该模板由生产 `process_message` 校验器回归。系统提示要求项目面板直接复用该七节点结构，不再为自带标签的组件增加 Row/Text 包装。JSON 语法错误重试时不携带错误原文，改从可信模板重新生成；已成功解析但 Props/树/Action 不合规则仍携带原输出和截断错误作针对性修复。
+- 用户可理解错误：失败 Surface 主区域不再显示 `expected ','` 等解析器详情，统一说明“AI 返回的界面格式不完整或不符合安全规则”；完整技术错误仍仅保留在专业 Inspector。聊天 store 不再把原始校验错误复制到顶部通知。
+- 安全与隐私：没有在客户端或 Rust 中自动补逗号、花括号、组件或字段，也没有放宽 JSON/Schema/Catalog/Action 校验。语法修复请求仍只包含原用户请求、系统安全规则、截断错误和无敏感数据的固定模板；失败后继续零渲染、零执行。
+- Migration / IPC / Capability：无 schema migration，不新增 IPC、Capability、文件、网络目标、Shell、剪贴板或遥测权限。
+- 自动验证：新增项目面板模板生产校验和语法错误重启策略测试；聊天定向 8/8、前端相关 33/33、全量前端 41 文件 182 项、lint/typecheck/build 通过。Web Mock 完整运行前 10 项通过，最后 2 项在 `beforeEach` 导航时遇 Chromium `Page crashed`、尚未进入业务断言，按用例行号单独复跑 2/2 通过；12 项业务用例均有通过结果。Rust 完整 all-features 共 178 项通过、1 项人工 PDF 预览按设计忽略；严格 Clippy 通过。
+- 状态与下一动作：S3.2 继续为 `待人工复验`，不是 `COMPLETE`；不得进入 S3.3。用户必须完全关闭旧桌面进程，重新执行 `npm run desktop:dev`，在新会话复验 M01。
+
+### LOG-0113 — S3.2 — INSPECTION HISTORY EXPLANATION / REJECTED RECORD DELETION
+
+- 时间：2026-09-15（Asia/Shanghai）；执行者/会话：用户与 Codex `/root`。
+- 人工反馈与根因：专业 Inspector 的检查历史直接显示 `✕ form-surface-*` 或 UUID，无法让用户理解每项代表什么；既有生命周期只允许删除成功 Surface，失败 `a2ui_messages` 按旧规则永久保留到删除工作区或清除全部数据，因此没有单条删除入口。
+- 用户界面修复：Surface 选择器改为“交互成果 + 顺序号”，检查选择器改为“检查记录 + 顺序号 + 已通过/未通过 + 最新”，内部 Surface/message ID 仅保留为专业提示。Inspector 固定说明每项是一次 AI 界面安全检查、通过后才显示、未通过不会运行、记录只保存在本机。选中未通过记录时提供“删除失败记录”和不可撤销二次确认。
+- 删除边界：新增 `delete_a2ui_inspection(workspaceId, inspectionId)` application/IPC/主窗口最小 Capability。Rust 同时校验两个不透明标识，并以单条 SQL 绑定工作区、记录 ID 与 `valid=0`；不能单独删除成功检查。删除失败记录不删除 Surface、Result、Action、聊天、文件、Provider 配置或其他记录；取消、跨工作区、目标不存在或后端失败时前端不移除本地记录。
+- Migration / 权限：schema 保持 v12，无 migration；只新增上述本地 SQLite 删除命令及自动生成权限，不新增文件、网络、Shell、剪贴板、Provider、遥测或远程资源权限。
+- 自动验证：前端 typecheck、lint、Inspector/desktop store 定向 2 文件 10 项、全量 41 文件 185 项测试及生产构建通过。Rust 全量为 lib 153 项通过、1 项人工 PDF 预览按设计忽略，conformance 6/6、架构 6/6、命令注册 1/1、合同 12/12，总计 178 项通过；all-targets/all-features Clippy `-D warnings` 通过。Web Mock 完整运行 9/12，3 项在进入断言前遇 Chromium `Page crashed`；定向复跑最终使 12 项业务用例均有通过结果。默认 Rust target 因正在运行的桌面程序占用 exe 返回 `os error 5`，隔离 target 首次编译无关测试又遇已知随机 `STATUS_ACCESS_VIOLATION`，利用缓存原命令重跑后通过；环境失败均未计作业务通过证据。
+- 状态与下一动作：S3.2 继续为 `待人工复验`，不得进入 S3.3。用户需从当前工作树重启桌面应用，复验 M01 生成修复与新增 M06 检查记录说明、取消、确认删除和跨重启不恢复。
+
 ### 新账本记录模板
 
 ```markdown
@@ -2177,11 +2238,11 @@ S1.1—S2.9 均已通过自动验证和用户人工验收。S3.1 实现与自动
 
 ## 12. 交接摘要
 
-截至 LOG-0108：
+截至 LOG-0113：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能已完成并验收 S1.1—S1.5、S2.1—S2.9，schema 为 v12。S3.1 已完成官方 v0.9.1/v0.9 协商、本地 Catalog capability、conformance fixture、安全降级与 Inspector 证据，自动验证通过，待用户人工验收；Provider 图片多模态发送和产品事件尚未开始。
+- V2 产品功能已完成并验收 S1.1—S1.5、S2.1—S2.9、S3.1，schema 为 v12。S3.2 已将本地固定 Catalog 扩展到 19 个组件，新增六类组件的独立 Props Schema、固定无障碍 Runtime 与正反 conformance fixture；M01 的确定性 Provider 非法 JSON 重试问题已按 LOG-0112 修复，Inspector 可理解历史与失败记录单条删除已按 LOG-0113 修复，等待用户复验。S3.3 Action→Review、Provider 图片多模态发送和产品事件尚未开始。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
 - S2.2 已建立统一 `DocumentSource`、CSV/XLSX 受限结构化读取、公式/注入风险标记、图片原始视觉来源、8 MB 内本地预览、多批累积和工作区隔离的单项撤销，且已于 2026-08-20 通过用户验收。
@@ -2189,7 +2250,7 @@ S1.1—S2.9 均已通过自动验证和用户人工验收。S3.1 实现与自动
 - S2.3 代码质量整改已把 `ChatPanel` 收敛为组合层，将 Context Manifest 编排、消息协议呈现和输入/拖放拆为独立模块；前端架构测试固定该依赖方向。Rust 应用层边界测试改为自动扫描整个 `src/application` 目录，不再漏掉新增 `context.rs`。大规模 Storage/DocumentSource 物理拆分留待 S2.3 验收后的独立重构基线。
 - S2.3 对已授权零字节文本目标只提供准确能力限制：Rust 明确识别空文件，跳过不可能成功的后台模型重试，前端隐藏手动重试且保持零写入。真正的安全首次写入已作为显式合同/E2E 场景排入 S2.5，当前没有放宽非空锚点或实现写入。
 - S2.4 已按 ADR-019 实现 Rust 可信 Planner、约 1600/200 字符确定性结构分块、本地词法/BM25-like 检索、中文 bigram、Full/Retrieval/Hybrid、32000 token 预算、可追溯块范围和进程内 workspace/source/hash 索引。Manifest 消费前会复验授权与 Hash；索引不会持久化，可手动清理，并在撤销、变化、切换、删除、清除数据或退出时失效。Schema 仍为 v10，仅新增 `clear_context_index` 最小 IPC；自动验证结果见 LOG-0073。
-- S2.5 已验收持久 Review、AI 创建/首次写入、冲突、幂等、撤销与恢复；S2.6 已验收六类选区动作和只读解释；S2.7 五类 adapter 已于 2026-09-04 验收（LOG-0092）；S2.8 已于 2026-09-10 验收（LOG-0100）；S2.9 已于 2026-09-10 验收（LOG-0103）。S3.1 自动证据见 [S3_1_VALIDATION.md](S3_1_VALIDATION.md)，桌面步骤见 [S3_1_MANUAL_ACCEPTANCE.md](S3_1_MANUAL_ACCEPTANCE.md)；未通过人工验收前不得开始 S3.2。
+- S2.5 已验收持久 Review、AI 创建/首次写入、冲突、幂等、撤销与恢复；S2.6 已验收六类选区动作和只读解释；S2.7 五类 adapter 已于 2026-09-04 验收（LOG-0092）；S2.8 已于 2026-09-10 验收（LOG-0100）；S2.9 已于 2026-09-10 验收（LOG-0103）；S3.1 已于 2026-09-11 验收（LOG-0109）。S3.2 自动证据见 [S3_2_VALIDATION.md](S3_2_VALIDATION.md)，桌面步骤见 [S3_2_MANUAL_ACCEPTANCE.md](S3_2_MANUAL_ACCEPTANCE.md)；未通过人工验收前不得开始 S3.3。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - S2.8 人工发现的 PDF 排版和原生确认替换缺陷已按 LOG-0098 修复、复验并在 LOG-0100 验收；不沿用旧版 M04 的“一律拒绝已有文件”规则。
 - M02 的 CSV 创建能力原已存在；LOG-0099 将新建类型明确标为“表格（CSV）”并补充验收步骤，避免把领域类型“表格”和内部格式 CSV 的映射误判为不支持。

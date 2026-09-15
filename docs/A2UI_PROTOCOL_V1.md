@@ -2,12 +2,12 @@
 
 > 当前首选协议是官方 A2UI `v0.9.1`；本文后半的 `version: "1.0"` 是项目早期私有兼容格式，不是官方 A2UI 1.0。
 
-## 当前标准配置（S3.1）
+## 当前标准配置（S3.1 / S3.2）
 
 - 上游规范固定到 `a2ui-project/a2ui` commit `981e82f1a3cef88456416fa6fd80d8490964df01` 的 `specification/v0_9_1`，避免 CI 随上游主分支漂移。
 - 首选版本为 `v0.9.1`，兼容官方 Schema 同时列出的 `v0.9`。
 - 客户端 `v0.9.supportedCatalogIds` 只声明 `urn:a2ui-terminal:catalog:basic:v1`；不声明 inline Catalog。
-- 本地 Catalog 复用现有安全 Runtime 的 13 个组件和 3 个 Action，不宣称支持官方完整 Basic Catalog。S3.2 才扩展大众 Catalog。
+- 本地 Catalog 包含 13 个基础组件和 S3.2 新增的 6 个大众组件，共 19 个组件；Action 仍只有 3 个，不宣称支持官方完整 Basic Catalog。
 - 只有 Rust 完成消息 Schema、版本、Catalog、树结构、Props、Action 与资源限制校验后，Surface 才能持久化和渲染。
 
 只读 `get_a2ui_capabilities` 返回的 `rendererCapabilities.v0.9` 可直接作为官方 `a2uiClientCapabilities` 的版本能力对象；其余字段是本应用用于 Inspector 和合同校验的补充说明。能力合同固定在 `contracts/v2/a2ui-capabilities.json`。
@@ -47,7 +47,7 @@
 
 DataPart 内只能处理一个 `surfaceId` 和一个协议版本，并作为一个事务提交。`updateComponents` 按组件 `id` 替换/增加扁平节点，所有节点必须从 `root` 可达且不得成环；`children` 是子组件 ID。`props/actions` 是本地 Catalog 明确定义的组件字段。`updateDataModel` 支持根对象和单个顶层 JSON Pointer；省略 `value` 删除目标，显式 `null` 保留为 JSON null。`deleteSurface` 必须由用户点击界面危险操作并确认，模型消息无删除权限。
 
-不兼容版本、非本地 Catalog、inline Catalog、`sendDataModel=true`、未知组件/Action 或任何验证失败只产生 Inspector 记录，不创建、不更新 Surface。Inspector 保留收到的版本、协商结果、Catalog、稳定错误码与脱敏原始消息。
+不兼容版本、非本地 Catalog、inline Catalog、`sendDataModel=true`、未知组件/Action 或任何验证失败只产生 Inspector 记录，不创建、不更新 Surface。Inspector 默认保留收到的版本、协商结果、Catalog、稳定错误码与脱敏原始消息；用户检查后可经二次确认单独删除一条失败记录，不能借此删除成功 Surface 或其他数据。
 
 ## 信任模型
 
@@ -114,12 +114,24 @@ DataPart 内只能处理一个 `surfaceId` 和一个协议版本，并作为一�
 
 ## Basic Catalog
 
-首批只注册 13 个组件：
+当前只注册 19 个固定组件：
 
 - 布局：`Row`、`Column`、`Stack`
 - 展示：`Text`、`Card`、`Badge`、`Progress`
 - 输入：`TextField`、`Select`、`Checkbox`
 - 交互：`Button`、`Tabs`、`Form`
+- 大众成果：`Checklist`、`Owner`、`Date`、`Status`、`Table`、`IssueCard`
+
+S3.2 新增组件的最小 Props Schema：
+
+| 组件      | 必填 Props                                  | 可选 Props                                                |
+| --------- | ------------------------------------------- | --------------------------------------------------------- |
+| Checklist | `name`、`label`、`items[{key,label}]`       | `value[]`、item `disabled`、`disabled`                    |
+| Owner     | `displayName`                               | `label`、`detail`、`initials`                             |
+| Date      | `name`、`label`                             | `value/min/max`（`YYYY-MM-DD`）、`required`、`disabled`   |
+| Status    | `text`                                      | `label`、`tone`                                           |
+| Table     | `caption`、`columns[{key,label}]`、`rows[]` | column `align`；单元格仅允许字符串、数值、布尔值或 `null` |
+| IssueCard | `issueKey`、`title`、`status`               | `summary`、`priority`、`owner`、`dueDate`                 |
 
 每个组件拥有独立 Props 白名单和类型/枚举限制。未知字段、`on*`、`html`、`innerHTML`、`dangerouslySetInnerHTML`、`srcDoc`、`script`、`iframe`、`command` 均被拒绝。
 
@@ -155,4 +167,6 @@ Select 的 `options` 默认作为推荐值，用户仍可输入未列出的文�
 
 ## Inspector 数据
 
-SQLite 保存最近的原始消息、Schema 错误/警告、校验耗时、最终组件树、data 和 Action 事件。非法消息也会保存，但不会创建或更新 Surface。Inspector 可以复制包含这些字段的最小复现 JSON，且不包含 API Key。
+SQLite 保存最近的原始消息、Schema 错误/警告、校验耗时、最终组件树、data 和 Action 事件。非法消息也会保存，但不会创建或更新 Surface。Inspector 用编号、通过状态和“最新”标记显示历史，并解释这些记录只保存在本机、未通过消息不会运行；内部 ID 不作为用户可见主标签。Inspector 可以复制包含这些字段的最小复现 JSON，且不包含 API Key。
+
+用户可通过 `delete_a2ui_inspection(workspaceId, inspectionId)` 二次确认删除单条失败记录。Rust 仅接受不透明检查记录 ID，并在删除条件中同时约束当前工作区和 `valid=0`；成功检查仍随 Surface 管理，Surface、Result、Action、聊天、文件、Provider 配置和其他记录不会被该命令删除。

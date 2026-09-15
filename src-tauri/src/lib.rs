@@ -176,6 +176,7 @@ pub fn run() {
             commands::list_a2ui_surfaces,
             commands::list_a2ui_inspections,
             commands::delete_a2ui_surface,
+            commands::delete_a2ui_inspection,
             commands::execute_a2ui_action,
             commands::list_results,
             commands::get_result,

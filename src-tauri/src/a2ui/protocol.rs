@@ -24,6 +24,118 @@ pub const ALLOWED_COMPONENTS: &[&str] = &[
     "Button",
     "Tabs",
     "Form",
+    "Checklist",
+    "Owner",
+    "Date",
+    "Status",
+    "Table",
+    "IssueCard",
+];
+
+#[derive(Debug, Clone, Copy)]
+pub struct ComponentPropsSchema {
+    pub component: &'static str,
+    pub allowed_props: &'static [&'static str],
+}
+
+pub const COMPONENT_PROP_SCHEMAS: &[ComponentPropsSchema] = &[
+    ComponentPropsSchema {
+        component: "Row",
+        allowed_props: &["gap", "align", "justify", "wrap"],
+    },
+    ComponentPropsSchema {
+        component: "Column",
+        allowed_props: &["gap", "align", "justify"],
+    },
+    ComponentPropsSchema {
+        component: "Stack",
+        allowed_props: &["gap", "align"],
+    },
+    ComponentPropsSchema {
+        component: "Text",
+        allowed_props: &["text", "variant", "tone", "weight"],
+    },
+    ComponentPropsSchema {
+        component: "Card",
+        allowed_props: &["title", "bordered", "padding"],
+    },
+    ComponentPropsSchema {
+        component: "Badge",
+        allowed_props: &["text", "tone"],
+    },
+    ComponentPropsSchema {
+        component: "Progress",
+        allowed_props: &["value", "label", "status"],
+    },
+    ComponentPropsSchema {
+        component: "TextField",
+        allowed_props: &[
+            "name",
+            "label",
+            "placeholder",
+            "value",
+            "required",
+            "disabled",
+            "maxLength",
+        ],
+    },
+    ComponentPropsSchema {
+        component: "Select",
+        allowed_props: &[
+            "name",
+            "label",
+            "placeholder",
+            "value",
+            "options",
+            "required",
+            "disabled",
+            "allowCustom",
+        ],
+    },
+    ComponentPropsSchema {
+        component: "Checkbox",
+        allowed_props: &["name", "label", "checked", "disabled"],
+    },
+    ComponentPropsSchema {
+        component: "Button",
+        allowed_props: &["label", "variant", "disabled"],
+    },
+    ComponentPropsSchema {
+        component: "Tabs",
+        allowed_props: &["activeKey", "items"],
+    },
+    ComponentPropsSchema {
+        component: "Form",
+        allowed_props: &["name"],
+    },
+    ComponentPropsSchema {
+        component: "Checklist",
+        allowed_props: &["name", "label", "items", "value", "disabled"],
+    },
+    ComponentPropsSchema {
+        component: "Owner",
+        allowed_props: &["displayName", "label", "detail", "initials"],
+    },
+    ComponentPropsSchema {
+        component: "Date",
+        allowed_props: &[
+            "name", "label", "value", "min", "max", "required", "disabled",
+        ],
+    },
+    ComponentPropsSchema {
+        component: "Status",
+        allowed_props: &["text", "label", "tone"],
+    },
+    ComponentPropsSchema {
+        component: "Table",
+        allowed_props: &["caption", "columns", "rows"],
+    },
+    ComponentPropsSchema {
+        component: "IssueCard",
+        allowed_props: &[
+            "issueKey", "title", "summary", "status", "priority", "owner", "dueDate",
+        ],
+    },
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -349,7 +461,10 @@ fn normalize_node(node: &mut A2uiNode, warnings: &mut Vec<String>, errors: &mut 
         }
     }
 
-    if matches!(node.component.as_str(), "TextField" | "Select" | "Checkbox") {
+    if matches!(
+        node.component.as_str(),
+        "TextField" | "Select" | "Checkbox" | "Checklist" | "Date"
+    ) {
         if let Some(name) = node.props.get("name").and_then(Value::as_str) {
             if !node.actions.contains_key("change") {
                 node.actions.insert(
@@ -409,39 +524,11 @@ fn validate_props(node: &A2uiNode, errors: &mut Vec<String>, warnings: &mut Vec<
         errors.push(format!("组件 {} 的 Props 不能超过 32 项", node.id));
         return;
     }
-    let allowed: &[&str] = match node.component.as_str() {
-        "Row" => &["gap", "align", "justify", "wrap"],
-        "Column" => &["gap", "align", "justify"],
-        "Stack" => &["gap", "align"],
-        "Text" => &["text", "variant", "tone", "weight"],
-        "Card" => &["title", "bordered", "padding"],
-        "Badge" => &["text", "tone"],
-        "Progress" => &["value", "label", "status"],
-        "TextField" => &[
-            "name",
-            "label",
-            "placeholder",
-            "value",
-            "required",
-            "disabled",
-            "maxLength",
-        ],
-        "Select" => &[
-            "name",
-            "label",
-            "placeholder",
-            "value",
-            "options",
-            "required",
-            "disabled",
-            "allowCustom",
-        ],
-        "Checkbox" => &["name", "label", "checked", "disabled"],
-        "Button" => &["label", "variant", "disabled"],
-        "Tabs" => &["activeKey", "items"],
-        "Form" => &["name"],
-        _ => &[],
-    };
+    let allowed = COMPONENT_PROP_SCHEMAS
+        .iter()
+        .find(|schema| schema.component == node.component)
+        .map(|schema| schema.allowed_props)
+        .unwrap_or_default();
     for (key, value) in &node.props {
         if !allowed.contains(&key.as_str()) {
             errors.push(format!("组件 {} 不支持 Prop：{key}", node.id));
@@ -475,6 +562,15 @@ fn validate_props(node: &A2uiNode, errors: &mut Vec<String>, warnings: &mut Vec<
         "Checkbox" => require_string(node, "name", 1, 80, errors),
         "Button" => require_string(node, "label", 1, 120, errors),
         "Tabs" => validate_tab_items(node, errors),
+        "Checklist" => validate_checklist(node, errors),
+        "Owner" => validate_owner(node, errors),
+        "Date" => validate_date(node, errors),
+        "Status" => {
+            require_string(node, "text", 1, 120, errors);
+            optional_string(node, "label", 1, 80, errors);
+        }
+        "Table" => validate_table(node, errors),
+        "IssueCard" => validate_issue_card(node, errors),
         _ => {}
     }
     validate_enum(node, "gap", &["xs", "sm", "md", "lg"], errors);
@@ -502,12 +598,14 @@ fn validate_props(node: &A2uiNode, errors: &mut Vec<String>, warnings: &mut Vec<
         &["default", "muted", "success", "warning", "danger", "info"],
         errors,
     );
-    validate_enum(
-        node,
-        "status",
-        &["normal", "success", "exception", "active"],
-        errors,
-    );
+    if node.component == "Progress" {
+        validate_enum(
+            node,
+            "status",
+            &["normal", "success", "exception", "active"],
+            errors,
+        );
+    }
     for bool_key in [
         "wrap",
         "bordered",
@@ -524,6 +622,13 @@ fn validate_props(node: &A2uiNode, errors: &mut Vec<String>, warnings: &mut Vec<
     }
     if node.component == "Stack" && node.children.len() > 8 {
         warnings.push(format!("Stack {} 子节点较多，可能影响可读性", node.id));
+    }
+    if matches!(
+        node.component.as_str(),
+        "Checklist" | "Owner" | "Date" | "Status" | "Table"
+    ) && !node.children.is_empty()
+    {
+        errors.push(format!("组件 {} 不允许 children", node.id));
     }
 }
 
@@ -648,6 +753,226 @@ fn validate_tab_items(node: &A2uiNode, errors: &mut Vec<String>) {
     }
 }
 
+fn validate_checklist(node: &A2uiNode, errors: &mut Vec<String>) {
+    require_string(node, "name", 1, 80, errors);
+    require_string(node, "label", 1, 120, errors);
+    let Some(items) = node.props.get("items").and_then(Value::as_array) else {
+        errors.push(format!("组件 {} 的 items 必须是数组", node.id));
+        return;
+    };
+    if items.is_empty() || items.len() > 50 {
+        errors.push(format!(
+            "组件 {} 的 Checklist items 数量必须为 1 到 50",
+            node.id
+        ));
+    }
+    let mut keys = BTreeSet::new();
+    for item in items {
+        let Some(map) = item.as_object() else {
+            errors.push(format!("组件 {} 的 Checklist item 必须是对象", node.id));
+            continue;
+        };
+        if map
+            .keys()
+            .any(|key| !["key", "label", "disabled"].contains(&key.as_str()))
+            || map.get("key").and_then(Value::as_str).is_none()
+            || map.get("label").and_then(Value::as_str).is_none()
+            || map.get("disabled").is_some_and(|value| !value.is_boolean())
+        {
+            errors.push(format!(
+                "组件 {} 的 Checklist item 只能包含字符串 key/label 和可选布尔 disabled",
+                node.id
+            ));
+            continue;
+        }
+        let key = map.get("key").and_then(Value::as_str).unwrap_or_default();
+        let label = map.get("label").and_then(Value::as_str).unwrap_or_default();
+        if !valid_id(key) || label.is_empty() || label.len() > 240 || !keys.insert(key) {
+            errors.push(format!(
+                "组件 {} 的 Checklist item key/label 无效或重复",
+                node.id
+            ));
+        }
+    }
+    if let Some(value) = node.props.get("value") {
+        let Some(selected) = value.as_array() else {
+            errors.push(format!("组件 {} 的 value 必须是字符串数组", node.id));
+            return;
+        };
+        let mut selected_keys = BTreeSet::new();
+        for selected_key in selected {
+            let Some(selected_key) = selected_key.as_str() else {
+                errors.push(format!("组件 {} 的 value 必须是字符串数组", node.id));
+                continue;
+            };
+            if !keys.contains(selected_key) || !selected_keys.insert(selected_key) {
+                errors.push(format!(
+                    "组件 {} 的 value 包含未知或重复 Checklist key",
+                    node.id
+                ));
+            }
+        }
+    }
+}
+
+fn validate_owner(node: &A2uiNode, errors: &mut Vec<String>) {
+    require_string(node, "displayName", 1, 120, errors);
+    optional_string(node, "label", 1, 80, errors);
+    optional_string(node, "detail", 1, 240, errors);
+    optional_string(node, "initials", 1, 8, errors);
+}
+
+fn validate_date(node: &A2uiNode, errors: &mut Vec<String>) {
+    require_string(node, "name", 1, 80, errors);
+    require_string(node, "label", 1, 120, errors);
+    for key in ["value", "min", "max"] {
+        if let Some(value) = node.props.get(key) {
+            if value.as_str().is_none_or(|date| !valid_iso_date(date)) {
+                errors.push(format!("组件 {} 的 {key} 必须是 YYYY-MM-DD 日期", node.id));
+            }
+        }
+    }
+    if let (Some(min), Some(max)) = (
+        node.props.get("min").and_then(Value::as_str),
+        node.props.get("max").and_then(Value::as_str),
+    ) {
+        if min > max {
+            errors.push(format!("组件 {} 的 min 不能晚于 max", node.id));
+        }
+    }
+}
+
+fn validate_table(node: &A2uiNode, errors: &mut Vec<String>) {
+    require_string(node, "caption", 1, 160, errors);
+    let Some(columns) = node.props.get("columns").and_then(Value::as_array) else {
+        errors.push(format!("组件 {} 的 columns 必须是数组", node.id));
+        return;
+    };
+    if columns.is_empty() || columns.len() > 12 {
+        errors.push(format!("组件 {} 的 columns 数量必须为 1 到 12", node.id));
+    }
+    let mut column_keys = BTreeSet::new();
+    for column in columns {
+        let Some(map) = column.as_object() else {
+            errors.push(format!("组件 {} 的 column 必须是对象", node.id));
+            continue;
+        };
+        if map
+            .keys()
+            .any(|key| !["key", "label", "align"].contains(&key.as_str()))
+            || map.get("key").and_then(Value::as_str).is_none()
+            || map.get("label").and_then(Value::as_str).is_none()
+            || map.get("align").is_some_and(|value| {
+                value
+                    .as_str()
+                    .is_none_or(|align| !["start", "center", "end"].contains(&align))
+            })
+        {
+            errors.push(format!(
+                "组件 {} 的 column 只能包含字符串 key/label 和可选 align",
+                node.id
+            ));
+            continue;
+        }
+        let key = map.get("key").and_then(Value::as_str).unwrap_or_default();
+        let label = map.get("label").and_then(Value::as_str).unwrap_or_default();
+        if !valid_id(key) || label.is_empty() || label.len() > 120 || !column_keys.insert(key) {
+            errors.push(format!("组件 {} 的 column key/label 无效或重复", node.id));
+        }
+    }
+
+    let Some(rows) = node.props.get("rows").and_then(Value::as_array) else {
+        errors.push(format!("组件 {} 的 rows 必须是数组", node.id));
+        return;
+    };
+    if rows.len() > 50 {
+        errors.push(format!("组件 {} 的 rows 不能超过 50 行", node.id));
+    }
+    for row in rows {
+        let Some(map) = row.as_object() else {
+            errors.push(format!("组件 {} 的 row 必须是对象", node.id));
+            continue;
+        };
+        for (key, value) in map {
+            if !column_keys.contains(key.as_str()) {
+                errors.push(format!("组件 {} 的 row 包含未知列：{key}", node.id));
+            }
+            if !matches!(
+                value,
+                Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_)
+            ) {
+                errors.push(format!("组件 {} 的表格单元格只能是基础值", node.id));
+            }
+        }
+    }
+}
+
+fn validate_issue_card(node: &A2uiNode, errors: &mut Vec<String>) {
+    require_string(node, "issueKey", 1, 40, errors);
+    require_string(node, "title", 1, 240, errors);
+    optional_string(node, "summary", 1, 1000, errors);
+    optional_string(node, "owner", 1, 120, errors);
+    require_string(node, "status", 1, 40, errors);
+    validate_enum(
+        node,
+        "status",
+        &["open", "in_progress", "blocked", "done", "closed"],
+        errors,
+    );
+    validate_enum(
+        node,
+        "priority",
+        &["low", "normal", "high", "urgent"],
+        errors,
+    );
+    if let Some(value) = node.props.get("dueDate") {
+        if value.as_str().is_none_or(|date| !valid_iso_date(date)) {
+            errors.push(format!(
+                "组件 {} 的 dueDate 必须是 YYYY-MM-DD 日期",
+                node.id
+            ));
+        }
+    }
+}
+
+fn valid_iso_date(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.len() != 10
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes
+            .iter()
+            .enumerate()
+            .any(|(index, byte)| index != 4 && index != 7 && !byte.is_ascii_digit())
+    {
+        return false;
+    }
+    let year = digits_to_u32(&bytes[0..4]);
+    let month = digits_to_u32(&bytes[5..7]);
+    let day = digits_to_u32(&bytes[8..10]);
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let max_day = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => return false,
+    };
+    (1..=max_day).contains(&day)
+}
+
+fn digits_to_u32(value: &[u8]) -> u32 {
+    value
+        .iter()
+        .fold(0, |number, digit| number * 10 + u32::from(digit - b'0'))
+}
+
+fn optional_string(node: &A2uiNode, key: &str, min: usize, max: usize, errors: &mut Vec<String>) {
+    if node.props.contains_key(key) {
+        require_string(node, key, min, max, errors);
+    }
+}
+
 fn require_string(node: &A2uiNode, key: &str, min: usize, max: usize, errors: &mut Vec<String>) {
     let value = node.props.get(key).and_then(Value::as_str);
     if !matches!(value, Some(text) if text.len() >= min && text.len() <= max) {
@@ -723,7 +1048,115 @@ mod tests {
     #[test]
     fn accepts_registered_components_and_safe_props() {
         assert!(validate_surface(&valid_surface()).is_ok());
-        assert_eq!(ALLOWED_COMPONENTS.len(), 13);
+        assert_eq!(ALLOWED_COMPONENTS.len(), 19);
+        assert_eq!(COMPONENT_PROP_SCHEMAS.len(), ALLOWED_COMPONENTS.len());
+        let schema_components = COMPONENT_PROP_SCHEMAS
+            .iter()
+            .map(|schema| schema.component)
+            .collect::<BTreeSet<_>>();
+        assert_eq!(schema_components.len(), ALLOWED_COMPONENTS.len());
+        assert!(ALLOWED_COMPONENTS
+            .iter()
+            .all(|component| schema_components.contains(component)));
+    }
+
+    #[test]
+    fn accepts_s32_catalog_components_with_independent_props_schemas() {
+        let mut surface = valid_surface();
+        surface.root.children = serde_json::from_value(json!([
+            {
+                "id": "checklist",
+                "component": "Checklist",
+                "props": {
+                    "name": "doneItems",
+                    "label": "上线清单",
+                    "items": [
+                        {"key": "review", "label": "完成评审"},
+                        {"key": "release", "label": "准备发布", "disabled": false}
+                    ],
+                    "value": ["review"]
+                }
+            },
+            {
+                "id": "owner",
+                "component": "Owner",
+                "props": {"displayName": "Ada", "label": "负责人", "detail": "产品", "initials": "AD"}
+            },
+            {
+                "id": "date",
+                "component": "Date",
+                "props": {"name": "dueDate", "label": "截止日期", "value": "2026-09-30", "min": "2026-09-01", "max": "2026-12-31"}
+            },
+            {
+                "id": "status",
+                "component": "Status",
+                "props": {"text": "进行中", "label": "状态", "tone": "info"}
+            },
+            {
+                "id": "table",
+                "component": "Table",
+                "props": {
+                    "caption": "任务概览",
+                    "columns": [
+                        {"key": "task", "label": "任务"},
+                        {"key": "progress", "label": "进度", "align": "end"}
+                    ],
+                    "rows": [{"task": "设计", "progress": 80}]
+                }
+            },
+            {
+                "id": "issue",
+                "component": "IssueCard",
+                "props": {
+                    "issueKey": "A2UI-32",
+                    "title": "扩展大众组件",
+                    "summary": "固定 Catalog 渲染",
+                    "status": "in_progress",
+                    "priority": "high",
+                    "owner": "Ada",
+                    "dueDate": "2026-09-30"
+                }
+            }
+        ]))
+        .unwrap();
+
+        assert!(validate_surface(&surface).is_ok());
+    }
+
+    #[test]
+    fn rejects_invalid_s32_props_without_falling_back_to_generic_json() {
+        let mut surface = valid_surface();
+        surface.root.children = serde_json::from_value(json!([
+            {
+                "id": "checklist",
+                "component": "Checklist",
+                "props": {"name": "items", "label": "清单", "items": [{"key": "same", "label": "一"}, {"key": "same", "label": "二"}]}
+            },
+            {
+                "id": "date",
+                "component": "Date",
+                "props": {"name": "date", "label": "日期", "value": "2026-02-30"}
+            },
+            {
+                "id": "table",
+                "component": "Table",
+                "props": {"caption": "表格", "columns": [{"key": "name", "label": "名称"}], "rows": [{"unknown": {"html": "bad"}}]}
+            },
+            {
+                "id": "issue",
+                "component": "IssueCard",
+                "props": {"issueKey": "X-1", "title": "Issue", "status": "running", "priority": "critical", "dueDate": "tomorrow"}
+            }
+        ]))
+        .unwrap();
+
+        let errors = validate_surface(&surface).unwrap_err().join(" ");
+        assert!(errors.contains("Checklist item key/label 无效或重复"));
+        assert!(errors.contains("YYYY-MM-DD 日期"));
+        assert!(errors.contains("未知列"));
+        assert!(errors.contains("表格单元格只能是基础值"));
+        assert!(errors.contains("status 枚举值无效"));
+        assert!(errors.contains("priority 枚举值无效"));
     }
 
     #[test]

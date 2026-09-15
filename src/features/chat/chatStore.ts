@@ -351,9 +351,7 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
           activeSurfaceId: result.a2ui?.surface?.surfaceId ?? current.activeSurfaceId,
           activeInspectionId: result.a2ui!.inspection.id,
           centerView: 'surface',
-          a2uiNotice: result.a2ui!.inspection.validation.valid
-            ? null
-            : result.a2ui!.inspection.validation.errors.join('；'),
+          a2uiNotice: null,
         }));
       }
     } catch (error) {

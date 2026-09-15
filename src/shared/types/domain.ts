@@ -680,7 +680,13 @@ export type A2uiComponentName =
   | 'Checkbox'
   | 'Button'
   | 'Tabs'
-  | 'Form';
+  | 'Form'
+  | 'Checklist'
+  | 'Owner'
+  | 'Date'
+  | 'Status'
+  | 'Table'
+  | 'IssueCard';
 
 export interface A2uiAction {
   type: 'set_state' | 'submit_form' | 'request_patch';

@@ -1,8 +1,8 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S2.7 已验收，S2.8 验收缺陷已修复、待复验（见 LOG-0098）
+> 文档状态：V2 目标架构基线；S1.1—S3.1 已验收，S3.2 人工验收缺陷已修复、待复验（见 LOG-0113）
 > 建立日期：2026-08-11  
-> 对照代码：`main` 分支 S2.7 提交 `7375f52`；用户已于 2026-09-04 验收 S2.7
+> 对照代码：`main` 分支 S3.1 提交 `8222b9e`；用户已于 2026-09-11 验收 S3.1
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
 > PRD SHA-256：`E56FD2303B6228C5FC7AB1936FB1C2B71229845D6780DFDA2ACE06D69347AA3C`
 
@@ -81,7 +81,7 @@ React components
 - 显式上下文清单、敏感路径排除、疑似敏感内容二次确认。
 - 流式响应、停止、分阶段超时、稳定错误码和部分响应保留。
 - schema v11 统一 Review Request：聊天、来源适配、逐块接受/拒绝、安全应用、冲突三选项、跨重启恢复和撤销；既有 `document_patch`/Revision 内核继续承担真实写入与版本审计。
-- A2UI Protocol V1、13 个固定组件、严格 Schema、增量更新、Action 审计和 Inspector。
+- 官方 A2UI v0.9.1/v0.9 协商、本地固定 Catalog（13 个基础组件及 S3.2 的 6 个大众组件）、严格 Schema、增量更新、Action 审计和 Inspector。
 - SQLite schema v12、迁移完整性检查、外键检查、WAL 和崩溃恢复；v9 Result、v10 Task/Template、v11 Review Pipeline、v12 Context Pack 均已验收。
 - Windows CI、内部未签名包、正式签名/Updater 工作流框架、脱敏诊断和本地数据清除。
 
@@ -540,9 +540,15 @@ S2.8 实现补充（LOG-0098）：DTO 位于 `domain/export`，快照/生成协�
 - 修改成果、创建文件等中风险动作进入 Review Pipeline。
 - 删除、外发、系统命令、工作区外访问为高风险；V2 默认不开放命令执行。
 - 模型生成的 HTML、JavaScript、React、iframe、URL 自动加载或动态 npm 永久拒绝。
-- 已验证 Surface 继续持久化到 SQLite 作为历史；恢复工作区只载入历史，不自动切换中央视图。用户可关闭当前交互成果回到编辑器，关闭不等于删除。永久删除使用独立危险按钮与不可撤销确认，经最小 `delete_a2ui_surface` Capability 到 Rust；Rust 复核工作区归属，并原子删除 Surface、同 Surface 检查/事件和自动关联 Result，不删除真实文件。取消或失败时零删除。
+- 已验证 Surface 继续持久化到 SQLite 作为历史；恢复工作区只载入历史，不自动切换中央视图。用户可关闭当前交互成果回到编辑器，关闭不等于删除。永久删除使用独立危险按钮与不可撤销确认，经最小 `delete_a2ui_surface` Capability 到 Rust；Rust 复核工作区归属，并原子删除 Surface、同 Surface 检查/事件和自动关联 Result，不删除真实文件。未通过的检查记录默认本地保留供排错，也可经独立二次确认和最小 `delete_a2ui_inspection` Capability 单条删除；Rust 在同一 SQL 条件内绑定工作区、检查记录 ID 与 `valid=0`，不能借此删除成功检查、Surface、Result、Action、聊天、文件或其他记录。取消或失败时零删除。
 
-`[IMPLEMENTED — S3.1 PENDING ACCEPTANCE / ADR-022]` 当前生产协议固定到官方 A2UI `v0.9.1`，并兼容其 Schema 声明的 `v0.9`；官方 `createSurface`、`updateComponents`、`updateDataModel` 消息必须位于 A2A `kind=data`、`metadata.mimeType=application/a2ui+json` 的 DataPart 中。Rust 对一个 DataPart 内的单一 `surfaceId` 原子组装、校验并提交，失败时只保存 Inspector 证据，不覆盖最后一个有效 Surface。Provider 首次生成非法 A2UI 时允许一次静默、受限的重新生成：重试只携带原 Provider 输出与截断后的校验错误，原失败检查记录继续保留，重试结果仍必须完整经过同一 Rust 校验器，不能自动补节点或放宽规则。聊天记录只保存用户可理解的成功/失败说明，协议 JSON 不作为普通聊天正文展示；完整原文仍受限保存在 Inspector 供开发排错。客户端能力中的 `v0.9.supportedCatalogIds` 只声明 `urn:a2ui-terminal:catalog:basic:v1`；该本地 Catalog 仍只有现有 13 个组件和 3 个 Action，因此不冒充官方完整 Basic Catalog，官方 Basic fixture 会在 Catalog 协商处安全拒绝。inline Catalog、`sendDataModel=true`、模型 `deleteSurface`、未知组件/Action、混合/不兼容版本、不可达或循环组件树均拒绝渲染。历史私有 `version=1.0` 的 `a2ui_surface/a2ui_update` 仅作兼容读取与既有链路支持，不代表官方 A2UI 1.0，也不能被官方增量消息更新。只读 `get_a2ui_capabilities` IPC 返回 Rust 生成的精确能力合同；Inspector 展示收到/选择的版本、Catalog 与稳定错误码。
+`[IMPLEMENTED — S3.1 ACCEPTED / ADR-022]` 当前生产协议固定到官方 A2UI `v0.9.1`，并兼容其 Schema 声明的 `v0.9`；官方 `createSurface`、`updateComponents`、`updateDataModel` 消息必须位于 A2A `kind=data`、`metadata.mimeType=application/a2ui+json` 的 DataPart 中。Rust 对一个 DataPart 内的单一 `surfaceId` 原子组装、校验并提交，失败时只保存 Inspector 证据，不覆盖最后一个有效 Surface。Provider 首次生成非法 A2UI 时允许一次静默、受限的重新生成：重试只携带原 Provider 输出与截断后的校验错误，原失败检查记录继续保留，重试结果仍必须完整经过同一 Rust 校验器，不能自动补节点或放宽规则。聊天记录只保存用户可理解的成功/失败说明，协议 JSON 不作为普通聊天正文展示；完整原文仍受限保存在 Inspector 供开发排错。客户端能力中的 `v0.9.supportedCatalogIds` 只声明 `urn:a2ui-terminal:catalog:basic:v1`，不冒充官方完整 Basic Catalog；官方 Basic fixture 会在 Catalog 协商处安全拒绝。inline Catalog、`sendDataModel=true`、模型 `deleteSurface`、未知组件/Action、混合/不兼容版本、不可达或循环组件树均拒绝渲染。历史私有 `version=1.0` 的 `a2ui_surface/a2ui_update` 仅作兼容读取与既有链路支持，不代表官方 A2UI 1.0，也不能被官方增量消息更新。只读 `get_a2ui_capabilities` IPC 返回 Rust 生成的精确能力合同；Inspector 展示收到/选择的版本、Catalog 与稳定错误码。
+
+`[IMPLEMENTED — S3.2 PENDING ACCEPTANCE]` 同一本地 Catalog 增加 `Checklist`、`Owner`、`Date`、`Status`、`Table`、`IssueCard` 六个大众组件，总数为 19。组件名在 Rust 能力合同、TypeScript 联合类型和 React `switch` 中固定映射；运行时不存在动态 import、任意 HTML/JS 或远程资源。每个新增组件在 Rust 中有独立 Props Schema：清单限制唯一安全 key，日期限制有效 `YYYY-MM-DD`，表格限制列、行数及基础类型单元格，IssueCard 限制状态/优先级枚举。清单与日期仅复用现有低风险 `set_state`；表格和展示组件不会执行动作。前端使用原生表单、表格、状态、时间和文章语义提供键盘与可访问名称。S3.3 的中风险 Action→Review 尚未开始。
+
+S3.2 人工验收修复（LOG-0112）：Provider 的项目面板提示附带由生产校验器验证的紧凑七节点模板，避免为自带标签的组件生成冗余包装节点。首次失败若属于 JSON 语法错误，修复请求不再回喂完整错误串，而从固定模板重新生成；若 JSON 已解析但违反 Props/树/Action 规则，仍携带原输出与截断错误作一次针对性修复。两条路径最终都必须重新经过完整 Rust 安全门，客户端不会自动补标点、花括号、节点或 Props。用户界面只显示可理解的失败说明，解析器详情保留在专业 Inspector。
+
+S3.2 人工验收修复（LOG-0113）：Inspector 的选择器用“交互成果/检查记录 + 顺序号 + 已通过/未通过 + 最新”表达历史，不把 Surface ID、UUID 或消息 ID 当作用户主标签；内部标识仅作为专业提示保留。固定帮助文案解释每条记录代表一次 AI 界面安全检查、未通过界面不会执行且记录只在本机。未通过记录可经二次确认单独永久删除，成功记录仍随 Surface 生命周期管理。
 
 ## 8. Provider 与处理位置
 
@@ -593,7 +599,8 @@ task:     list_task_templates, create_task, answer_task_questions, start_task, g
 result:   list_results, get_result, create_text_result, read_result_document, save_result_document,
           list_result_revisions, read_result_revision, restore_result_revision, duplicate_result
           # S1.5 已实现并使用最小 Capability；archive_result 后续
-a2ui:    list_a2ui_surfaces, list_a2ui_inspections, delete_a2ui_surface, execute_a2ui_action  # 当前已实现并受最小 Capability 约束
+a2ui:    list_a2ui_surfaces, list_a2ui_inspections, delete_a2ui_surface,
+          delete_a2ui_inspection, execute_a2ui_action  # 当前已实现并受最小 Capability 约束
 import:   select_import_sources, inspect_import_batch, set_import_drop_target, confirm_import,
           list_document_sources, read_document_source  # S2.2 已实现并使用最小 Capability
 context:  plan_context, confirm_context_manifest  # S2.3 已实现并使用最小 Capability；Pack 后续
@@ -687,7 +694,7 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 | PRV-04/MDL-05 | Processing options、local probe                     | Target                                            |
 | SRCH-01       | 授权索引和 Search Service                           | P1 Target                                         |
 | ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                            |
-| A2UI-06       | capability negotiation + conformance CI             | S3.1 Current（待人工验收）                        |
+| A2UI-06       | capability negotiation + conformance CI             | S3.1 Current（已验收）                            |
 | UX-08         | Import suggestions mapped to Result type            | P1 Target                                         |
 
 完整实施顺序、逐步验收和变更记录见实施文档；这里的 `Target` 不代表已经承诺具体版本日期。

@@ -598,6 +598,11 @@ export const desktopApi = {
     return invoke<boolean>('delete_a2ui_surface', { workspaceId, surfaceId });
   },
 
+  async deleteA2uiInspection(workspaceId: string, inspectionId: string): Promise<boolean> {
+    requireDesktop();
+    return invoke<boolean>('delete_a2ui_inspection', { workspaceId, inspectionId });
+  },
+
   async executeA2uiAction(request: {
     workspaceId: string;
     surfaceId: string;

@@ -134,4 +134,15 @@ describe('front-end application boundaries', () => {
     expect(contextFlow).toContain('chatController.planContext');
     expect(contextFlow).toContain('plannedManifestKey === currentManifestKey');
   });
+
+  it('keeps every S3.2 Catalog component on the fixed declarative renderer', () => {
+    const runtime = sources['../features/a2ui/runtime/A2uiRuntime.tsx'];
+    for (const component of ['Checklist', 'Owner', 'Date', 'Status', 'Table', 'IssueCard']) {
+      expect(runtime).toContain(`case '${component}'`);
+    }
+    expect(runtime).not.toMatch(/\bimport\s*\(/);
+    expect(runtime).not.toContain('dangerouslySetInnerHTML');
+    expect(runtime).not.toContain('srcDoc');
+    expect(runtime).not.toContain('<iframe');
+  });
 });

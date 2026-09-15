@@ -52,7 +52,10 @@ fn capabilities_negotiate_the_pinned_protocol_and_only_the_local_catalog() {
         [CATALOG_ID]
     );
     assert!(!capabilities.catalog.accepts_inline_catalogs);
-    assert_eq!(capabilities.catalog.components.len(), 13);
+    assert_eq!(capabilities.catalog.components.len(), 19);
+    for component in ["Checklist", "Owner", "Date", "Status", "Table", "IssueCard"] {
+        assert!(capabilities.catalog.components.contains(&component.into()));
+    }
 }
 
 #[test]
@@ -103,6 +106,23 @@ fn compatible_v09_profile_is_negotiated_and_rendered_with_the_local_catalog() {
 }
 
 #[test]
+fn expanded_catalog_fixture_passes_the_same_official_protocol_gate() {
+    let fixtures: Value = serde_json::from_str(RUNTIME_CASES).unwrap();
+    let (_directory, storage, workspace_id, session_id) = setup();
+    let result = process(
+        &storage,
+        &workspace_id,
+        &session_id,
+        &fixtures["validExpandedCatalog"],
+    );
+    let surface = result.surface.unwrap();
+    assert_eq!(surface.root.children.len(), 6);
+    assert_eq!(surface.root.children[0].component, "Checklist");
+    assert_eq!(surface.root.children[5].component, "IssueCard");
+    assert_eq!(surface.data["dueDate"], "2026-09-30");
+}
+
+#[test]
 fn incompatible_versions_catalogs_components_and_actions_never_render() {
     let fixtures: Value = serde_json::from_str(RUNTIME_CASES).unwrap();
     let (_directory, storage, workspace_id, session_id) = setup();
@@ -111,6 +131,7 @@ fn incompatible_versions_catalogs_components_and_actions_never_render() {
         ("invalidCatalog", "A2UI_CATALOG_UNSUPPORTED"),
         ("unknownComponent", "A2UI_VALIDATION_FAILED"),
         ("unknownAction", "A2UI_VALIDATION_FAILED"),
+        ("invalidExpandedProps", "A2UI_VALIDATION_FAILED"),
     ] {
         let result = process(&storage, &workspace_id, &session_id, &fixtures[name]);
         assert!(result.surface.is_none(), "{name} must not render");
@@ -121,7 +142,7 @@ fn incompatible_versions_catalogs_components_and_actions_never_render() {
         );
     }
     assert!(storage.a2ui_surfaces(&workspace_id).unwrap().is_empty());
-    assert_eq!(storage.a2ui_inspections(&workspace_id).unwrap().len(), 4);
+    assert_eq!(storage.a2ui_inspections(&workspace_id).unwrap().len(), 5);
 }
 
 #[test]

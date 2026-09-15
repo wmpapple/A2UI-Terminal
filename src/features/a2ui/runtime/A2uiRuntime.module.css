@@ -122,3 +122,146 @@
   font-size: 12px;
   font-weight: 600;
 }
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.checklist legend {
+  padding: 0 4px;
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.owner > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.owner small {
+  color: var(--text-muted);
+}
+
+.ownerAvatar {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #6f5cf1;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dateInput {
+  min-height: 32px;
+  padding: 4px 11px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.dateInput:focus-visible,
+.tableScroll:focus-visible {
+  outline: 2px solid #6f5cf1;
+  outline-offset: 2px;
+}
+
+.status {
+  display: inline-flex;
+}
+
+.tableScroll {
+  max-width: 100%;
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+}
+
+.table caption {
+  padding: 0 0 8px;
+  color: var(--text-strong);
+  font-weight: 600;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table [data-align='center'] {
+  text-align: center;
+}
+
+.table [data-align='end'] {
+  text-align: right;
+}
+
+.issueCard {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.issueCard h3,
+.issueCard p {
+  margin: 8px 0;
+}
+
+.issueHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.issueKey {
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+}
+
+.issueMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 8px 0 0;
+}
+
+.issueMeta div {
+  display: flex;
+  gap: 6px;
+}
+
+.issueMeta dt {
+  color: var(--text-muted);
+}
+
+.issueMeta dd {
+  margin: 0;
+}

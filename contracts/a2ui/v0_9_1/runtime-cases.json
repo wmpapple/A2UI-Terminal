@@ -92,6 +92,96 @@
     "kind": "data",
     "metadata": { "mimeType": "application/a2ui+json" }
   },
+  "validExpandedCatalog": {
+    "data": [
+      {
+        "version": "v0.9.1",
+        "createSurface": {
+          "surfaceId": "expanded-catalog",
+          "catalogId": "urn:a2ui-terminal:catalog:basic:v1"
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateComponents": {
+          "surfaceId": "expanded-catalog",
+          "components": [
+            {
+              "id": "root",
+              "component": "Column",
+              "props": { "gap": "md" },
+              "children": ["checklist", "owner", "date", "status", "table", "issue"]
+            },
+            {
+              "id": "checklist",
+              "component": "Checklist",
+              "props": {
+                "name": "doneItems",
+                "label": "发布清单",
+                "items": [
+                  { "key": "review", "label": "完成评审" },
+                  { "key": "release", "label": "准备发布" }
+                ],
+                "value": ["review"]
+              },
+              "actions": { "change": { "type": "set_state", "target": "doneItems" } }
+            },
+            {
+              "id": "owner",
+              "component": "Owner",
+              "props": { "displayName": "Ada", "label": "负责人", "detail": "产品" }
+            },
+            {
+              "id": "date",
+              "component": "Date",
+              "props": { "name": "dueDate", "label": "截止日期", "value": "2026-09-30" },
+              "actions": { "change": { "type": "set_state", "target": "dueDate" } }
+            },
+            {
+              "id": "status",
+              "component": "Status",
+              "props": { "text": "进行中", "label": "状态", "tone": "info" }
+            },
+            {
+              "id": "table",
+              "component": "Table",
+              "props": {
+                "caption": "任务概览",
+                "columns": [
+                  { "key": "task", "label": "任务" },
+                  { "key": "progress", "label": "进度", "align": "end" }
+                ],
+                "rows": [{ "task": "设计", "progress": 80 }]
+              }
+            },
+            {
+              "id": "issue",
+              "component": "IssueCard",
+              "props": {
+                "issueKey": "A2UI-32",
+                "title": "扩展大众组件",
+                "summary": "固定 Catalog 渲染",
+                "status": "in_progress",
+                "priority": "high",
+                "owner": "Ada",
+                "dueDate": "2026-09-30"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateDataModel": {
+          "surfaceId": "expanded-catalog",
+          "path": "/",
+          "value": { "doneItems": ["review"], "dueDate": "2026-09-30" }
+        }
+      }
+    ],
+    "kind": "data",
+    "metadata": { "mimeType": "application/a2ui+json" }
+  },
   "invalidVersion": {
     "data": [
       {
@@ -157,6 +247,32 @@
               "component": "Button",
               "props": { "label": "Run" },
               "actions": { "click": { "type": "run_shell" } }
+            }
+          ]
+        }
+      }
+    ],
+    "kind": "data",
+    "metadata": { "mimeType": "application/a2ui+json" }
+  },
+  "invalidExpandedProps": {
+    "data": [
+      {
+        "version": "v0.9.1",
+        "createSurface": {
+          "surfaceId": "invalid-expanded-props",
+          "catalogId": "urn:a2ui-terminal:catalog:basic:v1"
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateComponents": {
+          "surfaceId": "invalid-expanded-props",
+          "components": [
+            {
+              "id": "root",
+              "component": "Date",
+              "props": { "name": "dueDate", "label": "截止日期", "value": "2026-02-30" }
             }
           ]
         }

@@ -30,10 +30,13 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
   const setActiveInspection = useAppStore((state) => state.setActiveInspection);
   const setCenterView = useAppStore((state) => state.setCenterView);
   const deleteActiveSurface = useAppStore((state) => state.deleteActiveA2uiSurface);
+  const deleteRejectedInspection = useAppStore((state) => state.deleteRejectedA2uiInspection);
   const executeAction = useAppStore((state) => state.executeA2uiAction);
   const [copied, setCopied] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleteInspectionConfirmOpen, setDeleteInspectionConfirmOpen] = useState(false);
+  const [deleteInspectionTargetId, setDeleteInspectionTargetId] = useState<string | null>(null);
   const [capabilities, setCapabilities] = useState<A2uiCapabilities | null>(null);
   const surface = surfaces.find((item) => item.surfaceId === activeSurfaceId) ?? surfaces[0];
   const inspection =
@@ -97,10 +100,11 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
                   size="small"
                   aria-label={t('surface')}
                   value={surface?.surfaceId}
-                  disabled={actionLoading || deleteConfirmOpen}
-                  options={surfaces.map((item) => ({
+                  disabled={actionLoading || deleteConfirmOpen || deleteInspectionConfirmOpen}
+                  options={surfaces.map((item, index) => ({
                     value: item.surfaceId,
-                    label: item.surfaceId,
+                    label: `${t('interactiveResult')} ${index + 1}`,
+                    title: item.surfaceId,
                   }))}
                   onChange={setActiveSurface}
                 />
@@ -109,10 +113,13 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
                 size="small"
                 aria-label={t('inspectionMessage')}
                 value={inspection?.id}
-                disabled={actionLoading || deleteConfirmOpen}
-                options={inspections.map((item) => ({
+                disabled={actionLoading || deleteConfirmOpen || deleteInspectionConfirmOpen}
+                options={inspections.map((item, index) => ({
                   value: item.id,
-                  label: `${item.validation.valid ? '✓' : '✕'} ${item.surfaceId ?? item.messageId}`,
+                  label: `${t('inspectionRecord')} ${index + 1} · ${t(
+                    item.validation.valid ? 'inspectionPassed' : 'inspectionRejected'
+                  )}${index === 0 ? ` · ${t('latest')}` : ''}`,
+                  title: item.surfaceId ?? item.messageId,
                 }))}
                 onChange={setActiveInspection}
               />
@@ -162,7 +169,7 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
               type="error"
               showIcon
               title={t('surfaceRejected')}
-              description={validation?.errors.join('；')}
+              description={t('surfaceRejectedDescription')}
             />
           )}
         </div>
@@ -170,19 +177,53 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
           <aside className={styles.inspector} aria-label={t('a2uiInspector')}>
             <div className={styles.inspectorTitle}>
               <strong>{t('a2uiInspector')}</strong>
-              <Button
-                size="small"
-                icon={copied ? <CheckCircleOutlined /> : <CopyOutlined />}
-                onClick={() => {
-                  void navigator.clipboard.writeText(minimalRepro).then(() => {
-                    setCopied(true);
-                    window.setTimeout(() => setCopied(false), 1200);
-                  });
-                }}
-              >
-                {copied ? t('copied') : t('copyRepro')}
-              </Button>
+              <div className={styles.inspectorActions}>
+                {inspection && !inspection.validation.valid ? (
+                  <Popconfirm
+                    title={t('deleteInspectionTitle')}
+                    description={t('deleteInspectionDescription')}
+                    okText={t('deleteInspection')}
+                    cancelText={t('cancel')}
+                    okButtonProps={{ danger: true }}
+                    disabled={actionLoading}
+                    open={deleteInspectionConfirmOpen}
+                    onOpenChange={(open) => {
+                      setDeleteInspectionConfirmOpen(open);
+                      setDeleteInspectionTargetId(open ? inspection.id : null);
+                    }}
+                    onCancel={() => {
+                      setDeleteInspectionConfirmOpen(false);
+                      setDeleteInspectionTargetId(null);
+                    }}
+                    onConfirm={() => {
+                      const inspectionId = deleteInspectionTargetId;
+                      setDeleteInspectionConfirmOpen(false);
+                      setDeleteInspectionTargetId(null);
+                      return inspectionId
+                        ? deleteRejectedInspection(inspectionId)
+                        : Promise.resolve();
+                    }}
+                  >
+                    <Button danger size="small" icon={<DeleteOutlined />} loading={actionLoading}>
+                      {t('deleteInspection')}
+                    </Button>
+                  </Popconfirm>
+                ) : null}
+                <Button
+                  size="small"
+                  icon={copied ? <CheckCircleOutlined /> : <CopyOutlined />}
+                  onClick={() => {
+                    void navigator.clipboard.writeText(minimalRepro).then(() => {
+                      setCopied(true);
+                      window.setTimeout(() => setCopied(false), 1200);
+                    });
+                  }}
+                >
+                  {copied ? t('copied') : t('copyRepro')}
+                </Button>
+              </div>
             </div>
+            <p className={styles.inspectionHelp}>{t('inspectionHistoryHelp')}</p>
             <Tabs
               size="small"
               items={[

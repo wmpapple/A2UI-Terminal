@@ -17,6 +17,11 @@ use std::time::Instant;
 
 const MAX_A2UI_REPAIR_ERROR_CHARS: usize = 1200;
 
+struct A2uiRepairInstruction {
+    prompt: String,
+    include_previous_output: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(
     tag = "type",
@@ -253,15 +258,17 @@ where
                 } else {
                     None
                 };
-            if let Some(repair_prompt) = a2ui_result.as_ref().and_then(a2ui_repair_prompt) {
+            if let Some(repair) = a2ui_result.as_ref().and_then(a2ui_repair_instruction) {
                 let mut retry_messages = messages.clone();
-                retry_messages.push(ProviderMessage {
-                    role: "assistant".into(),
-                    content: content.clone(),
-                });
+                if repair.include_previous_output {
+                    retry_messages.push(ProviderMessage {
+                        role: "assistant".into(),
+                        content: content.clone(),
+                    });
+                }
                 retry_messages.push(ProviderMessage {
                     role: "user".into(),
-                    content: repair_prompt,
+                    content: repair.prompt,
                 });
                 match ai::stream_chat(&config, &api_key, &retry_messages, cancellation, |_| Ok(()))
                     .await
@@ -569,8 +576,112 @@ fn a2ui_form_example() -> String {
     .to_string()
 }
 
+fn a2ui_dashboard_example() -> String {
+    let capabilities = a2ui::get_capabilities();
+    let version = capabilities.preferred_version;
+    let catalog_id = capabilities.catalog.catalog_id;
+    json!({
+        "data": [
+            {
+                "version": &version,
+                "createSurface": {
+                    "surfaceId": "project-panel",
+                    "catalogId": &catalog_id
+                }
+            },
+            {
+                "version": &version,
+                "updateComponents": {
+                    "surfaceId": "project-panel",
+                    "components": [
+                        {
+                            "id": "root",
+                            "component": "Column",
+                            "props": {"gap": "md"},
+                            "children": ["checklist", "owner", "date", "status", "table", "issue"]
+                        },
+                        {
+                            "id": "checklist",
+                            "component": "Checklist",
+                            "props": {
+                                "name": "doneItems",
+                                "label": "发布清单",
+                                "items": [
+                                    {"key": "review", "label": "完成评审"},
+                                    {"key": "release", "label": "准备发布"}
+                                ],
+                                "value": ["review"]
+                            },
+                            "actions": {"change": {"type": "set_state", "target": "doneItems"}}
+                        },
+                        {
+                            "id": "owner",
+                            "component": "Owner",
+                            "props": {"displayName": "Ada", "label": "负责人", "detail": "产品"}
+                        },
+                        {
+                            "id": "date",
+                            "component": "Date",
+                            "props": {"name": "dueDate", "label": "截止日期", "value": "2026-09-30"},
+                            "actions": {"change": {"type": "set_state", "target": "dueDate"}}
+                        },
+                        {
+                            "id": "status",
+                            "component": "Status",
+                            "props": {"text": "进行中", "label": "状态", "tone": "info"}
+                        },
+                        {
+                            "id": "table",
+                            "component": "Table",
+                            "props": {
+                                "caption": "任务表格",
+                                "columns": [
+                                    {"key": "task", "label": "任务"},
+                                    {"key": "progress", "label": "进度", "align": "end"}
+                                ],
+                                "rows": [
+                                    {"task": "设计", "progress": "完成"},
+                                    {"task": "发布", "progress": "进行中"}
+                                ]
+                            }
+                        },
+                        {
+                            "id": "issue",
+                            "component": "IssueCard",
+                            "props": {
+                                "issueKey": "A2UI-32",
+                                "title": "完成项目面板",
+                                "summary": "固定 Catalog 的可信交互界面",
+                                "status": "in_progress",
+                                "priority": "high",
+                                "owner": "Ada",
+                                "dueDate": "2026-09-30"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "version": &version,
+                "updateDataModel": {
+                    "surfaceId": "project-panel",
+                    "path": "/",
+                    "value": {"doneItems": ["review"], "dueDate": "2026-09-30"}
+                }
+            }
+        ],
+        "kind": "data",
+        "metadata": {"mimeType": "application/a2ui+json"}
+    })
+    .to_string()
+}
+
 fn semantic_patch_system_prompt(workspace_id: &str) -> String {
     let a2ui_form_example = a2ui_form_example();
+    let a2ui_dashboard_example = a2ui_dashboard_example();
+    let capabilities = a2ui::get_capabilities();
+    let catalog_components = capabilities.catalog.components.join(", ");
+    let catalog_actions = capabilities.catalog.actions.join(", ");
     format!(
         r#"You are A2UI Terminal's coding assistant. Never claim a file was changed.
 When modifying a supplied non-empty editable file, return exactly one JSON object and no prose. It must use this schema:
@@ -578,12 +689,12 @@ When modifying a supplied non-empty editable file, return exactly one JSON objec
 Keep the patch compact: at most 3 changes, each anchor at most 500 characters, and each content at most 1500 characters. Never repeat unchanged file content. Do not calculate or include baseRevision, baseHash, or beforeHash; the trusted Rust runtime derives them from the current disk contents. Only propose changes for explicitly supplied editable text context. Do not use regex anchors, absolute paths, traversal, guessed content, or duplicate/overlapping anchors.
 When the user asks to create a new text document and no editable target was supplied, return: {{"version":"1.0","type":"create_file","workspaceId":"{workspace_id}","summary":"short summary","title":"result title","fileName":"safe-name.md","format":"markdown","content":"full candidate content","reason":"reason","risk":"low|medium|high"}}. The fileName must be one safe relative name ending in .md, .markdown, or .txt; never use a path. No file exists until the user accepts the review.
 When the explicitly supplied editable target is empty, return: {{"version":"1.0","type":"replace_empty_file","workspaceId":"{workspace_id}","summary":"short summary","path":"exact context label","content":"full candidate content","reason":"reason","risk":"low|medium|high"}}. Never use this type for a non-empty file. No content is written until the user accepts the review.
-When the user explicitly asks for an interactive form, dashboard, or UI instead of a file change, use the negotiated A2UI v0.9.1 renderer profile. Return exactly one compact A2A DataPart JSON object and no prose. Use this complete valid form as the structural template: {a2ui_form_example}. Components are a flat list. A children entry is only a reference and NEVER creates a component: every referenced child id MUST have its own complete object in the same components array, every id MUST be unique, root MUST exist, and every component MUST be reachable from root. Before answering, compare the referenced-id set with the defined-id set and do not omit title, input, button, form, tab, or other referenced definitions. Catalog components are only Row, Column, Stack, Text, Card, Badge, Progress, TextField, Select, Checkbox, Button, Tabs, Form. Every TextField, Select, and Checkbox with props.name MUST declare {{"change":{{"type":"set_state","target":"theSameName"}}}} in actions. Select options MUST use label/value objects. Event keys are only click, change, submit, or tab_change; Actions are only set_state, submit_form, or request_patch. Never emit inline catalogs, HTML, script, iframe, URLs, commands, dynamic components, sendDataModel=true, or deleteSurface. Later changes to an existing surface use the same DataPart envelope with updateComponents and/or updateDataModel for that surface, without createSurface.
+When the user explicitly asks for an interactive form, dashboard, or UI instead of a file change, use the negotiated A2UI v0.9.1 renderer profile. Return exactly one compact A2A DataPart JSON object and no prose. Use this complete valid form as the structural template: {a2ui_form_example}. For a project panel, checklist, table, owner, date, status, or issue UI, copy this complete valid seven-component template and change only requested literal values, items, and rows: {a2ui_dashboard_example}. Do not add Row/Text wrappers around Owner, Date, Status, Table, or IssueCard because those components already provide their own labels. Components are a flat list. A children entry is only a reference and NEVER creates a component: every referenced child id MUST have its own complete object in the same components array, every id MUST be unique, root MUST exist, and every component MUST be reachable from root. Before answering, compare the referenced-id set with the defined-id set and do not omit referenced definitions. Catalog components are only {catalog_components}. Every TextField, Select, Checkbox, Checklist, and Date with props.name MUST declare {{"change":{{"type":"set_state","target":"theSameName"}}}} in actions. Select options MUST use label/value objects. Expanded component props are: Checklist={{name,label,items:[{{key,label,disabled?}}],value?:string[],disabled?}}; Owner={{displayName,label?,detail?,initials?}}; Date={{name,label,value?:YYYY-MM-DD,min?:YYYY-MM-DD,max?:YYYY-MM-DD,required?,disabled?}}; Status={{text,label?,tone?}}; Table={{caption,columns:[{{key,label,align?}}],rows:[objects with only primitive cells]}}; IssueCard={{issueKey,title,summary?,status:open|in_progress|blocked|done|closed,priority?:low|normal|high|urgent,owner?,dueDate?:YYYY-MM-DD}}. Event keys are only click, change, submit, or tab_change; Actions are only {catalog_actions}. Never emit inline catalogs, HTML, script, iframe, URLs, commands, dynamic components, sendDataModel=true, or deleteSurface. Later changes to an existing surface use the same DataPart envelope with updateComponents and/or updateDataModel for that surface, without createSurface.
 If neither a safe patch nor a safe A2UI Surface is appropriate, answer with ordinary guidance text."#
     )
 }
 
-fn a2ui_repair_prompt(result: &A2uiProcessResult) -> Option<String> {
+fn a2ui_repair_instruction(result: &A2uiProcessResult) -> Option<A2uiRepairInstruction> {
     (!result.inspection.validation.valid).then(|| {
         let errors = result
             .inspection
@@ -593,9 +704,26 @@ fn a2ui_repair_prompt(result: &A2uiProcessResult) -> Option<String> {
             .chars()
             .take(MAX_A2UI_REPAIR_ERROR_CHARS)
             .collect::<String>();
-        format!(
-            "Your previous A2UI DataPart was rejected by the trusted validator: {errors}. Regenerate the entire DataPart once as JSON only. Preserve the user's requested UI. Every id referenced by children must also appear exactly once as a complete components-array object; references do not create components. Recheck version, catalogId, component props, event names, actions, root reachability, and the DataPart envelope before answering."
-        )
+        let syntax_error = result
+            .inspection
+            .validation
+            .errors
+            .iter()
+            .any(|error| error.starts_with("A2UI JSON 无效："));
+        let prompt = if syntax_error {
+            let valid_example = a2ui_dashboard_example();
+            format!(
+                "The A2UI output was invalid JSON: {errors}. Start over instead of repeating or editing the malformed string. Return one complete compact JSON object only. Every object in components must start with {{ and adjacent objects must be separated by }},{{. Use this validator-approved shape as the structural template and change only literal values needed by the original user request: {valid_example}"
+            )
+        } else {
+            format!(
+                "Your previous A2UI DataPart was rejected by the trusted validator: {errors}. Regenerate the entire DataPart once as JSON only. Preserve the user's requested UI. Every id referenced by children must also appear exactly once as a complete components-array object; references do not create components. Recheck version, catalogId, component props, event names, actions, root reachability, and the DataPart envelope before answering."
+            )
+        };
+        A2uiRepairInstruction {
+            prompt,
+            include_previous_output: !syntax_error,
+        }
     })
 }
 
@@ -635,9 +763,9 @@ fn should_retry_invalid_review(
 #[cfg(test)]
 mod tests {
     use super::{
-        a2ui_completion_content, a2ui_form_example, a2ui_repair_prompt,
-        claims_unverified_file_completion, review_completion_content, semantic_patch_system_prompt,
-        should_retry_invalid_review,
+        a2ui_completion_content, a2ui_dashboard_example, a2ui_form_example,
+        a2ui_repair_instruction, claims_unverified_file_completion, review_completion_content,
+        semantic_patch_system_prompt, should_retry_invalid_review,
     };
     use crate::a2ui;
     use crate::domain::review::{
@@ -760,10 +888,41 @@ mod tests {
         let surface = outcome.surface.as_ref().unwrap();
         assert_eq!(surface.root.id, "root");
         assert_eq!(surface.root.children.len(), 2);
-        assert!(a2ui_repair_prompt(&outcome).is_none());
+        assert!(a2ui_repair_instruction(&outcome).is_none());
         let content = a2ui_completion_content(&outcome);
         assert!(content.contains("通过安全校验"));
         assert!(!content.contains("createSurface"));
+    }
+
+    #[test]
+    fn system_prompt_dashboard_example_passes_the_real_a2ui_validator() {
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace_id = Uuid::new_v4().to_string();
+        let session_id = Uuid::new_v4().to_string();
+        storage
+            .upsert_workspace(&workspace_id, "A2UI dashboard", "C:\\a2ui-dashboard")
+            .unwrap();
+        storage
+            .create_session(&workspace_id, &session_id, "Dashboard")
+            .unwrap();
+
+        let outcome = a2ui::process_message(
+            &storage,
+            &a2ui::ProcessA2uiRequest {
+                workspace_id,
+                session_id,
+                message_id: Uuid::new_v4().to_string(),
+                raw_message: a2ui_dashboard_example(),
+            },
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!(outcome.inspection.validation.valid);
+        let surface = outcome.surface.unwrap();
+        assert_eq!(surface.root.children.len(), 6);
+        assert_eq!(surface.root.children[0].component, "Checklist");
+        assert_eq!(surface.root.children[5].component, "IssueCard");
     }
 
     #[test]
@@ -787,12 +946,44 @@ mod tests {
             surface: None,
         };
 
-        let prompt = a2ui_repair_prompt(&result).unwrap();
-        assert!(prompt.contains("A2UI 组件引用不存在：title"));
-        assert!(prompt.contains("references do not create components"));
-        assert!(prompt.chars().count() < 1800);
+        let instruction = a2ui_repair_instruction(&result).unwrap();
+        assert!(instruction.prompt.contains("A2UI 组件引用不存在：title"));
+        assert!(instruction
+            .prompt
+            .contains("references do not create components"));
+        assert!(instruction.prompt.chars().count() < 1800);
+        assert!(instruction.include_previous_output);
         let content = a2ui_completion_content(&result);
         assert!(content.contains("没有渲染"));
         assert!(!content.contains("组件引用不存在"));
+    }
+
+    #[test]
+    fn invalid_json_restarts_from_a_validator_approved_template() {
+        let result = a2ui::A2uiProcessResult {
+            inspection: a2ui::A2uiInspectionView {
+                id: "inspection".into(),
+                message_id: "message".into(),
+                surface_id: None,
+                raw_message: r#"{"components":[{"id":"one"},"#.into(),
+                validation: a2ui::A2uiValidation {
+                    valid: false,
+                    errors: vec!["A2UI JSON 无效：expected `,` or `]` at line 1 column 1358".into()],
+                    warnings: vec![],
+                    duration_ms: 0,
+                    error_code: Some("A2UI_VALIDATION_FAILED".into()),
+                    negotiation: None,
+                },
+                created_at: None,
+            },
+            surface: None,
+        };
+
+        let instruction = a2ui_repair_instruction(&result).unwrap();
+        assert!(!instruction.include_previous_output);
+        assert!(instruction.prompt.contains("Start over"));
+        assert!(instruction.prompt.contains("validator-approved shape"));
+        assert!(instruction.prompt.contains("project-panel"));
+        assert!(!instruction.prompt.contains(&result.inspection.raw_message));
     }
 }

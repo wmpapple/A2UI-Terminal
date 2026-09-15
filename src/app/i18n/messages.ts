@@ -457,7 +457,15 @@ export const messages = {
     a2uiInspector: '协议 Inspector',
     noA2uiSurface: '暂无 A2UI Surface。可让 AI 生成表单或交互界面。',
     surfaceRejected: 'Surface 已被安全拒绝，不会渲染',
-    inspectionMessage: '协议消息',
+    surfaceRejectedDescription:
+      'AI 返回的界面格式不完整或不符合安全规则。系统没有执行它；技术原因请查看右侧 Inspector。',
+    inspectionMessage: '安全检查记录',
+    inspectionRecord: '检查记录',
+    inspectionPassed: '已通过',
+    inspectionRejected: '未通过',
+    latest: '最新',
+    inspectionHistoryHelp:
+      '这里记录 AI 界面每次安全检查：通过后才会显示，未通过的不会运行。记录只保存在本机；失败记录可单独删除。',
     schemaResult: 'Schema',
     schemaPassed: 'Schema 与权限校验通过',
     schemaFailed: 'Schema 或权限校验失败',
@@ -477,6 +485,10 @@ export const messages = {
     deleteA2uiSurfaceTitle: '永久删除当前交互成果？',
     deleteA2uiSurfaceDescription:
       '将删除该组件、协议检查、Action 事件和对应成果记录。此操作不可撤销，不会删除工作区真实文件。',
+    deleteInspection: '删除失败记录',
+    deleteInspectionTitle: '删除这条失败检查记录？',
+    deleteInspectionDescription:
+      '只删除这一条本地检查记录，不会删除交互成果、聊天、文件或其他记录。删除后不可恢复。',
     a2uiGenerating: '正在生成受限 A2UI Surface',
     a2uiReady: 'A2UI Surface 已通过安全校验',
     a2uiReadyDescription: '界面只使用受信任 Basic Catalog，不会执行模型代码。',
@@ -1000,7 +1012,15 @@ export const messages = {
     a2uiInspector: 'Protocol Inspector',
     noA2uiSurface: 'No A2UI Surface yet. Ask the AI for a form or interactive UI.',
     surfaceRejected: 'Surface was safely rejected and will not render',
-    inspectionMessage: 'Protocol message',
+    surfaceRejectedDescription:
+      'The interface returned by AI was incomplete or failed a safety rule. It was not executed; see Inspector for technical details.',
+    inspectionMessage: 'Safety check history',
+    inspectionRecord: 'Check',
+    inspectionPassed: 'Passed',
+    inspectionRejected: 'Rejected',
+    latest: 'Latest',
+    inspectionHistoryHelp:
+      'Each AI interface is safety-checked before display. Rejected interfaces never run. Records stay on this device, and rejected records can be deleted individually.',
     schemaResult: 'Schema',
     schemaPassed: 'Schema and permission checks passed',
     schemaFailed: 'Schema or permission validation failed',
@@ -1020,6 +1040,10 @@ export const messages = {
     deleteA2uiSurfaceTitle: 'Permanently delete this interaction result?',
     deleteA2uiSurfaceDescription:
       'This deletes the component, protocol inspections, Action events, and its Result record. It cannot be undone and does not delete workspace files.',
+    deleteInspection: 'Delete rejected record',
+    deleteInspectionTitle: 'Delete this rejected check record?',
+    deleteInspectionDescription:
+      'Only this local check record will be deleted. The interaction result, chat, files, and other records are untouched. This cannot be undone.',
     a2uiGenerating: 'Generating a constrained A2UI Surface',
     a2uiReady: 'A2UI Surface passed safety validation',
     a2uiReadyDescription:

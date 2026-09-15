@@ -69,6 +69,14 @@ pub fn delete_surface(
     a2ui::delete_surface(storage, workspace_id, surface_id)
 }
 
+pub fn delete_inspection(
+    storage: &Storage,
+    workspace_id: &str,
+    inspection_id: &str,
+) -> Result<bool, AppError> {
+    a2ui::delete_inspection(storage, workspace_id, inspection_id)
+}
+
 pub fn execute_action(
     storage: &Storage,
     request: ExecuteActionRequest,

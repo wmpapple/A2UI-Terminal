@@ -999,6 +999,15 @@ pub fn delete_a2ui_surface(
 }
 
 #[tauri::command]
+pub fn delete_a2ui_inspection(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    inspection_id: String,
+) -> Result<bool, AppError> {
+    adapters::delete_inspection(&state.storage, &workspace_id, &inspection_id)
+}
+
+#[tauri::command]
 pub fn execute_a2ui_action(
     state: State<'_, AppState>,
     request: ExecuteActionRequest,

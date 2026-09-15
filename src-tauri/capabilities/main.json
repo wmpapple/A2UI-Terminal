@@ -65,6 +65,7 @@
     "allow-list-a2ui-surfaces",
     "allow-list-a2ui-inspections",
     "allow-delete-a2ui-surface",
+    "allow-delete-a2ui-inspection",
     "allow-execute-a2ui-action",
     "allow-list-results",
     "allow-get-result",

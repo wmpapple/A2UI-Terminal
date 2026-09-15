@@ -58,6 +58,7 @@ fn main() {
         "list_a2ui_surfaces",
         "list_a2ui_inspections",
         "delete_a2ui_surface",
+        "delete_a2ui_inspection",
         "execute_a2ui_action",
         "list_results",
         "get_result",

@@ -5,7 +5,11 @@ import { a2uiController } from './a2uiController';
 
 type A2uiActions = Pick<
   AppState,
-  'setActiveSurface' | 'setActiveInspection' | 'deleteActiveA2uiSurface' | 'executeA2uiAction'
+  | 'setActiveSurface'
+  | 'setActiveInspection'
+  | 'deleteActiveA2uiSurface'
+  | 'deleteRejectedA2uiInspection'
+  | 'executeA2uiAction'
 >;
 
 export const createA2uiStore = (set: AppSet, get: AppGet): A2uiActions => ({
@@ -19,13 +23,19 @@ export const createA2uiStore = (set: AppSet, get: AppGet): A2uiActions => ({
     })),
 
   setActiveInspection: (activeInspectionId) =>
-    set((state) => ({
-      activeInspectionId,
-      activeSurfaceId:
-        state.a2uiInspections.find((inspection) => inspection.id === activeInspectionId)
-          ?.surfaceId ?? state.activeSurfaceId,
-      centerView: 'surface',
-    })),
+    set((state) => {
+      const inspectionSurfaceId = state.a2uiInspections.find(
+        (inspection) => inspection.id === activeInspectionId
+      )?.surfaceId;
+      const matchingSurfaceId = state.a2uiSurfaces.find(
+        (surface) => surface.surfaceId === inspectionSurfaceId
+      )?.surfaceId;
+      return {
+        activeInspectionId,
+        activeSurfaceId: matchingSurfaceId ?? state.activeSurfaceId,
+        centerView: 'surface',
+      };
+    }),
 
   deleteActiveA2uiSurface: async (surfaceId) => {
     const state = get();
@@ -66,6 +76,52 @@ export const createA2uiStore = (set: AppSet, get: AppGet): A2uiActions => ({
           activeSurfaceId,
           activeInspectionId,
           centerView: a2uiSurfaces.length === 0 ? 'editor' : current.centerView,
+        };
+      });
+    } catch (error) {
+      set({ a2uiNotice: errorDetails(error).message });
+    } finally {
+      set({ a2uiActionLoading: false });
+    }
+  },
+
+  deleteRejectedA2uiInspection: async (inspectionId) => {
+    const state = get();
+    const inspection = state.a2uiInspections.find(
+      (item) => item.id === (inspectionId ?? state.activeInspectionId)
+    );
+    if (!inspection || inspection.validation.valid || state.a2uiActionLoading) return;
+    set({ a2uiActionLoading: true, a2uiNotice: null });
+    try {
+      if (state.runtimeMode !== 'web-mock') {
+        const workspace = state.workspace;
+        if (!workspace) return;
+        const deleted = await a2uiController.deleteInspection(workspace.id, inspection.id);
+        if (!deleted) throw new Error('未找到可删除的失败检查记录');
+      }
+      set((current) => {
+        const a2uiInspections = current.a2uiInspections.filter((item) => item.id !== inspection.id);
+        const nextInspection =
+          current.activeInspectionId === inspection.id
+            ? (a2uiInspections.find((item) => item.surfaceId === current.activeSurfaceId) ??
+              a2uiInspections[0])
+            : a2uiInspections.find((item) => item.id === current.activeInspectionId);
+        const activeSurfaceId = current.a2uiSurfaces.some(
+          (surface) => surface.surfaceId === current.activeSurfaceId
+        )
+          ? current.activeSurfaceId
+          : (current.a2uiSurfaces.find((surface) => surface.surfaceId === nextInspection?.surfaceId)
+              ?.surfaceId ??
+            current.a2uiSurfaces[0]?.surfaceId ??
+            '');
+        return {
+          a2uiInspections,
+          activeInspectionId: nextInspection?.id ?? '',
+          activeSurfaceId,
+          centerView:
+            current.a2uiSurfaces.length === 0 && a2uiInspections.length === 0
+              ? 'editor'
+              : current.centerView,
         };
       });
     } catch (error) {

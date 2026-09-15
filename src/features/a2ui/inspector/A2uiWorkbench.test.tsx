@@ -65,10 +65,58 @@ describe('A2uiWorkbench', () => {
       </I18nProvider>
     );
     expect(screen.getByText('Surface 已被安全拒绝，不会渲染')).toBeInTheDocument();
+    expect(screen.getByText(/AI 返回的界面格式不完整/)).toBeInTheDocument();
     expect(screen.getByText('A2UI_PROTOCOL_INCOMPATIBLE')).toBeInTheDocument();
     expect(screen.getByText(/v1\.0/)).toBeInTheDocument();
     expect(screen.getByText(/urn:a2ui-terminal:catalog:basic:v1/)).toBeInTheDocument();
+    expect(screen.getByText('检查记录 1 · 未通过 · 最新')).toBeInTheDocument();
+    expect(screen.getByText(/未通过的不会运行/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /删除失败记录/ })).toBeInTheDocument();
     expect(screen.queryByLabelText(/A2UI Surface/)).not.toBeInTheDocument();
+  });
+
+  it('explains and confirms deletion of one rejected local inspection', async () => {
+    useAppStore.setState({
+      a2uiSurfaces: [],
+      a2uiInspections: [
+        {
+          id: 'invalid',
+          messageId: 'opaque-message-id',
+          surfaceId: null,
+          rawMessage: '{bad json',
+          validation: {
+            valid: false,
+            errorCode: 'A2UI_VALIDATION_FAILED',
+            errors: ['invalid'],
+            warnings: [],
+            durationMs: 1,
+          },
+          createdAt: null,
+        },
+      ],
+      activeSurfaceId: '',
+      activeInspectionId: 'invalid',
+    });
+    render(
+      <I18nProvider>
+        <A2uiWorkbench />
+      </I18nProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /删除失败记录/ }));
+    expect(screen.getByText('删除这条失败检查记录？')).toBeInTheDocument();
+    expect(screen.getByText(/不会删除交互成果、聊天、文件或其他记录/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /取.*消/ }));
+    expect(useAppStore.getState().a2uiInspections).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /删除失败记录/ }));
+    const deleteButtons = screen.getAllByRole('button', { name: /删除失败记录/ });
+    fireEvent.click(deleteButtons.at(-1)!);
+
+    await waitFor(() => expect(useAppStore.getState().a2uiInspections).toHaveLength(0));
+    expect(useAppStore.getState().a2uiSurfaces).toHaveLength(0);
+    expect(useAppStore.getState().centerView).toBe('editor');
   });
 
   it('keeps the validated runtime but hides protocol Inspector details in simple mode', () => {

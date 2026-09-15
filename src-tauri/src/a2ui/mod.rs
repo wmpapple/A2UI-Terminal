@@ -295,6 +295,20 @@ pub fn delete_surface(
     storage.delete_a2ui_surface(workspace_id, surface_id)
 }
 
+pub fn delete_inspection(
+    storage: &Storage,
+    workspace_id: &str,
+    inspection_id: &str,
+) -> Result<bool, AppError> {
+    if workspace_id.trim().is_empty() || workspace_id.chars().count() > 128 {
+        return Err(AppError::InvalidInput("工作区标识无效".into()));
+    }
+    if inspection_id.trim().is_empty() || inspection_id.chars().count() > 128 {
+        return Err(AppError::InvalidInput("检查记录标识无效".into()));
+    }
+    storage.delete_a2ui_inspection(workspace_id, inspection_id)
+}
+
 pub fn execute_action(
     storage: &Storage,
     request: ExecuteActionRequest,
@@ -978,6 +992,11 @@ mod tests {
         assert!(outcome.surface.is_none());
         assert!(list_surfaces(&storage, &workspace_id).unwrap().is_empty());
         assert_eq!(list_inspections(&storage, &workspace_id).unwrap().len(), 1);
+        assert!(!delete_inspection(&storage, "another-workspace", &outcome.inspection.id).unwrap());
+        assert!(delete_inspection(&storage, &workspace_id, &outcome.inspection.id).unwrap());
+        assert!(list_inspections(&storage, &workspace_id)
+            .unwrap()
+            .is_empty());
     }
 
     #[test]

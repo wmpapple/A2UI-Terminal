@@ -20,7 +20,8 @@
 .header > div,
 .headerActions,
 .selectors,
-.inspectorTitle {
+.inspectorTitle,
+.inspectorActions {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -62,6 +63,15 @@
 }
 .inspectorTitle {
   justify-content: space-between;
+}
+.inspectorActions {
+  justify-content: flex-end;
+}
+.inspectionHelp {
+  margin: 8px 0 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 .inspector pre {
   max-height: 460px;

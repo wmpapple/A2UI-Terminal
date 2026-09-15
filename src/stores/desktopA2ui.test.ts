@@ -59,4 +59,57 @@ describe('desktop A2UI deletion', () => {
     expect(useAppStore.getState().a2uiNotice).toBe('delete failed');
     expect(useAppStore.getState().a2uiActionLoading).toBe(false);
   });
+
+  it('deletes one rejected inspection without deleting its Surface or other records', async () => {
+    const rejected = {
+      ...useAppStore.getState().a2uiInspections[0],
+      id: 'rejected-inspection',
+      surfaceId: null,
+      validation: {
+        ...useAppStore.getState().a2uiInspections[0].validation,
+        valid: false,
+      },
+    };
+    useAppStore.setState((state) => ({
+      a2uiInspections: [rejected, ...state.a2uiInspections],
+      activeInspectionId: rejected.id,
+    }));
+    const deleteInspection = vi.spyOn(desktopApi, 'deleteA2uiInspection').mockResolvedValue(true);
+
+    await useAppStore.getState().deleteRejectedA2uiInspection();
+
+    expect(deleteInspection).toHaveBeenCalledWith('workspace-a2ui', 'rejected-inspection');
+    expect(useAppStore.getState().a2uiSurfaces).toHaveLength(2);
+    expect(useAppStore.getState().a2uiInspections.map((item) => item.id)).toEqual([
+      'web-mock-inspection',
+      'inspection-2',
+    ]);
+    expect(useAppStore.getState().activeInspectionId).toBe('web-mock-inspection');
+    expect(useAppStore.getState().centerView).toBe('surface');
+  });
+
+  it('keeps a rejected inspection when native deletion fails', async () => {
+    const rejected = {
+      ...useAppStore.getState().a2uiInspections[0],
+      id: 'rejected-inspection',
+      validation: {
+        ...useAppStore.getState().a2uiInspections[0].validation,
+        valid: false,
+      },
+    };
+    useAppStore.setState((state) => ({
+      a2uiInspections: [rejected, ...state.a2uiInspections],
+      activeInspectionId: rejected.id,
+    }));
+    vi.spyOn(desktopApi, 'deleteA2uiInspection').mockRejectedValue({
+      code: 'DATABASE_ERROR',
+      message: 'inspection delete failed',
+    });
+
+    await useAppStore.getState().deleteRejectedA2uiInspection();
+
+    expect(useAppStore.getState().a2uiInspections[0].id).toBe('rejected-inspection');
+    expect(useAppStore.getState().a2uiNotice).toBe('inspection delete failed');
+    expect(useAppStore.getState().a2uiActionLoading).toBe(false);
+  });
 });

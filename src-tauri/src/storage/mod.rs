@@ -2947,6 +2947,22 @@ impl Storage {
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
+    pub fn delete_a2ui_inspection(
+        &self,
+        workspace_id: &str,
+        inspection_id: &str,
+    ) -> Result<bool, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let deleted = connection.execute(
+            "DELETE FROM a2ui_messages WHERE workspace_id = ?1 AND id = ?2 AND valid = 0",
+            params![workspace_id, inspection_id],
+        )?;
+        Ok(deleted == 1)
+    }
+
     pub fn a2ui_events(&self, surface_row_id: &str) -> Result<Vec<A2uiEventRow>, AppError> {
         let connection = self
             .connection
@@ -3811,6 +3827,17 @@ mod tests {
                 1,
             )
             .unwrap();
+
+        assert!(!storage
+            .delete_a2ui_inspection(&workspace_b.id, "inspection-a")
+            .unwrap());
+        assert!(!storage
+            .delete_a2ui_inspection(&workspace_a.id, "inspection-a")
+            .unwrap());
+        assert!(storage
+            .a2ui_surface(&workspace_a.id, "shared-surface")
+            .unwrap()
+            .is_some());
 
         assert!(!storage
             .delete_a2ui_surface(&workspace_b.id, "missing-surface")
