@@ -14,6 +14,7 @@ import { OnboardingDialog } from '../features/home/components/OnboardingDialog';
 import { scheduleAutomaticUpdateCheck } from '../features/settings/appUpdater';
 import { ProviderSettings } from '../features/settings/components/ProviderSettings';
 import { ResultsPage } from '../features/results/components/ResultsPage';
+import { PersonalSurfaceTemplates } from '../features/templates/components/PersonalSurfaceTemplates';
 import { ResultAssistantPanel } from '../features/results/components/ResultAssistantPanel';
 import { ResultWorkbench } from '../features/results/components/ResultWorkbench';
 import { EditorPane } from '../features/workspace/components/EditorPane';
@@ -138,6 +139,8 @@ export function AppShell() {
           activeResultId ? <ResultAssistantPanel /> : <ChatPanel professionalTools={professional} />
         }
       />
+    ) : route === 'templates' ? (
+      <PersonalSurfaceTemplates onOpened={() => openRoute('workbench')} />
     ) : route === 'settings' ? (
       <SettingsPage
         experienceMode={experienceMode}

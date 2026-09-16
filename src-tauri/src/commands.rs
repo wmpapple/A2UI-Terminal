@@ -1,6 +1,7 @@
 use crate::a2ui::{
-    A2uiCapabilities, A2uiInspectionView, A2uiProcessResult, A2uiSurfaceView,
-    ActionExecutionResult, ExecuteActionRequest, ProcessA2uiRequest,
+    A2uiCapabilities, A2uiInspectionView, A2uiProcessResult, A2uiSurfaceView, A2uiTemplateView,
+    ActionExecutionResult, ExecuteActionRequest, OpenA2uiTemplateRequest, OpenA2uiTemplateResult,
+    ProcessA2uiRequest, SaveA2uiTemplateRequest,
 };
 use crate::ai::{
     ChatRequest, ConfirmContextManifestInput, ContextManifest, ContextManifestInput,
@@ -990,6 +991,45 @@ pub fn list_a2ui_inspections(
 }
 
 #[tauri::command]
+pub fn save_a2ui_template(
+    state: State<'_, AppState>,
+    request: SaveA2uiTemplateRequest,
+) -> Result<A2uiTemplateView, AppError> {
+    adapters::save_template(&state.storage, request)
+}
+
+#[tauri::command]
+pub fn list_a2ui_templates(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> Result<Vec<A2uiTemplateView>, AppError> {
+    adapters::list_templates(&state.storage, &workspace_id)
+}
+
+#[tauri::command]
+pub fn open_a2ui_template(
+    state: State<'_, AppState>,
+    request: OpenA2uiTemplateRequest,
+) -> Result<OpenA2uiTemplateResult, AppError> {
+    let opened = adapters::open_template(&state.storage, request)?;
+    crate::application::result::ensure_surface_by_id(
+        &state.storage,
+        &opened.surface.workspace_id,
+        &opened.surface.surface_id,
+    )?;
+    Ok(opened)
+}
+
+#[tauri::command]
+pub fn delete_a2ui_template(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    template_id: String,
+) -> Result<bool, AppError> {
+    adapters::delete_template(&state.storage, &workspace_id, &template_id)
+}
+
+#[tauri::command]
 pub fn delete_a2ui_surface(
     state: State<'_, AppState>,
     workspace_id: String,
@@ -1354,6 +1394,7 @@ mod tests {
                 a2ui_surfaces: 7,
                 a2ui_messages: 8,
                 a2ui_events: 9,
+                a2ui_templates: 2,
                 configured_providers: 1,
                 tasks: 4,
                 results: 10,

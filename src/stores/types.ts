@@ -129,6 +129,7 @@ export interface AppState {
   deleteActiveA2uiSurface: (surfaceId?: string) => Promise<void>;
   deleteRejectedA2uiInspection: (inspectionId?: string) => Promise<void>;
   executeA2uiAction: (componentId: string, eventName: string, payload: unknown) => Promise<void>;
+  openA2uiTemplate: (templateId: string) => Promise<boolean>;
 }
 
 type AppStateCreator = StateCreator<AppState, [], [], AppState>;

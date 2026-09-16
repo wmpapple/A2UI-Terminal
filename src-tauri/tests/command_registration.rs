@@ -1,7 +1,7 @@
 use serde_json::Value;
 use std::{fs, path::PathBuf};
 
-const NATIVE_COMMANDS: [&str; 15] = [
+const NATIVE_COMMANDS: [&str; 19] = [
     "validate_document_patch",
     "apply_document_patch",
     "undo_document_patch",
@@ -9,6 +9,10 @@ const NATIVE_COMMANDS: [&str; 15] = [
     "process_a2ui_message",
     "list_a2ui_surfaces",
     "list_a2ui_inspections",
+    "save_a2ui_template",
+    "list_a2ui_templates",
+    "open_a2ui_template",
+    "delete_a2ui_template",
     "delete_a2ui_surface",
     "delete_a2ui_inspection",
     "execute_a2ui_action",

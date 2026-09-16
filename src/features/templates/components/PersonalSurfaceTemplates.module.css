@@ -1,0 +1,65 @@
+.page {
+  display: grid;
+  align-content: start;
+  flex: 1;
+  gap: 20px;
+  min-height: 0;
+  padding: 36px clamp(24px, 5vw, 72px);
+  overflow: auto;
+  background: var(--canvas);
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.heading h1,
+.heading p {
+  margin: 0;
+}
+
+.heading p,
+.meta,
+.catalog {
+  color: var(--text-muted);
+}
+
+.icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 14px;
+  font-size: 22px;
+  place-items: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.meta,
+.catalog {
+  margin: 0 0 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.permissions {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.permissions > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}

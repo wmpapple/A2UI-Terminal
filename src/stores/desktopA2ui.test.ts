@@ -22,6 +22,7 @@ beforeEach(() => {
     a2uiInspections: [first.inspection, second.inspection],
     activeSurfaceId: first.surface.surfaceId,
     activeInspectionId: first.inspection.id,
+    activeSessionId: 'session-a2ui',
     a2uiActionLoading: false,
     a2uiNotice: null,
     centerView: 'surface',
@@ -111,5 +112,51 @@ describe('desktop A2UI deletion', () => {
     expect(useAppStore.getState().a2uiInspections[0].id).toBe('rejected-inspection');
     expect(useAppStore.getState().a2uiNotice).toBe('inspection delete failed');
     expect(useAppStore.getState().a2uiActionLoading).toBe(false);
+  });
+});
+
+describe('desktop personal A2UI templates', () => {
+  it('opens only the Rust-revalidated Surface returned by the desktop command', async () => {
+    const openedSurface = {
+      ...createMockA2ui().surface,
+      surfaceId: 'personal-safe-template',
+      workspaceId: 'workspace-a2ui',
+      sessionId: 'session-a2ui',
+    };
+    const open = vi.spyOn(desktopApi, 'openA2uiTemplate').mockResolvedValue({
+      template: {
+        id: 'template-1',
+        workspaceId: 'workspace-a2ui',
+        name: '联系人表单',
+        protocolVersion: 'v0.9.1',
+        catalogId: 'urn:a2ui-terminal:catalog:basic:v1',
+        permissions: [],
+        valid: true,
+        createdAt: '2026-09-16T00:00:00Z',
+        updatedAt: '2026-09-16T00:00:00Z',
+      },
+      surface: openedSurface,
+    });
+
+    const result = await useAppStore.getState().openA2uiTemplate('template-1');
+
+    expect(result).toBe(true);
+    expect(open).toHaveBeenCalledWith('workspace-a2ui', 'template-1', 'session-a2ui');
+    expect(useAppStore.getState().activeSurfaceId).toBe('personal-safe-template');
+    expect(useAppStore.getState().centerView).toBe('surface');
+    expect(useAppStore.getState().a2uiNotice).toContain('重新通过安全校验');
+  });
+
+  it('does not alter the active Surface when template revalidation fails', async () => {
+    vi.spyOn(desktopApi, 'openA2uiTemplate').mockRejectedValue({
+      code: 'INVALID_INPUT',
+      message: '个人模板已失效，无法安全打开',
+    });
+
+    const result = await useAppStore.getState().openA2uiTemplate('template-invalid');
+
+    expect(result).toBe(false);
+    expect(useAppStore.getState().activeSurfaceId).toBe('web-mock-form');
+    expect(useAppStore.getState().a2uiNotice).toContain('已失效');
   });
 });

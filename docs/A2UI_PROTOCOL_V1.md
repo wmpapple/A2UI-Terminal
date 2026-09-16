@@ -175,3 +175,11 @@ Select 的 `options` 默认作为推荐值，用户仍可输入未列出的文�
 SQLite 保存最近的原始消息、Schema 错误/警告、校验耗时、最终组件树、data 和 Action 事件。非法消息也会保存，但不会创建或更新 Surface。Inspector 用编号、通过状态和“最新”标记显示历史，并解释这些记录只保存在本机、未通过消息不会运行；内部 ID 不作为用户可见主标签。Inspector 可以复制包含这些字段的最小复现 JSON，且不包含 API Key。
 
 用户可通过 `delete_a2ui_inspection(workspaceId, inspectionId)` 二次确认删除单条失败记录。Rust 仅接受不透明检查记录 ID，并在删除条件中同时约束当前工作区和 `valid=0`；成功检查仍随 Surface 管理，Surface、Result、Action、聊天、文件、Provider 配置和其他记录不会被该命令删除。
+
+## 个人安全 Surface 模板
+
+S3.5 只允许把当前工作区内已经持久化、并由 Rust 按当前协议和 Catalog 重新校验通过的官方 v0.9/v0.9.1 Surface 保存为个人模板。保存时会把 TextField、Date、Checkbox、Checklist 和 Select 的当前输入恢复为空白或安全默认值；模板不复制聊天、Prompt、Context Manifest、Inspector/Provider 原文、绝对路径、Result、Revision 或文件正文。包含 `request_patch` 文件修改候选的 Surface 不可保存为模板。
+
+模板记录绑定工作区，保存协议版本、精确 Catalog ID、声明式 Surface 快照和 Rust 推导的权限摘要。重开时 Rust 不信任已存快照或前端状态，会重新执行版本、Catalog、Schema、组件树、Props、资源上限、Action 白名单与权限摘要校验；校验通过后创建全新的 Surface ID 和 revision 1。过期版本、篡改、权限变化、跨工作区引用以及 HTML、JavaScript、React、iframe、URL、动态 npm、Shell 或其他未知代码均拒绝渲染和执行。
+
+四个模板命令 `save_a2ui_template`、`list_a2ui_templates`、`open_a2ui_template`、`delete_a2ui_template` 只访问本地 SQLite，并由主窗口最小 Capability 约束。列表只向前端返回模板元数据、兼容状态和可读权限说明，不返回快照 JSON。删除模板不删除来源 Surface、自动关联 Result、Revision、事件或真实文件。

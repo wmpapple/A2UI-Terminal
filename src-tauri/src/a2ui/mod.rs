@@ -9,7 +9,7 @@ pub(crate) use protocol::{validate_surface, A2uiNode, A2uiSurfaceState};
 
 use crate::domain::review::ReviewRequest;
 use crate::error::AppError;
-use crate::storage::{A2uiInspectionRow, A2uiSurfaceRow, Storage};
+use crate::storage::{A2uiInspectionRow, A2uiSurfaceRow, A2uiTemplateRow, Storage};
 use capabilities::{is_supported_version, LEGACY_PROTOCOL_VERSION};
 use policy::{evaluate, ActionDecision, ActionRisk};
 use protocol::{
@@ -18,6 +18,7 @@ use protocol::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::BTreeMap;
 use std::time::Instant;
 use uuid::Uuid;
 
@@ -119,6 +120,54 @@ pub struct ActionExecutionResult {
     pub decision: ActionDecision,
     pub message: String,
     pub review: Option<ReviewRequest>,
+    pub surface: A2uiSurfaceView,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct A2uiTemplatePermission {
+    pub action_type: String,
+    pub risk: ActionRisk,
+    pub decision: ActionDecision,
+    pub description: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct A2uiTemplateView {
+    pub id: String,
+    pub workspace_id: String,
+    pub name: String,
+    pub protocol_version: String,
+    pub catalog_id: String,
+    pub permissions: Vec<A2uiTemplatePermission>,
+    pub valid: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invalid_reason: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SaveA2uiTemplateRequest {
+    pub workspace_id: String,
+    pub surface_id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OpenA2uiTemplateRequest {
+    pub workspace_id: String,
+    pub template_id: String,
+    pub session_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenA2uiTemplateResult {
+    pub template: A2uiTemplateView,
     pub surface: A2uiSurfaceView,
 }
 
@@ -326,6 +375,304 @@ pub fn list_surfaces(
         .into_iter()
         .map(|row| surface_from_row(storage, row))
         .collect()
+}
+
+pub fn save_template(
+    storage: &Storage,
+    request: SaveA2uiTemplateRequest,
+) -> Result<A2uiTemplateView, AppError> {
+    validate_template_name(&request.name)?;
+    let name = request.name.trim();
+    let row = storage
+        .a2ui_surface(&request.workspace_id, &request.surface_id)?
+        .ok_or_else(|| AppError::InvalidInput("交互成果不存在或不属于当前工作区".into()))?;
+    let mut state = validated_template_state(&row)?;
+    let permissions = permission_summary(&state.root);
+    if permissions
+        .iter()
+        .any(|permission| permission.action_type == "request_patch")
+    {
+        return Err(AppError::InvalidInput(
+            "包含文件修改候选的交互成果不能保存为个人模板".into(),
+        ));
+    }
+    reset_personal_values(&mut state);
+    validate_surface(&state).map_err(|errors| {
+        AppError::InvalidInput(format!("个人模板安全校验失败：{}", errors.join("；")))
+    })?;
+    let id = Uuid::new_v4().to_string();
+    let state_json = serde_json::to_string(&state).map_err(|_| AppError::StateUnavailable)?;
+    let permission_json =
+        serde_json::to_string(&permissions).map_err(|_| AppError::StateUnavailable)?;
+    storage.create_a2ui_template(
+        &id,
+        &request.workspace_id,
+        name,
+        &request.surface_id,
+        &state.protocol_version,
+        state.catalog_id.as_deref().unwrap_or_default(),
+        &state_json,
+        &permission_json,
+    )?;
+    let row = storage
+        .a2ui_template(&request.workspace_id, &id)?
+        .ok_or(AppError::StateUnavailable)?;
+    Ok(template_from_row(row))
+}
+
+pub fn list_templates(
+    storage: &Storage,
+    workspace_id: &str,
+) -> Result<Vec<A2uiTemplateView>, AppError> {
+    validate_opaque_id(workspace_id, "工作区")?;
+    Ok(storage
+        .a2ui_templates(workspace_id)?
+        .into_iter()
+        .map(template_from_row)
+        .collect())
+}
+
+pub fn open_template(
+    storage: &Storage,
+    request: OpenA2uiTemplateRequest,
+) -> Result<OpenA2uiTemplateResult, AppError> {
+    validate_opaque_id(&request.workspace_id, "工作区")?;
+    validate_opaque_id(&request.template_id, "模板")?;
+    validate_opaque_id(&request.session_id, "会话")?;
+    let session = storage
+        .session(&request.session_id)?
+        .filter(|session| session.workspace_id == request.workspace_id)
+        .ok_or_else(|| AppError::InvalidInput("会话不存在或不属于当前工作区".into()))?;
+    let _ = session;
+    let row = storage
+        .a2ui_template(&request.workspace_id, &request.template_id)?
+        .ok_or_else(|| AppError::InvalidInput("个人模板不存在或不属于当前工作区".into()))?;
+    let mut state = validate_template_row(&row).map_err(|reason| {
+        AppError::InvalidInput(format!("个人模板已失效，无法安全打开：{reason}"))
+    })?;
+    let template = template_from_valid_row(&row, permission_summary(&state.root));
+    state.surface_id = format!("personal-{}", Uuid::new_v4().simple());
+    state.revision = 1;
+    validate_surface(&state).map_err(|errors| {
+        AppError::InvalidInput(format!("个人模板重新校验失败：{}", errors.join("；")))
+    })?;
+    let message_id = Uuid::new_v4().to_string();
+    let validation = A2uiValidation {
+        valid: true,
+        errors: Vec::new(),
+        warnings: vec!["个人模板已按当前协议、Catalog、Schema 与 Action 权限重新校验".into()],
+        duration_ms: 0,
+        error_code: None,
+        negotiation: Some(A2uiNegotiationEvidence {
+            received_version: Some(state.protocol_version.clone()),
+            selected_version: Some(state.protocol_version.clone()),
+            catalog_id: state.catalog_id.clone(),
+            compatible: true,
+        }),
+    };
+    let state_json = serde_json::to_string(&state).map_err(|_| AppError::StateUnavailable)?;
+    let validation_json =
+        serde_json::to_string(&validation).map_err(|_| AppError::StateUnavailable)?;
+    let raw_message = serde_json::json!({
+        "source": "personal_template",
+        "templateId": row.id
+    })
+    .to_string();
+    storage.save_a2ui_surface(
+        &Uuid::new_v4().to_string(),
+        &state.surface_id,
+        &request.workspace_id,
+        &request.session_id,
+        &message_id,
+        &state.protocol_version,
+        state.revision,
+        &state_json,
+        &raw_message,
+        &validation_json,
+        &Uuid::new_v4().to_string(),
+        0,
+    )?;
+    let surface = load_surface(storage, &request.workspace_id, &state.surface_id)?
+        .ok_or(AppError::StateUnavailable)?;
+    Ok(OpenA2uiTemplateResult { template, surface })
+}
+
+pub fn delete_template(
+    storage: &Storage,
+    workspace_id: &str,
+    template_id: &str,
+) -> Result<bool, AppError> {
+    validate_opaque_id(workspace_id, "工作区")?;
+    validate_opaque_id(template_id, "模板")?;
+    storage.delete_a2ui_template(workspace_id, template_id)
+}
+
+fn validate_template_name(name: &str) -> Result<(), AppError> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() || trimmed.chars().count() > 80 || trimmed.chars().any(char::is_control) {
+        return Err(AppError::InvalidInput(
+            "模板名称必须是 1 到 80 个可见字符".into(),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_opaque_id(value: &str, label: &str) -> Result<(), AppError> {
+    if value.trim().is_empty() || value.chars().count() > 128 || value.chars().any(char::is_control)
+    {
+        return Err(AppError::InvalidInput(format!("{label}标识无效")));
+    }
+    Ok(())
+}
+
+fn validated_template_state(row: &A2uiSurfaceRow) -> Result<A2uiSurfaceState, AppError> {
+    let mut state: A2uiSurfaceState = serde_json::from_str(&row.state_json)
+        .map_err(|_| AppError::InvalidInput("Surface 持久化状态无效".into()))?;
+    if !is_supported_version(&state.protocol_version)
+        || state.catalog_id.as_deref() != Some(CATALOG_ID)
+        || row.revision != state.revision
+    {
+        return Err(AppError::InvalidInput(
+            "只有当前受支持 Catalog 的官方 A2UI Surface 可以保存为个人模板".into(),
+        ));
+    }
+    normalize_surface(&mut state)
+        .and_then(|_| validate_surface(&state))
+        .map_err(|errors| {
+            AppError::InvalidInput(format!("Surface 安全校验失败：{}", errors.join("；")))
+        })?;
+    Ok(state)
+}
+
+fn validate_template_row(row: &A2uiTemplateRow) -> Result<A2uiSurfaceState, String> {
+    let mut state: A2uiSurfaceState = serde_json::from_str(&row.state_json)
+        .map_err(|_| "模板快照不是有效的声明式 Surface".to_string())?;
+    if row.protocol_version != state.protocol_version
+        || !is_supported_version(&state.protocol_version)
+    {
+        return Err("协议版本已不受支持".into());
+    }
+    if row.catalog_id != CATALOG_ID || state.catalog_id.as_deref() != Some(CATALOG_ID) {
+        return Err("Catalog 版本已不受支持".into());
+    }
+    normalize_surface(&mut state)
+        .and_then(|_| validate_surface(&state))
+        .map_err(|errors| errors.join("；"))?;
+    let stored: Vec<A2uiTemplatePermission> =
+        serde_json::from_str(&row.permission_json).map_err(|_| "权限说明已损坏".to_string())?;
+    if stored != permission_summary(&state.root) {
+        return Err("Action 权限已变化，需要重新保存模板".into());
+    }
+    if stored
+        .iter()
+        .any(|permission| permission.action_type == "request_patch")
+    {
+        return Err("模板包含不可保存的文件修改候选".into());
+    }
+    Ok(state)
+}
+
+fn template_from_row(row: A2uiTemplateRow) -> A2uiTemplateView {
+    match validate_template_row(&row) {
+        Ok(state) => template_from_valid_row(&row, permission_summary(&state.root)),
+        Err(reason) => A2uiTemplateView {
+            id: row.id,
+            workspace_id: row.workspace_id,
+            name: row.name,
+            protocol_version: row.protocol_version,
+            catalog_id: row.catalog_id,
+            permissions: Vec::new(),
+            valid: false,
+            invalid_reason: Some(reason),
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+        },
+    }
+}
+
+fn template_from_valid_row(
+    row: &A2uiTemplateRow,
+    permissions: Vec<A2uiTemplatePermission>,
+) -> A2uiTemplateView {
+    A2uiTemplateView {
+        id: row.id.clone(),
+        workspace_id: row.workspace_id.clone(),
+        name: row.name.clone(),
+        protocol_version: row.protocol_version.clone(),
+        catalog_id: row.catalog_id.clone(),
+        permissions,
+        valid: true,
+        invalid_reason: None,
+        created_at: row.created_at.clone(),
+        updated_at: row.updated_at.clone(),
+    }
+}
+
+fn permission_summary(root: &A2uiNode) -> Vec<A2uiTemplatePermission> {
+    fn collect(node: &A2uiNode, values: &mut BTreeMap<String, A2uiTemplatePermission>) {
+        for action in node.actions.values() {
+            let outcome = evaluate(action);
+            values
+                .entry(action.action_type.clone())
+                .or_insert_with(|| A2uiTemplatePermission {
+                    action_type: action.action_type.clone(),
+                    risk: outcome.risk,
+                    decision: outcome.decision,
+                    description: match action.action_type.as_str() {
+                        "set_state" => "可在本机修改界面字段",
+                        "submit_form" => "提交只记录在本机，不会发送到外部",
+                        "request_patch" => "文件修改必须先查看并确认",
+                        _ => "未授权操作，不能执行",
+                    }
+                    .into(),
+                });
+        }
+        for child in &node.children {
+            collect(child, values);
+        }
+    }
+    let mut values = BTreeMap::new();
+    collect(root, &mut values);
+    values.into_values().collect()
+}
+
+fn reset_personal_values(state: &mut A2uiSurfaceState) {
+    fn reset(node: &mut A2uiNode, data: &mut serde_json::Map<String, Value>) {
+        if let Some(name) = node.props.get("name").and_then(Value::as_str) {
+            let value = match node.component.as_str() {
+                "TextField" | "Date" => Some(Value::String(String::new())),
+                "Checkbox" => Some(Value::Bool(false)),
+                "Checklist" => Some(Value::Array(Vec::new())),
+                "Select" => node
+                    .props
+                    .get("options")
+                    .and_then(Value::as_array)
+                    .and_then(|options| options.first())
+                    .and_then(|option| option.get("value"))
+                    .and_then(Value::as_str)
+                    .map(|value| Value::String(value.to_string()))
+                    .or_else(|| Some(Value::String(String::new()))),
+                _ => None,
+            };
+            if let Some(value) = value {
+                data.insert(name.to_string(), value);
+            }
+        }
+        if matches!(
+            node.component.as_str(),
+            "TextField" | "Select" | "Checklist" | "Date"
+        ) {
+            node.props.remove("value");
+        }
+        if node.component == "Checkbox" {
+            node.props.remove("checked");
+        }
+        for child in &mut node.children {
+            reset(child, data);
+        }
+    }
+    state.data.clear();
+    reset(&mut state.root, &mut state.data);
 }
 
 pub fn list_inspections(
@@ -833,6 +1180,95 @@ mod tests {
         .to_string()
     }
 
+    fn save_official_surface(
+        storage: &Storage,
+        workspace_id: &str,
+        session_id: &str,
+        surface_id: &str,
+        action_type: &str,
+    ) {
+        let action = if action_type == "request_patch" {
+            json!({
+                "type": "request_patch",
+                "value": {
+                    "version": "1.0",
+                    "type": "create_file",
+                    "workspaceId": workspace_id,
+                    "summary": "创建文档",
+                    "title": "模板文档",
+                    "fileName": "template-created.md",
+                    "format": "markdown",
+                    "content": "不应进入个人模板的正文",
+                    "reason": "测试",
+                    "risk": "high"
+                }
+            })
+        } else {
+            json!({"type": action_type, "target": "name"})
+        };
+        let mut actions = serde_json::Map::new();
+        actions.insert(
+            if action_type == "request_patch" {
+                "click".into()
+            } else {
+                "change".into()
+            },
+            action,
+        );
+        let state: A2uiSurfaceState = serde_json::from_value(json!({
+            "protocolVersion": "v0.9.1",
+            "catalogId": CATALOG_ID,
+            "surfaceId": surface_id,
+            "revision": 1,
+            "root": {
+                "id": "root",
+                "component": "Column",
+                "children": [{
+                    "id": "name-field",
+                    "component": if action_type == "request_patch" { "Button" } else { "TextField" },
+                    "props": if action_type == "request_patch" {
+                        json!({"label": "保存"})
+                    } else {
+                        json!({"name": "name", "label": "姓名", "value": "Ada"})
+                    },
+                    "actions": actions
+                }]
+            },
+            "data": if action_type == "request_patch" { json!({}) } else { json!({"name": "张三"}) }
+        }))
+        .unwrap();
+        validate_surface(&state).unwrap();
+        let validation = A2uiValidation {
+            valid: true,
+            errors: Vec::new(),
+            warnings: Vec::new(),
+            duration_ms: 0,
+            error_code: None,
+            negotiation: Some(A2uiNegotiationEvidence {
+                received_version: Some("v0.9.1".into()),
+                selected_version: Some("v0.9.1".into()),
+                catalog_id: Some(CATALOG_ID.into()),
+                compatible: true,
+            }),
+        };
+        storage
+            .save_a2ui_surface(
+                &Uuid::new_v4().to_string(),
+                surface_id,
+                workspace_id,
+                session_id,
+                &Uuid::new_v4().to_string(),
+                "v0.9.1",
+                1,
+                &serde_json::to_string(&state).unwrap(),
+                "raw provider output with private content",
+                &serde_json::to_string(&validation).unwrap(),
+                &Uuid::new_v4().to_string(),
+                0,
+            )
+            .unwrap();
+    }
+
     #[test]
     fn persists_valid_surface_and_incremental_update_without_touching_other_surface() {
         let (storage, workspace_id, session_id) = setup();
@@ -1169,5 +1605,186 @@ mod tests {
         assert!(!outcome.inspection.validation.valid);
         assert!(outcome.inspection.validation.errors[0].contains("不能超过"));
         assert!(outcome.surface.is_none());
+    }
+
+    #[test]
+    fn personal_template_clears_input_and_revalidates_into_a_new_surface() {
+        let (storage, workspace_id, session_id) = setup();
+        save_official_surface(
+            &storage,
+            &workspace_id,
+            &session_id,
+            "profile-tool",
+            "set_state",
+        );
+
+        let saved = save_template(
+            &storage,
+            SaveA2uiTemplateRequest {
+                workspace_id: workspace_id.clone(),
+                surface_id: "profile-tool".into(),
+                name: "联系人表单".into(),
+            },
+        )
+        .unwrap();
+        assert!(saved.valid);
+        assert_eq!(saved.permissions[0].action_type, "set_state");
+        let row = storage
+            .a2ui_template(&workspace_id, &saved.id)
+            .unwrap()
+            .unwrap();
+        assert!(!row.state_json.contains("张三"));
+        assert!(!row.state_json.contains("raw provider output"));
+        let stored: A2uiSurfaceState = serde_json::from_str(&row.state_json).unwrap();
+        assert_eq!(stored.data["name"], "");
+        assert!(stored.root.children[0].props.get("value").is_none());
+
+        let opened = open_template(
+            &storage,
+            OpenA2uiTemplateRequest {
+                workspace_id: workspace_id.clone(),
+                template_id: saved.id.clone(),
+                session_id,
+            },
+        )
+        .unwrap();
+        assert_ne!(opened.surface.surface_id, "profile-tool");
+        assert_eq!(opened.surface.data["name"], "");
+        assert!(opened.surface.validation.valid);
+        assert!(delete_template(&storage, &workspace_id, &saved.id).unwrap());
+        assert!(storage
+            .a2ui_surface(&workspace_id, "profile-tool")
+            .unwrap()
+            .is_some());
+    }
+
+    #[test]
+    fn personal_template_rejects_review_candidates_and_changed_permissions() {
+        let (storage, workspace_id, session_id) = setup();
+        save_official_surface(
+            &storage,
+            &workspace_id,
+            &session_id,
+            "review-card",
+            "request_patch",
+        );
+        let error = save_template(
+            &storage,
+            SaveA2uiTemplateRequest {
+                workspace_id: workspace_id.clone(),
+                surface_id: "review-card".into(),
+                name: "不安全模板".into(),
+            },
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("文件修改候选"));
+
+        save_official_surface(
+            &storage,
+            &workspace_id,
+            &session_id,
+            "safe-form",
+            "set_state",
+        );
+        let source = storage
+            .a2ui_surface(&workspace_id, "safe-form")
+            .unwrap()
+            .unwrap();
+        storage
+            .create_a2ui_template(
+                "tampered-template",
+                &workspace_id,
+                "已篡改权限",
+                "safe-form",
+                "v0.9.1",
+                CATALOG_ID,
+                &source.state_json,
+                "[]",
+            )
+            .unwrap();
+        let listed = list_templates(&storage, &workspace_id).unwrap();
+        assert!(!listed[0].valid);
+        assert!(listed[0]
+            .invalid_reason
+            .as_deref()
+            .unwrap()
+            .contains("权限"));
+        let error = open_template(
+            &storage,
+            OpenA2uiTemplateRequest {
+                workspace_id,
+                template_id: "tampered-template".into(),
+                session_id,
+            },
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("已失效"));
+    }
+
+    #[test]
+    fn personal_template_rejects_cross_workspace_and_executable_schema_tampering() {
+        let (storage, workspace_id, session_id) = setup();
+        save_official_surface(
+            &storage,
+            &workspace_id,
+            &session_id,
+            "safe-source",
+            "set_state",
+        );
+        let saved = save_template(
+            &storage,
+            SaveA2uiTemplateRequest {
+                workspace_id: workspace_id.clone(),
+                surface_id: "safe-source".into(),
+                name: "安全来源".into(),
+            },
+        )
+        .unwrap();
+        let other_workspace = Uuid::new_v4().to_string();
+        let other_session = Uuid::new_v4().to_string();
+        storage
+            .upsert_workspace(&other_workspace, "Other", "C:\\other")
+            .unwrap();
+        storage
+            .create_session(&other_workspace, &other_session, "Other")
+            .unwrap();
+        assert!(open_template(
+            &storage,
+            OpenA2uiTemplateRequest {
+                workspace_id: other_workspace,
+                template_id: saved.id,
+                session_id: other_session,
+            },
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("不属于当前工作区"));
+
+        let source = storage
+            .a2ui_surface(&workspace_id, "safe-source")
+            .unwrap()
+            .unwrap();
+        let mut unsafe_state: Value = serde_json::from_str(&source.state_json).unwrap();
+        unsafe_state["root"]["children"][0]["props"]["html"] =
+            Value::String("<script>run()</script>".into());
+        storage
+            .create_a2ui_template(
+                "unsafe-schema-template",
+                &workspace_id,
+                "不安全结构",
+                "safe-source",
+                "v0.9.1",
+                CATALOG_ID,
+                &unsafe_state.to_string(),
+                "[]",
+            )
+            .unwrap();
+        let invalid = list_templates(&storage, &workspace_id)
+            .unwrap()
+            .into_iter()
+            .find(|template| template.id == "unsafe-schema-template")
+            .unwrap();
+        assert!(!invalid.valid);
+        assert!(invalid.invalid_reason.unwrap().contains("html"));
     }
 }

@@ -7,6 +7,8 @@ import type {
   A2uiInspection,
   A2uiProcessResult,
   A2uiSurface,
+  A2uiTemplate,
+  OpenA2uiTemplateResult,
   ChatRequest,
   ContextManifest,
   ContextManifestInput,
@@ -591,6 +593,38 @@ export const desktopApi = {
   async listA2uiInspections(workspaceId: string): Promise<A2uiInspection[]> {
     requireDesktop();
     return invoke<A2uiInspection[]>('list_a2ui_inspections', { workspaceId });
+  },
+
+  async saveA2uiTemplate(
+    workspaceId: string,
+    surfaceId: string,
+    name: string
+  ): Promise<A2uiTemplate> {
+    requireDesktop();
+    return invoke<A2uiTemplate>('save_a2ui_template', {
+      request: { workspaceId, surfaceId, name },
+    });
+  },
+
+  async listA2uiTemplates(workspaceId: string): Promise<A2uiTemplate[]> {
+    requireDesktop();
+    return invoke<A2uiTemplate[]>('list_a2ui_templates', { workspaceId });
+  },
+
+  async openA2uiTemplate(
+    workspaceId: string,
+    templateId: string,
+    sessionId: string
+  ): Promise<OpenA2uiTemplateResult> {
+    requireDesktop();
+    return invoke<OpenA2uiTemplateResult>('open_a2ui_template', {
+      request: { workspaceId, templateId, sessionId },
+    });
+  },
+
+  async deleteA2uiTemplate(workspaceId: string, templateId: string): Promise<boolean> {
+    requireDesktop();
+    return invoke<boolean>('delete_a2ui_template', { workspaceId, templateId });
   },
 
   async deleteA2uiSurface(workspaceId: string, surfaceId: string): Promise<boolean> {

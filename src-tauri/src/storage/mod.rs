@@ -9,7 +9,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 12;
+const SCHEMA_VERSION: i64 = 13;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -22,6 +22,7 @@ const MIGRATION_V9: &str = include_str!("../../migrations/0009_results.sql");
 const MIGRATION_V10: &str = include_str!("../../migrations/0010_tasks_and_templates.sql");
 const MIGRATION_V11: &str = include_str!("../../migrations/0011_review_pipeline.sql");
 const MIGRATION_V12: &str = include_str!("../../migrations/0012_context_packs.sql");
+const MIGRATION_V13: &str = include_str!("../../migrations/0013_a2ui_templates.sql");
 const MIGRATIONS: &[(i64, &str)] = &[
     (1, MIGRATION_V1),
     (2, MIGRATION_V2),
@@ -35,6 +36,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (10, MIGRATION_V10),
     (11, MIGRATION_V11),
     (12, MIGRATION_V12),
+    (13, MIGRATION_V13),
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -345,6 +347,20 @@ pub struct A2uiEventRow {
 }
 
 #[derive(Debug, Clone)]
+pub struct A2uiTemplateRow {
+    pub id: String,
+    pub workspace_id: String,
+    pub name: String,
+    pub source_surface_id: String,
+    pub protocol_version: String,
+    pub catalog_id: String,
+    pub state_json: String,
+    pub permission_json: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct ResultRow {
     pub id: String,
     pub workspace_id: String,
@@ -452,6 +468,7 @@ pub struct DiagnosticCounts {
     pub a2ui_surfaces: u64,
     pub a2ui_messages: u64,
     pub a2ui_events: u64,
+    pub a2ui_templates: u64,
     pub configured_providers: u64,
     pub tasks: u64,
     pub results: u64,
@@ -532,6 +549,21 @@ fn a2ui_surface_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<A2uiSurfac
     })
 }
 
+fn a2ui_template_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<A2uiTemplateRow> {
+    Ok(A2uiTemplateRow {
+        id: row.get(0)?,
+        workspace_id: row.get(1)?,
+        name: row.get(2)?,
+        source_surface_id: row.get(3)?,
+        protocol_version: row.get(4)?,
+        catalog_id: row.get(5)?,
+        state_json: row.get(6)?,
+        permission_json: row.get(7)?,
+        created_at: row.get(8)?,
+        updated_at: row.get(9)?,
+    })
+}
+
 pub struct Storage {
     connection: Mutex<Connection>,
 }
@@ -584,6 +616,7 @@ impl Storage {
             a2ui_surfaces: count("a2ui_surfaces")?,
             a2ui_messages: count("a2ui_messages")?,
             a2ui_events: count("a2ui_events")?,
+            a2ui_templates: count("a2ui_templates")?,
             configured_providers: count("credential_refs")?,
             tasks: count("tasks")?,
             results: count("results")?,
@@ -2179,6 +2212,113 @@ impl Storage {
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_a2ui_template(
+        &self,
+        template_id: &str,
+        workspace_id: &str,
+        name: &str,
+        source_surface_id: &str,
+        protocol_version: &str,
+        catalog_id: &str,
+        state_json: &str,
+        permission_json: &str,
+    ) -> Result<(), AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        if transaction
+            .query_row(
+                "SELECT 1 FROM a2ui_templates WHERE workspace_id = ?1 AND name = ?2",
+                params![workspace_id, name],
+                |_| Ok(true),
+            )
+            .optional()?
+            .unwrap_or(false)
+        {
+            return Err(AppError::InvalidInput(
+                "当前工作区已存在同名个人模板".into(),
+            ));
+        }
+        let inserted = transaction.execute(
+            "INSERT INTO a2ui_templates
+             (id, workspace_id, name, source_surface_id, protocol_version, catalog_id,
+              state_json, permission_json)
+             SELECT ?1, workspace_id, ?3, surface_id, ?5, ?6, ?7, ?8
+             FROM a2ui_surfaces
+             WHERE workspace_id = ?2 AND surface_id = ?4",
+            params![
+                template_id,
+                workspace_id,
+                name,
+                source_surface_id,
+                protocol_version,
+                catalog_id,
+                state_json,
+                permission_json
+            ],
+        )?;
+        if inserted != 1 {
+            return Err(AppError::InvalidInput(
+                "交互成果不存在或不属于当前工作区".into(),
+            ));
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn a2ui_templates(&self, workspace_id: &str) -> Result<Vec<A2uiTemplateRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut statement = connection.prepare(
+            "SELECT id, workspace_id, name, source_surface_id, protocol_version, catalog_id,
+                    state_json, permission_json, created_at, updated_at
+             FROM a2ui_templates WHERE workspace_id = ?1
+             ORDER BY updated_at DESC, id DESC",
+        )?;
+        let rows = statement.query_map([workspace_id], a2ui_template_from_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn a2ui_template(
+        &self,
+        workspace_id: &str,
+        template_id: &str,
+    ) -> Result<Option<A2uiTemplateRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT id, workspace_id, name, source_surface_id, protocol_version, catalog_id,
+                        state_json, permission_json, created_at, updated_at
+                 FROM a2ui_templates WHERE workspace_id = ?1 AND id = ?2",
+                params![workspace_id, template_id],
+                a2ui_template_from_row,
+            )
+            .optional()?)
+    }
+
+    pub fn delete_a2ui_template(
+        &self,
+        workspace_id: &str,
+        template_id: &str,
+    ) -> Result<bool, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection.execute(
+            "DELETE FROM a2ui_templates WHERE workspace_id = ?1 AND id = ?2",
+            params![workspace_id, template_id],
+        )? == 1)
+    }
+
     pub fn delete_a2ui_surface(
         &self,
         workspace_id: &str,
@@ -3320,6 +3460,7 @@ mod tests {
             "review_blocks",
             "context_packs",
             "context_pack_items",
+            "a2ui_templates",
         ] {
             assert!(
                 storage.table_exists(table).unwrap(),
@@ -3635,6 +3776,37 @@ mod tests {
         assert!(!connection
             .query_row(
                 "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'context_packs'",
+                [],
+                |_| Ok(true),
+            )
+            .optional()
+            .unwrap()
+            .unwrap_or(false));
+    }
+
+    #[test]
+    fn failed_v13_migration_rolls_back_a2ui_template_table_and_schema_version() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        Storage::configure(&connection).unwrap();
+        Storage::migrate_to(&mut connection, 12, MIGRATIONS).unwrap();
+        let failure = Storage::migrate_to(
+            &mut connection,
+            13,
+            &[(
+                13,
+                "CREATE TABLE a2ui_templates(id TEXT); INSERT INTO missing_table VALUES (1);",
+            )],
+        );
+        assert!(failure.is_err());
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .unwrap(),
+            12
+        );
+        assert!(!connection
+            .query_row(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'a2ui_templates'",
                 [],
                 |_| Ok(true),
             )

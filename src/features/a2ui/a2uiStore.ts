@@ -10,6 +10,7 @@ type A2uiActions = Pick<
   | 'deleteActiveA2uiSurface'
   | 'deleteRejectedA2uiInspection'
   | 'executeA2uiAction'
+  | 'openA2uiTemplate'
 >;
 
 export const createA2uiStore = (set: AppSet, get: AppGet): A2uiActions => ({
@@ -225,6 +226,38 @@ export const createA2uiStore = (set: AppSet, get: AppGet): A2uiActions => ({
       set({ a2uiNotice: errorDetails(error).message });
     } finally {
       if (!stateTarget) set({ a2uiActionLoading: false });
+    }
+  },
+
+  openA2uiTemplate: async (templateId) => {
+    const state = get();
+    if (
+      state.runtimeMode === 'web-mock' ||
+      !state.workspace ||
+      !state.activeSessionId ||
+      state.a2uiActionLoading
+    ) {
+      return false;
+    }
+    set({ a2uiActionLoading: true, a2uiNotice: null });
+    try {
+      const opened = await a2uiController.openTemplate(
+        state.workspace.id,
+        templateId,
+        state.activeSessionId
+      );
+      set((current) => ({
+        a2uiSurfaces: upsertA2uiSurface(current.a2uiSurfaces, opened.surface),
+        activeSurfaceId: opened.surface.surfaceId,
+        centerView: 'surface',
+        a2uiNotice: '个人模板已重新通过安全校验并打开',
+      }));
+      return true;
+    } catch (error) {
+      set({ a2uiNotice: errorDetails(error).message });
+      return false;
+    } finally {
+      set({ a2uiActionLoading: false });
     }
   },
 });

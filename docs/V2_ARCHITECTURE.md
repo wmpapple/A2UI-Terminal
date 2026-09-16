@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S3.3 已验收，S3.4 首批真实小工具实现与自动验证完成、待人工验收（见 LOG-0124）
+> 文档状态：V2 目标架构基线；S1.1—S3.4 已验收，S3.5 个人安全 Surface 模板已实现、待人工验收（见 LOG-0131）
 > 建立日期：2026-08-11  
 > 对照代码：`main` 分支 S3.1 提交 `8222b9e`；用户已于 2026-09-11 验收 S3.1
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
@@ -81,29 +81,29 @@ React components
 - 显式上下文清单、敏感路径排除、疑似敏感内容二次确认。
 - 流式响应、停止、分阶段超时、稳定错误码和部分响应保留。
 - schema v11 统一 Review Request：聊天、来源适配、逐块接受/拒绝、安全应用、冲突三选项、跨重启恢复和撤销；既有 `document_patch`/Revision 内核继续承担真实写入与版本审计。
-- 官方 A2UI v0.9.1/v0.9 协商、本地固定 Catalog（13 个基础组件及 S3.2 的 6 个大众组件）、严格 Schema、增量更新、Action 审计和 Inspector。
-- SQLite schema v12、迁移完整性检查、外键检查、WAL 和崩溃恢复；v9 Result、v10 Task/Template、v11 Review Pipeline、v12 Context Pack 均已验收。
+- 官方 A2UI v0.9.1/v0.9 协商、本地固定 Catalog（13 个基础组件、S3.2 的 6 个大众组件及 S3.4 的 `ResultSummary`）、严格 Schema、增量更新、Action 审计和 Inspector。
+- SQLite schema v13、迁移完整性检查、外键检查、WAL 和崩溃恢复；v9 Result、v10 Task/Template、v11 Review Pipeline、v12 Context Pack 已验收，v13 个人 Surface 模板待人工验收。
 - Windows CI、内部未签名包、正式签名/Updater 工作流框架、脱敏诊断和本地数据清除。
 
 ### 3.4 当前尚未具备的 V2 核心
 
 `[CURRENT GAP]`
 
-| 领域     | 当前状态                                                                                                          | V2 缺口                                             |
-| -------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| 成果     | Result 聚合、五类 adapter、保存/版本/复制，以及 DOCX/PDF/RTF/CSV/XLSX/JSON P0 导出                                | 尚无归档、复杂富格式保真和发布级导出                |
-| 任务     | S1.2 已实现并验收本地 Task、结构化补问和草稿 Orchestrator；首页与 Context Manifest 已接通                         | 尚无完整真实生成任务编排                            |
-| 导入     | ImportBatch、文本/DOCX/PDF、CSV/XLSX 基础数据、图片本地视觉来源与 Context Manifest                                | Provider 图片多模态发送尚未实现                     |
-| 上下文   | Rust 不可变 Manifest、Full/Retrieval/Hybrid Planner、内存检索索引、一次确认和 Context Pack                        | 持久 Embedding 与全局检索属于后续步骤               |
+| 领域     | 当前状态                                                                                                       | V2 缺口                                             |
+| -------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| 成果     | Result 聚合、五类 adapter、保存/版本/复制，以及 DOCX/PDF/RTF/CSV/XLSX/JSON P0 导出                             | 尚无归档、复杂富格式保真和发布级导出                |
+| 任务     | S1.2 已实现并验收本地 Task、结构化补问和草稿 Orchestrator；首页与 Context Manifest 已接通                      | 尚无完整真实生成任务编排                            |
+| 导入     | ImportBatch、文本/DOCX/PDF、CSV/XLSX 基础数据、图片本地视觉来源与 Context Manifest                             | Provider 图片多模态发送尚未实现                     |
+| 上下文   | Rust 不可变 Manifest、Full/Retrieval/Hybrid Planner、内存检索索引、一次确认和 Context Pack                     | 持久 Embedding 与全局检索属于后续步骤               |
 | 审阅     | Review Request/blocks、三类候选、冲突/撤销；Chat、Selection 与 S3.3 A2UI Action 均接入统一 Review；S3.3 已验收 | 表格/结构化 Patch 仍属于后续扩展                    |
-| 成果类型 | 文档/表格/清单/表单/小工具统一 adapter；真实 A2UI 工具自动保存状态、生成 Revision 并可导出受控 JSON             | S3.4 待人工验收；富格式工具报告不在 P0 范围         |
-| 导出     | 绑定 Result Revision 的受控 DOCX/PDF/RTF/CSV/XLSX/JSON 导出与原子文件提交                                         | 复杂版式、宏、公式计算和 Office/PDF 无损回写不在 P0 |
-| 模板     | S1.2 已实现并验收 4 个版本化内置文档模板和字段 Schema                                                             | 尚无个人模板、系统规则/上下文规则编辑和模板 UI      |
-| 模式     | S1.3 双模式外壳与 S1.5 成果专用工作台已实现                                                                       | S2.3 后接通成果 AI 上下文                           |
-| 首页     | S1.4 已验收引导/六类入口，S1.5 已接入新建和特定 Result 重开                                                       | 完整导入和真实模型路径仍属后续阶段                  |
-| 模型路径 | 首次使用需要自行配置 Key                                                                                          | 无内置可用路径、本地模型探测、本机/云端持续标识     |
-| 指标     | 有安全审计，没有产品事件体系                                                                                      | 无 WUO、激活、审阅、保存、导出、恢复等隐私安全埋点  |
-| 搜索     | 无统一搜索                                                                                                        | 无成果、资料包元数据和授权正文索引                  |
+| 成果类型 | 文档/表格/清单/表单/小工具统一 adapter；真实 A2UI 工具自动保存状态、生成 Revision 并可导出受控 JSON            | S3.4 已验收；富格式工具报告不在 P0 范围             |
+| 导出     | 绑定 Result Revision 的受控 DOCX/PDF/RTF/CSV/XLSX/JSON 导出与原子文件提交                                      | 复杂版式、宏、公式计算和 Office/PDF 无损回写不在 P0 |
+| 模板     | 4 个版本化内置文档模板；S3.5 工作区级个人安全 Surface 模板、模板页及重开复验                                   | S3.5 待人工验收；尚无系统规则/上下文规则编辑        |
+| 模式     | S1.3 双模式外壳与 S1.5 成果专用工作台已实现                                                                    | S2.3 后接通成果 AI 上下文                           |
+| 首页     | S1.4 已验收引导/六类入口，S1.5 已接入新建和特定 Result 重开                                                    | 完整导入和真实模型路径仍属后续阶段                  |
+| 模型路径 | 首次使用需要自行配置 Key                                                                                       | 无内置可用路径、本地模型探测、本机/云端持续标识     |
+| 指标     | 有安全审计，没有产品事件体系                                                                                   | 无 WUO、激活、审阅、保存、导出、恢复等隐私安全埋点  |
+| 搜索     | 无统一搜索                                                                                                     | 无成果、资料包元数据和授权正文索引                  |
 
 ### 3.5 当前结构热点
 
@@ -333,13 +333,13 @@ ContextPack（可复用授权集合）
 
 Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字段 Schema、默认结构、成果类型、系统规则、上下文规则、风险声明和兼容范围。个人模板不得保存用户敏感原文。
 
-`[IMPLEMENTED — S1.2 ACCEPTED]` schema v10 的 `task_templates` 已登记会议纪要、文档总结、周报和简历优化 v1。当前模板只保存非内容型字段规则、默认空白章节和风险等级；用户源文不进入模板，个人模板与更完整的系统/上下文规则留待后续步骤。
+`[IMPLEMENTED — S1.2 ACCEPTED / S3.5 READY FOR ACCEPTANCE]` schema v10 的 `task_templates` 已登记会议纪要、文档总结、周报和简历优化 v1。schema v13 的 `a2ui_templates` 只保存已持久化且当前校验通过的声明式 Surface 快照、协议/Catalog 元数据及 Rust 推导的权限摘要；保存前清空可编辑输入值，并排除聊天、Prompt、Context Manifest、Inspector 原文、原始 Provider 输出、绝对路径及文件修改候选。个人 Surface 模板和内置任务模板保持不同语义与表结构。
 
 ## 6. 数据架构与迁移
 
 ### 6.1 当前 SQLite
 
-`[IMPLEMENTED — S1.2 ACCEPTED]` schema v10 包含：
+`[IMPLEMENTED — S3.5 READY FOR ACCEPTANCE]` 当前 schema v13 包含：
 
 - `workspaces`、`workspace_files`、`workspace_drafts`
 - `sessions`、`messages`、`context_snapshots`
@@ -351,10 +351,11 @@ Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字
 - `tasks`（状态、结构化回答、最多 3 个当前必要问题计数和 Result 绑定）
 - `review_requests` / `review_blocks`（schema v11；候选 payload、逐块决定、应用/冲突/撤销关联）
 - `context_packs` / `context_pack_items`（schema v12；工作区级来源引用集合，不存正文）
+- `a2ui_templates`（schema v13；工作区级安全 Surface 快照、兼容元数据和权限摘要）
 
 ### 6.2 V2 目标表
 
-`[CURRENT + TARGET]` 从 v9 起只做前向、连续、事务迁移；v9 Result、v10 Task/Template、v11 Review 与 v12 Context Pack 已落地：
+`[CURRENT + TARGET]` 从 v9 起只做前向、连续、事务迁移；v9 Result、v10 Task/Template、v11 Review、v12 Context Pack 与 v13 个人 Surface 模板已落地：
 
 | 表                                     | 作用                                       | 关键关系                                           |
 | -------------------------------------- | ------------------------------------------ | -------------------------------------------------- |
@@ -365,7 +366,8 @@ Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字
 | `context_manifests`                    | 一次实际发送的策略、模式与汇总             | task、session/request                              |
 | `context_manifest_sources`             | 来源元数据，不存长期正文                   | manifest                                           |
 | `context_packs` / `context_pack_items` | 可复用资料引用集合（v12 已落地）           | workspace、workspace file source                   |
-| `task_templates`                       | 内置/个人模板及版本（v10 内置基础已落地）  | 当前为全局内置；个人模板后续                       |
+| `task_templates`                       | 内置任务模板及版本（v10 已落地）           | 当前为全局内置任务模板                             |
+| `a2ui_templates`                       | 个人安全 Surface 模板（v13 已落地）        | workspace；来源 Surface 仅作审计提示，不作级联外键 |
 | `export_jobs`                          | 导出格式、版本、状态、脱敏错误             | result/revision                                    |
 | `product_events`                       | 本地隐私安全行为事件                       | optional task/result                               |
 | `search_documents`                     | 成果/资料包允许索引的元数据和分块引用      | result/context item                                |
@@ -556,9 +558,13 @@ S3.3 人工验收修复（LOG-0117）：协议安全校验不等于满足用户�
 
 S3.3 二次人工复验修复（LOG-0120）：要求通用 Provider 重复生成多层固定 A2A/A2UI 包络会把确定性协议结构变成概率性文本任务。带持久化按钮的交互请求改为严格的短计划 `a2ui_review_card(title, description, buttonLabel, candidate)`；仅完整 JSON、精确字段和固定 type 可进入可信 Rust 编译器。编译器只把不可信字面值放入固定 Column/Text/Text/Button + `request_patch` 结构，Surface ID 由 assistant message ID 派生，随后必须通过现有 Catalog、Props、Action、资源、Review candidate 和 required-action 全套校验才可持久化。编译器不是 JSON 修复器，不补全残缺输出，也不替模型生成/改写候选。普通 A2UI DataPart 路径保持不变；无 IPC、Capability 或 migration 变化。
 
-`[IMPLEMENTED — S3.4 READY FOR ACCEPTANCE]` 首批真实小工具限定为检查表和单项项目计划表。Provider 只返回严格短计划 `a2ui_tool`；Rust 只接受 `checklist | planner` 两种精确 DTO，并编译为固定输入控件与第 20 个 Catalog 组件 `ResultSummary`。摘要只读取同一 Surface 中绑定的真实输入，每个 Surface 最多一个；初始 data 与后续 `set_state` payload 都在 Rust 校验文本长度、固定选项、布尔值、清单 key 和日期。残缺 JSON、未知字段、表达式、脚本和任意结果正文不会被修复或执行。
+`[IMPLEMENTED — S3.4 ACCEPTED]` 首批真实小工具限定为检查表和单项项目计划表。Provider 只返回严格短计划 `a2ui_tool`；Rust 只接受 `checklist | planner` 两种精确 DTO，并编译为固定输入控件与第 20 个 Catalog 组件 `ResultSummary`。摘要只读取同一 Surface 中绑定的真实输入，每个 Surface 最多一个；初始 data 与后续 `set_state` payload 都在 Rust 校验文本长度、固定选项、布尔值、清单 key 和日期。残缺 JSON、未知字段、表达式、脚本和任意结果正文不会被修复或执行。
 
 真实工具状态继续以 `a2ui_surfaces.state_json` 为事实源；只有通过完整协议校验且包含合法 `ResultSummary` 的 Surface 才会形成便携 Result Revision。Rust 从持久化状态投影为既有 Tool adapter 的 `settings[{key,label,value}]` 可读 JSON，实际变化才新增版本，并复用 Revision 绑定、系统保存对话框、原子提交和冲突处理的 Export Service。投影排除组件树、Action、原始模型消息、聊天、Prompt、Context Manifest 和 Inspector。普通展示 Surface 与 S3.3 审阅卡不会因此在接受前产生空 Result；该回归由既有 Action→Review 集成测试固定。S3.4 没有 migration、新 IPC 或 Tauri Capability，Action 白名单仍只有三类。
+
+`[IMPLEMENTED — S3.5 READY FOR ACCEPTANCE]` 用户只能从当前工作区中已持久化且重新通过 Rust 完整校验的官方 v0.9/v0.9.1 Surface 保存个人模板。保存过程清空 TextField/Date/Checkbox/Checklist/Select 的当前输入，只保留声明式布局、固定文案、受信 Catalog、协议版本及 Rust 推导的可读权限说明；任何包含 `request_patch` 文件候选的 Surface 都拒绝保存。模板快照不复制聊天、Prompt、上下文清单、Inspector/Provider 原文、绝对路径、Result 或文件正文。
+
+重开模板不是直接恢复旧 Surface：Rust 每次从 schema v13 的工作区模板记录中读取快照，对当前协议、Catalog、Schema、组件树、Props、资源上限、Action 白名单和权限摘要重新校验，成功后创建新的 Surface ID/revision；版本过期、数据篡改、权限变化、跨工作区访问或未知代码均拒绝渲染和执行。删除模板只删除模板记录，不级联删除原 Surface、Result、Revision 或真实文件。该步骤新增四个最小本地 SQLite IPC 与对应主窗口 Capability，不新增网络、Shell、任意文件、剪贴板、动态代码或遥测权限。
 
 ## 8. Provider 与处理位置
 
@@ -610,7 +616,9 @@ result:   list_results, get_result, create_text_result, read_result_document, sa
           list_result_revisions, read_result_revision, restore_result_revision, duplicate_result
           # S1.5 已实现并使用最小 Capability；archive_result 后续
 a2ui:    list_a2ui_surfaces, list_a2ui_inspections, delete_a2ui_surface,
-          delete_a2ui_inspection, execute_a2ui_action  # 当前已实现并受最小 Capability 约束
+          delete_a2ui_inspection, execute_a2ui_action, save_a2ui_template,
+          list_a2ui_templates, open_a2ui_template, delete_a2ui_template
+          # 当前已实现并受最小 Capability 约束
 import:   select_import_sources, inspect_import_batch, set_import_drop_target, confirm_import,
           list_document_sources, read_document_source  # S2.2 已实现并使用最小 Capability
 context:  plan_context, confirm_context_manifest  # S2.3 已实现并使用最小 Capability；Pack 后续
@@ -690,22 +698,22 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 
 ## 14. 需求追踪摘要
 
-| PRD 能力      | 架构承载                                            | 状态                                              |
-| ------------- | --------------------------------------------------- | ------------------------------------------------- |
-| ONB/HOME      | app routing、home feature、Result queries           | S1.4 Current                                      |
-| IMP/TASK      | Import Service、DocumentSource、Task/Template       | Task/模板与 S2.1 Current；S2.2 已实现待验收       |
-| WS            | Result Workbench、typed editors、mode shell         | 五类 Result adapter Current（S2.7 已验收）        |
-| CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | Manifest/local-cloud Current；Planner/Pack Target |
-| REV-01…06     | Review Request + 现有 Patch/Revision 内核           | S2.5 Current（已验收）；Selection 来源已接线      |
-| OUT-01…06     | Result type adapters、A2UI、Action Policy           | 五类 adapter、S3.3 Review Action Current；S3.4 工具闭环待人工验收 |
-| EXP-01…04     | Export Service、export jobs、format adapters        | EXP-01…03 Current（S2.8 已验收）；其余 Target     |
-| RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target         |
-| SEL-01        | Selection controller → Review Pipeline              | S2.6 Current（已验收）                            |
-| PRV-04/MDL-05 | Processing options、local probe                     | Target                                            |
-| SRCH-01       | 授权索引和 Search Service                           | P1 Target                                         |
-| ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                            |
-| A2UI-06       | capability negotiation + conformance CI             | S3.1 Current（已验收）                            |
-| UX-08         | Import suggestions mapped to Result type            | P1 Target                                         |
+| PRD 能力      | 架构承载                                            | 状态                                                            |
+| ------------- | --------------------------------------------------- | --------------------------------------------------------------- |
+| ONB/HOME      | app routing、home feature、Result queries           | S1.4 Current                                                    |
+| IMP/TASK      | Import Service、DocumentSource、Task/Template       | Task/模板与 S2.1 Current；S2.2 已实现待验收                     |
+| WS            | Result Workbench、typed editors、mode shell         | 五类 Result adapter Current（S2.7 已验收）                      |
+| CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | Manifest/local-cloud Current；Planner/Pack Target               |
+| REV-01…06     | Review Request + 现有 Patch/Revision 内核           | S2.5 Current（已验收）；Selection 来源已接线                    |
+| OUT-01…06     | Result type adapters、A2UI、Action Policy           | 五类 adapter、S3.3 Review、S3.4 工具已验收；S3.5 个人模板待验收 |
+| EXP-01…04     | Export Service、export jobs、format adapters        | EXP-01…03 Current（S2.8 已验收）；其余 Target                   |
+| RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target                       |
+| SEL-01        | Selection controller → Review Pipeline              | S2.6 Current（已验收）                                          |
+| PRV-04/MDL-05 | Processing options、local probe                     | Target                                                          |
+| SRCH-01       | 授权索引和 Search Service                           | P1 Target                                                       |
+| ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                                          |
+| A2UI-06       | capability negotiation + conformance CI             | S3.1 Current（已验收）                                          |
+| UX-08         | Import suggestions mapped to Result type            | P1 Target                                                       |
 
 完整实施顺序、逐步验收和变更记录见实施文档；这里的 `Target` 不代表已经承诺具体版本日期。
 

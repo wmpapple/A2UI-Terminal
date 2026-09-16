@@ -790,3 +790,28 @@ export interface A2uiActionResult {
   review: ReviewRequest | null;
   surface: A2uiSurface;
 }
+
+export interface A2uiTemplatePermission {
+  actionType: string;
+  risk: 'low' | 'medium' | 'high';
+  decision: 'allowed' | 'review_required' | 'denied';
+  description: string;
+}
+
+export interface A2uiTemplate {
+  id: string;
+  workspaceId: string;
+  name: string;
+  protocolVersion: string;
+  catalogId: string;
+  permissions: A2uiTemplatePermission[];
+  valid: boolean;
+  invalidReason?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OpenA2uiTemplateResult {
+  template: A2uiTemplate;
+  surface: A2uiSurface;
+}

@@ -1,6 +1,7 @@
 use crate::a2ui::{
-    self, A2uiInspectionView, A2uiProcessResult, A2uiSurfaceView, ActionExecutionResult,
-    ExecuteActionRequest, ProcessA2uiRequest,
+    self, A2uiInspectionView, A2uiProcessResult, A2uiSurfaceView, A2uiTemplateView,
+    ActionExecutionResult, ExecuteActionRequest, OpenA2uiTemplateRequest, OpenA2uiTemplateResult,
+    ProcessA2uiRequest, SaveA2uiTemplateRequest,
 };
 use crate::domain::review::{CreateReviewRequestInput, ReviewSource};
 use crate::error::AppError;
@@ -60,6 +61,35 @@ pub fn list_inspections(
     workspace_id: &str,
 ) -> Result<Vec<A2uiInspectionView>, AppError> {
     a2ui::list_inspections(storage, workspace_id)
+}
+
+pub fn save_template(
+    storage: &Storage,
+    request: SaveA2uiTemplateRequest,
+) -> Result<A2uiTemplateView, AppError> {
+    a2ui::save_template(storage, request)
+}
+
+pub fn list_templates(
+    storage: &Storage,
+    workspace_id: &str,
+) -> Result<Vec<A2uiTemplateView>, AppError> {
+    a2ui::list_templates(storage, workspace_id)
+}
+
+pub fn open_template(
+    storage: &Storage,
+    request: OpenA2uiTemplateRequest,
+) -> Result<OpenA2uiTemplateResult, AppError> {
+    a2ui::open_template(storage, request)
+}
+
+pub fn delete_template(
+    storage: &Storage,
+    workspace_id: &str,
+    template_id: &str,
+) -> Result<bool, AppError> {
+    a2ui::delete_template(storage, workspace_id, template_id)
 }
 
 pub fn delete_surface(

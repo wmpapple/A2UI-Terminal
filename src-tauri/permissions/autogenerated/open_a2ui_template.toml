@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-a2ui-template"
+description = "Enables the open_a2ui_template command without any pre-configured scope."
+commands.allow = ["open_a2ui_template"]
+
+[[permission]]
+identifier = "deny-open-a2ui-template"
+description = "Denies the open_a2ui_template command without any pre-configured scope."
+commands.deny = ["open_a2ui_template"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-a2ui-templates"
+description = "Enables the list_a2ui_templates command without any pre-configured scope."
+commands.allow = ["list_a2ui_templates"]
+
+[[permission]]
+identifier = "deny-list-a2ui-templates"
+description = "Denies the list_a2ui_templates command without any pre-configured scope."
+commands.deny = ["list_a2ui_templates"]

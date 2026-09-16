@@ -2,9 +2,10 @@ import {
   CheckCircleOutlined,
   CopyOutlined,
   DeleteOutlined,
+  SaveOutlined,
   SafetyOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Empty, Popconfirm, Select, Tabs, Tag } from 'antd';
+import { Alert, Button, Empty, Input, Modal, Popconfirm, Select, Tabs, Tag } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { A2uiCapabilities } from '../../../shared/types/domain';
@@ -38,6 +39,11 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
   const [deleteInspectionConfirmOpen, setDeleteInspectionConfirmOpen] = useState(false);
   const [deleteInspectionTargetId, setDeleteInspectionTargetId] = useState<string | null>(null);
   const [capabilities, setCapabilities] = useState<A2uiCapabilities | null>(null);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateSaving, setTemplateSaving] = useState(false);
+  const [templateNotice, setTemplateNotice] = useState<string | null>(null);
+  const [templateError, setTemplateError] = useState<string | null>(null);
   const surface = surfaces.find((item) => item.surfaceId === activeSurfaceId) ?? surfaces[0];
   const inspection =
     inspections.find((item) => item.id === activeInspectionId) ??
@@ -125,6 +131,20 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
               />
             </div>
           ) : null}
+          {surface && runtimeMode === 'desktop' ? (
+            <Button
+              size="small"
+              icon={<SaveOutlined />}
+              disabled={actionLoading}
+              onClick={() => {
+                setTemplateName('');
+                setTemplateNotice(null);
+                setSaveTemplateOpen(true);
+              }}
+            >
+              {t('saveAsPersonalTemplate')}
+            </Button>
+          ) : null}
           {surface ? (
             <Popconfirm
               title={t('deleteA2uiSurfaceTitle')}
@@ -160,6 +180,9 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
         </div>
       </header>
       {notice ? <Alert className={styles.notice} type="info" showIcon title={notice} /> : null}
+      {templateNotice ? (
+        <Alert className={styles.notice} type="info" showIcon title={templateNotice} />
+      ) : null}
       <div className={`${styles.columns} ${showInspector ? '' : styles.columnsSimple}`}>
         <div className={styles.runtimePane} aria-busy={actionLoading}>
           {surface && validation?.valid ? (
@@ -310,6 +333,56 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
           </aside>
         ) : null}
       </div>
+      <Modal
+        title={t('saveAsPersonalTemplate')}
+        open={saveTemplateOpen}
+        okText={t('saveTemplate')}
+        cancelText={t('cancel')}
+        confirmLoading={templateSaving}
+        okButtonProps={{ disabled: templateName.trim().length === 0 }}
+        onCancel={() => setSaveTemplateOpen(false)}
+        onOk={() => {
+          const workspace = useAppStore.getState().workspace;
+          if (!workspace || !surface) return;
+          setTemplateSaving(true);
+          void a2uiController
+            .saveTemplate(workspace.id, surface.surfaceId, templateName)
+            .then(() => {
+              setSaveTemplateOpen(false);
+              setTemplateNotice(t('templateSavedSafely'));
+            })
+            .catch((error: unknown) => {
+              const message =
+                typeof error === 'object' && error && 'message' in error
+                  ? String((error as { message: unknown }).message)
+                  : t('templateSaveFailed');
+              setTemplateError(message);
+            })
+            .finally(() => setTemplateSaving(false));
+        }}
+      >
+        <p>{t('templatePrivacyDescription')}</p>
+        <Input
+          autoFocus
+          maxLength={80}
+          value={templateName}
+          placeholder={t('templateNamePlaceholder')}
+          onChange={(event) => setTemplateName(event.target.value)}
+          onPressEnter={() => undefined}
+        />
+      </Modal>
+      <Modal
+        title={t('templateSaveFailed')}
+        open={templateError !== null}
+        onCancel={() => setTemplateError(null)}
+        footer={
+          <Button type="primary" onClick={() => setTemplateError(null)}>
+            {t('close')}
+          </Button>
+        }
+      >
+        <Alert type="error" showIcon title={templateError} />
+      </Modal>
     </section>
   );
 }
