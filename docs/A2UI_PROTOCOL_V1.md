@@ -7,7 +7,7 @@
 - 上游规范固定到 `a2ui-project/a2ui` commit `981e82f1a3cef88456416fa6fd80d8490964df01` 的 `specification/v0_9_1`，避免 CI 随上游主分支漂移。
 - 首选版本为 `v0.9.1`，兼容官方 Schema 同时列出的 `v0.9`。
 - 客户端 `v0.9.supportedCatalogIds` 只声明 `urn:a2ui-terminal:catalog:basic:v1`；不声明 inline Catalog。
-- 本地 Catalog 包含 13 个基础组件和 S3.2 新增的 6 个大众组件，共 19 个组件；Action 仍只有 3 个，不宣称支持官方完整 Basic Catalog。
+- 本地 Catalog 包含 13 个基础组件、S3.2 新增的 6 个大众组件和 S3.4 新增的固定 `ResultSummary`，共 20 个组件；Action 仍只有 3 个，不宣称支持官方完整 Basic Catalog。
 - 只有 Rust 完成消息 Schema、版本、Catalog、树结构、Props、Action 与资源限制校验后，Surface 才能持久化和渲染。
 
 只读 `get_a2ui_capabilities` 返回的 `rendererCapabilities.v0.9` 可直接作为官方 `a2uiClientCapabilities` 的版本能力对象；其余字段是本应用用于 Inspector 和合同校验的补充说明。能力合同固定在 `contracts/v2/a2ui-capabilities.json`。
@@ -114,13 +114,14 @@ DataPart 内只能处理一个 `surfaceId` 和一个协议版本，并作为一�
 
 ## Basic Catalog
 
-当前只注册 19 个固定组件：
+当前只注册 20 个固定组件：
 
 - 布局：`Row`、`Column`、`Stack`
 - 展示：`Text`、`Card`、`Badge`、`Progress`
 - 输入：`TextField`、`Select`、`Checkbox`
 - 交互：`Button`、`Tabs`、`Form`
 - 大众成果：`Checklist`、`Owner`、`Date`、`Status`、`Table`、`IssueCard`
+- 真实工具结果：`ResultSummary`
 
 S3.2 新增组件的最小 Props Schema：
 
@@ -132,6 +133,10 @@ S3.2 新增组件的最小 Props Schema：
 | Status    | `text`                                      | `label`、`tone`                                           |
 | Table     | `caption`、`columns[{key,label}]`、`rows[]` | column `align`；单元格仅允许字符串、数值、布尔值或 `null` |
 | IssueCard | `issueKey`、`title`、`status`               | `summary`、`priority`、`owner`、`dueDate`                 |
+
+S3.4 的 `ResultSummary` 只接受 `title` 和 1—20 个唯一 `fields[]`。每个 field 必须引用同一 Surface 中真实存在的 `TextField`、`Select`、`Checkbox`、`Checklist` 或 `Date` 输入名；每个 Surface 最多一个结果摘要。Rust 会同时校验初始 data 和后续 `set_state` payload 的类型、长度、固定选项、清单 key 与日期格式，不允许用摘要包装任意 JSON 冒充真实工具。
+
+包含合法 `ResultSummary` 的 Surface 才会形成可携带 Revision 的便携工具 Result。导出内容由 Rust 从已持久化且重新校验的输入状态投影为只含 `settings[{key,label,value}]` 的可读 JSON；不包含组件树、Action、聊天、Prompt、Context Manifest、原始模型消息或 Inspector 调试字段。普通展示 Surface 和 S3.3 审阅卡不会因该能力提前产生可导出成果。
 
 每个组件拥有独立 Props 白名单和类型/枚举限制。未知字段、`on*`、`html`、`innerHTML`、`dangerouslySetInnerHTML`、`srcDoc`、`script`、`iframe`、`command` 均被拒绝。
 

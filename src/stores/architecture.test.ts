@@ -145,4 +145,10 @@ describe('front-end application boundaries', () => {
     expect(runtime).not.toContain('srcDoc');
     expect(runtime).not.toContain('<iframe');
   });
+
+  it('keeps the S3.4 live result component on the fixed declarative renderer', () => {
+    const runtime = sources['../features/a2ui/runtime/A2uiRuntime.tsx'];
+    expect(runtime).toContain("case 'ResultSummary'");
+    expect(runtime).not.toMatch(/\bimport\s*\(/);
+  });
 });

@@ -84,6 +84,29 @@ describe('ResultWorkbench', () => {
     expect(onOpenResults).toHaveBeenCalledOnce();
   });
 
+  it('allows revision-bound export for a portable A2UI tool result', () => {
+    useResultStore.setState({
+      activeDocument: {
+        ...document,
+        result: {
+          ...document.result,
+          type: 'tool',
+          a2uiSurfaceId: 'release-checklist',
+          currentRevisionId: 'tool-revision',
+        },
+        format: 'json',
+        content: '{"settings":[{"key":"doneItems","label":"检查项目","value":"完成评审（1/2）"}]}',
+        editable: false,
+      },
+    });
+    render(
+      <I18nProvider>
+        <ResultWorkbench resultId="result-1" onDuplicated={vi.fn()} onOpenResults={vi.fn()} />
+      </I18nProvider>
+    );
+    expect(screen.getByRole('button', { name: /导出/ })).toBeEnabled();
+  });
+
   it('runs the unified AI undo action and presents failures in the result workspace', () => {
     const onUndoReview = vi.fn();
     const appliedReview = { reviewId: 'review-1', workspaceId: 'workspace-source' };

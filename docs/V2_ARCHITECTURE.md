@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S3.2 已验收，S3.3 Action → Review Pipeline 自动验证完成、待人工验收（见 LOG-0121）
+> 文档状态：V2 目标架构基线；S1.1—S3.3 已验收，S3.4 首批真实小工具实现与自动验证完成、待人工验收（见 LOG-0124）
 > 建立日期：2026-08-11  
 > 对照代码：`main` 分支 S3.1 提交 `8222b9e`；用户已于 2026-09-11 验收 S3.1
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
@@ -95,8 +95,8 @@ React components
 | 任务     | S1.2 已实现并验收本地 Task、结构化补问和草稿 Orchestrator；首页与 Context Manifest 已接通                         | 尚无完整真实生成任务编排                            |
 | 导入     | ImportBatch、文本/DOCX/PDF、CSV/XLSX 基础数据、图片本地视觉来源与 Context Manifest                                | Provider 图片多模态发送尚未实现                     |
 | 上下文   | Rust 不可变 Manifest、Full/Retrieval/Hybrid Planner、内存检索索引、一次确认和 Context Pack                        | 持久 Embedding 与全局检索属于后续步骤               |
-| 审阅     | Review Request/blocks、三类候选、冲突/撤销；Chat、Selection 与 S3.3 A2UI Action 均接入统一 Review；S3.3 待人工验收 | 表格/结构化 Patch 仍属于后续扩展                    |
-| 成果类型 | 文档/表格/清单/表单/小工具统一 adapter 与共享保存、版本、复制协议；A2UI 工具快照只读并自动保存状态                | S2.7 已验收；富格式编辑不在 P0 范围                 |
+| 审阅     | Review Request/blocks、三类候选、冲突/撤销；Chat、Selection 与 S3.3 A2UI Action 均接入统一 Review；S3.3 已验收 | 表格/结构化 Patch 仍属于后续扩展                    |
+| 成果类型 | 文档/表格/清单/表单/小工具统一 adapter；真实 A2UI 工具自动保存状态、生成 Revision 并可导出受控 JSON             | S3.4 待人工验收；富格式工具报告不在 P0 范围         |
 | 导出     | 绑定 Result Revision 的受控 DOCX/PDF/RTF/CSV/XLSX/JSON 导出与原子文件提交                                         | 复杂版式、宏、公式计算和 Office/PDF 无损回写不在 P0 |
 | 模板     | S1.2 已实现并验收 4 个版本化内置文档模板和字段 Schema                                                             | 尚无个人模板、系统规则/上下文规则编辑和模板 UI      |
 | 模式     | S1.3 双模式外壳与 S1.5 成果专用工作台已实现                                                                       | S2.3 后接通成果 AI 上下文                           |
@@ -298,7 +298,7 @@ ReviewRequest
 
 `document_patch`、`create_file`、`replace_empty_file` 是模型到 Rust 的机器协议。流式 UI 只展示“正在生成可审阅方案”；校验成功后聊天记录保存用户可读摘要，结构化候选继续由 SQLite Review 记录承担。前端按三种协议与 `PATCH_READY/CREATE_REVIEW_READY/REPLACE_REVIEW_READY` 统一显示审阅入口和“接受前零写入”语义，不把协议 JSON 当作助手正文。
 
-冲突只提供可理解且不覆盖原文的三个方向：保留当前版本、把已审阅的单文件完整候选另存到“我的成果”、关闭旧候选并基于当前版本重新生成。多文件冲突不能伪装为一个完整副本。`[IMPLEMENTED — S3.3 READY FOR ACCEPTANCE]` A2UI `request_patch` 已通过同一 application adapter 创建 `source=a2ui_action` 的持久 Review，接受前不写文件；完整边界见 7.7。
+冲突只提供可理解且不覆盖原文的三个方向：保留当前版本、把已审阅的单文件完整候选另存到“我的成果”、关闭旧候选并基于当前版本重新生成。多文件冲突不能伪装为一个完整副本。`[IMPLEMENTED — S3.3 ACCEPTED]` A2UI `request_patch` 已通过同一 application adapter 创建 `source=a2ui_action` 的持久 Review，接受前不写文件；完整边界见 7.7。
 
 `[IMPLEMENTED — S2.6 ACCEPTED]` 编辑器文本选区和 textarea 表格/代码选区会显示统一选区助手，提供润色、缩短、改专业、解释、提取重点和自定义六类动作。动作先建立仅含当前选区的 Context Manifest，并展示目标文件、字符数和本机/云端处理位置；敏感云端清单继续要求明确确认。修改类请求通过现有 `stream_chat` 的受限 `reviewSource=selection` 进入同一 Review Pipeline，接受前不修改编辑器或文件；Rust 持久化的 Review 来源为 `selection`，Patch 应用时继续复核文件 Hash、授权、唯一锚点和冲突。解释类请求使用 `explanationOnly` 只读模式：Rust 不解析或持久化 Review/A2UI 候选，只保存用户可读说明，文件完成声明防伪规则仍然生效。切换文件或工作区继续清除旧选区；重复锚点或外部变化安全失败，不以首次字符串匹配绕过 Patch 内核。
 
@@ -550,11 +550,15 @@ S3.2 人工验收修复（LOG-0112）：Provider 的项目面板提示附带由�
 
 S3.2 人工验收修复（LOG-0113）：Inspector 的选择器用“交互成果/检查记录 + 顺序号 + 已通过/未通过 + 最新”表达历史，不把 Surface ID、UUID 或消息 ID 当作用户主标签；内部标识仅作为专业提示保留。固定帮助文案解释每条记录代表一次 AI 界面安全检查、未通过界面不会执行且记录只在本机。未通过记录可经二次确认单独永久删除，成功记录仍随 Surface 生命周期管理。
 
-`[IMPLEMENTED — S3.3 READY FOR ACCEPTANCE]` 固定白名单仍只有 `set_state`、`submit_form`、`request_patch`。中风险 `request_patch` 必须在持久化 Action 声明的 `value` 中携带精确 `document_patch`、`create_file` 或 `replace_empty_file` 候选，禁止另带 target；候选先经过 A2UI 资源/Schema 门。点击时前端只传不透明组件事件和交互 payload，Rust 从 SQLite 重读并重新校验 Surface 与 Action，再由 application adapter 以 `source=a2ui_action` 调用 schema v11 的统一 Review 服务。前端 payload 不能指定 Action、risk、路径或候选，也不会写入中风险审计；审计只保存 Review ID/固定来源或稳定失败码。响应携带持久 Review 后，前端进入既有 Diff Review 并明确说明接受前零写入。高风险候选仍必须经 Review 的显式接受；未知 Action、系统命令、HTML、脚本、URL 和工作区外路径保持默认拒绝。该接线无 migration、无新 IPC/Capability，S3.3 通过人工验收前不得标记完成。
+`[IMPLEMENTED — S3.3 ACCEPTED]` 固定白名单仍只有 `set_state`、`submit_form`、`request_patch`。中风险 `request_patch` 必须在持久化 Action 声明的 `value` 中携带精确 `document_patch`、`create_file` 或 `replace_empty_file` 候选，禁止另带 target；候选先经过 A2UI 资源/Schema 门。点击时前端只传不透明组件事件和交互 payload，Rust 从 SQLite 重读并重新校验 Surface 与 Action，再由 application adapter 以 `source=a2ui_action` 调用 schema v11 的统一 Review 服务。前端 payload 不能指定 Action、risk、路径或候选，也不会写入中风险审计；审计只保存 Review ID/固定来源或稳定失败码。响应携带持久 Review 后，前端进入既有 Diff Review 并明确说明接受前零写入。高风险候选仍必须经 Review 的显式接受；未知 Action、系统命令、HTML、脚本、URL 和工作区外路径保持默认拒绝。该接线无 migration、无新 IPC/Capability；用户已于 LOG-0122 通过复验。
 
 S3.3 人工验收修复（LOG-0117）：协议安全校验不等于满足用户本次意图。聊天请求同时明确“交互界面/卡片/按钮”和“保存为成果、查看修改或三类 Review 协议”时，内部可信编排会要求最终 Surface 至少包含一个 `request_patch`；该要求不由前端或模型提交。安全但无关的旧项目面板、普通表单、纯说明或直接 Review JSON 均在 Surface 持久化前判为本次生成失败，保留 Inspector 证据并使用经过生产校验器验证的 Action 卡模板受限重试一次。普通文件 Review 与 S3.2 无持久动作面板不触发该门。错误输出不能覆盖最后一个合法 Surface，也不能以“Schema 通过”冒充用户要求已完成。聊天中的“打开 Surface/Inspector”还必须按当前 AI 消息 ID 选择对应持久记录，不能只切换中央视图并沿用先前活动 Surface。
 
 S3.3 二次人工复验修复（LOG-0120）：要求通用 Provider 重复生成多层固定 A2A/A2UI 包络会把确定性协议结构变成概率性文本任务。带持久化按钮的交互请求改为严格的短计划 `a2ui_review_card(title, description, buttonLabel, candidate)`；仅完整 JSON、精确字段和固定 type 可进入可信 Rust 编译器。编译器只把不可信字面值放入固定 Column/Text/Text/Button + `request_patch` 结构，Surface ID 由 assistant message ID 派生，随后必须通过现有 Catalog、Props、Action、资源、Review candidate 和 required-action 全套校验才可持久化。编译器不是 JSON 修复器，不补全残缺输出，也不替模型生成/改写候选。普通 A2UI DataPart 路径保持不变；无 IPC、Capability 或 migration 变化。
+
+`[IMPLEMENTED — S3.4 READY FOR ACCEPTANCE]` 首批真实小工具限定为检查表和单项项目计划表。Provider 只返回严格短计划 `a2ui_tool`；Rust 只接受 `checklist | planner` 两种精确 DTO，并编译为固定输入控件与第 20 个 Catalog 组件 `ResultSummary`。摘要只读取同一 Surface 中绑定的真实输入，每个 Surface 最多一个；初始 data 与后续 `set_state` payload 都在 Rust 校验文本长度、固定选项、布尔值、清单 key 和日期。残缺 JSON、未知字段、表达式、脚本和任意结果正文不会被修复或执行。
+
+真实工具状态继续以 `a2ui_surfaces.state_json` 为事实源；只有通过完整协议校验且包含合法 `ResultSummary` 的 Surface 才会形成便携 Result Revision。Rust 从持久化状态投影为既有 Tool adapter 的 `settings[{key,label,value}]` 可读 JSON，实际变化才新增版本，并复用 Revision 绑定、系统保存对话框、原子提交和冲突处理的 Export Service。投影排除组件树、Action、原始模型消息、聊天、Prompt、Context Manifest 和 Inspector。普通展示 Surface 与 S3.3 审阅卡不会因此在接受前产生空 Result；该回归由既有 Action→Review 集成测试固定。S3.4 没有 migration、新 IPC 或 Tauri Capability，Action 白名单仍只有三类。
 
 ## 8. Provider 与处理位置
 
@@ -693,7 +697,7 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 | WS            | Result Workbench、typed editors、mode shell         | 五类 Result adapter Current（S2.7 已验收）        |
 | CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | Manifest/local-cloud Current；Planner/Pack Target |
 | REV-01…06     | Review Request + 现有 Patch/Revision 内核           | S2.5 Current（已验收）；Selection 来源已接线      |
-| OUT-01…06     | Result type adapters、A2UI、Action Policy           | 五类 adapter Current；S3.x Action 扩展仍为 Target |
+| OUT-01…06     | Result type adapters、A2UI、Action Policy           | 五类 adapter、S3.3 Review Action Current；S3.4 工具闭环待人工验收 |
 | EXP-01…04     | Export Service、export jobs、format adapters        | EXP-01…03 Current（S2.8 已验收）；其余 Target     |
 | RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target         |
 | SEL-01        | Selection controller → Review Pipeline              | S2.6 Current（已验收）                            |

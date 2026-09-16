@@ -97,6 +97,10 @@ const surface: A2uiSurface = {
       },
       [node('issue-note', 'Text', { text: '仅声明式内容' })]
     ),
+    node('result', 'ResultSummary', {
+      title: '当前结果',
+      fields: ['doneItems', 'dueDate', 'role'],
+    }),
   ]),
 };
 
@@ -112,6 +116,8 @@ describe('A2uiRuntime', () => {
     expect(screen.getByRole('status', { name: '状态：进行中' })).toBeInTheDocument();
     expect(screen.getByRole('table', { name: '任务概览' })).toBeInTheDocument();
     expect(screen.getByRole('article', { name: '扩展大众组件' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '当前结果' })).toHaveTextContent('完成评审（1/2）');
+    expect(screen.getByRole('region', { name: '当前结果' })).toHaveTextContent('Developer');
     expect(container.querySelector('script')).toBeNull();
     expect(container.querySelector('iframe')).toBeNull();
   });

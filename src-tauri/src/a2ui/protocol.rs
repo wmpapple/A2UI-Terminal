@@ -33,6 +33,7 @@ pub const ALLOWED_COMPONENTS: &[&str] = &[
     "Status",
     "Table",
     "IssueCard",
+    "ResultSummary",
 ];
 
 #[derive(Debug, Clone, Copy)]
@@ -138,6 +139,10 @@ pub const COMPONENT_PROP_SCHEMAS: &[ComponentPropsSchema] = &[
         allowed_props: &[
             "issueKey", "title", "summary", "status", "priority", "owner", "dueDate",
         ],
+    },
+    ComponentPropsSchema {
+        component: "ResultSummary",
+        allowed_props: &["title", "fields"],
     },
 ];
 
@@ -298,6 +303,7 @@ pub fn validate_surface(surface: &A2uiSurfaceState) -> Result<Vec<String>, Vec<S
     if node_count > MAX_NODES {
         errors.push(format!("组件节点不能超过 {MAX_NODES} 个"));
     }
+    validate_result_summary_bindings(&surface.root, &surface.data, &mut errors);
     if errors.is_empty() {
         Ok(warnings)
     } else {
@@ -395,6 +401,16 @@ pub fn validate_runtime_value(value: &Value) -> Result<(), Vec<String>> {
     {
         errors.push("Action payload 不能超过 32 KiB".into());
     }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+pub fn validate_runtime_input_value(node: &A2uiNode, value: &Value) -> Result<(), Vec<String>> {
+    let mut errors = Vec::new();
+    validate_input_value(node, value, &mut errors);
     if errors.is_empty() {
         Ok(())
     } else {
@@ -574,6 +590,7 @@ fn validate_props(node: &A2uiNode, errors: &mut Vec<String>, warnings: &mut Vec<
         }
         "Table" => validate_table(node, errors),
         "IssueCard" => validate_issue_card(node, errors),
+        "ResultSummary" => validate_result_summary(node, errors),
         _ => {}
     }
     validate_enum(node, "gap", &["xs", "sm", "md", "lg"], errors);
@@ -628,10 +645,173 @@ fn validate_props(node: &A2uiNode, errors: &mut Vec<String>, warnings: &mut Vec<
     }
     if matches!(
         node.component.as_str(),
-        "Checklist" | "Owner" | "Date" | "Status" | "Table"
+        "Checklist" | "Owner" | "Date" | "Status" | "Table" | "ResultSummary"
     ) && !node.children.is_empty()
     {
         errors.push(format!("组件 {} 不允许 children", node.id));
+    }
+}
+
+fn validate_result_summary(node: &A2uiNode, errors: &mut Vec<String>) {
+    require_string(node, "title", 1, 120, errors);
+    let Some(fields) = node.props.get("fields").and_then(Value::as_array) else {
+        errors.push(format!("组件 {} 的 fields 必须是数组", node.id));
+        return;
+    };
+    if fields.is_empty() || fields.len() > 20 {
+        errors.push(format!(
+            "组件 {} 的 ResultSummary fields 数量必须为 1 到 20",
+            node.id
+        ));
+    }
+    let mut unique = BTreeSet::new();
+    for field in fields {
+        let Some(field) = field.as_str() else {
+            errors.push(format!("组件 {} 的 fields 必须是字符串数组", node.id));
+            continue;
+        };
+        if !valid_key(field) || !unique.insert(field) {
+            errors.push(format!(
+                "组件 {} 的 ResultSummary field 无效或重复：{}",
+                node.id, field
+            ));
+        }
+    }
+}
+
+fn validate_result_summary_bindings(
+    root: &A2uiNode,
+    data: &Map<String, Value>,
+    errors: &mut Vec<String>,
+) {
+    let mut input_names = BTreeSet::new();
+    let mut summaries = Vec::new();
+    collect_result_bindings(root, &mut input_names, &mut summaries);
+    if summaries.len() > 1 {
+        errors.push("每个 Surface 最多只能包含一个 ResultSummary".into());
+    }
+    for (summary_id, fields) in summaries {
+        for field in fields {
+            if !input_names.contains(field.as_str()) {
+                errors.push(format!(
+                    "组件 {summary_id} 的结果字段未绑定真实输入：{field}"
+                ));
+            } else if let (Some(input), Some(value)) =
+                (find_input_node(root, &field), data.get(&field))
+            {
+                validate_input_value(input, value, errors);
+            }
+        }
+    }
+}
+
+fn find_input_node<'a>(node: &'a A2uiNode, name: &str) -> Option<&'a A2uiNode> {
+    if node.props.get("name").and_then(Value::as_str) == Some(name) {
+        return Some(node);
+    }
+    node.children
+        .iter()
+        .find_map(|child| find_input_node(child, name))
+}
+
+fn validate_input_value(node: &A2uiNode, value: &Value, errors: &mut Vec<String>) {
+    match node.component.as_str() {
+        "TextField" => {
+            let max = node
+                .props
+                .get("maxLength")
+                .and_then(Value::as_u64)
+                .unwrap_or(1000) as usize;
+            if value.as_str().is_none_or(|text| text.chars().count() > max) {
+                errors.push(format!("组件 {} 的输入值必须是限长文本", node.id));
+            }
+        }
+        "Select" => {
+            let Some(selected) = value.as_str() else {
+                errors.push(format!("组件 {} 的选择值必须是文本", node.id));
+                return;
+            };
+            if selected.chars().count() > 1000 {
+                errors.push(format!("组件 {} 的选择值过长", node.id));
+            }
+            if node.props.get("allowCustom").and_then(Value::as_bool) == Some(false) {
+                let allowed = node
+                    .props
+                    .get("options")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .any(|option| option.get("value").and_then(Value::as_str) == Some(selected));
+                if !allowed {
+                    errors.push(format!("组件 {} 的选择值不在固定选项中", node.id));
+                }
+            }
+        }
+        "Checkbox" => {
+            if !value.is_boolean() {
+                errors.push(format!("组件 {} 的勾选值必须是布尔值", node.id));
+            }
+        }
+        "Checklist" => {
+            let allowed = node
+                .props
+                .get("items")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|item| item.get("key").and_then(Value::as_str))
+                .collect::<BTreeSet<_>>();
+            let Some(selected) = value.as_array() else {
+                errors.push(format!("组件 {} 的清单值必须是字符串数组", node.id));
+                return;
+            };
+            let mut unique = BTreeSet::new();
+            if selected.iter().any(|item| {
+                item.as_str()
+                    .is_none_or(|key| !allowed.contains(key) || !unique.insert(key))
+            }) {
+                errors.push(format!("组件 {} 的清单值包含未知或重复项目", node.id));
+            }
+        }
+        "Date" => {
+            if value
+                .as_str()
+                .is_none_or(|date| !date.is_empty() && !valid_iso_date(date))
+            {
+                errors.push(format!("组件 {} 的日期值必须是 YYYY-MM-DD", node.id));
+            }
+        }
+        _ => errors.push(format!("组件 {} 不是可写输入组件", node.id)),
+    }
+}
+
+fn collect_result_bindings(
+    node: &A2uiNode,
+    input_names: &mut BTreeSet<String>,
+    summaries: &mut Vec<(String, Vec<String>)>,
+) {
+    if matches!(
+        node.component.as_str(),
+        "TextField" | "Select" | "Checkbox" | "Checklist" | "Date"
+    ) {
+        if let Some(name) = node.props.get("name").and_then(Value::as_str) {
+            input_names.insert(name.to_string());
+        }
+    }
+    if node.component == "ResultSummary" {
+        let fields = node
+            .props
+            .get("fields")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(str::to_string)
+            .collect();
+        summaries.push((node.id.clone(), fields));
+    }
+    for child in &node.children {
+        collect_result_bindings(child, input_names, summaries);
     }
 }
 
@@ -1095,7 +1275,7 @@ mod tests {
     #[test]
     fn accepts_registered_components_and_safe_props() {
         assert!(validate_surface(&valid_surface()).is_ok());
-        assert_eq!(ALLOWED_COMPONENTS.len(), 19);
+        assert_eq!(ALLOWED_COMPONENTS.len(), 20);
         assert_eq!(COMPONENT_PROP_SCHEMAS.len(), ALLOWED_COMPONENTS.len());
         let schema_components = COMPONENT_PROP_SCHEMAS
             .iter()
@@ -1344,5 +1524,43 @@ mod tests {
             .unwrap_err()
             .join(" ")
             .contains("深度"));
+    }
+
+    #[test]
+    fn result_summary_requires_real_input_bindings() {
+        let mut surface = valid_surface();
+        surface.root.children.push(A2uiNode {
+            id: "result".into(),
+            component: "ResultSummary".into(),
+            props: serde_json::from_value(json!({
+                "title":"当前结果",
+                "fields":["missingField"]
+            }))
+            .unwrap(),
+            children: Vec::new(),
+            actions: BTreeMap::new(),
+        });
+        assert!(validate_surface(&surface)
+            .unwrap_err()
+            .join(" ")
+            .contains("未绑定真实输入"));
+
+        surface.root.children.insert(
+            0,
+            A2uiNode {
+                id: "field".into(),
+                component: "TextField".into(),
+                props: serde_json::from_value(json!({
+                    "name":"missingField","label":"真实字段"
+                }))
+                .unwrap(),
+                children: Vec::new(),
+                actions: serde_json::from_value(json!({
+                    "change":{"type":"set_state","target":"missingField"}
+                }))
+                .unwrap(),
+            },
+        );
+        assert!(validate_surface(&surface).is_ok());
     }
 }

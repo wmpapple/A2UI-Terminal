@@ -52,8 +52,16 @@ fn capabilities_negotiate_the_pinned_protocol_and_only_the_local_catalog() {
         [CATALOG_ID]
     );
     assert!(!capabilities.catalog.accepts_inline_catalogs);
-    assert_eq!(capabilities.catalog.components.len(), 19);
-    for component in ["Checklist", "Owner", "Date", "Status", "Table", "IssueCard"] {
+    assert_eq!(capabilities.catalog.components.len(), 20);
+    for component in [
+        "Checklist",
+        "Owner",
+        "Date",
+        "Status",
+        "Table",
+        "IssueCard",
+        "ResultSummary",
+    ] {
         assert!(capabilities.catalog.components.contains(&component.into()));
     }
 }

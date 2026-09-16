@@ -1,3 +1,4 @@
+use crate::a2ui::{validate_surface, A2uiNode, A2uiSurfaceState};
 use crate::domain::result::{
     validate_title, CreateTextResultInput, RestoreResultRevisionInput, ResultAppliedReview,
     ResultDetail, ResultDocument, ResultRevision, ResultRevisionSummary, ResultStorageKind,
@@ -8,7 +9,7 @@ use crate::repository::result::{detail_from_row, ResultRepository};
 use crate::storage::{A2uiSurfaceRow, NewManagedResultRow, ResultSourceRow, Storage};
 use crate::workspace::{self, WorkspaceDocument, MAX_TEXT_FILE_BYTES};
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::fmt::Write as _;
@@ -258,8 +259,9 @@ pub fn list_revisions(
 ) -> Result<Vec<ResultRevisionSummary>, AppError> {
     let document = read_document(storage, managed_results_dir, result_id)?;
     let source = result_source(storage, result_id)?;
+    let revision_ref = revision_ref(&source);
     Ok(storage
-        .document_versions(&source.result.workspace_id, &source.source_ref, 200)?
+        .document_versions(&source.result.workspace_id, revision_ref, 200)?
         .into_iter()
         .map(|revision| ResultRevisionSummary {
             id: revision.id,
@@ -282,8 +284,9 @@ pub fn read_revision(
     validate_result_id(revision_id)?;
     let document = read_document(storage, managed_results_dir, result_id)?;
     let source = result_source(storage, result_id)?;
+    let revision_ref = revision_ref(&source);
     let revision = storage
-        .document_version(&source.result.workspace_id, &source.source_ref, revision_id)?
+        .document_version(&source.result.workspace_id, revision_ref, revision_id)?
         .ok_or_else(|| AppError::InvalidInput("找不到指定成果版本".into()))?;
     Ok(ResultRevision {
         summary: ResultRevisionSummary {
@@ -495,13 +498,19 @@ fn read_from_source(
             )
         }
         "a2ui_surface" if result_type == ResultType::Tool => {
-            let content = source
+            let state_json = source
                 .result
                 .managed_state_json
                 .as_deref()
-                .and_then(|value| serde_json::from_str::<serde_json::Value>(value).ok())
-                .and_then(|value| serde_json::to_string_pretty(&value).ok())
                 .ok_or(AppError::StateUnavailable)?;
+            let content = if let Some(snapshot) = surface_tool_snapshot(state_json)? {
+                snapshot.content
+            } else {
+                serde_json::from_str::<serde_json::Value>(state_json)
+                    .ok()
+                    .and_then(|value| serde_json::to_string_pretty(&value).ok())
+                    .ok_or(AppError::StateUnavailable)?
+            };
             let hash = content_hash(content.as_bytes());
             let size = content.len() as u64;
             (TextResultFormat::Json, content, hash, size, false)
@@ -579,6 +588,14 @@ fn result_source(storage: &Storage, result_id: &str) -> Result<ResultSourceRow, 
     storage
         .result_source(result_id)?
         .ok_or_else(|| AppError::InvalidInput("找不到指定成果".into()))
+}
+
+fn revision_ref(source: &ResultSourceRow) -> &str {
+    if source.source_kind == "a2ui_surface" {
+        &source.result.storage_ref
+    } else {
+        &source.source_ref
+    }
 }
 
 fn validate_result_id(value: &str) -> Result<(), AppError> {
@@ -953,8 +970,12 @@ pub fn ensure_surface_result(
     storage: &Storage,
     surface: &A2uiSurfaceRow,
 ) -> Result<ResultDetail, AppError> {
-    let proposed_title = format!("交互成果 {}", surface.surface_id);
-    let title = validate_title(&proposed_title)?;
+    let snapshot = surface_tool_snapshot(&surface.state_json)?;
+    let proposed_title = snapshot
+        .as_ref()
+        .map(|snapshot| snapshot.title.as_str())
+        .unwrap_or("交互成果");
+    let title = validate_title(proposed_title)?;
     ResultRepository::new(storage).ensure_surface(
         &Uuid::new_v4().to_string(),
         &surface.id,
@@ -963,7 +984,176 @@ pub fn ensure_surface_result(
         &surface.session_id,
         title,
         &surface.state_json,
+        snapshot.as_ref().map(|snapshot| snapshot.content.as_str()),
+        snapshot
+            .as_ref()
+            .map(|snapshot| snapshot.content_hash.as_str()),
     )
+}
+
+struct SurfaceToolSnapshot {
+    title: String,
+    content: String,
+    content_hash: String,
+}
+
+fn surface_tool_snapshot(state_json: &str) -> Result<Option<SurfaceToolSnapshot>, AppError> {
+    let raw: Value = serde_json::from_str(state_json).map_err(|_| AppError::StateUnavailable)?;
+    if !json_contains_component(&raw, "ResultSummary") {
+        return Ok(None);
+    }
+    let state: A2uiSurfaceState =
+        serde_json::from_value(raw).map_err(|_| AppError::StateUnavailable)?;
+    let Some(summary) = find_component(&state.root, "ResultSummary") else {
+        return Ok(None);
+    };
+    validate_surface(&state).map_err(|_| AppError::StateUnavailable)?;
+    let fields = summary
+        .props
+        .get("fields")
+        .and_then(Value::as_array)
+        .ok_or(AppError::StateUnavailable)?;
+    let mut settings = Vec::with_capacity(fields.len());
+    for field_name in fields.iter().filter_map(Value::as_str) {
+        let input = find_input(&state.root, field_name).ok_or(AppError::StateUnavailable)?;
+        settings.push(json!({
+            "key": field_name,
+            "label": input.props.get("label").and_then(Value::as_str).unwrap_or(field_name),
+            "value": surface_field_value(&state, input)
+        }));
+    }
+    let content = serde_json::to_string_pretty(&json!({"settings": settings}))
+        .map_err(|_| AppError::StateUnavailable)?;
+    validate_result_content(ResultType::Tool, &content)?;
+    let title = find_title(&state.root)
+        .unwrap_or_else(|| "交互小工具".into())
+        .chars()
+        .take(160)
+        .collect::<String>();
+    let content_hash = content_hash(content.as_bytes());
+    Ok(Some(SurfaceToolSnapshot {
+        title,
+        content,
+        content_hash,
+    }))
+}
+
+fn json_contains_component(value: &Value, component: &str) -> bool {
+    match value {
+        Value::Object(map) => {
+            map.get("component").and_then(Value::as_str) == Some(component)
+                || map
+                    .values()
+                    .any(|value| json_contains_component(value, component))
+        }
+        Value::Array(items) => items
+            .iter()
+            .any(|value| json_contains_component(value, component)),
+        _ => false,
+    }
+}
+
+fn find_component<'a>(node: &'a A2uiNode, component: &str) -> Option<&'a A2uiNode> {
+    if node.component == component {
+        return Some(node);
+    }
+    node.children
+        .iter()
+        .find_map(|child| find_component(child, component))
+}
+
+fn find_input<'a>(node: &'a A2uiNode, name: &str) -> Option<&'a A2uiNode> {
+    if node.props.get("name").and_then(Value::as_str) == Some(name) {
+        return Some(node);
+    }
+    node.children
+        .iter()
+        .find_map(|child| find_input(child, name))
+}
+
+fn find_title(node: &A2uiNode) -> Option<String> {
+    if node.component == "Text"
+        && node.props.get("variant").and_then(Value::as_str) == Some("title")
+    {
+        return node
+            .props
+            .get("text")
+            .and_then(Value::as_str)
+            .map(str::to_string);
+    }
+    node.children.iter().find_map(find_title)
+}
+
+fn surface_field_value(state: &A2uiSurfaceState, node: &A2uiNode) -> String {
+    let name = node
+        .props
+        .get("name")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let value = state
+        .data
+        .get(name)
+        .or_else(|| node.props.get("value"))
+        .or_else(|| node.props.get("checked"))
+        .unwrap_or(&Value::Null);
+    match node.component.as_str() {
+        "Checklist" => checklist_result_value(node, value),
+        "Select" => select_result_value(node, value),
+        "Checkbox" => {
+            if value.as_bool() == Some(true) {
+                "是".into()
+            } else {
+                "否".into()
+            }
+        }
+        _ => value.as_str().unwrap_or("未填写").to_string(),
+    }
+}
+
+fn checklist_result_value(node: &A2uiNode, value: &Value) -> String {
+    let selected = value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect::<HashSet<_>>();
+    let items = node
+        .props
+        .get("items")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let labels = items
+        .iter()
+        .filter(|item| {
+            item.get("key")
+                .and_then(Value::as_str)
+                .is_some_and(|key| selected.contains(key))
+        })
+        .filter_map(|item| item.get("label").and_then(Value::as_str))
+        .collect::<Vec<_>>();
+    if labels.is_empty() {
+        format!("尚未完成（0/{}）", items.len())
+    } else {
+        format!("{}（{}/{}）", labels.join("、"), labels.len(), items.len())
+    }
+}
+
+fn select_result_value(node: &A2uiNode, value: &Value) -> String {
+    let selected = value.as_str().unwrap_or_default();
+    node.props
+        .get("options")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .find(|option| option.get("value").and_then(Value::as_str) == Some(selected))
+        .and_then(|option| option.get("label").and_then(Value::as_str))
+        .unwrap_or(if selected.is_empty() {
+            "未填写"
+        } else {
+            selected
+        })
+        .to_string()
 }
 
 pub fn ensure_surface_by_id(
@@ -975,6 +1165,20 @@ pub fn ensure_surface_by_id(
         .a2ui_surface(workspace_id, surface_id)?
         .ok_or_else(|| AppError::InvalidInput("Surface 不存在或不属于当前工作区".into()))?;
     ensure_surface_result(storage, &surface)
+}
+
+pub fn ensure_portable_surface_by_id(
+    storage: &Storage,
+    workspace_id: &str,
+    surface_id: &str,
+) -> Result<Option<ResultDetail>, AppError> {
+    let surface = storage
+        .a2ui_surface(workspace_id, surface_id)?
+        .ok_or_else(|| AppError::InvalidInput("Surface 不存在或不属于当前工作区".into()))?;
+    if surface_tool_snapshot(&surface.state_json)?.is_none() {
+        return Ok(None);
+    }
+    ensure_surface_result(storage, &surface).map(Some)
 }
 
 #[cfg(test)]
@@ -1202,6 +1406,115 @@ mod tests {
         assert_eq!(snapshot.format, TextResultFormat::Json);
         assert!(!snapshot.editable);
         assert!(snapshot.content.contains("surfaceId"));
+    }
+
+    #[test]
+    fn portable_a2ui_tools_create_readable_revisions_for_export() {
+        let storage = Storage::open_in_memory().unwrap();
+        let output = tempfile::tempdir().unwrap();
+        let workspace = storage
+            .upsert_workspace("portable-tool-workspace", "Tool", "C:\\portable-tool")
+            .unwrap();
+        let session = storage
+            .create_session(
+                &workspace.id,
+                "550e8400-e29b-41d4-a716-446655440091",
+                "Portable tool session",
+            )
+            .unwrap();
+        let state = |selected: serde_json::Value| {
+            json!({
+                "protocolVersion":"v0.9.1",
+                "catalogId":"urn:a2ui-terminal:catalog:basic:v1",
+                "surfaceId":"release-checklist",
+                "revision":1,
+                "root":{
+                    "id":"root","component":"Column","props":{"gap":"md"},"children":[
+                        {"id":"title","component":"Text","props":{"text":"发布检查表","variant":"title"}},
+                        {"id":"items","component":"Checklist","props":{"name":"doneItems","label":"检查项目","items":[{"key":"review","label":"完成评审"},{"key":"release","label":"准备发布"}]},"actions":{"change":{"type":"set_state","target":"doneItems"}}},
+                        {"id":"result","component":"ResultSummary","props":{"title":"当前检查结果","fields":["doneItems"]}}
+                    ]
+                },
+                "data":{"doneItems":selected}
+            })
+            .to_string()
+        };
+        storage
+            .save_a2ui_surface(
+                "surface-portable-row",
+                "release-checklist",
+                &workspace.id,
+                &session.id,
+                "message-portable",
+                "v0.9.1",
+                1,
+                &state(json!(["review"])),
+                "{}",
+                r#"{"valid":true,"errors":[],"warnings":[],"durationMs":1}"#,
+                "inspection-portable",
+                1,
+            )
+            .unwrap();
+
+        let first = ensure_surface_by_id(&storage, &workspace.id, "release-checklist").unwrap();
+        let first_revision = first.summary.current_revision_id.clone().unwrap();
+        let first_document = read_document(&storage, output.path(), &first.summary.id).unwrap();
+        assert_eq!(first_document.result.summary.title, "发布检查表");
+        assert!(first_document.content.contains("完成评审（1/2）"));
+        assert!(!first_document.content.contains("surfaceId"));
+        assert!(!first_document.content.contains("ResultSummary"));
+
+        storage
+            .record_a2ui_action(
+                "surface-portable-row",
+                Some(&state(json!(["review", "release"]))),
+                "event-portable",
+                "items",
+                "change",
+                "set_state",
+                "low",
+                "allowed",
+                r#"["review","release"]"#,
+                1,
+            )
+            .unwrap();
+        let second = ensure_surface_by_id(&storage, &workspace.id, "release-checklist").unwrap();
+        assert_ne!(
+            second.summary.current_revision_id.as_deref(),
+            Some(first_revision.as_str())
+        );
+        let second_document = read_document(&storage, output.path(), &second.summary.id).unwrap();
+        assert!(second_document
+            .content
+            .contains("完成评审、准备发布（2/2）"));
+        assert_eq!(
+            list_revisions(&storage, output.path(), &second.summary.id)
+                .unwrap()
+                .len(),
+            2
+        );
+
+        let prepared = crate::application::export::prepare(
+            &storage,
+            output.path(),
+            &crate::domain::export::ExportResultInput {
+                export_id: Uuid::new_v4().to_string(),
+                result_id: second.summary.id,
+                revision_id: second.summary.current_revision_id.unwrap(),
+                format: crate::domain::export::ExportFormat::Json,
+            },
+        )
+        .unwrap();
+        assert_eq!(prepared.content, second_document.content);
+
+        let revision_ref = second.storage_ref.clone();
+        assert!(storage
+            .delete_a2ui_surface(&workspace.id, "release-checklist")
+            .unwrap());
+        assert!(storage
+            .document_versions(&workspace.id, &revision_ref, 10)
+            .unwrap()
+            .is_empty());
     }
 
     #[test]

@@ -360,7 +360,7 @@ export const messages = {
     clearContextIndex: '清除本工作区检索索引',
     contextIndexCleared: '已清除 {count} 个本机内存索引；下次使用会从当前授权来源重建。',
     reviewAndSend: '审阅并发送',
-    waitingForProvider: '正在等待 Provider 响应…',
+    waitingForProvider: '正在等待 AI 正文；连续 60 秒无正文将超时，可点击停止。',
     retry: '重试',
     providerNotConfigured: '尚未配置 Provider',
     providerSettings: 'Provider 设置',
@@ -489,7 +489,7 @@ export const messages = {
     deleteInspectionTitle: '删除这条失败检查记录？',
     deleteInspectionDescription:
       '只删除这一条本地检查记录，不会删除交互成果、聊天、文件或其他记录。删除后不可恢复。',
-    a2uiGenerating: '正在生成受限 A2UI Surface',
+    a2uiGenerating: '正在生成并检查交互界面；必要时自动修复一次（最多 90 秒），可点击停止。',
     a2uiReady: 'A2UI Surface 已通过安全校验',
     a2uiReadyDescription: '界面只使用受信任 Basic Catalog，不会执行模型代码。',
     a2uiValidationFailed: 'A2UI 消息未通过安全校验',
@@ -910,7 +910,8 @@ export const messages = {
     contextIndexCleared:
       'Cleared {count} in-memory document index(es). Current authorized sources rebuild on demand.',
     reviewAndSend: 'Review and send',
-    waitingForProvider: 'Waiting for the provider…',
+    waitingForProvider:
+      'Waiting for AI content; times out after 60 seconds without content. You can stop.',
     retry: 'Retry',
     providerNotConfigured: 'Provider not configured',
     providerSettings: 'Provider settings',
@@ -1044,7 +1045,8 @@ export const messages = {
     deleteInspectionTitle: 'Delete this rejected check record?',
     deleteInspectionDescription:
       'Only this local check record will be deleted. The interaction result, chat, files, and other records are untouched. This cannot be undone.',
-    a2uiGenerating: 'Generating a constrained A2UI Surface',
+    a2uiGenerating:
+      'Generating and checking the interface; one repair may take up to 90 seconds. You can stop.',
     a2uiReady: 'A2UI Surface passed safety validation',
     a2uiReadyDescription:
       'Only trusted Basic Catalog components are used. Model code is never executed.',

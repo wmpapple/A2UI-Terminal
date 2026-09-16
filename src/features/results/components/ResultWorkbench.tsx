@@ -187,7 +187,7 @@ export function ResultWorkbench({
           </Button>
           <Button
             icon={<DownloadOutlined />}
-            disabled={activeDocument.result.a2uiSurfaceId !== null}
+            disabled={activeDocument.result.currentRevisionId === null}
             onClick={() => setExportOpen(true)}
           >
             {t('exportResult')}

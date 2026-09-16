@@ -51,9 +51,12 @@ pub fn prepare(
     Uuid::parse_str(&input.export_id)
         .map_err(|_| AppError::InvalidInput("导出任务标识无效".into()))?;
     let mut document = super::result::read_document(storage, directory, &input.result_id)?;
-    // Surface protocol snapshots are not portable user-facing JSON exports.
-    if document.result.summary.a2ui_surface_id.is_some() {
-        return Err(AppError::InvalidInput("动态工具快照暂不支持导出".into()));
+    if document.result.summary.a2ui_surface_id.is_some()
+        && document.result.summary.current_revision_id.is_none()
+    {
+        return Err(AppError::InvalidInput(
+            "该交互界面还没有可导出的工具结果".into(),
+        ));
     }
     if !supported_formats(document.result.summary.result_type, document.format)
         .contains(&input.format)

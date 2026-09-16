@@ -83,7 +83,7 @@ pub fn execute_action(
     request: ExecuteActionRequest,
 ) -> Result<ActionExecutionResult, AppError> {
     let workspace_id = request.workspace_id.clone();
-    a2ui::execute_action_with_review(storage, request, |candidate| {
+    let executed = a2ui::execute_action_with_review(storage, request, |candidate| {
         let raw = serde_json::to_string(candidate).map_err(|_| AppError::StateUnavailable)?;
         super::review::create(
             storage,
@@ -94,5 +94,11 @@ pub fn execute_action(
                 raw,
             },
         )
-    })
+    })?;
+    super::result::ensure_portable_surface_by_id(
+        storage,
+        &executed.surface.workspace_id,
+        &executed.surface.surface_id,
+    )?;
+    Ok(executed)
 }

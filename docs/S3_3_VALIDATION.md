@@ -1,6 +1,6 @@
 # S3.3 中风险 Action → Review Pipeline 验证记录
 
-日期：2026-09-16（Asia/Shanghai）。基线：用户已验收的 S3.2。关联实施账本：LOG-0114—LOG-0121。当前状态：实现和自动验证完成，人工复验发现的无关旧面板、长 Action DataPart 截断及 M03 缺失目标的不可理解错误均已修复，`READY FOR USER RE-ACCEPTANCE`；S3.4 未开始。
+日期：2026-09-16（Asia/Shanghai）。基线：用户已验收的 S3.2。关联实施账本：LOG-0114—LOG-0122。当前状态：实现和自动验证完成，人工复验发现的无关旧面板、长 Action DataPart 截断及 M03 缺失目标的不可理解错误均已修复；用户已于 2026-09-16 明确复验通过，`ACCEPTED`。S3.4 已按 LOG-0123 开始。
 
 ## 实现结果
 
@@ -86,4 +86,4 @@ Rust 独立 target 首次编译在第三方 `webview2-com-sys` 发生一次本�
 
 ## 人工验收
 
-请按 [S3.3 人工验收单](S3_3_MANUAL_ACCEPTANCE.md) M01—M06 在 Windows 桌面应用完成真实 Provider、零写入、接受/拒绝、冲突、系统命令拒绝、审计和重启恢复检查。用户明确回复 `S3.3 验收通过` 前，本阶段不得标记 COMPLETE，也不得开始 S3.4。
+用户已按 [S3.3 人工验收单](S3_3_MANUAL_ACCEPTANCE.md) 完成复验，并于 2026-09-16 明确回复通过。后续回归仍应覆盖真实 Provider、零写入、接受/拒绝、冲突、系统命令拒绝、审计和重启恢复；S3.4 通过前不得开始 S3.5。

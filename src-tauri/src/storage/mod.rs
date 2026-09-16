@@ -2200,6 +2200,16 @@ impl Storage {
             return Ok(false);
         };
         transaction.execute(
+            "DELETE FROM document_versions
+             WHERE workspace_id = ?1 AND relative_path IN (
+                 SELECT storage_ref FROM results
+                 WHERE workspace_id = ?1
+                   AND (a2ui_surface_row_id = ?2
+                        OR (source_kind = 'a2ui_surface' AND source_ref = ?3))
+             )",
+            params![workspace_id, surface_row_id, surface_id],
+        )?;
+        transaction.execute(
             "DELETE FROM results
              WHERE workspace_id = ?1
                AND (a2ui_surface_row_id = ?2
@@ -2660,6 +2670,8 @@ impl Storage {
         session_id: &str,
         title: &str,
         managed_state_json: &str,
+        snapshot_content: Option<&str>,
+        snapshot_hash: Option<&str>,
     ) -> Result<ResultRow, AppError> {
         let mut connection = self
             .connection
@@ -2690,6 +2702,54 @@ impl Storage {
                 managed_state_json
             ],
         )?;
+        if let (Some(content), Some(hash)) = (snapshot_content, snapshot_hash) {
+            let (stable_result_id, storage_ref, current_hash) = transaction.query_row(
+                "SELECT r.id, r.storage_ref, v.content_hash
+                 FROM results r
+                 LEFT JOIN document_versions v ON v.id = r.current_revision_id
+                 WHERE r.workspace_id = ?1 AND r.source_kind = 'a2ui_surface'
+                   AND r.source_ref = ?2",
+                params![workspace_id, surface_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                    ))
+                },
+            )?;
+            if current_hash.as_deref() != Some(hash) {
+                let revision_id = uuid::Uuid::new_v4().to_string();
+                transaction.execute(
+                    "INSERT INTO document_versions
+                        (id, workspace_id, relative_path, content, content_hash, expires_at,
+                         version_kind, source, summary)
+                     VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', '+30 days'),
+                             'snapshot', 'autosave', '保存交互小工具结果')",
+                    params![
+                        revision_id,
+                        workspace_id,
+                        storage_ref,
+                        content.as_bytes(),
+                        hash
+                    ],
+                )?;
+                transaction.execute(
+                    "UPDATE results SET current_revision_id = ?2, updated_at = CURRENT_TIMESTAMP
+                     WHERE id = ?1",
+                    params![stable_result_id, revision_id],
+                )?;
+                transaction.execute(
+                    "DELETE FROM document_versions
+                     WHERE id IN (
+                         SELECT id FROM document_versions
+                         WHERE workspace_id = ?1 AND relative_path = ?2
+                         ORDER BY created_at DESC, rowid DESC LIMIT -1 OFFSET 100
+                     )",
+                    params![workspace_id, storage_ref],
+                )?;
+            }
+        }
         let row = transaction.query_row(
             "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
                     r.storage_kind, r.storage_ref, r.current_revision_id,
@@ -3811,6 +3871,8 @@ mod tests {
                 &session_a.id,
                 "Surface A",
                 state_json,
+                None,
+                None,
             )
             .unwrap();
         storage

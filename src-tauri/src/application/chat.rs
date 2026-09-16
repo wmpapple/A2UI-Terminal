@@ -33,6 +33,44 @@ struct A2uiReviewActionPlan {
     candidate: serde_json::Value,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct A2uiChecklistToolPlan {
+    #[serde(rename = "type")]
+    kind: String,
+    tool_kind: String,
+    title: String,
+    items: Vec<A2uiChecklistToolItem>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct A2uiChecklistToolItem {
+    key: String,
+    label: String,
+    #[serde(default)]
+    completed: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct A2uiPlannerToolPlan {
+    #[serde(rename = "type")]
+    kind: String,
+    tool_kind: String,
+    title: String,
+    task: String,
+    owner: String,
+    due_date: String,
+    status: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum A2uiToolKind {
+    Checklist,
+    Planner,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(
     tag = "type",
@@ -192,6 +230,8 @@ where
             let mut content = first_content;
             let required_a2ui_action =
                 requires_a2ui_review_action(&request.prompt).then_some("request_patch");
+            let required_tool = requested_a2ui_tool(&request.prompt);
+            let required_a2ui_component = required_tool.map(|_| "ResultSummary");
             let create_input = |raw: String| CreateReviewRequestInput {
                 workspace_id: request.workspace_id.clone(),
                 source: request.review_source.unwrap_or(ReviewSource::Chat),
@@ -264,8 +304,9 @@ where
                         &request.workspace_id,
                         &request.assistant_message_id,
                     )
+                    .or_else(|| compile_tool_plan(&content, &request.assistant_message_id))
                     .unwrap_or_else(|| content.clone());
-                    a2ui::process_message_with_required_action(
+                    a2ui::process_message_with_requirements(
                         storage,
                         &ProcessA2uiRequest {
                             workspace_id: request.workspace_id.clone(),
@@ -274,6 +315,7 @@ where
                             raw_message: a2ui_content,
                         },
                         required_a2ui_action,
+                        required_a2ui_component,
                     )?
                 } else {
                     None
@@ -292,17 +334,27 @@ where
                     role: "user".into(),
                     content: repair.prompt,
                 });
-                match ai::stream_chat(&config, &api_key, &retry_messages, cancellation, |_| Ok(()))
-                    .await
-                {
+                // A hidden repair must not hold the UI for the normal 15-minute
+                // streaming budget. Keep the original validation failure on timeout.
+                match tokio::time::timeout(
+                    std::time::Duration::from_secs(90),
+                    ai::stream_chat(&config, &api_key, &retry_messages, cancellation, |_| Ok(())),
+                )
+                .await
+                .unwrap_or_else(|_| {
+                    Err(AppError::InvalidInput(
+                        "交互界面自动修复超时，请重试".into(),
+                    ))
+                }) {
                     Ok(retried) => {
                         let retried_a2ui = compile_review_action_plan(
                             &retried,
                             &request.workspace_id,
                             &request.assistant_message_id,
                         )
+                        .or_else(|| compile_tool_plan(&retried, &request.assistant_message_id))
                         .unwrap_or_else(|| retried.clone());
-                        if let Some(retried_result) = a2ui::process_message_with_required_action(
+                        if let Some(retried_result) = a2ui::process_message_with_requirements(
                             storage,
                             &ProcessA2uiRequest {
                                 workspace_id: request.workspace_id.clone(),
@@ -311,6 +363,7 @@ where
                                 raw_message: retried_a2ui,
                             },
                             required_a2ui_action,
+                            required_a2ui_component,
                         )? {
                             content = retried;
                             a2ui_result = Some(retried_result);
@@ -331,6 +384,16 @@ where
                     }
                     Err(_) => {}
                 }
+            }
+            if let Some(surface) = a2ui_result
+                .as_ref()
+                .and_then(|result| result.surface.as_ref())
+            {
+                super::result::ensure_portable_surface_by_id(
+                    storage,
+                    &surface.workspace_id,
+                    &surface.surface_id,
+                )?;
             }
             let unverified_completion_claim = validated_review.is_none()
                 && patch_error.is_none()
@@ -771,6 +834,181 @@ fn compile_review_action_plan(raw: &str, workspace_id: &str, message_id: &str) -
     ))
 }
 
+fn compile_tool_plan(raw: &str, message_id: &str) -> Option<String> {
+    let source = patch::extract_json(raw)?;
+    let value: serde_json::Value = serde_json::from_str(source).ok()?;
+    if value.get("type").and_then(serde_json::Value::as_str) != Some("a2ui_tool") {
+        return None;
+    }
+    match value.get("toolKind").and_then(serde_json::Value::as_str)? {
+        "checklist" => {
+            let plan: A2uiChecklistToolPlan = serde_json::from_value(value).ok()?;
+            if plan.kind != "a2ui_tool"
+                || plan.tool_kind != "checklist"
+                || plan.title.trim().is_empty()
+                || plan.title.chars().count() > 120
+                || plan.items.is_empty()
+                || plan.items.len() > 20
+            {
+                return None;
+            }
+            let mut keys = std::collections::BTreeSet::new();
+            if plan.items.iter().any(|item| {
+                !valid_tool_key(&item.key)
+                    || !keys.insert(item.key.clone())
+                    || item.label.trim().is_empty()
+                    || item.label.chars().count() > 120
+            }) {
+                return None;
+            }
+            Some(a2ui_checklist_tool_message(
+                &format!("checklist-tool-{message_id}"),
+                plan,
+            ))
+        }
+        "planner" => {
+            let plan: A2uiPlannerToolPlan = serde_json::from_value(value).ok()?;
+            if plan.kind != "a2ui_tool"
+                || plan.tool_kind != "planner"
+                || plan.title.trim().is_empty()
+                || plan.title.chars().count() > 120
+                || plan.task.chars().count() > 240
+                || plan.owner.chars().count() > 120
+                || !valid_tool_date(&plan.due_date)
+                || !["未开始", "进行中", "已完成", "已暂停"].contains(&plan.status.as_str())
+            {
+                return None;
+            }
+            Some(a2ui_planner_tool_message(
+                &format!("planner-tool-{message_id}"),
+                plan,
+            ))
+        }
+        _ => None,
+    }
+}
+
+fn valid_tool_key(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 80
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+}
+
+fn valid_tool_date(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() == 10
+        && bytes[4] == b'-'
+        && bytes[7] == b'-'
+        && bytes
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| matches!(index, 4 | 7) || byte.is_ascii_digit())
+}
+
+fn a2ui_checklist_tool_message(surface_id: &str, plan: A2uiChecklistToolPlan) -> String {
+    let capabilities = a2ui::get_capabilities();
+    let selected = plan
+        .items
+        .iter()
+        .filter(|item| item.completed)
+        .map(|item| item.key.clone())
+        .collect::<Vec<_>>();
+    let items = plan
+        .items
+        .into_iter()
+        .map(|item| json!({"key": item.key, "label": item.label}))
+        .collect::<Vec<_>>();
+    json!({
+        "data": [
+            {"version": capabilities.preferred_version, "createSurface": {
+                "surfaceId": surface_id, "catalogId": capabilities.catalog.catalog_id
+            }},
+            {"version": capabilities.preferred_version, "updateComponents": {
+                "surfaceId": surface_id,
+                "components": [
+                    {"id":"root","component":"Column","props":{"gap":"md"},"children":["title","help","items","notes","result"]},
+                    {"id":"title","component":"Text","props":{"text":plan.title,"variant":"title"}},
+                    {"id":"help","component":"Text","props":{"text":"勾选项目或填写备注后，结果会自动保存；可到成果页导出 JSON。","tone":"muted"}},
+                    {"id":"items","component":"Checklist","props":{"name":"doneItems","label":"检查项目","items":items,"value":selected},"actions":{"change":{"type":"set_state","target":"doneItems"}}},
+                    {"id":"notes","component":"TextField","props":{"name":"notes","label":"备注","placeholder":"可填写检查说明","maxLength":500},"actions":{"change":{"type":"set_state","target":"notes"}}},
+                    {"id":"result","component":"ResultSummary","props":{"title":"当前检查结果","fields":["doneItems","notes"]}}
+                ]
+            }},
+            {"version": capabilities.preferred_version, "updateDataModel": {
+                "surfaceId": surface_id, "path":"/", "value":{"doneItems":selected,"notes":""}
+            }}
+        ],
+        "kind":"data",
+        "metadata":{"mimeType":"application/a2ui+json"}
+    }).to_string()
+}
+
+fn a2ui_planner_tool_message(surface_id: &str, plan: A2uiPlannerToolPlan) -> String {
+    let capabilities = a2ui::get_capabilities();
+    json!({
+        "data": [
+            {"version": capabilities.preferred_version, "createSurface": {
+                "surfaceId": surface_id, "catalogId": capabilities.catalog.catalog_id
+            }},
+            {"version": capabilities.preferred_version, "updateComponents": {
+                "surfaceId": surface_id,
+                "components": [
+                    {"id":"root","component":"Column","props":{"gap":"md"},"children":["title","help","task","owner","due-date","status","result"]},
+                    {"id":"title","component":"Text","props":{"text":plan.title,"variant":"title"}},
+                    {"id":"help","component":"Text","props":{"text":"修改计划后，当前结果会自动保存；可到成果页导出 JSON。","tone":"muted"}},
+                    {"id":"task","component":"TextField","props":{"name":"task","label":"任务","value":plan.task,"required":true,"maxLength":240},"actions":{"change":{"type":"set_state","target":"task"}}},
+                    {"id":"owner","component":"TextField","props":{"name":"owner","label":"负责人","value":plan.owner,"maxLength":120},"actions":{"change":{"type":"set_state","target":"owner"}}},
+                    {"id":"due-date","component":"Date","props":{"name":"dueDate","label":"截止日期","value":plan.due_date},"actions":{"change":{"type":"set_state","target":"dueDate"}}},
+                    {"id":"status","component":"Select","props":{"name":"status","label":"状态","value":plan.status,"allowCustom":false,"options":[{"label":"未开始","value":"未开始"},{"label":"进行中","value":"进行中"},{"label":"已完成","value":"已完成"},{"label":"已暂停","value":"已暂停"}]},"actions":{"change":{"type":"set_state","target":"status"}}},
+                    {"id":"result","component":"ResultSummary","props":{"title":"当前计划结果","fields":["task","owner","dueDate","status"]}}
+                ]
+            }},
+            {"version": capabilities.preferred_version, "updateDataModel": {
+                "surfaceId": surface_id, "path":"/", "value":{"task":plan.task,"owner":plan.owner,"dueDate":plan.due_date,"status":plan.status}
+            }}
+        ],
+        "kind":"data",
+        "metadata":{"mimeType":"application/a2ui+json"}
+    }).to_string()
+}
+
+fn requested_a2ui_tool(prompt: &str) -> Option<A2uiToolKind> {
+    let normalized = prompt.to_ascii_lowercase();
+    let interactive = ["交互", "小工具", "工具", "surface", "interactive"]
+        .iter()
+        .any(|marker| normalized.contains(marker));
+    if !interactive {
+        return None;
+    }
+    if ["检查表", "检查清单", "checklist"]
+        .iter()
+        .any(|marker| normalized.contains(marker))
+    {
+        Some(A2uiToolKind::Checklist)
+    } else if ["计划表", "项目计划", "planner"]
+        .iter()
+        .any(|marker| normalized.contains(marker))
+    {
+        Some(A2uiToolKind::Planner)
+    } else {
+        None
+    }
+}
+
+fn a2ui_tool_plan_examples() -> String {
+    let checklist = json!({
+        "type":"a2ui_tool","toolKind":"checklist","title":"发布检查表",
+        "items":[{"key":"review","label":"完成评审","completed":true},{"key":"release","label":"准备发布","completed":false}]
+    });
+    let planner = json!({
+        "type":"a2ui_tool","toolKind":"planner","title":"项目计划表",
+        "task":"准备发布","owner":"Ada","dueDate":"2026-09-30","status":"进行中"
+    });
+    format!("checklist={checklist}; planner={planner}")
+}
+
 fn a2ui_review_action_message(
     _workspace_id: &str,
     surface_id: &str,
@@ -850,22 +1088,29 @@ fn requires_a2ui_review_action(prompt: &str) -> bool {
         "request_patch",
         "document_patch",
         "replace_empty_file",
-        "保存为成果",
         "查看修改",
         "进入审阅",
         "先让我查看",
-        "save as result",
         "review before",
     ]
     .iter()
     .any(|marker| normalized.contains(marker));
-    interactive && persistent_review
+    // Local tool autosave is not a request to propose a file write. Keep
+    // explicit review markers authoritative, even when autosave is also present.
+    let save_request = normalized
+        .replace("自动保存为成果", "")
+        .replace("automatically save as result", "");
+    let save_action = ["保存为成果", "save as result"]
+        .iter()
+        .any(|marker| save_request.contains(marker));
+    interactive && (persistent_review || save_action)
 }
 
 fn semantic_patch_system_prompt(workspace_id: &str) -> String {
     let a2ui_form_example = a2ui_form_example();
     let a2ui_dashboard_example = a2ui_dashboard_example();
     let a2ui_review_action_plan_example = a2ui_review_action_plan_example(workspace_id);
+    let a2ui_tool_plan_examples = a2ui_tool_plan_examples();
     let capabilities = a2ui::get_capabilities();
     let catalog_components = capabilities.catalog.components.join(", ");
     let catalog_actions = capabilities.catalog.actions.join(", ");
@@ -876,7 +1121,7 @@ When modifying a supplied non-empty editable file, return exactly one JSON objec
 Keep the patch compact: at most 3 changes, each anchor at most 500 characters, and each content at most 1500 characters. Never repeat unchanged file content. Do not calculate or include baseRevision, baseHash, or beforeHash; the trusted Rust runtime derives them from the current disk contents. Only propose changes for explicitly supplied editable text context. Do not use regex anchors, absolute paths, traversal, guessed content, or duplicate/overlapping anchors.
 When the user asks to create a new text document and no editable target was supplied, return: {{"version":"1.0","type":"create_file","workspaceId":"{workspace_id}","summary":"short summary","title":"result title","fileName":"safe-name.md","format":"markdown","content":"full candidate content","reason":"reason","risk":"low|medium|high"}}. The fileName must be one safe relative name ending in .md, .markdown, or .txt; never use a path. No file exists until the user accepts the review.
 When the explicitly supplied editable target is empty, return: {{"version":"1.0","type":"replace_empty_file","workspaceId":"{workspace_id}","summary":"short summary","path":"exact context label","content":"full candidate content","reason":"reason","risk":"low|medium|high"}}. Never use this type for a non-empty file. No content is written until the user accepts the review.
-When the user explicitly asks for an interactive form, dashboard, or UI instead of a file change, use the negotiated A2UI v0.9.1 renderer profile. Return exactly one compact A2A DataPart JSON object and no prose. Use this complete valid form as the structural template: {a2ui_form_example}. For a project panel, checklist, table, owner, date, status, or issue UI, copy this complete valid seven-component template and change only requested literal values, items, and rows: {a2ui_dashboard_example}. A review-action UI is the one exception to the full DataPart response: if the requested UI includes a Button that proposes a persistent file change, return exactly one compact a2ui_review_card plan and no prose, using this schema and example: {a2ui_review_action_plan_example}. Change title, description, buttonLabel, and candidate to match the user. candidate MUST be one complete document_patch, create_file, or replace_empty_file object using the exact schema above and workspaceId={workspace_id}. Trusted Rust compiles this bounded plan into the fixed A2UI Button structure and then applies the same Catalog, Schema, action, resource, and required-action validation; it never repairs malformed JSON or trusts the candidate. A safe but unrelated form or dashboard is not an acceptable answer. request_patch never uses target and is invalid without value; clicking it only opens Review and cannot write before the user accepts. Do not add Row/Text wrappers around Owner, Date, Status, Table, or IssueCard because those components already provide their own labels. Components are a flat list. A children entry is only a reference and NEVER creates a component: every referenced child id MUST have its own complete object in the same components array, every id MUST be unique, root MUST exist, and every component MUST be reachable from root. Before answering, compare the referenced-id set with the defined-id set and do not omit referenced definitions. Catalog components are only {catalog_components}. Every TextField, Select, Checkbox, Checklist, and Date with props.name MUST declare {{"change":{{"type":"set_state","target":"theSameName"}}}} in actions. Select options MUST use label/value objects. Expanded component props are: Checklist={{name,label,items:[{{key,label,disabled?}}],value?:string[],disabled?}}; Owner={{displayName,label?,detail?,initials?}}; Date={{name,label,value?:YYYY-MM-DD,min?:YYYY-MM-DD,max?:YYYY-MM-DD,required?,disabled?}}; Status={{text,label?,tone?}}; Table={{caption,columns:[{{key,label,align?}}],rows:[objects with only primitive cells]}}; IssueCard={{issueKey,title,summary?,status:open|in_progress|blocked|done|closed,priority?:low|normal|high|urgent,owner?,dueDate?:YYYY-MM-DD}}. Event keys are only click, change, submit, or tab_change; Actions are only {catalog_actions}. Never emit inline catalogs, HTML, script, iframe, URLs, commands, dynamic components, sendDataModel=true, or deleteSurface. Later changes to an existing surface use the same DataPart envelope with updateComponents and/or updateDataModel for that surface, without createSurface.
+When the user explicitly asks for an interactive form, dashboard, or UI instead of a file change, use the negotiated A2UI v0.9.1 renderer profile. Return exactly one compact A2A DataPart JSON object and no prose. Use this complete valid form as the structural template: {a2ui_form_example}. For a project panel, table, owner, date, status, or issue UI, copy this complete valid seven-component template and change only requested literal values, items, and rows: {a2ui_dashboard_example}. A real interactive checklist tool or planner tool is an exception: return exactly one compact a2ui_tool plan and no prose, using the matching strict example: {a2ui_tool_plan_examples}. Trusted Rust compiles that bounded plan into fixed inputs plus a live ResultSummary, then applies the full Catalog and Schema validator. Do not return a display-only dashboard for a requested tool. A review-action UI is the other exception to the full DataPart response: if the requested UI includes a Button that proposes a persistent file change, return exactly one compact a2ui_review_card plan and no prose, using this schema and example: {a2ui_review_action_plan_example}. Change title, description, buttonLabel, and candidate to match the user. candidate MUST be one complete document_patch, create_file, or replace_empty_file object using the exact schema above and workspaceId={workspace_id}. Trusted Rust compiles this bounded plan into the fixed A2UI Button structure and then applies the same Catalog, Schema, action, resource, and required-action validation; it never repairs malformed JSON or trusts the candidate. A safe but unrelated form or dashboard is not an acceptable answer. request_patch never uses target and is invalid without value; clicking it only opens Review and cannot write before the user accepts. Do not add Row/Text wrappers around Owner, Date, Status, Table, IssueCard, or ResultSummary because those components already provide their own labels. Components are a flat list. A children entry is only a reference and NEVER creates a component: every referenced child id MUST have its own complete object in the same components array, every id MUST be unique, root MUST exist, and every component MUST be reachable from root. Before answering, compare the referenced-id set with the defined-id set and do not omit referenced definitions. Catalog components are only {catalog_components}. Every TextField, Select, Checkbox, Checklist, and Date with props.name MUST declare {{"change":{{"type":"set_state","target":"theSameName"}}}} in actions. Select options MUST use label/value objects. Expanded component props are: Checklist={{name,label,items:[{{key,label,disabled?}}],value?:string[],disabled?}}; Owner={{displayName,label?,detail?,initials?}}; Date={{name,label,value?:YYYY-MM-DD,min?:YYYY-MM-DD,max?:YYYY-MM-DD,required?,disabled?}}; Status={{text,label?,tone?}}; Table={{caption,columns:[{{key,label,align?}}],rows:[objects with only primitive cells]}}; IssueCard={{issueKey,title,summary?,status:open|in_progress|blocked|done|closed,priority?:low|normal|high|urgent,owner?,dueDate?:YYYY-MM-DD}}; ResultSummary={{title,fields:[inputName]}}. Event keys are only click, change, submit, or tab_change; Actions are only {catalog_actions}. Never emit inline catalogs, HTML, script, iframe, URLs, commands, dynamic components, sendDataModel=true, or deleteSurface. Later changes to an existing surface use the same DataPart envelope with updateComponents and/or updateDataModel for that surface, without createSurface.
 If neither a safe patch nor a safe A2UI Surface is appropriate, answer with ordinary guidance text."#
     )
 }
@@ -902,10 +1147,16 @@ fn a2ui_repair_instruction(
             .iter()
             .any(|error| error.starts_with("A2UI JSON 无效："));
         let requires_review_action = requires_a2ui_review_action(user_prompt);
+        let requested_tool = requested_a2ui_tool(user_prompt);
         let prompt = if requires_review_action {
             let valid_example = a2ui_review_action_plan_example(workspace_id);
             format!(
                 "The requested review-action UI failed validation: {errors}. Start over. Return exactly one compact a2ui_review_card plan and no prose, not a full A2UI DataPart. Use this schema and example; change only title, description, buttonLabel, and the complete candidate required by the original request: {valid_example}"
+            )
+        } else if requested_tool.is_some() {
+            let valid_examples = a2ui_tool_plan_examples();
+            format!(
+                "The requested real tool failed validation: {errors}. Start over. Return exactly one compact a2ui_tool plan and no prose, using the matching checklist or planner example: {valid_examples}"
             )
         } else if syntax_error {
             let valid_example = a2ui_dashboard_example();
@@ -919,7 +1170,9 @@ fn a2ui_repair_instruction(
         };
         A2uiRepairInstruction {
             prompt,
-            include_previous_output: !syntax_error && !requires_review_action,
+            include_previous_output: !syntax_error
+                && !requires_review_action
+                && requested_tool.is_none(),
         }
     })
 }
@@ -962,8 +1215,9 @@ mod tests {
     use super::{
         a2ui_completion_content, a2ui_dashboard_example, a2ui_form_example,
         a2ui_repair_instruction, a2ui_review_action_example, a2ui_review_action_plan_example,
-        claims_unverified_file_completion, compile_review_action_plan, requires_a2ui_review_action,
-        review_completion_content, semantic_patch_system_prompt, should_retry_invalid_review,
+        claims_unverified_file_completion, compile_review_action_plan, compile_tool_plan,
+        requested_a2ui_tool, requires_a2ui_review_action, review_completion_content,
+        semantic_patch_system_prompt, should_retry_invalid_review, A2uiToolKind,
     };
     use crate::a2ui;
     use crate::domain::review::{
@@ -971,6 +1225,7 @@ mod tests {
     };
     use crate::error::AppError;
     use crate::storage::Storage;
+    use serde_json::json;
     use uuid::Uuid;
 
     #[test]
@@ -1330,5 +1585,104 @@ mod tests {
         assert!(instruction.prompt.contains("workspace-action"));
         assert!(instruction.prompt.contains("candidate"));
         assert!(!instruction.prompt.contains(&result.inspection.raw_message));
+    }
+
+    #[test]
+    fn compact_real_tool_plans_compile_to_valid_live_result_surfaces() {
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace_id = Uuid::new_v4().to_string();
+        let session_id = Uuid::new_v4().to_string();
+        storage
+            .upsert_workspace(&workspace_id, "A2UI tools", "C:\\a2ui-tools")
+            .unwrap();
+        storage
+            .create_session(&workspace_id, &session_id, "Tools")
+            .unwrap();
+        let plans = [
+            json!({
+                "type":"a2ui_tool","toolKind":"checklist","title":"发布检查表",
+                "items":[{"key":"review","label":"完成评审","completed":true},{"key":"release","label":"准备发布","completed":false}]
+            }),
+            json!({
+                "type":"a2ui_tool","toolKind":"planner","title":"项目计划表",
+                "task":"准备发布","owner":"Ada","dueDate":"2026-09-30","status":"进行中"
+            }),
+        ];
+        for (index, plan) in plans.into_iter().enumerate() {
+            let manual = include_str!("../../../docs/S3_4_MANUAL_ACCEPTANCE.md");
+            let prompt = manual
+                .lines()
+                .filter_map(|line| line.strip_prefix("> 生成"))
+                .nth(index)
+                .unwrap();
+            assert!(!requires_a2ui_review_action(prompt));
+            assert!(requested_a2ui_tool(prompt).is_some());
+            let compiled = compile_tool_plan(&plan.to_string(), &format!("message-{index}"))
+                .expect("valid tool plan compiles");
+            let outcome = a2ui::process_message_with_requirements(
+                &storage,
+                &a2ui::ProcessA2uiRequest {
+                    workspace_id: workspace_id.clone(),
+                    session_id: session_id.clone(),
+                    message_id: format!("message-{index}"),
+                    raw_message: compiled,
+                },
+                requires_a2ui_review_action(prompt).then_some("request_patch"),
+                Some("ResultSummary"),
+            )
+            .unwrap()
+            .unwrap();
+            assert!(outcome.inspection.validation.valid);
+            let surface = outcome.surface.unwrap();
+            assert!(surface
+                .root
+                .children
+                .iter()
+                .any(|node| node.component == "ResultSummary"));
+
+            let invalid = a2ui::process_message_with_requirements(
+                &storage,
+                &a2ui::ProcessA2uiRequest {
+                    workspace_id: workspace_id.clone(),
+                    session_id: session_id.clone(),
+                    message_id: format!("invalid-{index}"),
+                    raw_message: "{\"type\":\"a2ui_tool\",".into(),
+                },
+                None,
+                Some("ResultSummary"),
+            )
+            .unwrap()
+            .expect("required tool must not fall through to plain chat");
+            assert!(!invalid.inspection.validation.valid);
+            assert!(invalid.surface.is_none());
+            let repair = a2ui_repair_instruction(&invalid, &workspace_id, prompt).unwrap();
+            assert!(repair.prompt.contains("a2ui_tool"));
+            assert!(!repair.prompt.contains("a2ui_review_card"));
+            assert!(requires_a2ui_review_action(&format!(
+                "{prompt} 另加按钮提出 document_patch，先查看修改"
+            )));
+        }
+    }
+
+    #[test]
+    fn tool_plan_compiler_rejects_unknown_fields_and_invalid_values() {
+        let unknown = json!({
+            "type":"a2ui_tool","toolKind":"checklist","title":"检查表",
+            "items":[{"key":"one","label":"一"}],"script":"alert(1)"
+        });
+        let invalid_date = json!({
+            "type":"a2ui_tool","toolKind":"planner","title":"计划表",
+            "task":"发布","owner":"Ada","dueDate":"tomorrow","status":"进行中"
+        });
+        assert!(compile_tool_plan(&unknown.to_string(), "message").is_none());
+        assert!(compile_tool_plan(&invalid_date.to_string(), "message").is_none());
+        assert_eq!(
+            requested_a2ui_tool("生成一个真实交互检查表小工具"),
+            Some(A2uiToolKind::Checklist)
+        );
+        assert_eq!(
+            requested_a2ui_tool("生成一个交互项目计划表"),
+            Some(A2uiToolKind::Planner)
+        );
     }
 }

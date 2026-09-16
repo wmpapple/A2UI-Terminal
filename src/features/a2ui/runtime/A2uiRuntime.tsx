@@ -69,6 +69,42 @@ const displayCell = (value: unknown): string => {
   return '';
 };
 
+const findInputByName = (node: A2uiNode, name: string): A2uiNode | null => {
+  if (text(node.props.name) === name) return node;
+  for (const child of node.children) {
+    const match = findInputByName(child, name);
+    if (match) return match;
+  }
+  return null;
+};
+
+const summaryValue = (surface: A2uiSurface, field: A2uiNode): string => {
+  const name = text(field.props.name);
+  const value = surface.data[name] ?? field.props.value ?? field.props.checked ?? '';
+  if (field.component === 'Checklist') {
+    const selected = Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string')
+      : [];
+    const items = checklistItems(field.props.items);
+    const labels = items.filter((item) => selected.includes(item.key)).map((item) => item.label);
+    return labels.length
+      ? `${labels.join('、')}（${labels.length}/${items.length}）`
+      : `尚未完成（0/${items.length}）`;
+  }
+  if (field.component === 'Select') {
+    const options = Array.isArray(field.props.options) ? field.props.options : [];
+    const selected = options.find(
+      (option) =>
+        typeof option === 'object' &&
+        option !== null &&
+        (option as { value?: unknown }).value === value
+    ) as { label?: unknown } | undefined;
+    return text(selected?.label, text(value, '未填写'));
+  }
+  if (field.component === 'Checkbox') return value === true ? '是' : '否';
+  return text(value, '未填写');
+};
+
 export function A2uiRuntime({ surface, disabled, onAction }: RuntimeProps) {
   const renderNode = (node: A2uiNode): ReactNode => {
     const children = node.children.map((child) => (
@@ -414,6 +450,32 @@ export function A2uiRuntime({ surface, disabled, onAction }: RuntimeProps) {
             </dl>
             {children}
           </article>
+        );
+      }
+      case 'ResultSummary': {
+        const fields = Array.isArray(node.props.fields)
+          ? node.props.fields.filter((field): field is string => typeof field === 'string')
+          : [];
+        return (
+          <section
+            className={styles.resultSummary}
+            role="region"
+            aria-label={text(node.props.title)}
+          >
+            <h3>{text(node.props.title)}</h3>
+            <dl>
+              {fields.map((fieldName) => {
+                const field = findInputByName(surface.root, fieldName);
+                if (!field) return null;
+                return (
+                  <div key={fieldName}>
+                    <dt>{text(field.props.label, fieldName)}</dt>
+                    <dd>{summaryValue(surface, field)}</dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </section>
         );
       }
       default:

@@ -8,10 +8,18 @@ describe('Basic Catalog allowlist', () => {
     expect(isBasicComponent('iframe')).toBe(false);
   });
 
-  it('contains exactly the approved 13 base and 6 S3.2 components', () => {
-    expect(new Set(basicCatalog).size).toBe(19);
+  it('contains the approved base, S3.2, and S3.4 result components', () => {
+    expect(new Set(basicCatalog).size).toBe(20);
     expect(basicCatalog).toEqual(
-      expect.arrayContaining(['Checklist', 'Owner', 'Date', 'Status', 'Table', 'IssueCard'])
+      expect.arrayContaining([
+        'Checklist',
+        'Owner',
+        'Date',
+        'Status',
+        'Table',
+        'IssueCard',
+        'ResultSummary',
+      ])
     );
   });
 });

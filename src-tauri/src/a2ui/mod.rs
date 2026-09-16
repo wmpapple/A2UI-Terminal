@@ -5,6 +5,7 @@ mod standard;
 
 pub use capabilities::{capabilities as get_capabilities, A2uiCapabilities, CATALOG_ID};
 pub use protocol::{is_component_allowed, SurfaceMessage, ALLOWED_COMPONENTS, SCHEMA_VERSION};
+pub(crate) use protocol::{validate_surface, A2uiNode, A2uiSurfaceState};
 
 use crate::domain::review::ReviewRequest;
 use crate::error::AppError;
@@ -12,8 +13,8 @@ use crate::storage::{A2uiInspectionRow, A2uiSurfaceRow, Storage};
 use capabilities::{is_supported_version, LEGACY_PROTOCOL_VERSION};
 use policy::{evaluate, ActionDecision, ActionRisk};
 use protocol::{
-    apply_update, find_node, normalize_surface, validate_runtime_value, validate_surface, A2uiNode,
-    A2uiSurfaceState, UpdateMessage, MAX_MESSAGE_BYTES,
+    apply_update, find_node, normalize_surface, validate_runtime_input_value,
+    validate_runtime_value, UpdateMessage, MAX_MESSAGE_BYTES,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -144,7 +145,19 @@ pub(crate) fn process_message_with_required_action(
     request: &ProcessA2uiRequest,
     required_action: Option<&str>,
 ) -> Result<Option<A2uiProcessResult>, AppError> {
-    if required_action.is_none() && !looks_like_a2ui_candidate(&request.raw_message) {
+    process_message_with_requirements(storage, request, required_action, None)
+}
+
+pub(crate) fn process_message_with_requirements(
+    storage: &Storage,
+    request: &ProcessA2uiRequest,
+    required_action: Option<&str>,
+    required_component: Option<&str>,
+) -> Result<Option<A2uiProcessResult>, AppError> {
+    if required_action.is_none()
+        && required_component.is_none()
+        && !looks_like_a2ui_candidate(&request.raw_message)
+    {
         return Ok(None);
     }
     let session = storage
@@ -195,6 +208,13 @@ pub(crate) fn process_message_with_required_action(
                 {
                     return Err(vec![
                         "交互界面缺少用户要求的“查看修改”动作，不能作为本次结果".into(),
+                    ]);
+                }
+                if required_component
+                    .is_some_and(|required| !contains_component(&state.root, required))
+                {
+                    return Err(vec![
+                        "交互小工具缺少实时结果区域，不能作为本次结果".into(),
                     ]);
                 }
                 Ok((state, warnings))
@@ -277,6 +297,14 @@ pub(crate) fn process_message_with_required_action(
             }))
         }
     }
+}
+
+fn contains_component(node: &A2uiNode, component: &str) -> bool {
+    node.component == component
+        || node
+            .children
+            .iter()
+            .any(|child| contains_component(child, component))
 }
 
 fn contains_action_type(node: &A2uiNode, action_type: &str) -> bool {
@@ -404,6 +432,8 @@ where
     if decision == ActionDecision::Allowed {
         if let Some(action) = &action {
             if action.action_type == "set_state" {
+                let node = find_node(&state.root, &request.component_id)
+                    .ok_or_else(|| AppError::InvalidInput("输入组件不存在".into()))?;
                 let target = action
                     .target
                     .as_ref()
@@ -413,6 +443,8 @@ where
                 } else {
                     request.payload.clone()
                 };
+                validate_runtime_input_value(node, &value)
+                    .map_err(|errors| AppError::InvalidInput(errors.join("；")))?;
                 state.data.insert(target.clone(), value);
                 changed = true;
             }

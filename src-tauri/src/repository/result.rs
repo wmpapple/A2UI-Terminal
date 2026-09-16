@@ -63,6 +63,8 @@ impl<'a> ResultRepository<'a> {
         session_id: &str,
         title: &str,
         managed_state_json: &str,
+        snapshot_content: Option<&str>,
+        snapshot_hash: Option<&str>,
     ) -> Result<ResultDetail, AppError> {
         detail_from_row(self.storage.ensure_surface_result(
             result_id,
@@ -72,6 +74,8 @@ impl<'a> ResultRepository<'a> {
             session_id,
             title,
             managed_state_json,
+            snapshot_content,
+            snapshot_hash,
         )?)
     }
 }

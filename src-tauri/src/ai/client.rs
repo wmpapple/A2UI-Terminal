@@ -131,14 +131,14 @@ where
     let mut stream = response.bytes_stream();
     let total_timeout = tokio::time::sleep(timeouts.stream_total);
     tokio::pin!(total_timeout);
+    let idle_timeout = tokio::time::sleep(timeouts.stream_idle);
+    tokio::pin!(idle_timeout);
     loop {
-        let idle_timeout = tokio::time::sleep(timeouts.stream_idle);
-        tokio::pin!(idle_timeout);
         tokio::select! {
             _ = wait_until_cancelled(cancelled.clone()) => return Err(AppError::RequestCancelled),
             _ = &mut idle_timeout => return Err(provider_error(
                 "PROVIDER_STREAM_IDLE_TIMEOUT",
-                "Provider 流长时间没有返回新数据",
+                "AI 服务长时间未返回有效正文，请重试或在设置中更换模型",
                 true,
             )),
             _ = &mut total_timeout => return Err(provider_error(
@@ -159,6 +159,9 @@ where
                 for item in decoder.push(&chunk)? {
                     match item {
                         StreamChunk::Delta(delta) => {
+                            if !delta.is_empty() {
+                                idle_timeout.as_mut().reset(tokio::time::Instant::now() + timeouts.stream_idle);
+                            }
                             body.push_str(&delta);
                             on_delta(&delta)?;
                         }
@@ -630,6 +633,59 @@ mod tests {
         .await;
         assert_eq!(result.unwrap_err().code(), "PROVIDER_STREAM_IDLE_TIMEOUT");
         server.join().unwrap();
+    }
+
+    #[tokio::test]
+    async fn heartbeats_and_reasoning_do_not_extend_content_deadline() {
+        for payload in [
+            ": heartbeat\n\n",
+            "data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"thinking\"}}]}\n\n",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"\"}}]}\n\n",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}\n\n",
+        ] {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            let address = listener.local_addr().unwrap();
+            let server = std::thread::spawn(move || {
+                let (mut socket, _) = listener.accept().unwrap();
+                let _ = socket.read(&mut [0u8; 4096]);
+                socket.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nTransfer-Encoding: chunked\r\n\r\n").unwrap();
+                for _ in 0..30 {
+                    if write!(socket, "{:x}\r\n{}\r\n", payload.len(), payload).is_err() {
+                        break;
+                    }
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                let done = "data: [DONE]\n\n";
+                let _ = write!(socket, "{:x}\r\n{}\r\n0\r\n\r\n", done.len(), done);
+            });
+            let mut config = default_providers().remove(3);
+            config.endpoint = format!("http://{address}/v1");
+            let mut displayed = String::new();
+            let result = stream_chat_with_timeouts(
+                &config,
+                "dummy-credential",
+                &[],
+                Arc::new(AtomicBool::new(false)),
+                &mut |delta| {
+                    displayed.push_str(delta);
+                    Ok(())
+                },
+                TransportTimeouts {
+                    response_headers: Duration::from_secs(1),
+                    stream_idle: Duration::from_millis(150),
+                    stream_total: Duration::from_secs(2),
+                },
+            )
+            .await;
+            if payload.contains("ok") {
+                assert_eq!(result.unwrap(), "ok".repeat(30));
+                assert_eq!(displayed, "ok".repeat(30));
+            } else {
+                assert_eq!(result.unwrap_err().code(), "PROVIDER_STREAM_IDLE_TIMEOUT");
+                assert!(displayed.is_empty());
+            }
+            server.join().unwrap();
+        }
     }
 
     #[tokio::test]

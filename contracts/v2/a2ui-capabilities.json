@@ -29,7 +29,8 @@
       "Date",
       "Status",
       "Table",
-      "IssueCard"
+      "IssueCard",
+      "ResultSummary"
     ],
     "actions": ["set_state", "submit_form", "request_patch"],
     "incrementalMessages": ["updateComponents", "updateDataModel"]

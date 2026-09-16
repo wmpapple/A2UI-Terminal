@@ -265,3 +265,37 @@
 .issueMeta dd {
   margin: 0;
 }
+
+.resultSummary {
+  padding: 14px;
+  border: 1px solid #b7eb8f;
+  border-radius: 10px;
+  background: #f6ffed;
+}
+
+.resultSummary h3 {
+  margin: 0 0 10px;
+  color: var(--text-strong);
+}
+
+.resultSummary dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.resultSummary dl div {
+  display: grid;
+  grid-template-columns: minmax(80px, 0.35fr) 1fr;
+  gap: 12px;
+}
+
+.resultSummary dt {
+  color: var(--text-muted);
+}
+
+.resultSummary dd {
+  margin: 0;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}

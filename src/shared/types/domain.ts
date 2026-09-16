@@ -686,7 +686,8 @@ export type A2uiComponentName =
   | 'Date'
   | 'Status'
   | 'Table'
-  | 'IssueCard';
+  | 'IssueCard'
+  | 'ResultSummary';
 
 export interface A2uiAction {
   type: 'set_state' | 'submit_form' | 'request_patch';
