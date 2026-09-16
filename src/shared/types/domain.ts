@@ -786,5 +786,6 @@ export interface A2uiActionResult {
   risk: 'low' | 'medium' | 'high';
   decision: 'allowed' | 'review_required' | 'denied';
   message: string;
+  review: ReviewRequest | null;
   surface: A2uiSurface;
 }

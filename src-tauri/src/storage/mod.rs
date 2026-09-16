@@ -873,11 +873,11 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         let mut statement = connection.prepare(
             "SELECT role, body FROM (
-               SELECT role, body, created_at, id FROM messages
+               SELECT role, body, created_at, rowid AS insertion_order FROM messages
                WHERE session_id = ?1 AND role IN ('user', 'assistant')
                  AND status IN ('complete', 'stopped') AND body <> ''
-               ORDER BY created_at DESC, id DESC LIMIT ?2
-             ) ORDER BY created_at ASC, id ASC",
+               ORDER BY created_at DESC, insertion_order DESC LIMIT ?2
+             ) ORDER BY created_at ASC, insertion_order ASC",
         )?;
         let rows = statement.query_map(params![session_id, limit.min(20)], |row| {
             Ok(ProviderMessage {
@@ -985,7 +985,7 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         let mut statement = connection.prepare(
             "SELECT id, role, body, status, request_id, provider_id, error_code, created_at
-             FROM messages WHERE session_id = ?1 ORDER BY created_at, id",
+             FROM messages WHERE session_id = ?1 ORDER BY created_at, rowid",
         )?;
         let rows = statement.query_map([session_id], |row| {
             Ok(ChatMessageRecord {
@@ -4145,6 +4145,78 @@ mod tests {
         assert_eq!(sessions[0].messages[0].content, "完整用户消息");
         assert_eq!(sessions[0].messages[1].content, "完整助手回复");
         assert_eq!(sessions[0].messages[1].status, "complete");
+    }
+
+    #[test]
+    fn same_second_chat_order_survives_reopen_and_context_limits() {
+        let directory = tempfile::tempdir().unwrap();
+        let database_path = directory.path().join("chat-order.sqlite3");
+        {
+            let storage = Storage::open(&database_path).unwrap();
+            storage
+                .upsert_workspace("order-workspace", "Order", "C:\\order")
+                .unwrap();
+            storage
+                .create_session("order-workspace", "order-session", "Order")
+                .unwrap();
+            for (request, user, assistant, prompt, answer) in [
+                ("request-1", "z-user", "y-assistant", "问题一", "回答一"),
+                ("request-2", "b-user", "a-assistant", "问题二", "回答二"),
+            ] {
+                storage
+                    .start_chat_request(
+                        "order-workspace",
+                        "order-session",
+                        request,
+                        user,
+                        assistant,
+                        "openai",
+                        prompt,
+                        request,
+                        "[]",
+                        0,
+                        0,
+                        false,
+                    )
+                    .unwrap();
+                storage
+                    .update_assistant_message(assistant, answer, "complete", None)
+                    .unwrap();
+            }
+            // Force the timestamp collision; IDs deliberately reverse insertion order.
+            storage
+                .connection
+                .lock()
+                .unwrap()
+                .execute("UPDATE messages SET created_at = '2026-09-15 12:00:00'", [])
+                .unwrap();
+        }
+        let storage = Storage::open(&database_path).unwrap();
+        let sessions = storage.sessions("order-workspace").unwrap();
+        let bodies: Vec<_> = sessions[0]
+            .messages
+            .iter()
+            .map(|message| message.content.as_str())
+            .collect();
+        assert_eq!(bodies, ["问题一", "回答一", "问题二", "回答二"]);
+        for (limit, expected) in [
+            (0, vec![]),
+            (1, vec!["回答二"]),
+            (2, vec!["问题二", "回答二"]),
+            (3, vec!["回答一", "问题二", "回答二"]),
+            (20, vec!["问题一", "回答一", "问题二", "回答二"]),
+        ] {
+            let messages = storage
+                .recent_chat_messages("order-session", limit)
+                .unwrap();
+            assert_eq!(
+                messages
+                    .iter()
+                    .map(|message| message.content.as_str())
+                    .collect::<Vec<_>>(),
+                expected
+            );
+        }
     }
 
     #[test]

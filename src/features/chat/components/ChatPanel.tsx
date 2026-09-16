@@ -18,6 +18,10 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
   const chatRequestId = useAppStore((state) => state.chatRequestId);
   const pendingDiff = useAppStore((state) => state.pendingDiff);
   const setCenterView = useAppStore((state) => state.setCenterView);
+  const a2uiSurfaces = useAppStore((state) => state.a2uiSurfaces);
+  const a2uiInspections = useAppStore((state) => state.a2uiInspections);
+  const setActiveSurface = useAppStore((state) => state.setActiveSurface);
+  const setActiveInspection = useAppStore((state) => state.setActiveInspection);
   const createSession = useAppStore((state) => state.createSession);
   const selectSession = useAppStore((state) => state.selectSession);
   const stopChat = useAppStore((state) => state.stopChat);
@@ -92,7 +96,22 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
         requestActive={Boolean(chatRequestId)}
         reviewAvailable={Boolean(pendingDiff)}
         onOpenReview={() => setCenterView('diff')}
-        onOpenSurface={() => setCenterView('surface')}
+        onOpenSurface={(messageId, failed) => {
+          if (failed) {
+            const inspection = a2uiInspections.find((item) => item.messageId === messageId);
+            if (inspection) {
+              setActiveInspection(inspection.id);
+              return;
+            }
+          } else {
+            const surface = a2uiSurfaces.find((item) => item.messageId === messageId);
+            if (surface) {
+              setActiveSurface(surface.surfaceId);
+              return;
+            }
+          }
+          setCenterView('surface');
+        }}
         onRetry={context.retryMessage}
       />
       <ChatComposer

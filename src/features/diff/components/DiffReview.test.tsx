@@ -32,6 +32,20 @@ describe('DiffReview', () => {
     expect(screen.getByText('修改后')).toBeInTheDocument();
   });
 
+  it('explains that an A2UI action cannot write before review acceptance', () => {
+    const proposal = createMockDiff(mockFiles[0]);
+    useAppStore.setState({ pendingDiff: { ...proposal, source: 'a2ui_action' } });
+
+    render(
+      <I18nProvider>
+        <DiffReview />
+      </I18nProvider>
+    );
+
+    expect(screen.getByText('交互界面请求修改内容')).toBeInTheDocument();
+    expect(screen.getByText(/点击接受前，文件和成果都不会发生变化/)).toBeInTheDocument();
+  });
+
   it('allows a block to be rejected before applying', () => {
     render(
       <I18nProvider>

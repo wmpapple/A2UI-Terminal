@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { A2uiActionResult } from '../shared/types/domain';
+import { createMockA2ui, createMockDiff } from '../shared/mock/workspace';
 import { desktopApi } from '../shared/platform/desktop';
-import { createMockA2ui } from '../shared/mock/workspace';
 import { useAppStore } from './useAppStore';
 
 beforeEach(() => {
@@ -184,12 +185,7 @@ describe('desktop chat state', () => {
       a2uiSurfaces: [mock.surface],
       activeSurfaceId: mock.surface.surfaceId,
     });
-    let resolveAction!: (value: {
-      risk: 'low';
-      decision: 'allowed';
-      message: string;
-      surface: typeof mock.surface;
-    }) => void;
+    let resolveAction!: (value: A2uiActionResult) => void;
     vi.spyOn(desktopApi, 'executeA2uiAction').mockReturnValue(
       new Promise((resolve) => {
         resolveAction = resolve;
@@ -204,9 +200,43 @@ describe('desktop chat state', () => {
       risk: 'low',
       decision: 'allowed',
       message: 'Action 已执行',
+      review: null,
       surface: { ...mock.surface, data: { ...mock.surface.data, name: '张三' } },
     });
     await pending;
     expect(useAppStore.getState().a2uiSurfaces[0]?.data.name).toBe('张三');
+  });
+
+  it('opens the persisted review returned by a medium-risk A2UI action', async () => {
+    const mock = createMockA2ui();
+    const review = {
+      ...createMockDiff({
+        path: 'src/main.ts',
+        name: 'main.ts',
+        language: 'ts',
+        content: 'selected file',
+      }),
+      workspaceId: 'workspace-1',
+      source: 'a2ui_action' as const,
+    };
+    useAppStore.setState({
+      a2uiSurfaces: [mock.surface],
+      activeSurfaceId: mock.surface.surfaceId,
+      pendingDiff: null,
+      centerView: 'surface',
+    });
+    vi.spyOn(desktopApi, 'executeA2uiAction').mockResolvedValue({
+      risk: 'medium',
+      decision: 'review_required',
+      message: '修改方案已进入审阅；确认前不会更改文件',
+      review,
+      surface: mock.surface,
+    });
+
+    await useAppStore.getState().executeA2uiAction('submit', 'click', undefined);
+
+    expect(useAppStore.getState().pendingDiff).toEqual(review);
+    expect(useAppStore.getState().centerView).toBe('diff');
+    expect(useAppStore.getState().a2uiNotice).toContain('确认前不会更改文件');
   });
 });

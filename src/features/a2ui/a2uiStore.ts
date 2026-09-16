@@ -217,10 +217,9 @@ export const createA2uiStore = (set: AppSet, get: AppGet): A2uiActions => ({
             : result.surface
         ),
         a2uiNotice: result.message,
-        centerView:
-          result.decision === 'review_required' && current.pendingDiff
-            ? 'diff'
-            : current.centerView,
+        pendingDiff: result.review ?? current.pendingDiff,
+        centerView: result.review ? 'diff' : current.centerView,
+        patchError: result.review ? null : current.patchError,
       }));
     } catch (error) {
       set({ a2uiNotice: errorDetails(error).message });

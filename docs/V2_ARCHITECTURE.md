@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S3.1 已验收，S3.2 人工验收缺陷已修复、待复验（见 LOG-0113）
+> 文档状态：V2 目标架构基线；S1.1—S3.2 已验收，S3.3 Action → Review Pipeline 自动验证完成、待人工验收（见 LOG-0121）
 > 建立日期：2026-08-11  
 > 对照代码：`main` 分支 S3.1 提交 `8222b9e`；用户已于 2026-09-11 验收 S3.1
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
@@ -95,7 +95,7 @@ React components
 | 任务     | S1.2 已实现并验收本地 Task、结构化补问和草稿 Orchestrator；首页与 Context Manifest 已接通                         | 尚无完整真实生成任务编排                            |
 | 导入     | ImportBatch、文本/DOCX/PDF、CSV/XLSX 基础数据、图片本地视觉来源与 Context Manifest                                | Provider 图片多模态发送尚未实现                     |
 | 上下文   | Rust 不可变 Manifest、Full/Retrieval/Hybrid Planner、内存检索索引、一次确认和 Context Pack                        | 持久 Embedding 与全局检索属于后续步骤               |
-| 审阅     | Review Request/blocks、`document_patch`、`create_file`、空文件首次写入、冲突/撤销；S2.6 选区修改已接入统一 Review | S3.3 A2UI 中风险 Action 的真实接线仍属后续步骤      |
+| 审阅     | Review Request/blocks、三类候选、冲突/撤销；Chat、Selection 与 S3.3 A2UI Action 均接入统一 Review；S3.3 待人工验收 | 表格/结构化 Patch 仍属于后续扩展                    |
 | 成果类型 | 文档/表格/清单/表单/小工具统一 adapter 与共享保存、版本、复制协议；A2UI 工具快照只读并自动保存状态                | S2.7 已验收；富格式编辑不在 P0 范围                 |
 | 导出     | 绑定 Result Revision 的受控 DOCX/PDF/RTF/CSV/XLSX/JSON 导出与原子文件提交                                         | 复杂版式、宏、公式计算和 Office/PDF 无损回写不在 P0 |
 | 模板     | S1.2 已实现并验收 4 个版本化内置文档模板和字段 Schema                                                             | 尚无个人模板、系统规则/上下文规则编辑和模板 UI      |
@@ -298,7 +298,7 @@ ReviewRequest
 
 `document_patch`、`create_file`、`replace_empty_file` 是模型到 Rust 的机器协议。流式 UI 只展示“正在生成可审阅方案”；校验成功后聊天记录保存用户可读摘要，结构化候选继续由 SQLite Review 记录承担。前端按三种协议与 `PATCH_READY/CREATE_REVIEW_READY/REPLACE_REVIEW_READY` 统一显示审阅入口和“接受前零写入”语义，不把协议 JSON 当作助手正文。
 
-冲突只提供可理解且不覆盖原文的三个方向：保留当前版本、把已审阅的单文件完整候选另存到“我的成果”、关闭旧候选并基于当前版本重新生成。多文件冲突不能伪装为一个完整副本。A2UI `request_patch` 当前仍只返回 `review_required` 而不写文件，真实 Action→Review 接线按 S3.3 实施。
+冲突只提供可理解且不覆盖原文的三个方向：保留当前版本、把已审阅的单文件完整候选另存到“我的成果”、关闭旧候选并基于当前版本重新生成。多文件冲突不能伪装为一个完整副本。`[IMPLEMENTED — S3.3 READY FOR ACCEPTANCE]` A2UI `request_patch` 已通过同一 application adapter 创建 `source=a2ui_action` 的持久 Review，接受前不写文件；完整边界见 7.7。
 
 `[IMPLEMENTED — S2.6 ACCEPTED]` 编辑器文本选区和 textarea 表格/代码选区会显示统一选区助手，提供润色、缩短、改专业、解释、提取重点和自定义六类动作。动作先建立仅含当前选区的 Context Manifest，并展示目标文件、字符数和本机/云端处理位置；敏感云端清单继续要求明确确认。修改类请求通过现有 `stream_chat` 的受限 `reviewSource=selection` 进入同一 Review Pipeline，接受前不修改编辑器或文件；Rust 持久化的 Review 来源为 `selection`，Patch 应用时继续复核文件 Hash、授权、唯一锚点和冲突。解释类请求使用 `explanationOnly` 只读模式：Rust 不解析或持久化 Review/A2UI 候选，只保存用户可读说明，文件完成声明防伪规则仍然生效。切换文件或工作区继续清除旧选区；重复锚点或外部变化安全失败，不以首次字符串匹配绕过 Patch 内核。
 
@@ -544,11 +544,17 @@ S2.8 实现补充（LOG-0098）：DTO 位于 `domain/export`，快照/生成协�
 
 `[IMPLEMENTED — S3.1 ACCEPTED / ADR-022]` 当前生产协议固定到官方 A2UI `v0.9.1`，并兼容其 Schema 声明的 `v0.9`；官方 `createSurface`、`updateComponents`、`updateDataModel` 消息必须位于 A2A `kind=data`、`metadata.mimeType=application/a2ui+json` 的 DataPart 中。Rust 对一个 DataPart 内的单一 `surfaceId` 原子组装、校验并提交，失败时只保存 Inspector 证据，不覆盖最后一个有效 Surface。Provider 首次生成非法 A2UI 时允许一次静默、受限的重新生成：重试只携带原 Provider 输出与截断后的校验错误，原失败检查记录继续保留，重试结果仍必须完整经过同一 Rust 校验器，不能自动补节点或放宽规则。聊天记录只保存用户可理解的成功/失败说明，协议 JSON 不作为普通聊天正文展示；完整原文仍受限保存在 Inspector 供开发排错。客户端能力中的 `v0.9.supportedCatalogIds` 只声明 `urn:a2ui-terminal:catalog:basic:v1`，不冒充官方完整 Basic Catalog；官方 Basic fixture 会在 Catalog 协商处安全拒绝。inline Catalog、`sendDataModel=true`、模型 `deleteSurface`、未知组件/Action、混合/不兼容版本、不可达或循环组件树均拒绝渲染。历史私有 `version=1.0` 的 `a2ui_surface/a2ui_update` 仅作兼容读取与既有链路支持，不代表官方 A2UI 1.0，也不能被官方增量消息更新。只读 `get_a2ui_capabilities` IPC 返回 Rust 生成的精确能力合同；Inspector 展示收到/选择的版本、Catalog 与稳定错误码。
 
-`[IMPLEMENTED — S3.2 PENDING ACCEPTANCE]` 同一本地 Catalog 增加 `Checklist`、`Owner`、`Date`、`Status`、`Table`、`IssueCard` 六个大众组件，总数为 19。组件名在 Rust 能力合同、TypeScript 联合类型和 React `switch` 中固定映射；运行时不存在动态 import、任意 HTML/JS 或远程资源。每个新增组件在 Rust 中有独立 Props Schema：清单限制唯一安全 key，日期限制有效 `YYYY-MM-DD`，表格限制列、行数及基础类型单元格，IssueCard 限制状态/优先级枚举。清单与日期仅复用现有低风险 `set_state`；表格和展示组件不会执行动作。前端使用原生表单、表格、状态、时间和文章语义提供键盘与可访问名称。S3.3 的中风险 Action→Review 尚未开始。
+`[IMPLEMENTED — S3.2 ACCEPTED]` 同一本地 Catalog 增加 `Checklist`、`Owner`、`Date`、`Status`、`Table`、`IssueCard` 六个大众组件，总数为 19。组件名在 Rust 能力合同、TypeScript 联合类型和 React `switch` 中固定映射；运行时不存在 dynamic import、任意 HTML/JS 或远程资源。每个新增组件在 Rust 中有独立 Props Schema：清单限制唯一安全 key，日期限制有效 `YYYY-MM-DD`，表格限制列、行数及基础类型单元格，IssueCard 限制状态/优先级枚举。清单与日期仅复用现有低风险 `set_state`；表格和展示组件不会执行动作。前端使用原生表单、表格、状态、时间和文章语义提供键盘与可访问名称。S3.2 已于 LOG-0114 通过用户验收；S3.3 的中风险 Action→Review 按独立阶段实施。
 
 S3.2 人工验收修复（LOG-0112）：Provider 的项目面板提示附带由生产校验器验证的紧凑七节点模板，避免为自带标签的组件生成冗余包装节点。首次失败若属于 JSON 语法错误，修复请求不再回喂完整错误串，而从固定模板重新生成；若 JSON 已解析但违反 Props/树/Action 规则，仍携带原输出与截断错误作一次针对性修复。两条路径最终都必须重新经过完整 Rust 安全门，客户端不会自动补标点、花括号、节点或 Props。用户界面只显示可理解的失败说明，解析器详情保留在专业 Inspector。
 
 S3.2 人工验收修复（LOG-0113）：Inspector 的选择器用“交互成果/检查记录 + 顺序号 + 已通过/未通过 + 最新”表达历史，不把 Surface ID、UUID 或消息 ID 当作用户主标签；内部标识仅作为专业提示保留。固定帮助文案解释每条记录代表一次 AI 界面安全检查、未通过界面不会执行且记录只在本机。未通过记录可经二次确认单独永久删除，成功记录仍随 Surface 生命周期管理。
+
+`[IMPLEMENTED — S3.3 READY FOR ACCEPTANCE]` 固定白名单仍只有 `set_state`、`submit_form`、`request_patch`。中风险 `request_patch` 必须在持久化 Action 声明的 `value` 中携带精确 `document_patch`、`create_file` 或 `replace_empty_file` 候选，禁止另带 target；候选先经过 A2UI 资源/Schema 门。点击时前端只传不透明组件事件和交互 payload，Rust 从 SQLite 重读并重新校验 Surface 与 Action，再由 application adapter 以 `source=a2ui_action` 调用 schema v11 的统一 Review 服务。前端 payload 不能指定 Action、risk、路径或候选，也不会写入中风险审计；审计只保存 Review ID/固定来源或稳定失败码。响应携带持久 Review 后，前端进入既有 Diff Review 并明确说明接受前零写入。高风险候选仍必须经 Review 的显式接受；未知 Action、系统命令、HTML、脚本、URL 和工作区外路径保持默认拒绝。该接线无 migration、无新 IPC/Capability，S3.3 通过人工验收前不得标记完成。
+
+S3.3 人工验收修复（LOG-0117）：协议安全校验不等于满足用户本次意图。聊天请求同时明确“交互界面/卡片/按钮”和“保存为成果、查看修改或三类 Review 协议”时，内部可信编排会要求最终 Surface 至少包含一个 `request_patch`；该要求不由前端或模型提交。安全但无关的旧项目面板、普通表单、纯说明或直接 Review JSON 均在 Surface 持久化前判为本次生成失败，保留 Inspector 证据并使用经过生产校验器验证的 Action 卡模板受限重试一次。普通文件 Review 与 S3.2 无持久动作面板不触发该门。错误输出不能覆盖最后一个合法 Surface，也不能以“Schema 通过”冒充用户要求已完成。聊天中的“打开 Surface/Inspector”还必须按当前 AI 消息 ID 选择对应持久记录，不能只切换中央视图并沿用先前活动 Surface。
+
+S3.3 二次人工复验修复（LOG-0120）：要求通用 Provider 重复生成多层固定 A2A/A2UI 包络会把确定性协议结构变成概率性文本任务。带持久化按钮的交互请求改为严格的短计划 `a2ui_review_card(title, description, buttonLabel, candidate)`；仅完整 JSON、精确字段和固定 type 可进入可信 Rust 编译器。编译器只把不可信字面值放入固定 Column/Text/Text/Button + `request_patch` 结构，Surface ID 由 assistant message ID 派生，随后必须通过现有 Catalog、Props、Action、资源、Review candidate 和 required-action 全套校验才可持久化。编译器不是 JSON 修复器，不补全残缺输出，也不替模型生成/改写候选。普通 A2UI DataPart 路径保持不变；无 IPC、Capability 或 migration 变化。
 
 ## 8. Provider 与处理位置
 

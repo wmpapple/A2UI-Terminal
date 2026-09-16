@@ -2,6 +2,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::domain::review::{CreateFileProposal, ReplaceEmptyFileProposal};
+use crate::patch::DocumentPatch;
+
 pub const SCHEMA_VERSION: &str = "1.0";
 pub const MAX_MESSAGE_BYTES: usize = 256 * 1024;
 const MAX_NODES: usize = 200;
@@ -662,9 +665,53 @@ fn validate_actions(node: &A2uiNode, errors: &mut Vec<String>) {
                 if event != "click" && event != "submit" {
                     errors.push(format!("组件 {} 的 request_patch 事件无效", node.id));
                 }
+                if action.target.is_some() {
+                    errors.push(format!(
+                        "组件 {} 的 request_patch 不允许携带 target；目标只能来自受限审阅候选",
+                        node.id
+                    ));
+                }
+                match action.value.as_ref() {
+                    Some(value) => validate_review_candidate(node, value, errors),
+                    None => errors.push(format!(
+                        "组件 {} 的 request_patch 必须携带可审阅候选 value",
+                        node.id
+                    )),
+                }
             }
             other => errors.push(format!("组件 {} 包含未授权 Action：{other}", node.id)),
         }
+    }
+}
+
+fn validate_review_candidate(node: &A2uiNode, value: &Value, errors: &mut Vec<String>) {
+    validate_json_value(value, 0, "action.value", errors);
+    let Some(candidate_type) = value.get("type").and_then(Value::as_str) else {
+        errors.push(format!(
+            "组件 {} 的 request_patch value 缺少候选类型",
+            node.id
+        ));
+        return;
+    };
+    let schema_error = match candidate_type {
+        "document_patch" => serde_json::from_value::<DocumentPatch>(value.clone()).err(),
+        "create_file" => serde_json::from_value::<CreateFileProposal>(value.clone()).err(),
+        "replace_empty_file" => {
+            serde_json::from_value::<ReplaceEmptyFileProposal>(value.clone()).err()
+        }
+        _ => {
+            errors.push(format!(
+                "组件 {} 的 request_patch 候选类型不受支持：{}",
+                node.id, candidate_type
+            ));
+            return;
+        }
+    };
+    if let Some(error) = schema_error {
+        errors.push(format!(
+            "组件 {} 的 request_patch 候选 Schema 无效：{}",
+            node.id, error
+        ));
     }
 }
 

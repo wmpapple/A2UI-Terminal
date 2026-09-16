@@ -6,6 +6,7 @@ mod standard;
 pub use capabilities::{capabilities as get_capabilities, A2uiCapabilities, CATALOG_ID};
 pub use protocol::{is_component_allowed, SurfaceMessage, ALLOWED_COMPONENTS, SCHEMA_VERSION};
 
+use crate::domain::review::ReviewRequest;
 use crate::error::AppError;
 use crate::storage::{A2uiInspectionRow, A2uiSurfaceRow, Storage};
 use capabilities::{is_supported_version, LEGACY_PROTOCOL_VERSION};
@@ -116,6 +117,7 @@ pub struct ActionExecutionResult {
     pub risk: ActionRisk,
     pub decision: ActionDecision,
     pub message: String,
+    pub review: Option<ReviewRequest>,
     pub surface: A2uiSurfaceView,
 }
 
@@ -134,7 +136,15 @@ pub fn process_message(
     storage: &Storage,
     request: &ProcessA2uiRequest,
 ) -> Result<Option<A2uiProcessResult>, AppError> {
-    if !looks_like_a2ui_candidate(&request.raw_message) {
+    process_message_with_required_action(storage, request, None)
+}
+
+pub(crate) fn process_message_with_required_action(
+    storage: &Storage,
+    request: &ProcessA2uiRequest,
+    required_action: Option<&str>,
+) -> Result<Option<A2uiProcessResult>, AppError> {
+    if required_action.is_none() && !looks_like_a2ui_candidate(&request.raw_message) {
         return Ok(None);
     }
     let session = storage
@@ -178,6 +188,16 @@ pub fn process_message(
                             .into(),
                     ]),
                 }
+            })
+            .and_then(|(state, warnings)| {
+                if required_action
+                    .is_some_and(|required| !contains_action_type(&state.root, required))
+                {
+                    return Err(vec![
+                        "交互界面缺少用户要求的“查看修改”动作，不能作为本次结果".into(),
+                    ]);
+                }
+                Ok((state, warnings))
             })
     };
     let duration_ms = elapsed_ms(started);
@@ -259,6 +279,16 @@ pub fn process_message(
     }
 }
 
+fn contains_action_type(node: &A2uiNode, action_type: &str) -> bool {
+    node.actions
+        .values()
+        .any(|action| action.action_type == action_type)
+        || node
+            .children
+            .iter()
+            .any(|child| contains_action_type(child, action_type))
+}
+
 pub fn list_surfaces(
     storage: &Storage,
     workspace_id: &str,
@@ -313,6 +343,21 @@ pub fn execute_action(
     storage: &Storage,
     request: ExecuteActionRequest,
 ) -> Result<ActionExecutionResult, AppError> {
+    execute_action_with_review(storage, request, |_| {
+        Err(AppError::InvalidInput(
+            "文件修改必须通过应用层创建审阅".into(),
+        ))
+    })
+}
+
+pub fn execute_action_with_review<F>(
+    storage: &Storage,
+    request: ExecuteActionRequest,
+    create_review: F,
+) -> Result<ActionExecutionResult, AppError>
+where
+    F: FnOnce(&Value) -> Result<ReviewRequest, AppError>,
+{
     let started = Instant::now();
     validate_runtime_value(&request.payload)
         .map_err(|errors| AppError::InvalidInput(errors.join("；")))?;
@@ -335,7 +380,7 @@ pub fn execute_action(
     let action = find_node(&state.root, &request.component_id)
         .and_then(|node| node.actions.get(&request.event_name))
         .cloned();
-    let (risk, decision, message, action_type) = match &action {
+    let (risk, mut decision, mut message, action_type) = match &action {
         Some(action) => {
             let outcome = evaluate(action);
             (
@@ -354,6 +399,8 @@ pub fn execute_action(
     };
 
     let mut changed = false;
+    let mut review = None;
+    let mut review_error = None;
     if decision == ActionDecision::Allowed {
         if let Some(action) = &action {
             if action.action_type == "set_state" {
@@ -372,13 +419,42 @@ pub fn execute_action(
         }
     }
 
+    if decision == ActionDecision::ReviewRequired {
+        let candidate = action.as_ref().and_then(|action| action.value.as_ref());
+        match candidate {
+            Some(candidate) => match create_review(candidate) {
+                Ok(created) => {
+                    message = "修改方案已进入审阅；确认前不会更改文件".into();
+                    review = Some(created);
+                }
+                Err(error) => {
+                    decision = ActionDecision::Denied;
+                    message = "修改方案无法安全进入审阅，已拒绝执行".into();
+                    review_error = Some(error);
+                }
+            },
+            None => {
+                decision = ActionDecision::Denied;
+                message = "修改方案缺少可审阅内容，已拒绝执行".into();
+                review_error = Some(AppError::InvalidInput(message.clone()));
+            }
+        }
+    }
+
     let state_json = if changed {
         Some(serde_json::to_string(&state).map_err(|_| AppError::StateUnavailable)?)
     } else {
         None
     };
+    let audit_payload = if let Some(review) = &review {
+        serde_json::json!({"reviewId": review.id, "source": "a2ui_action"})
+    } else if let Some(error) = &review_error {
+        serde_json::json!({"errorCode": error.code()})
+    } else {
+        request.payload.clone()
+    };
     let payload_json =
-        serde_json::to_string(&request.payload).map_err(|_| AppError::StateUnavailable)?;
+        serde_json::to_string(&audit_payload).map_err(|_| AppError::StateUnavailable)?;
     storage.record_a2ui_action(
         &row.id,
         state_json.as_deref(),
@@ -391,10 +467,14 @@ pub fn execute_action(
         &payload_json,
         elapsed_ms(started),
     )?;
+    if let Some(error) = review_error {
+        return Err(error);
+    }
     Ok(ActionExecutionResult {
         risk,
         decision,
         message,
+        review,
         surface: load_surface(storage, &request.workspace_id, &request.surface_id)?
             .ok_or(AppError::StateUnavailable)?,
     })
@@ -755,7 +835,7 @@ mod tests {
             &storage,
             &ProcessA2uiRequest {
                 workspace_id: workspace_id.clone(),
-                session_id,
+                session_id: session_id.clone(),
                 message_id: Uuid::new_v4().to_string(),
                 raw_message: update,
             },
@@ -971,6 +1051,43 @@ mod tests {
         assert_eq!(denied.surface.events.len(), 2);
         assert_eq!(denied.surface.events[0].decision, "denied");
         assert_eq!(denied.surface.events[1].decision, "allowed");
+    }
+
+    #[test]
+    fn required_action_rejects_a_safe_but_unrelated_surface_before_persistence() {
+        let (storage, workspace_id, session_id) = setup();
+        let outcome = process_message_with_required_action(
+            &storage,
+            &ProcessA2uiRequest {
+                workspace_id: workspace_id.clone(),
+                session_id: session_id.clone(),
+                message_id: Uuid::new_v4().to_string(),
+                raw_message: full_message("unrelated-form"),
+            },
+            Some("request_patch"),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!(outcome.surface.is_none());
+        assert!(!outcome.inspection.validation.valid);
+        assert!(outcome.inspection.validation.errors[0].contains("查看修改"));
+        assert!(storage.a2ui_surfaces(&workspace_id).unwrap().is_empty());
+
+        let non_a2ui = process_message_with_required_action(
+            &storage,
+            &ProcessA2uiRequest {
+                workspace_id: workspace_id.clone(),
+                session_id,
+                message_id: Uuid::new_v4().to_string(),
+                raw_message: "普通说明文本".into(),
+            },
+            Some("request_patch"),
+        )
+        .unwrap()
+        .unwrap();
+        assert!(non_a2ui.surface.is_none());
+        assert!(!non_a2ui.inspection.validation.valid);
     }
 
     #[test]

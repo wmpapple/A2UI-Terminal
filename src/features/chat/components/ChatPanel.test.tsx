@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../app/i18n/I18nProvider';
+import { createMockA2ui } from '../../../shared/mock/workspace';
 import { useAppStore } from '../../../stores/useAppStore';
 import { chatController } from '../chatController';
 import { ChatPanel } from './ChatPanel';
@@ -114,6 +115,52 @@ describe('ChatPanel patch presentation', () => {
     expect(screen.getByText('打开 Surface')).toBeInTheDocument();
     expect(screen.queryByText(/createSurface/)).not.toBeInTheDocument();
     expect(screen.queryByText(/application\/a2ui\+json/)).not.toBeInTheDocument();
+  });
+
+  it('opens the Surface created by that chat message instead of the previously active one', () => {
+    const mock = createMockA2ui();
+    const previousSurface = {
+      ...mock.surface,
+      surfaceId: 'previous-dashboard',
+      messageId: 'previous-assistant',
+    };
+    const messageSurface = {
+      ...mock.surface,
+      surfaceId: 'action-card',
+      messageId: 'assistant',
+    };
+    useAppStore.setState({
+      sessions: [
+        {
+          id: 'session',
+          title: 'test',
+          messages: [
+            {
+              id: 'assistant',
+              role: 'assistant',
+              content: '{"type":"a2ui_surface"}',
+              status: 'complete',
+              errorCode: 'A2UI_READY',
+            },
+          ],
+        },
+      ],
+      activeSessionId: 'session',
+      chatRequestId: null,
+      a2uiSurfaces: [previousSurface, messageSurface],
+      activeSurfaceId: previousSurface.surfaceId,
+      centerView: 'editor',
+    });
+
+    render(
+      <I18nProvider>
+        <ChatPanel />
+      </I18nProvider>
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Surface/ }));
+
+    expect(useAppStore.getState().activeSurfaceId).toBe(messageSurface.surfaceId);
+    expect(useAppStore.getState().centerView).toBe('surface');
   });
 
   it('hides create-file JSON and explains where acceptance will save the result', () => {

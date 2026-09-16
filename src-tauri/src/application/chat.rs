@@ -22,6 +22,17 @@ struct A2uiRepairInstruction {
     include_previous_output: bool,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct A2uiReviewActionPlan {
+    #[serde(rename = "type")]
+    kind: String,
+    title: String,
+    description: String,
+    button_label: String,
+    candidate: serde_json::Value,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(
     tag = "type",
@@ -179,13 +190,15 @@ where
     match stream_result {
         Ok(first_content) => {
             let mut content = first_content;
+            let required_a2ui_action =
+                requires_a2ui_review_action(&request.prompt).then_some("request_patch");
             let create_input = |raw: String| CreateReviewRequestInput {
                 workspace_id: request.workspace_id.clone(),
                 source: request.review_source.unwrap_or(ReviewSource::Chat),
                 result_id: None,
                 raw,
             };
-            let mut review_result = (!request.explanation_only)
+            let mut review_result = (!request.explanation_only && required_a2ui_action.is_none())
                 .then(|| super::review::create(storage, create_input(content.clone())));
             if review_result
                 .as_ref()
@@ -246,19 +259,28 @@ where
             let mut a2ui_result =
                 if !request.explanation_only && validated_review.is_none() && patch_error.is_none()
                 {
-                    a2ui::process_message(
+                    let a2ui_content = compile_review_action_plan(
+                        &content,
+                        &request.workspace_id,
+                        &request.assistant_message_id,
+                    )
+                    .unwrap_or_else(|| content.clone());
+                    a2ui::process_message_with_required_action(
                         storage,
                         &ProcessA2uiRequest {
                             workspace_id: request.workspace_id.clone(),
                             session_id: request.session_id.clone(),
                             message_id: request.assistant_message_id.clone(),
-                            raw_message: content.clone(),
+                            raw_message: a2ui_content,
                         },
+                        required_a2ui_action,
                     )?
                 } else {
                     None
                 };
-            if let Some(repair) = a2ui_result.as_ref().and_then(a2ui_repair_instruction) {
+            if let Some(repair) = a2ui_result.as_ref().and_then(|result| {
+                a2ui_repair_instruction(result, &request.workspace_id, &request.prompt)
+            }) {
                 let mut retry_messages = messages.clone();
                 if repair.include_previous_output {
                     retry_messages.push(ProviderMessage {
@@ -274,14 +296,21 @@ where
                     .await
                 {
                     Ok(retried) => {
-                        if let Some(retried_result) = a2ui::process_message(
+                        let retried_a2ui = compile_review_action_plan(
+                            &retried,
+                            &request.workspace_id,
+                            &request.assistant_message_id,
+                        )
+                        .unwrap_or_else(|| retried.clone());
+                        if let Some(retried_result) = a2ui::process_message_with_required_action(
                             storage,
                             &ProcessA2uiRequest {
                                 workspace_id: request.workspace_id.clone(),
                                 session_id: request.session_id.clone(),
                                 message_id: request.assistant_message_id.clone(),
-                                raw_message: retried.clone(),
+                                raw_message: retried_a2ui,
                             },
+                            required_a2ui_action,
                         )? {
                             content = retried;
                             a2ui_result = Some(retried_result);
@@ -676,9 +705,167 @@ fn a2ui_dashboard_example() -> String {
     .to_string()
 }
 
+#[cfg(test)]
+fn a2ui_review_action_example(workspace_id: &str) -> String {
+    a2ui_review_action_message(
+        workspace_id,
+        "review-action-card",
+        "会议纪要",
+        "点击后先查看修改",
+        "保存为成果",
+        json!({
+            "version": "1.0",
+            "type": "create_file",
+            "workspaceId": workspace_id,
+            "summary": "保存会议纪要",
+            "title": "会议纪要",
+            "fileName": "action-created.md",
+            "format": "markdown",
+            "content": "# 会议纪要\n\n第一行会议内容。\n第二行会议内容。\n",
+            "reason": "用户点击后创建可审阅成果",
+            "risk": "high"
+        }),
+    )
+}
+
+fn a2ui_review_action_plan_example(workspace_id: &str) -> String {
+    json!({
+        "type": "a2ui_review_card",
+        "title": "会议纪要",
+        "description": "点击后先查看修改",
+        "buttonLabel": "保存为成果",
+        "candidate": {
+            "version": "1.0",
+            "type": "create_file",
+            "workspaceId": workspace_id,
+            "summary": "保存会议纪要",
+            "title": "会议纪要",
+            "fileName": "action-created.md",
+            "format": "markdown",
+            "content": "# 会议纪要\n\n第一行会议内容。\n第二行会议内容。\n",
+            "reason": "用户点击后创建可审阅成果",
+            "risk": "high"
+        }
+    })
+    .to_string()
+}
+
+fn compile_review_action_plan(raw: &str, workspace_id: &str, message_id: &str) -> Option<String> {
+    let json = patch::extract_json(raw)?;
+    let value: serde_json::Value = serde_json::from_str(json).ok()?;
+    if value.get("type").and_then(serde_json::Value::as_str) != Some("a2ui_review_card") {
+        return None;
+    }
+    let plan: A2uiReviewActionPlan = serde_json::from_value(value).ok()?;
+    if plan.kind != "a2ui_review_card" {
+        return None;
+    }
+    let surface_id = format!("review-action-{message_id}");
+    Some(a2ui_review_action_message(
+        workspace_id,
+        &surface_id,
+        &plan.title,
+        &plan.description,
+        &plan.button_label,
+        plan.candidate,
+    ))
+}
+
+fn a2ui_review_action_message(
+    _workspace_id: &str,
+    surface_id: &str,
+    title: &str,
+    description: &str,
+    button_label: &str,
+    candidate: serde_json::Value,
+) -> String {
+    let capabilities = a2ui::get_capabilities();
+    let version = capabilities.preferred_version;
+    let catalog_id = capabilities.catalog.catalog_id;
+    json!({
+        "data": [
+            {
+                "version": &version,
+                "createSurface": {
+                    "surfaceId": surface_id,
+                    "catalogId": &catalog_id
+                }
+            },
+            {
+                "version": &version,
+                "updateComponents": {
+                    "surfaceId": surface_id,
+                    "components": [
+                        {
+                            "id": "root",
+                            "component": "Column",
+                            "props": {"gap": "md"},
+                            "children": ["title", "description", "review-button"]
+                        },
+                        {
+                            "id": "title",
+                            "component": "Text",
+                            "props": {"text": title, "variant": "title"}
+                        },
+                        {
+                            "id": "description",
+                            "component": "Text",
+                            "props": {"text": description}
+                        },
+                        {
+                            "id": "review-button",
+                            "component": "Button",
+                            "props": {"label": button_label, "variant": "primary"},
+                            "actions": {
+                                "click": {
+                                    "type": "request_patch",
+                                    "value": candidate
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "kind": "data",
+        "metadata": {"mimeType": "application/a2ui+json"}
+    })
+    .to_string()
+}
+
+fn requires_a2ui_review_action(prompt: &str) -> bool {
+    let normalized = prompt.to_ascii_lowercase();
+    let interactive = [
+        "交互",
+        "卡片",
+        "界面",
+        "按钮",
+        "surface",
+        "button",
+        "interactive ui",
+    ]
+    .iter()
+    .any(|marker| normalized.contains(marker));
+    let persistent_review = [
+        "request_patch",
+        "document_patch",
+        "replace_empty_file",
+        "保存为成果",
+        "查看修改",
+        "进入审阅",
+        "先让我查看",
+        "save as result",
+        "review before",
+    ]
+    .iter()
+    .any(|marker| normalized.contains(marker));
+    interactive && persistent_review
+}
+
 fn semantic_patch_system_prompt(workspace_id: &str) -> String {
     let a2ui_form_example = a2ui_form_example();
     let a2ui_dashboard_example = a2ui_dashboard_example();
+    let a2ui_review_action_plan_example = a2ui_review_action_plan_example(workspace_id);
     let capabilities = a2ui::get_capabilities();
     let catalog_components = capabilities.catalog.components.join(", ");
     let catalog_actions = capabilities.catalog.actions.join(", ");
@@ -689,12 +876,16 @@ When modifying a supplied non-empty editable file, return exactly one JSON objec
 Keep the patch compact: at most 3 changes, each anchor at most 500 characters, and each content at most 1500 characters. Never repeat unchanged file content. Do not calculate or include baseRevision, baseHash, or beforeHash; the trusted Rust runtime derives them from the current disk contents. Only propose changes for explicitly supplied editable text context. Do not use regex anchors, absolute paths, traversal, guessed content, or duplicate/overlapping anchors.
 When the user asks to create a new text document and no editable target was supplied, return: {{"version":"1.0","type":"create_file","workspaceId":"{workspace_id}","summary":"short summary","title":"result title","fileName":"safe-name.md","format":"markdown","content":"full candidate content","reason":"reason","risk":"low|medium|high"}}. The fileName must be one safe relative name ending in .md, .markdown, or .txt; never use a path. No file exists until the user accepts the review.
 When the explicitly supplied editable target is empty, return: {{"version":"1.0","type":"replace_empty_file","workspaceId":"{workspace_id}","summary":"short summary","path":"exact context label","content":"full candidate content","reason":"reason","risk":"low|medium|high"}}. Never use this type for a non-empty file. No content is written until the user accepts the review.
-When the user explicitly asks for an interactive form, dashboard, or UI instead of a file change, use the negotiated A2UI v0.9.1 renderer profile. Return exactly one compact A2A DataPart JSON object and no prose. Use this complete valid form as the structural template: {a2ui_form_example}. For a project panel, checklist, table, owner, date, status, or issue UI, copy this complete valid seven-component template and change only requested literal values, items, and rows: {a2ui_dashboard_example}. Do not add Row/Text wrappers around Owner, Date, Status, Table, or IssueCard because those components already provide their own labels. Components are a flat list. A children entry is only a reference and NEVER creates a component: every referenced child id MUST have its own complete object in the same components array, every id MUST be unique, root MUST exist, and every component MUST be reachable from root. Before answering, compare the referenced-id set with the defined-id set and do not omit referenced definitions. Catalog components are only {catalog_components}. Every TextField, Select, Checkbox, Checklist, and Date with props.name MUST declare {{"change":{{"type":"set_state","target":"theSameName"}}}} in actions. Select options MUST use label/value objects. Expanded component props are: Checklist={{name,label,items:[{{key,label,disabled?}}],value?:string[],disabled?}}; Owner={{displayName,label?,detail?,initials?}}; Date={{name,label,value?:YYYY-MM-DD,min?:YYYY-MM-DD,max?:YYYY-MM-DD,required?,disabled?}}; Status={{text,label?,tone?}}; Table={{caption,columns:[{{key,label,align?}}],rows:[objects with only primitive cells]}}; IssueCard={{issueKey,title,summary?,status:open|in_progress|blocked|done|closed,priority?:low|normal|high|urgent,owner?,dueDate?:YYYY-MM-DD}}. Event keys are only click, change, submit, or tab_change; Actions are only {catalog_actions}. Never emit inline catalogs, HTML, script, iframe, URLs, commands, dynamic components, sendDataModel=true, or deleteSurface. Later changes to an existing surface use the same DataPart envelope with updateComponents and/or updateDataModel for that surface, without createSurface.
+When the user explicitly asks for an interactive form, dashboard, or UI instead of a file change, use the negotiated A2UI v0.9.1 renderer profile. Return exactly one compact A2A DataPart JSON object and no prose. Use this complete valid form as the structural template: {a2ui_form_example}. For a project panel, checklist, table, owner, date, status, or issue UI, copy this complete valid seven-component template and change only requested literal values, items, and rows: {a2ui_dashboard_example}. A review-action UI is the one exception to the full DataPart response: if the requested UI includes a Button that proposes a persistent file change, return exactly one compact a2ui_review_card plan and no prose, using this schema and example: {a2ui_review_action_plan_example}. Change title, description, buttonLabel, and candidate to match the user. candidate MUST be one complete document_patch, create_file, or replace_empty_file object using the exact schema above and workspaceId={workspace_id}. Trusted Rust compiles this bounded plan into the fixed A2UI Button structure and then applies the same Catalog, Schema, action, resource, and required-action validation; it never repairs malformed JSON or trusts the candidate. A safe but unrelated form or dashboard is not an acceptable answer. request_patch never uses target and is invalid without value; clicking it only opens Review and cannot write before the user accepts. Do not add Row/Text wrappers around Owner, Date, Status, Table, or IssueCard because those components already provide their own labels. Components are a flat list. A children entry is only a reference and NEVER creates a component: every referenced child id MUST have its own complete object in the same components array, every id MUST be unique, root MUST exist, and every component MUST be reachable from root. Before answering, compare the referenced-id set with the defined-id set and do not omit referenced definitions. Catalog components are only {catalog_components}. Every TextField, Select, Checkbox, Checklist, and Date with props.name MUST declare {{"change":{{"type":"set_state","target":"theSameName"}}}} in actions. Select options MUST use label/value objects. Expanded component props are: Checklist={{name,label,items:[{{key,label,disabled?}}],value?:string[],disabled?}}; Owner={{displayName,label?,detail?,initials?}}; Date={{name,label,value?:YYYY-MM-DD,min?:YYYY-MM-DD,max?:YYYY-MM-DD,required?,disabled?}}; Status={{text,label?,tone?}}; Table={{caption,columns:[{{key,label,align?}}],rows:[objects with only primitive cells]}}; IssueCard={{issueKey,title,summary?,status:open|in_progress|blocked|done|closed,priority?:low|normal|high|urgent,owner?,dueDate?:YYYY-MM-DD}}. Event keys are only click, change, submit, or tab_change; Actions are only {catalog_actions}. Never emit inline catalogs, HTML, script, iframe, URLs, commands, dynamic components, sendDataModel=true, or deleteSurface. Later changes to an existing surface use the same DataPart envelope with updateComponents and/or updateDataModel for that surface, without createSurface.
 If neither a safe patch nor a safe A2UI Surface is appropriate, answer with ordinary guidance text."#
     )
 }
 
-fn a2ui_repair_instruction(result: &A2uiProcessResult) -> Option<A2uiRepairInstruction> {
+fn a2ui_repair_instruction(
+    result: &A2uiProcessResult,
+    workspace_id: &str,
+    user_prompt: &str,
+) -> Option<A2uiRepairInstruction> {
     (!result.inspection.validation.valid).then(|| {
         let errors = result
             .inspection
@@ -710,7 +901,13 @@ fn a2ui_repair_instruction(result: &A2uiProcessResult) -> Option<A2uiRepairInstr
             .errors
             .iter()
             .any(|error| error.starts_with("A2UI JSON 无效："));
-        let prompt = if syntax_error {
+        let requires_review_action = requires_a2ui_review_action(user_prompt);
+        let prompt = if requires_review_action {
+            let valid_example = a2ui_review_action_plan_example(workspace_id);
+            format!(
+                "The requested review-action UI failed validation: {errors}. Start over. Return exactly one compact a2ui_review_card plan and no prose, not a full A2UI DataPart. Use this schema and example; change only title, description, buttonLabel, and the complete candidate required by the original request: {valid_example}"
+            )
+        } else if syntax_error {
             let valid_example = a2ui_dashboard_example();
             format!(
                 "The A2UI output was invalid JSON: {errors}. Start over instead of repeating or editing the malformed string. Return one complete compact JSON object only. Every object in components must start with {{ and adjacent objects must be separated by }},{{. Use this validator-approved shape as the structural template and change only literal values needed by the original user request: {valid_example}"
@@ -722,7 +919,7 @@ fn a2ui_repair_instruction(result: &A2uiProcessResult) -> Option<A2uiRepairInstr
         };
         A2uiRepairInstruction {
             prompt,
-            include_previous_output: !syntax_error,
+            include_previous_output: !syntax_error && !requires_review_action,
         }
     })
 }
@@ -764,8 +961,9 @@ fn should_retry_invalid_review(
 mod tests {
     use super::{
         a2ui_completion_content, a2ui_dashboard_example, a2ui_form_example,
-        a2ui_repair_instruction, claims_unverified_file_completion, review_completion_content,
-        semantic_patch_system_prompt, should_retry_invalid_review,
+        a2ui_repair_instruction, a2ui_review_action_example, a2ui_review_action_plan_example,
+        claims_unverified_file_completion, compile_review_action_plan, requires_a2ui_review_action,
+        review_completion_content, semantic_patch_system_prompt, should_retry_invalid_review,
     };
     use crate::a2ui;
     use crate::domain::review::{
@@ -858,6 +1056,10 @@ mod tests {
         for action in capabilities.catalog.actions {
             assert!(prompt.contains(&action), "missing action {action}");
         }
+        assert!(prompt.contains("\"type\":\"a2ui_review_card\""));
+        assert!(prompt.contains("Trusted Rust compiles this bounded plan"));
+        assert!(prompt.contains("request_patch never uses target and is invalid without value"));
+        assert!(prompt.contains("workspaceId=workspace"));
     }
 
     #[test]
@@ -888,7 +1090,7 @@ mod tests {
         let surface = outcome.surface.as_ref().unwrap();
         assert_eq!(surface.root.id, "root");
         assert_eq!(surface.root.children.len(), 2);
-        assert!(a2ui_repair_instruction(&outcome).is_none());
+        assert!(a2ui_repair_instruction(&outcome, "workspace", "普通表单").is_none());
         let content = a2ui_completion_content(&outcome);
         assert!(content.contains("通过安全校验"));
         assert!(!content.contains("createSurface"));
@@ -926,6 +1128,115 @@ mod tests {
     }
 
     #[test]
+    fn review_action_example_passes_the_real_validator_and_intent_gate() {
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace_id = Uuid::new_v4().to_string();
+        let session_id = Uuid::new_v4().to_string();
+        storage
+            .upsert_workspace(&workspace_id, "A2UI action", "C:\\a2ui-action")
+            .unwrap();
+        storage
+            .create_session(&workspace_id, &session_id, "Action")
+            .unwrap();
+
+        let outcome = a2ui::process_message_with_required_action(
+            &storage,
+            &a2ui::ProcessA2uiRequest {
+                workspace_id: workspace_id.clone(),
+                session_id,
+                message_id: Uuid::new_v4().to_string(),
+                raw_message: a2ui_review_action_example(&workspace_id),
+            },
+            Some("request_patch"),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!(outcome.inspection.validation.valid);
+        let surface = outcome.surface.unwrap();
+        assert_eq!(surface.root.children.len(), 3);
+        assert_eq!(
+            surface.root.children[2].actions["click"].action_type,
+            "request_patch"
+        );
+    }
+
+    #[test]
+    fn compact_review_action_plan_compiles_then_passes_the_real_validator() {
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace_id = Uuid::new_v4().to_string();
+        let session_id = Uuid::new_v4().to_string();
+        storage
+            .upsert_workspace(&workspace_id, "A2UI plan", "C:\\a2ui-plan")
+            .unwrap();
+        storage
+            .create_session(&workspace_id, &session_id, "Plan")
+            .unwrap();
+
+        let compiled = compile_review_action_plan(
+            &a2ui_review_action_plan_example(&workspace_id),
+            &workspace_id,
+            "assistant-message",
+        )
+        .unwrap();
+        let outcome = a2ui::process_message_with_required_action(
+            &storage,
+            &a2ui::ProcessA2uiRequest {
+                workspace_id,
+                session_id,
+                message_id: Uuid::new_v4().to_string(),
+                raw_message: compiled,
+            },
+            Some("request_patch"),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!(outcome.inspection.validation.valid);
+        let surface = outcome.surface.unwrap();
+        assert_eq!(surface.surface_id, "review-action-assistant-message");
+        assert_eq!(surface.root.children[0].props["text"], "会议纪要");
+        assert_eq!(
+            surface.root.children[2].actions["click"]
+                .value
+                .as_ref()
+                .unwrap()["fileName"],
+            "action-created.md"
+        );
+    }
+
+    #[test]
+    fn compact_review_action_plan_rejects_unknown_fields_instead_of_guessing() {
+        let raw = serde_json::json!({
+            "type": "a2ui_review_card",
+            "title": "会议纪要",
+            "description": "点击后先查看修改",
+            "buttonLabel": "保存为成果",
+            "candidate": {},
+            "unexpected": true
+        })
+        .to_string();
+        assert!(compile_review_action_plan(&raw, "workspace", "message").is_none());
+        assert!(compile_review_action_plan("{truncated", "workspace", "message").is_none());
+    }
+
+    #[test]
+    fn action_intent_detection_does_not_misclassify_the_s32_no_file_dashboard() {
+        assert!(requires_a2ui_review_action(
+            "生成交互卡片，提供保存为成果按钮，点击后先查看修改"
+        ));
+        assert!(requires_a2ui_review_action(
+            "按钮提出 document_patch，点击后必须先让我查看修改"
+        ));
+        assert!(!requires_a2ui_review_action(
+            "生成一个中文交互式项目执行面板，不要创建文件，包含清单和表格"
+        ));
+        assert!(!requires_a2ui_review_action(
+            "修改当前文档，但先让我查看修改"
+        ));
+    }
+
+    #[test]
     fn invalid_a2ui_result_produces_a_bounded_repair_instruction() {
         let result = a2ui::A2uiProcessResult {
             inspection: a2ui::A2uiInspectionView {
@@ -946,7 +1257,7 @@ mod tests {
             surface: None,
         };
 
-        let instruction = a2ui_repair_instruction(&result).unwrap();
+        let instruction = a2ui_repair_instruction(&result, "workspace", "普通表单").unwrap();
         assert!(instruction.prompt.contains("A2UI 组件引用不存在：title"));
         assert!(instruction
             .prompt
@@ -979,11 +1290,45 @@ mod tests {
             surface: None,
         };
 
-        let instruction = a2ui_repair_instruction(&result).unwrap();
+        let instruction = a2ui_repair_instruction(&result, "workspace", "项目执行面板").unwrap();
         assert!(!instruction.include_previous_output);
         assert!(instruction.prompt.contains("Start over"));
         assert!(instruction.prompt.contains("validator-approved shape"));
         assert!(instruction.prompt.contains("project-panel"));
+        assert!(!instruction.prompt.contains(&result.inspection.raw_message));
+    }
+
+    #[test]
+    fn missing_review_action_restarts_from_the_action_template() {
+        let result = a2ui::A2uiProcessResult {
+            inspection: a2ui::A2uiInspectionView {
+                id: "inspection".into(),
+                message_id: "message".into(),
+                surface_id: Some("project-panel".into()),
+                raw_message: a2ui_dashboard_example(),
+                validation: a2ui::A2uiValidation {
+                    valid: false,
+                    errors: vec!["交互界面缺少用户要求的“查看修改”动作，不能作为本次结果".into()],
+                    warnings: vec![],
+                    duration_ms: 0,
+                    error_code: Some("A2UI_VALIDATION_FAILED".into()),
+                    negotiation: None,
+                },
+                created_at: None,
+            },
+            surface: None,
+        };
+
+        let instruction = a2ui_repair_instruction(
+            &result,
+            "workspace-action",
+            "生成交互卡片，提供保存为成果按钮并先查看修改",
+        )
+        .unwrap();
+        assert!(!instruction.include_previous_output);
+        assert!(instruction.prompt.contains("a2ui_review_card"));
+        assert!(instruction.prompt.contains("workspace-action"));
+        assert!(instruction.prompt.contains("candidate"));
         assert!(!instruction.prompt.contains(&result.inspection.raw_message));
     }
 }

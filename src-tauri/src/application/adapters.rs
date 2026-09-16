@@ -2,6 +2,7 @@ use crate::a2ui::{
     self, A2uiInspectionView, A2uiProcessResult, A2uiSurfaceView, ActionExecutionResult,
     ExecuteActionRequest, ProcessA2uiRequest,
 };
+use crate::domain::review::{CreateReviewRequestInput, ReviewSource};
 use crate::error::AppError;
 use crate::patch::{self, DocumentPatch, PatchApplication, PatchReview};
 use crate::storage::Storage;
@@ -81,5 +82,17 @@ pub fn execute_action(
     storage: &Storage,
     request: ExecuteActionRequest,
 ) -> Result<ActionExecutionResult, AppError> {
-    a2ui::execute_action(storage, request)
+    let workspace_id = request.workspace_id.clone();
+    a2ui::execute_action_with_review(storage, request, |candidate| {
+        let raw = serde_json::to_string(candidate).map_err(|_| AppError::StateUnavailable)?;
+        super::review::create(
+            storage,
+            CreateReviewRequestInput {
+                workspace_id,
+                source: ReviewSource::A2uiAction,
+                result_id: None,
+                raw,
+            },
+        )
+    })
 }

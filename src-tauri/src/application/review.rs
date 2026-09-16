@@ -585,7 +585,15 @@ fn create_empty_replace(
             "修改理由不能为空且不能超过 500 字".into(),
         ));
     }
-    let document = workspace::read_file(storage, &input.workspace_id, &proposal.path)?;
+    let document = workspace::read_file(storage, &input.workspace_id, &proposal.path).map_err(
+        |error| match error {
+            AppError::Io(_) => AppError::InvalidInput(
+                "找不到目标文件，或该文件尚未加入当前工作区；请先在左侧选择目标文件，再重新生成交互卡片"
+                    .into(),
+            ),
+            other => other,
+        },
+    )?;
     if !document.editable || document.extracted {
         return Err(AppError::InvalidInput("目标不是可编辑文本文件".into()));
     }
@@ -1073,6 +1081,33 @@ mod tests {
             fs::read_to_string(workspace.path().join("empty.md")).unwrap(),
             original
         );
+    }
+
+    #[test]
+    fn empty_file_review_reports_a_missing_target_without_exposing_a_filesystem_error() {
+        let (_workspace, _managed, storage, workspace_id) = setup();
+        let raw = serde_json::json!({
+            "version": "1.0",
+            "type": "replace_empty_file",
+            "workspaceId": workspace_id,
+            "summary": "写入首段内容",
+            "path": "action-empty.md",
+            "content": "第一段：已确认",
+            "reason": "用户要求补充首段",
+            "risk": "low"
+        })
+        .to_string();
+
+        let error = create(
+            &storage,
+            create_input(&workspace_id, ReviewSource::A2uiAction, raw),
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            AppError::InvalidInput(message)
+                if message == "找不到目标文件，或该文件尚未加入当前工作区；请先在左侧选择目标文件，再重新生成交互卡片"
+        ));
     }
 
     #[test]

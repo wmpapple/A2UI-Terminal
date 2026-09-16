@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S3.1 已通过用户人工验收；S3.2 人工验收缺陷已修复、待用户复验（LOG-0113），不得开始 S3.3**
+> 当前状态：**S3.2 已通过用户人工验收；S3.3 人工复验缺陷已修复、待再次复验（LOG-0121），不得开始 S3.4**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -330,7 +330,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S3.2 大众 Catalog 扩展
 
-状态：`待人工验收`
+状态：`已完成`
 
 - 对应：OUT-02/03、附录 B。
 - 工作：为清单、负责人、日期、状态、表格、IssueCard 等建立最小可信组件；每个组件独立 Props Schema。
@@ -338,7 +338,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S3.3 中风险 Action → Review Pipeline
 
-状态：`待开始`
+状态：`待人工复验`
 
 - 对应：OUT-04、权限分级。
 - 工作：修改成果、创建文件、生成 Patch 的 Action 统一创建 Review Request；确认和审计。
@@ -518,10 +518,11 @@ npm run tauri build -- --debug --no-bundle
 | S2.8 Export Service 与 P0 格式         | 已完成     | LOG-0100 | 用户已于 2026-09-10 明确验收通过 |
 | S2.9 Context Pack 与授权撤销           | 已完成     | LOG-0103 | 用户已于 2026-09-10 明确验收通过 |
 | S3.1 A2UI 标准一致性与版本协商         | 已完成     | LOG-0109 | 用户已于 2026-09-11 明确验收通过 |
-| S3.2 大众 Catalog 扩展                 | 待人工复验 | LOG-0113 | 重启桌面后复验 M01—M06           |
-| S3.3…S4.8                              | 待开始     | —        | 不得提前实施                     |
+| S3.2 大众 Catalog 扩展                 | 已完成     | LOG-0114 | 用户已于 2026-09-15 明确验收通过 |
+| S3.3 中风险 Action → Review Pipeline   | 待人工复验 | LOG-0121 | M03 目标准备已澄清；重启后复验 |
+| S3.4…S4.8                              | 待开始     | —        | 不得提前实施                     |
 
-S1.1—S3.1 均已通过自动验证和用户人工验收。S3.2 实现与自动验证完成，等待用户按人工验收单确认；不得提前进入 S3.3。
+S1.1—S3.2 均已通过自动验证和用户人工验收。S3.3 中风险 Action → Review Pipeline 已完成实现和自动验证，等待用户按人工验收单确认；不得提前进入 S3.4。
 
 ## 10. 连续变更账本
 
@@ -2135,6 +2136,84 @@ S1.1—S3.1 均已通过自动验证和用户人工验收。S3.2 实现与自动
 - 自动验证：前端 typecheck、lint、Inspector/desktop store 定向 2 文件 10 项、全量 41 文件 185 项测试及生产构建通过。Rust 全量为 lib 153 项通过、1 项人工 PDF 预览按设计忽略，conformance 6/6、架构 6/6、命令注册 1/1、合同 12/12，总计 178 项通过；all-targets/all-features Clippy `-D warnings` 通过。Web Mock 完整运行 9/12，3 项在进入断言前遇 Chromium `Page crashed`；定向复跑最终使 12 项业务用例均有通过结果。默认 Rust target 因正在运行的桌面程序占用 exe 返回 `os error 5`，隔离 target 首次编译无关测试又遇已知随机 `STATUS_ACCESS_VIOLATION`，利用缓存原命令重跑后通过；环境失败均未计作业务通过证据。
 - 状态与下一动作：S3.2 继续为 `待人工复验`，不得进入 S3.3。用户需从当前工作树重启桌面应用，复验 M01 生成修复与新增 M06 检查记录说明、取消、确认删除和跨重启不恢复。
 
+### LOG-0114 — S3.2 — USER ACCEPTANCE / COMPLETE
+
+- 时间：2026-09-15（Asia/Shanghai）；执行者/会话：用户与 Codex `/root`。
+- 用户验收：用户明确回复“`S3.2 验收通过，开始下一阶段`”；六类大众组件、真实 Provider 生成修复、固定安全映射、Inspector 可理解历史与失败记录删除、自动一致性门和 M01—M06 人工结果整体通过。
+- 结论：S3.2 从 `待人工复验` 转为 `已完成`；Catalog 仍固定为 19 个本地可信组件，协议仍为官方 v0.9.1/v0.9 协商边界。
+- 下一具体动作：开始 S3.3 中风险 Action → Review Pipeline；不得提前实施 S3.4。
+
+### LOG-0115 — S3.3 — START
+
+- 时间：2026-09-15（Asia/Shanghai）；执行者/会话：Codex `/root`。
+- 基线与工作树：开始时工作树干净；延续用户已验收的 S3.2 基线。
+- 目标与允许范围：把修改成果、创建文件和生成 Patch 的 A2UI 中风险 Action 统一接入 schema v11 的既有 Review Pipeline；覆盖 Rust 可信声明重读、前端审阅呈现、确认/拒绝、审计、恢复和安全回归。
+- 强制边界：前端只能提交工作区、Surface、组件与事件等不透明用户意图，不能指定 risk、Action 类型、文件绝对路径或“已校验”结论。Rust 必须从持久化 Surface 重新读取 Action 声明；低风险 `set_state/submit_form` 继续受控执行，中风险文件动作只能创建 Review，接受前零写入；未声明/高风险/系统命令默认拒绝。
+- 明确不做：不实现 S3.4 真实小工具、不新增任意代码/HTML/URL/命令执行、不建立第二套 Review 或写入旁路、不放宽工作区授权、Hash、冲突和撤销规则。
+- 预计 Migration / IPC / Capability：优先复用既有 Review schema、命令和 Capability；只有现有合同无法安全表达 A2UI Action 来源时才新增最小 DTO/IPC，且必须单独记账。当前无开放问题阻塞本步骤。
+- 下一具体动作：审计 `execute_a2ui_action`、持久化 Action 声明、`ReviewApplicationService`、Review DTO/前端 store 与恢复入口，确定最小接线方案和正反测试矩阵。
+
+### LOG-0116 — S3.3 — READY FOR USER ACCEPTANCE
+
+- 时间：2026-09-15（Asia/Shanghai）；执行者/会话：Codex `/root`。
+- 实际修改：`request_patch.value` 只接受精确的 `document_patch/create_file/replace_empty_file` DTO 且禁止 target；Surface 持久化前完成资源与 Schema 校验。执行时 Rust 从 SQLite 重读 Surface/组件/事件/Action 声明，通过 application adapter 以 `source=a2ui_action` 调用既有 Review 服务，前端 payload 不参与候选、risk 或 Action 判定。
+- Review 与 UI：既有 `ActionExecutionResult` 增加可选 Review；前端收到后进入统一“查看修改”，显示“交互界面请求修改内容”和接受前零写入说明。接受、拒绝、冲突、恢复、幂等、撤销继续使用 S2.5 Review/Patch/Result 链路。
+- 审计与隐私：中风险事件只记录不透明 Review ID 和固定来源，不保存前端伪造候选 payload；Review 创建失败记录稳定错误码。低风险 `set_state/submit_form` 不变。高风险候选仍需 Review；未知 Action、系统命令、HTML/脚本/URL 仍在 Rust 白名单处拒绝。
+- Provider：系统提示说明 `request_patch` 必须内嵌一种完整候选、使用当前 workspace ID、不得 target，点击只能打开 Review；没有放宽协议、Catalog 或一次修复规则。
+- 修改文件：Rust A2UI protocol/runtime、application adapter/chat prompt、新增 `a2ui_action_review` 集成测试；TypeScript Action 响应/store、Review 提示与测试；架构、实施、验证和人工验收文档。
+- Migration / IPC / Capability：schema 保持 v12；复用既有 `execute_a2ui_action` 和 Review IPC，只增加响应字段；主窗口 Capability 不变，无新文件、网络、Shell、剪贴板、Provider、遥测或远程资源权限。
+- 自动验证：`npm run lint`、typecheck、41 文件 187 项前端测试、生产构建通过；Rust lib 153 项通过、1 项按设计忽略，新增 Action→Review 3/3、conformance 6/6、架构 6/6、命令注册 1/1、合同 12/12，总计 181 项通过；all-targets/all-features Clippy `-D warnings` 与 rustfmt 通过。Playwright 首轮 10/12，另 2 项在业务断言前 `page.goto` 遇 Chromium `Page crashed`，原用例复跑 2/2 通过，最终 12 项业务用例均有通过结果。
+- 环境记录：隔离 target 首次构建在第三方 `webview2-com-sys` 发生一次已知随机 `STATUS_ACCESS_VIOLATION`，按项目文档的单核/单任务临时设置复用缓存后通过；未把环境崩溃计作业务通过。
+- ADR / 开放问题：不新增 ADR，不关闭开放问题；现有 ADR-002/003/007/020/022 足以约束本步骤。
+- 状态与下一动作：S3.3 为 `待人工验收`，不是 COMPLETE。用户按 [S3_3_MANUAL_ACCEPTANCE.md](S3_3_MANUAL_ACCEPTANCE.md) M01—M06 验收并明确回复“`S3.3 验收通过`”前，不得开始 S3.4。
+
+### LOG-0117 — S3.3 — ACCEPTANCE GENERATION INTENT DEFECT / CORRECTION
+
+- 时间：2026-09-15（Asia/Shanghai）；执行者/会话：用户与 Codex `/root`。
+- 复现：用户发送 M01 Action 卡请求，聊天显示“A2UI Surface 已通过安全校验”；点击打开后中央区域仍是 S3.2“项目执行面板”，没有“保存为成果”按钮。该输出协议结构安全，但不满足本次明确的 Action→Review 意图，因此 M01 不通过。
+- 根因：Provider 提示只有通用表单和 S3.2 项目面板完整模板；语法修复也固定回退到项目面板。Rust 只验证协议/Catalog/Schema/Action 安全性，不知道本次聊天明确要求必须包含 `request_patch`，所以合法但无关的面板被持久化并显示为成功。另一个独立问题是聊天中的“打开 Surface”只切换中央视图，没有按该条消息选择对应 Surface；用户回看历史消息时可能被带到先前活动面板。
+- 修复：新增包含标题、说明和 `request_patch(create_file)` 按钮的生产校验器通过模板。仅当原始用户 Prompt 同时包含交互界面标记和明确审阅动作标记时，聊天内部调用带可信 `required_action=request_patch` 的解析入口；缺少动作的 A2UI、普通说明或直接 Review JSON 都会在 Surface 持久化前失败。受限重试不再回喂无关旧面板，改从 Action 专用模板重新生成。聊天入口同时改为使用该条 AI 消息 ID 定位 Surface；失败入口定位该条消息的 Inspector 记录，不再只复用全局活动项。
+- 防误判：普通“修改文档并先查看”的 Review 没有交互 UI 标记，不触发 Action 门；S3.2“生成项目面板，不要创建文件”没有明确审阅动作，也不触发。该要求由 Rust 聊天编排产生，不加入 IPC，前端和模型不能伪造或取消。
+- 安全与兼容：错误结果只新增失败 Inspector 记录，不覆盖最后一个合法 Surface、不渲染、不创建 Review/Result。协议、Catalog、19 组件、Action 白名单、schema v12、IPC/Capability 均不变；没有自动补造模型 JSON。
+- 自动验证：新增/更新 4 项 Rust 回归，覆盖无关安全 Surface 与非 A2UI 说明在持久化前拒绝、Action 模板通过真实校验器与语义门、专用修复模板、M01/M02 意图识别以及普通 Review/S3.2 反向用例；新增 1 项前端回归，证明消息入口会从先前活动面板切换到该消息对应 Surface。完整质量门复跑结果见 `S3_3_VALIDATION.md`。
+- 状态与下一动作：S3.3 继续为 `待人工复验`，不是 COMPLETE；用户完全重启旧桌面进程后从 M01 重新生成。必须看到新的 Action 卡及“保存为成果”按钮，不能用旧“项目执行面板”验收。
+
+### LOG-0118 — S3.3 — START / CHAT ORDER CORRECTION
+
+- 时间：2026-09-15（Asia/Shanghai）；用户授权修复回答偶尔排到提问上方的问题。
+- 基线：`a9bc616`，保留当前 S3.3 未提交变更；本次仅修复聊天持久记录的排序和对应验证。
+- 原因：消息时间精度为秒，同秒消息以随机 ID 排序；历史 UI 与 Provider 上下文均受影响。
+- 方案：同秒消息以 SQLite 插入行序作为次序，统一历史显示与最近消息截取；验证逆序 ID、多轮同秒消息、重启恢复与上下文截取。schema v12 保持不变。
+- 状态：修复进行中，S3.3 仍待人工复验。
+
+### LOG-0119 — S3.3 — PROGRESS / CHAT ORDER FIX VERIFIED
+
+- 时间：2026-09-15（Asia/Shanghai）。完成 LOG-0118 聊天排序修复。
+- 文件：`src-tauri/src/storage/mod.rs` 的历史 UI 和 Provider 最近消息查询以 `rowid` 代替随机 ID 作为同秒排序键；最近消息先逆序截取再正序返回。无需修改已有消息或迁移数据库。
+- 验证：新增磁盘数据库测试，使用与插入次序相反的 ID、两轮固定同秒问答，关闭重开后验证历史及 0/1/2/3/20 条上下文。Rust 全量 186 项通过、1 项人工 PDF 预览按设计忽略。
+- 文档：`S3_3_MANUAL_ACCEPTANCE.md` M06 增加重启后问答顺序复验，`S3_3_VALIDATION.md` 记录结果。
+- 状态：修复已实现，S3.3 继续待人工复验，S3.4 未开始。
+
+### LOG-0120 — S3.3 — ACCEPTANCE TRUNCATED ACTION DATAPART / CORRECTION
+
+- 时间：2026-09-15（Asia/Shanghai）；执行者/会话：用户与 Codex `/root`。
+- 复现：LOG-0117 复验已不再打开旧面板，但 Provider 生成的 Action DataPart 在约 845 字符处缺少外层结尾，Rust 正确报 `A2UI JSON 无效` 并拒绝渲染；要求 Provider 再复制一次完整长包络仍可能随机漏括号，因此 M01 仍不通过。
+- 根因：模型既要生成用户可见内容和 Review 候选，又要逐字维护 A2A DataPart、Surface 消息、组件数组和 Action 的多层固定包络。固定包络占据大部分输出长度，受限重试仍重复同一脆弱任务，无法从机制上避免截断或括号错误。
+- 修复：Action 卡请求改用严格、短小的 `a2ui_review_card` 计划 DTO，只包含 `title`、`description`、`buttonLabel` 和一个完整 Review `candidate`。Rust 仅在 JSON 完整、顶层类型匹配且无未知字段时，将这些原样值编译进本地固定 Column/Text/Text/Button + `request_patch` 包络；Surface ID 由可信 assistant message ID 派生。随后仍调用同一 A2UI Catalog/Schema/资源/required-action 校验和持久化入口。
+- 安全边界：这不是 JSON 修复器，不补逗号、引号或括号；残缺计划与未知字段仍拒绝。Rust 不生成候选正文、不改候选风险、不替换 workspace ID；候选继续由现有精确 DTO 和工作区资源门验证。普通表单和 S3.2 项目面板仍使用官方完整 DataPart，不经过短计划编译。
+- Provider 策略：系统提示和一次受限修复都要求 Action 卡只返回短计划，不再复制完整 A2UI 包络；仍允许兼容已正确返回的完整 DataPart。没有新增依赖、IPC、Capability、migration、网络调用或文件写入路径。
+- 自动验证：新增 2 项 Rust 回归，覆盖短计划编译后通过真实 A2UI/Action 校验，以及残缺/未知字段计划不会被猜测编译。完整 Rust 门为库 160 通过、1 项人工 PDF 预览忽略，集成/契约 28 通过，总计 188 通过；Clippy `-D warnings`、rustfmt 与既有前端 188 项均通过。首次隔离构建两次遇到已记录的随机 `STATUS_ACCESS_VIOLATION`/宏编译停滞，按单核设置重建独立 target 后通过，未计作业务通过。
+- 状态与下一动作：S3.3 仍为 `待人工复验`。用户完全停止旧 `desktop:dev`、重新启动并新建对话后，从 M01 再次生成；旧失败消息不会被改写。
+
+### LOG-0121 — S3.3 — M03 TARGET MISMATCH / USER-FACING ERROR CORRECTION
+
+- 时间：2026-09-16（Asia/Shanghai）；执行者/会话：用户与 Codex `/root`。
+- 复现：M03 发送清单实际授权的当前文件是独立工作区中的 `selected/.../result.md`，但持久化 `replace_empty_file` 候选声明的目标是 `action-empty.md`。点击按钮时 Rust 重读候选目标并正确拒绝，但界面只显示底层英文 `filesystem operation failed`，普通用户无法判断是目标文件未加入工作区。
+- 修复：`replace_empty_file` 创建 Review 时继续通过 Rust 重读目标；底层文件读取失败改为稳定的中文输入错误，提示用户先在左侧选择目标文件并重新生成交互卡片。没有把候选自动改写为当前文件，也没有放宽路径、授权、空文件、Hash、冲突或接受前零写入规则。
+- 验收单：M03 明确要求左侧列表、编辑器标签和发送清单的当前文件均为 `action-empty.md`；若仍显示默认 `result.md` 或其他文件，必须先通过“打开目录”或“添加文件”授权并选中真实目标，不能继续使用包含不同文件名的提示词。
+- 自动验证：新增缺失目标回归，确认返回可理解的 `INVALID_INPUT` 文案而非 `FILESYSTEM_ERROR`；Rust lib 161 项通过、1 项人工 PDF 预览按设计忽略，rustfmt 与 lib Clippy `-D warnings` 通过。运行中的桌面进程锁住 `target/debug/a2ui-terminal.exe`，因此本轮没有重复运行会构建该二进制的集成测试；LOG-0120 的 Action→Review 3/3 结果仍是最近完整证据。
+- 状态与下一动作：S3.3 继续为 `待人工复验`，S3.4 未开始。完全关闭并重新启动桌面应用后，按修订后的 M03 使用真实 `action-empty.md` 重新生成，不能复用目标错误的旧 Surface。
+
 ### 新账本记录模板
 
 ```markdown
@@ -2238,11 +2317,11 @@ S1.1—S3.1 均已通过自动验证和用户人工验收。S3.2 实现与自动
 
 ## 12. 交接摘要
 
-截至 LOG-0113：
+截至 LOG-0121：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能已完成并验收 S1.1—S1.5、S2.1—S2.9、S3.1，schema 为 v12。S3.2 已将本地固定 Catalog 扩展到 19 个组件，新增六类组件的独立 Props Schema、固定无障碍 Runtime 与正反 conformance fixture；M01 的确定性 Provider 非法 JSON 重试问题已按 LOG-0112 修复，Inspector 可理解历史与失败记录单条删除已按 LOG-0113 修复，等待用户复验。S3.3 Action→Review、Provider 图片多模态发送和产品事件尚未开始。
+- V2 产品功能已完成并验收 S1.1—S1.5、S2.1—S3.2，schema 为 v12。S3.2 的 19 个本地可信组件、生成修复和 Inspector 生命周期已于 LOG-0114 通过用户验收。S3.3 Action→Review 已完成实现；无关旧面板、长 Action DataPart 截断及 M03 缺失目标的不可理解提示分别按 LOG-0117/LOG-0120/LOG-0121 修复，聊天同秒排序按 LOG-0118/LOG-0119 修复，等待用户继续复验。Provider 图片多模态发送、S3.4 小工具和产品事件尚未开始。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
 - S2.2 已建立统一 `DocumentSource`、CSV/XLSX 受限结构化读取、公式/注入风险标记、图片原始视觉来源、8 MB 内本地预览、多批累积和工作区隔离的单项撤销，且已于 2026-08-20 通过用户验收。
@@ -2250,7 +2329,7 @@ S1.1—S3.1 均已通过自动验证和用户人工验收。S3.2 实现与自动
 - S2.3 代码质量整改已把 `ChatPanel` 收敛为组合层，将 Context Manifest 编排、消息协议呈现和输入/拖放拆为独立模块；前端架构测试固定该依赖方向。Rust 应用层边界测试改为自动扫描整个 `src/application` 目录，不再漏掉新增 `context.rs`。大规模 Storage/DocumentSource 物理拆分留待 S2.3 验收后的独立重构基线。
 - S2.3 对已授权零字节文本目标只提供准确能力限制：Rust 明确识别空文件，跳过不可能成功的后台模型重试，前端隐藏手动重试且保持零写入。真正的安全首次写入已作为显式合同/E2E 场景排入 S2.5，当前没有放宽非空锚点或实现写入。
 - S2.4 已按 ADR-019 实现 Rust 可信 Planner、约 1600/200 字符确定性结构分块、本地词法/BM25-like 检索、中文 bigram、Full/Retrieval/Hybrid、32000 token 预算、可追溯块范围和进程内 workspace/source/hash 索引。Manifest 消费前会复验授权与 Hash；索引不会持久化，可手动清理，并在撤销、变化、切换、删除、清除数据或退出时失效。Schema 仍为 v10，仅新增 `clear_context_index` 最小 IPC；自动验证结果见 LOG-0073。
-- S2.5 已验收持久 Review、AI 创建/首次写入、冲突、幂等、撤销与恢复；S2.6 已验收六类选区动作和只读解释；S2.7 五类 adapter 已于 2026-09-04 验收（LOG-0092）；S2.8 已于 2026-09-10 验收（LOG-0100）；S2.9 已于 2026-09-10 验收（LOG-0103）；S3.1 已于 2026-09-11 验收（LOG-0109）。S3.2 自动证据见 [S3_2_VALIDATION.md](S3_2_VALIDATION.md)，桌面步骤见 [S3_2_MANUAL_ACCEPTANCE.md](S3_2_MANUAL_ACCEPTANCE.md)；未通过人工验收前不得开始 S3.3。
+- S2.5 已验收持久 Review、AI 创建/首次写入、冲突、幂等、撤销与恢复；S2.6 已验收六类选区动作和只读解释；S2.7 五类 adapter 已于 2026-09-04 验收（LOG-0092）；S2.8 已于 2026-09-10 验收（LOG-0100）；S2.9 已于 2026-09-10 验收（LOG-0103）；S3.1 已于 2026-09-11 验收（LOG-0109）；S3.2 已于 2026-09-15 验收（LOG-0114）。S3.3 完成人工验收前不得开始 S3.4。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - S2.8 人工发现的 PDF 排版和原生确认替换缺陷已按 LOG-0098 修复、复验并在 LOG-0100 验收；不沿用旧版 M04 的“一律拒绝已有文件”规则。
 - M02 的 CSV 创建能力原已存在；LOG-0099 将新建类型明确标为“表格（CSV）”并补充验收步骤，避免把领域类型“表格”和内部格式 CSV 的映射误判为不支持。

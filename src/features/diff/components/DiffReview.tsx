@@ -54,6 +54,14 @@ export function DiffReview({ onOpenResult }: Props) {
           {proposal.blocks.length} {t('changeBlocks')} · {selectedCount} {t('selectedBlocks')}
         </p>
       </div>
+      {proposal.source === 'a2ui_action' ? (
+        <Alert
+          type="warning"
+          showIcon
+          title="交互界面请求修改内容"
+          description="请先核对下面的修改。点击接受前，文件和成果都不会发生变化。"
+        />
+      ) : null}
       {error ? <Alert className={styles.error} type="error" showIcon title={error} /> : null}
       <div className={styles.changeList}>
         {proposal.blocks.map((change) => (

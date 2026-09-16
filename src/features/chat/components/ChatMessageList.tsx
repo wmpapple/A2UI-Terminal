@@ -110,7 +110,7 @@ interface ChatMessageListProps {
   requestActive: boolean;
   reviewAvailable: boolean;
   onOpenReview: () => void;
-  onOpenSurface: () => void;
+  onOpenSurface: (messageId: string, failed: boolean) => void;
   onRetry: (messageIndex: number) => void;
 }
 
@@ -199,7 +199,7 @@ export function ChatMessageList({
                     a2uiFailed ? t('a2uiValidationFailedDescription') : t('a2uiReadyDescription')
                   }
                 />
-                <Button type="link" onClick={onOpenSurface}>
+                <Button type="link" onClick={() => onOpenSurface(chatMessage.id, a2uiFailed)}>
                   {t(a2uiFailed ? 'openInspector' : 'openSurface')}
                 </Button>
               </div>

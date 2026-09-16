@@ -1,6 +1,6 @@
 # S3.2 大众 Catalog 扩展验证记录
 
-日期：2026-09-11（Asia/Shanghai），人工验收缺陷修复更新于 2026-09-15。基线：`main` / `8222b9e`（S3.1 用户验收提交）。关联实施账本：LOG-0109—LOG-0113。当前状态：自动验证与 M01/M06 验收缺陷修复完成，待用户人工复验；不得开始 S3.3。
+日期：2026-09-11（Asia/Shanghai），人工验收与缺陷修复完成于 2026-09-15。基线：`main` / `8222b9e`（S3.1 用户验收提交）。关联实施账本：LOG-0109—LOG-0114。当前状态：用户人工验收通过，S3.2 `COMPLETE`；S3.3 已按独立账本开始。
 
 ## 实现结果
 
@@ -74,4 +74,4 @@ cargo fmt --manifest-path src-tauri/Cargo.toml --check
 
 ## 人工验收
 
-真实 Provider 的六组件生成、Windows 键盘顺序、Narrator/辅助功能树、Inspector 19 组件摘要、失败记录删除及跨重启恢复仍需按 [S3.2 人工验收单](S3_2_MANUAL_ACCEPTANCE.md) M01—M06 完成。用户明确回复通过前，S3.2 不是 `COMPLETE`，不得进入 S3.3。
+用户已按 [S3.2 人工验收单](S3_2_MANUAL_ACCEPTANCE.md) M01—M06 完成真实 Provider 六组件生成、Windows 交互、Inspector 19 组件摘要、失败记录删除及跨重启恢复，并于 2026-09-15 明确回复验收通过。S3.2 已关闭；后续变更归入 S3.3 独立账本。
