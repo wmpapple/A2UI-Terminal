@@ -18,7 +18,9 @@ export function ProcessingStatus() {
         ? 'localModelReady'
         : 'cloudModelReady'
       : options.availability === 'setup_required'
-        ? 'processingSetupRequired'
+        ? local
+          ? 'localModelSetupRequired'
+          : 'processingSetupRequired'
         : 'localModelUnavailable'
     : desktop
       ? 'processingStatusPending'

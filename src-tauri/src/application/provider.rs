@@ -244,7 +244,12 @@ pub async fn get_processing_options(storage: &Storage) -> Result<ProcessingOptio
         ProcessingLocationView::Cloud
     };
     let availability = match processing_location {
-        ProcessingLocationView::Local if active_local_available => ProcessingAvailability::Ready,
+        ProcessingLocationView::Local if active_local_available && active.configured => {
+            ProcessingAvailability::Ready
+        }
+        ProcessingLocationView::Local if active_local_available => {
+            ProcessingAvailability::SetupRequired
+        }
         ProcessingLocationView::Local => ProcessingAvailability::Unavailable,
         ProcessingLocationView::Cloud if active.configured => ProcessingAvailability::Ready,
         ProcessingLocationView::Cloud => ProcessingAvailability::SetupRequired,

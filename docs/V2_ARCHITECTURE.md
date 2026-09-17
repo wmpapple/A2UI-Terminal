@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S4.1 已验收，S4.2 本地模型探测与简单模型策略进行中（见 LOG-0139）
+> 文档状态：V2 目标架构基线；S1.1—S4.1 已验收，S4.2 本地模型探测与简单模型策略已实现、待人工验收（见 LOG-0140）
 > 建立日期：2026-08-11  
 > 对照代码：`main` 分支 S3.1 提交 `8222b9e`；用户已于 2026-09-11 验收 S3.1
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
@@ -102,9 +102,9 @@ React components
 | 模板     | 4 个版本化内置文档模板；S3.5 工作区级个人安全 Surface 模板、模板页及重开复验                                   | S3.5 已验收；尚无系统规则/上下文规则编辑            |
 | 模式     | S1.3 双模式外壳与 S1.5 成果专用工作台已实现                                                                    | S2.3 后接通成果 AI 上下文                           |
 | 首页     | S1.4 已验收引导/六类入口，S1.5 已接入新建和特定 Result 重开                                                    | 完整导入和真实模型路径仍属后续阶段                  |
-| 模型路径 | 首次使用需要自行配置 Key                                                                                       | 无内置可用路径、本地模型探测、本机/云端持续标识     |
+| 模型路径 | S4.2 已实现固定回环本地模型探测、普通模式处理状态和专业模式技术明细                                            | 内置试用服务仍受 O-08 阻塞                          |
 | 指标     | 有安全审计，没有产品事件体系                                                                                   | 无 WUO、激活、审阅、保存、导出、恢复等隐私安全埋点  |
-| 搜索     | S4.1 已实现 Result、已授权资料与资料包元数据的本机内存统一搜索                                                 | 待桌面人工验收；持久语义索引不在 P0 范围            |
+| 搜索     | S4.1 已验收 Result、已授权资料与资料包元数据的本机内存统一搜索                                                 | 持久语义索引不在 P0 范围                            |
 
 ### 3.5 当前结构热点
 
@@ -581,6 +581,8 @@ S3.3 二次人工复验修复（LOG-0120）：要求通用 Provider 重复生成
 - `[DECISION]` 首次关键路径默认提供平台内置模型和受控试用额度，不要求用户配置 API Key；本地 Ollama/LM Studio 和自有 Key 作为可选路径。
 - `[OPEN]` 仓库尚无内置试用服务。实现前仍需确定模型供应、服务端鉴权、额度、滥用控制、成本、隐私条款和失败降级；不能把平台密钥嵌入客户端，也不能用假成功替代。
 
+`[IMPLEMENTED — S4.2 READY FOR ACCEPTANCE]` 本地探测只访问固定 `127.0.0.1:11434/v1`（Ollama）、`127.0.0.1:1234/v1`（LM Studio）和用户已明确保存的 `custom` 回环兼容端点。Rust 将 `localhost` 规范为数值回环，拒绝局域网、通配地址、伪 localhost、带凭据 URL、重定向和代理；只执行短超时、有界响应的 `GET /v1/models`，失败按候选隔离，不修改 Provider 配置或活动状态。普通模式只显示处理位置、可用状态和本机服务数量，Endpoint、模型 ID、Temperature、Proxy 与 Key 继续只存在于专业模式。schema 保持 v13；O-08 不因本阶段关闭。
+
 ## 9. 简单模式与专业模式
 
 两种模式共享同一 Core Services、数据和安全策略，只改变导航、术语和信息密度。
@@ -630,7 +632,7 @@ review:   create_review_request, get_review, list_active_reviews, decide_review_
 export:   start_export, cancel_export, list_result_exports
 template: list_templates, save_personal_template, archive_personal_template
 search:   search_authorized_content, rebuild_authorized_search_index  # S4.1 已实现并使用最小 Capability
-provider: get_processing_options, probe_local_providers
+provider: get_processing_options, probe_local_providers  # S4.2 已实现并使用最小只读 Capability
 telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionary
 ```
 
@@ -703,7 +705,7 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 
 | PRD 能力      | 架构承载                                            | 状态                                                       |
 | ------------- | --------------------------------------------------- | ---------------------------------------------------------- |
-| ONB/HOME      | app routing、home feature、Result queries           | S1.4 已验收；HOME-03 S4.1 已实现待验收                     |
+| ONB/HOME      | app routing、home feature、Result queries           | S1.4 与 HOME-03/S4.1 已验收                                |
 | IMP/TASK      | Import Service、DocumentSource、Task/Template       | Task/模板与 S2.1 Current；S2.2 已实现待验收                |
 | WS            | Result Workbench、typed editors、mode shell         | 五类 Result adapter Current（S2.7 已验收）                 |
 | CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | Planner、Manifest 与 Pack 已验收                           |
@@ -712,8 +714,8 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 | EXP-01…04     | Export Service、export jobs、format adapters        | EXP-01…03 Current（S2.8 已验收）；其余 Target              |
 | RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target                  |
 | SEL-01        | Selection controller → Review Pipeline              | S2.6 Current（已验收）                                     |
-| PRV-04/MDL-05 | Processing options、local probe                     | Target                                                     |
-| SRCH-01       | 授权索引和 Search Service                           | S4.1 已实现，待桌面人工验收                                |
+| PRV-04/MDL-05 | Processing options、local probe                     | S4.2 已实现，待桌面人工验收                                |
+| SRCH-01       | 授权索引和 Search Service                           | S4.1 Current（已验收）                                     |
 | ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                                     |
 | A2UI-06       | capability negotiation + conformance CI             | S3.1 Current（已验收）                                     |
 | UX-08         | Import suggestions mapped to Result type            | P1 Target                                                  |

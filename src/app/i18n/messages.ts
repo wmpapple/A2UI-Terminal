@@ -405,6 +405,7 @@ export const messages = {
     localModelReady: '当前使用本机模型，服务可用',
     cloudModelReady: '当前使用云端 AI，配置可用',
     processingSetupRequired: '当前云端 AI 需要先完成配置',
+    localModelSetupRequired: '已发现当前本机服务，请在专业模式完成 Provider 配置',
     localModelUnavailable: '当前本机模型暂不可用',
     processingStatusPending: '正在检查 AI 处理状态',
     processingStatusDesktopOnly: '真实处理状态仅在桌面版检查',
@@ -1022,6 +1023,8 @@ export const messages = {
     localModelReady: 'The active local model service is available',
     cloudModelReady: 'The active cloud AI configuration is ready',
     processingSetupRequired: 'The active cloud AI needs to be configured',
+    localModelSetupRequired:
+      'The active local service was found. Complete its Provider setup in professional mode.',
     localModelUnavailable: 'The active local model is currently unavailable',
     processingStatusPending: 'Checking AI processing status',
     processingStatusDesktopOnly: 'Live processing status is checked only in Desktop',
