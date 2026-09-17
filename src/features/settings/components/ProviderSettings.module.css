@@ -24,3 +24,26 @@
 .grid :global(.ant-input-number) {
   width: 100%;
 }
+
+.probeHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.probeHeader p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.probeDetails {
+  display: grid;
+  gap: 4px;
+}
+
+.probeDetails code {
+  overflow-wrap: anywhere;
+}

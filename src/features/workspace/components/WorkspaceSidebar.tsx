@@ -10,6 +10,7 @@ import { Alert, Button, Dropdown, Input, Popconfirm, Select, Spin, Tag, Tooltip 
 import { useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { useAppStore } from '../../../stores/useAppStore';
+import { useImportStore } from '../../imports/importStore';
 import styles from './WorkspaceSidebar.module.css';
 
 const iconFor = (path: string) =>
@@ -33,7 +34,8 @@ export function WorkspaceSidebar({ onActivateWorkspace }: Props) {
   const recoveryDraftSummaries = useAppStore((state) => state.recoveryDraftSummaries);
   const openFile = useAppStore((state) => state.openFile);
   const selectWorkspace = useAppStore((state) => state.selectWorkspace);
-  const selectContextFiles = useAppStore((state) => state.selectContextFiles);
+  const selectImportSources = useImportStore((state) => state.select);
+  const importLoading = useImportStore((state) => state.loading);
   const restoreWorkspace = useAppStore((state) => state.restoreWorkspace);
   const removeCurrentWorkspace = useAppStore((state) => state.removeCurrentWorkspace);
   const clearWorkspaceError = useAppStore((state) => state.clearWorkspaceError);
@@ -69,8 +71,8 @@ export function WorkspaceSidebar({ onActivateWorkspace }: Props) {
           <Button
             block
             icon={<PaperClipOutlined />}
-            loading={workspaceLoading}
-            onClick={() => void selectContextFiles()}
+            loading={workspaceLoading || importLoading}
+            onClick={() => void selectImportSources(workspace?.id)}
           >
             {t('addFiles')}
           </Button>

@@ -8,10 +8,12 @@ use crate::ai::{
     ProviderConfig, ProviderConfigView,
 };
 pub use crate::application::chat::{ChatStreamEvent, ChatStreamResult};
-pub use crate::application::provider::{ProviderConnectionResult, SecretStatus};
+pub use crate::application::provider::{
+    LocalProviderProbe, ProcessingOptions, ProviderConnectionResult, SecretStatus,
+};
 use crate::application::{
     adapters, chat, context, context_pack, export as export_service, import as import_service,
-    provider, review, revision, workspace as workspace_service,
+    provider, review, revision, search as search_service, workspace as workspace_service,
 };
 use crate::document_source::{DocumentSource, DocumentSourceContent};
 use crate::domain::context_pack::{ContextPack, CreateContextPackInput, DeleteContextPackOutput};
@@ -214,6 +216,11 @@ pub fn clear_all_local_data(
         .map_err(|_| AppError::StateUnavailable)?
         .clear();
     state
+        .search_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    state
         .import_drop_targets
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
@@ -324,6 +331,11 @@ pub async fn select_workspace(
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .retain_workspace(&workspace.id);
+    state
+        .search_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
     invalidate_pending_context(state.inner())?;
     Ok(Some(workspace))
 }
@@ -346,6 +358,11 @@ pub fn restore_workspace(
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .retain_workspace(&workspace.id);
+    state
+        .search_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
     invalidate_pending_context(state.inner())?;
     Ok(workspace)
 }
@@ -432,6 +449,11 @@ pub fn remove_workspace(
     let removed = workspace_service::remove(&state.storage, &workspace_id)?;
     if removed {
         index.clear_workspace(&workspace_id);
+        state
+            .search_index
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?
+            .clear();
         invalidate_pending_context(state.inner())?;
     }
     Ok(RemoveWorkspaceResult {
@@ -631,6 +653,11 @@ pub fn revoke_document_source(
         .map_err(|_| AppError::StateUnavailable)?;
     crate::document_source::revoke(&state.storage, &workspace_id, &source_id)?;
     index.clear_source(&workspace_id, &source_id);
+    state
+        .search_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
     invalidate_pending_context(state.inner())?;
     Ok(RevokeDocumentSourceResult {
         revoked: true,
@@ -661,6 +688,11 @@ pub fn delete_context_pack(
     pack_id: String,
 ) -> Result<DeleteContextPackOutput, AppError> {
     let result = context_pack::delete(&state.storage, &workspace_id, &pack_id)?;
+    state
+        .search_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
     invalidate_pending_context(state.inner())?;
     Ok(result)
 }
@@ -744,6 +776,20 @@ pub async fn test_provider_connection(
 }
 
 #[tauri::command]
+pub async fn get_processing_options(
+    state: State<'_, AppState>,
+) -> Result<ProcessingOptions, AppError> {
+    provider::get_processing_options(&state.storage).await
+}
+
+#[tauri::command]
+pub async fn probe_local_providers(
+    state: State<'_, AppState>,
+) -> Result<Vec<LocalProviderProbe>, AppError> {
+    provider::probe_local_providers(&state.storage).await
+}
+
+#[tauri::command]
 pub fn list_chat_sessions(
     state: State<'_, AppState>,
     workspace_id: String,
@@ -795,6 +841,34 @@ pub fn clear_context_index(
         .clear_workspace(&workspace_id);
     invalidate_pending_context(state.inner())?;
     Ok(ClearContextIndexResult { cleared_documents })
+}
+
+#[tauri::command]
+pub fn search_authorized_content(
+    state: State<'_, AppState>,
+    input: search_service::SearchAuthorizedContentInput,
+) -> Result<search_service::SearchAuthorizedContentOutput, AppError> {
+    let mut index = state
+        .search_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    search_service::search(
+        &state.storage,
+        &state.managed_results_dir,
+        &mut index,
+        input,
+    )
+}
+
+#[tauri::command]
+pub fn rebuild_authorized_search_index(
+    state: State<'_, AppState>,
+) -> Result<search_service::RebuildAuthorizedSearchIndexOutput, AppError> {
+    let mut index = state
+        .search_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    Ok(search_service::rebuild(&mut index))
 }
 
 #[tauri::command]

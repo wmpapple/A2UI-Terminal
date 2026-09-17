@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-rebuild-authorized-search-index"
+description = "Enables the rebuild_authorized_search_index command without any pre-configured scope."
+commands.allow = ["rebuild_authorized_search_index"]
+
+[[permission]]
+identifier = "deny-rebuild-authorized-search-index"
+description = "Denies the rebuild_authorized_search_index command without any pre-configured scope."
+commands.deny = ["rebuild_authorized_search_index"]

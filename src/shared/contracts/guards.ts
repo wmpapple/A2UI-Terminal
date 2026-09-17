@@ -24,6 +24,9 @@ import type {
   ResultSummary,
   ReviewApplication,
   ReviewRequest,
+  SearchAuthorizedContentOutput,
+  ProcessingOptions,
+  LocalProviderProbe,
   TaskDetail,
   TaskRunResult,
   TaskTemplate,
@@ -252,6 +255,58 @@ export const isContextPack = (value: unknown): value is ContextPack =>
   value.items.every(isContextPackItem) &&
   isString(value.createdAt) &&
   isString(value.updatedAt);
+
+const searchItemKinds = new Set(['result', 'document_source', 'context_pack']);
+
+const isSearchAuthorizedContentItem = (value: unknown): boolean =>
+  isObject(value) &&
+  isString(value.id) &&
+  isString(value.kind) &&
+  searchItemKinds.has(value.kind) &&
+  isString(value.title) &&
+  isString(value.snippet) &&
+  isNullableString(value.updatedAt) &&
+  isNumber(value.score) &&
+  Number.isFinite(value.score);
+
+export const isSearchAuthorizedContentOutput = (
+  value: unknown
+): value is SearchAuthorizedContentOutput =>
+  isObject(value) &&
+  isString(value.query) &&
+  Array.isArray(value.items) &&
+  value.items.every(isSearchAuthorizedContentItem) &&
+  isNumber(value.indexedDocuments) &&
+  Number.isInteger(value.indexedDocuments) &&
+  value.indexedDocuments >= 0 &&
+  isNumber(value.skippedDocuments) &&
+  Number.isInteger(value.skippedDocuments) &&
+  value.skippedDocuments >= 0 &&
+  value.indexMode === 'memory_lexical';
+
+export const isProcessingOptions = (value: unknown): value is ProcessingOptions =>
+  isObject(value) &&
+  isString(value.activeProviderId) &&
+  (value.processingLocation === 'local' || value.processingLocation === 'cloud') &&
+  (value.availability === 'ready' ||
+    value.availability === 'setup_required' ||
+    value.availability === 'unavailable') &&
+  isBoolean(value.localProviderAvailable) &&
+  isNumber(value.availableLocalProviders) &&
+  Number.isInteger(value.availableLocalProviders) &&
+  value.availableLocalProviders >= 0 &&
+  isBoolean(value.probeCompleted);
+
+export const isLocalProviderProbe = (value: unknown): value is LocalProviderProbe =>
+  isObject(value) &&
+  isString(value.id) &&
+  (value.kind === 'ollama' || value.kind === 'lm_studio' || value.kind === 'custom') &&
+  (value.status === 'available' || value.status === 'unavailable') &&
+  isString(value.endpoint) &&
+  isStringArray(value.models) &&
+  value.models.length <= 100 &&
+  isNullableNumber(value.latencyMs) &&
+  isNullableString(value.failureCode);
 
 const isTableLimits = (value: unknown): boolean =>
   isObject(value) &&

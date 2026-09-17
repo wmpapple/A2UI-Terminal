@@ -15,6 +15,8 @@ import review from '../../../contracts/v2/review.json';
 import exportFixture from '../../../contracts/v2/export.json';
 import contextPackFixture from '../../../contracts/v2/context-pack.json';
 import a2uiCapabilities from '../../../contracts/v2/a2ui-capabilities.json';
+import searchFixture from '../../../contracts/v2/search.json';
+import providerProcessingFixture from '../../../contracts/v2/provider-processing.json';
 import {
   isExportResultInput,
   isExportResultOutput,
@@ -47,6 +49,9 @@ import {
   isTaskDetail,
   isTaskRunResult,
   isTaskTemplate,
+  isSearchAuthorizedContentOutput,
+  isProcessingOptions,
+  isLocalProviderProbe,
 } from './guards';
 import { desktopApi } from '../platform/desktop';
 
@@ -124,8 +129,51 @@ describe('shared Rust/TypeScript contract fixtures', () => {
     expect(isDocumentSourceContent(documentSource)).toBe(true);
     expect(isContextManifest(contextManifest)).toBe(true);
     expect(isContextPack(contextPackFixture.pack)).toBe(true);
+    expect(isSearchAuthorizedContentOutput(searchFixture.output)).toBe(true);
+    expect(isProcessingOptions(providerProcessingFixture.processingOptions)).toBe(true);
+    expect(providerProcessingFixture.localProbes.every(isLocalProviderProbe)).toBe(true);
     expect(isReviewRequest(review.request)).toBe(true);
     expect(isReviewApplication(review.application)).toBe(true);
+  });
+
+  it('uses read-only local processing commands without sending endpoint input', async () => {
+    const original = window.__TAURI_INTERNALS__;
+    Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: {} });
+    try {
+      invokeMock.mockResolvedValueOnce(providerProcessingFixture.processingOptions);
+      await expect(desktopApi.getProcessingOptions()).resolves.toEqual(
+        providerProcessingFixture.processingOptions
+      );
+      expect(invokeMock).toHaveBeenLastCalledWith('get_processing_options');
+      invokeMock.mockResolvedValueOnce(providerProcessingFixture.localProbes);
+      await expect(desktopApi.probeLocalProviders()).resolves.toEqual(
+        providerProcessingFixture.localProbes
+      );
+      expect(invokeMock).toHaveBeenLastCalledWith('probe_local_providers');
+    } finally {
+      Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: original });
+    }
+  });
+
+  it('keeps authorized search IPC free of paths and raw content', async () => {
+    const original = window.__TAURI_INTERNALS__;
+    Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: {} });
+    try {
+      invokeMock.mockResolvedValueOnce(searchFixture.output);
+      await expect(desktopApi.searchAuthorizedContent(searchFixture.input)).resolves.toEqual(
+        searchFixture.output
+      );
+      expect(invokeMock).toHaveBeenLastCalledWith('search_authorized_content', {
+        input: searchFixture.input,
+      });
+      invokeMock.mockResolvedValueOnce(searchFixture.rebuildOutput);
+      await expect(desktopApi.rebuildAuthorizedSearchIndex()).resolves.toEqual(
+        searchFixture.rebuildOutput
+      );
+      expect(invokeMock).toHaveBeenLastCalledWith('rebuild_authorized_search_index');
+    } finally {
+      Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: original });
+    }
   });
 
   it('keeps Context Pack IPC scoped to opaque workspace and source identifiers', async () => {

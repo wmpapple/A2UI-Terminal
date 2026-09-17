@@ -1,0 +1,30 @@
+{
+  "processingOptions": {
+    "activeProviderId": "custom",
+    "processingLocation": "local",
+    "availability": "ready",
+    "localProviderAvailable": true,
+    "availableLocalProviders": 1,
+    "probeCompleted": true
+  },
+  "localProbes": [
+    {
+      "id": "ollama",
+      "kind": "ollama",
+      "status": "available",
+      "endpoint": "http://127.0.0.1:11434/v1",
+      "models": ["qwen-local"],
+      "latencyMs": 18,
+      "failureCode": null
+    },
+    {
+      "id": "lm_studio",
+      "kind": "lm_studio",
+      "status": "unavailable",
+      "endpoint": "http://127.0.0.1:1234/v1",
+      "models": [],
+      "latencyMs": null,
+      "failureCode": "not_running"
+    }
+  ]
+}

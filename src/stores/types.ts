@@ -16,6 +16,8 @@ import type {
   ReviewRequest,
   ReviewSource,
   ProviderConfig,
+  ProcessingOptions,
+  LocalProviderProbe,
   RecoveryDraftSummary,
   SelectedWorkspaceFiles,
   WorkspaceDraft,
@@ -60,6 +62,10 @@ export interface AppState {
   activeProviderId: string;
   providerLoading: boolean;
   providerError: string | null;
+  processingOptions: ProcessingOptions | null;
+  localProviderProbes: LocalProviderProbe[];
+  localProbeLoading: boolean;
+  localProbeError: string | null;
   chatRequestId: string | null;
   chatError: string | null;
   a2uiSurfaces: A2uiSurface[];
@@ -117,6 +123,8 @@ export interface AppState {
   selectProvider: (providerId: string) => Promise<void>;
   deleteProviderKey: (providerId: string) => Promise<void>;
   testProvider: (providerId: string) => Promise<number>;
+  refreshProcessingOptions: () => Promise<void>;
+  probeLocalProviders: () => Promise<void>;
   sendChat: (
     prompt: string,
     contextManifestId: string,

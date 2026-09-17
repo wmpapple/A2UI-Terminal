@@ -80,6 +80,15 @@ impl ContextIndex {
             .is_some()
     }
 
+    pub fn retain_sources(&mut self, workspace_id: &str, source_ids: &BTreeSet<String>) -> usize {
+        let before = self.documents.len();
+        self.documents
+            .retain(|(indexed_workspace_id, source_id), _| {
+                indexed_workspace_id != workspace_id || source_ids.contains(source_id)
+            });
+        before.saturating_sub(self.documents.len())
+    }
+
     pub fn clear(&mut self) -> usize {
         let count = self.documents.len();
         self.documents.clear();
@@ -274,6 +283,7 @@ fn is_cjk(character: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{chunk_text, rank_chunks, ContextIndex, CHUNK_OVERLAP_CHARACTERS};
+    use std::collections::BTreeSet;
 
     #[test]
     fn chunks_are_deterministic_and_overlap_by_character() {
@@ -315,8 +325,10 @@ mod tests {
         assert_eq!(index.document_count(), 2);
         index.chunks("workspace-a", "source-a", "hash-c", "changed");
         assert_eq!(index.document_count(), 2);
+        index.retain_sources("workspace-a", &BTreeSet::from(["source-a".to_string()]));
+        assert_eq!(index.document_count(), 1);
         assert!(index.clear_source("workspace-a", "source-a"));
-        assert_eq!(index.clear_workspace("workspace-a"), 1);
+        assert_eq!(index.clear_workspace("workspace-a"), 0);
         assert_eq!(index.document_count(), 0);
     }
 }

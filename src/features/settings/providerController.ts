@@ -8,4 +8,6 @@ export const providerController = {
   select: (providerId: string) => desktopGateway.setActiveProvider(providerId),
   deleteKey: (providerId: string) => desktopGateway.deleteProviderSecret(providerId),
   test: (providerId: string) => desktopGateway.testProviderConnection(providerId),
+  processingOptions: () => desktopGateway.getProcessingOptions(),
+  probeLocal: () => desktopGateway.probeLocalProviders(),
 };

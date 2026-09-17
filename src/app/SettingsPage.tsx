@@ -1,6 +1,7 @@
 import { SettingOutlined, ToolOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Segmented } from 'antd';
 import { SystemSettings } from '../features/settings/components/SystemSettings';
+import { ProcessingStatus } from '../features/settings/components/ProcessingStatus';
 import type { ExperienceMode } from './shellPreferences';
 import { useI18n } from './i18n/useI18n';
 import styles from './SettingsPage.module.css';
@@ -51,6 +52,9 @@ export function SettingsPage({
               {t('openAdvancedProviderSettings')}
             </Button>
           ) : null}
+        </Card>
+        <Card title={t('processingStatusTitle')}>
+          <ProcessingStatus />
         </Card>
         <Card>
           <SystemSettings />

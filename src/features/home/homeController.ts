@@ -7,6 +7,9 @@ const gateway = () => (isWebMock() ? webMockHomeGateway : desktopGateway);
 export const homeController = {
   listTemplates: () => gateway().listTaskTemplates(),
   listResults: (workspaceId?: string) => gateway().listResults(workspaceId),
+  search: (workspaceId: string | null, query: string) =>
+    gateway().searchAuthorizedContent({ workspaceId, query, limit: 20 }),
+  rebuildSearchIndex: () => gateway().rebuildAuthorizedSearchIndex(),
   createTask: (workspaceId: string, templateId: string) =>
     gateway().createTask(workspaceId, templateId),
   answerTask: (taskId: string, answers: Record<string, unknown>) =>

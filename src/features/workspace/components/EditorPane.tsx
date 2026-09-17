@@ -14,6 +14,7 @@ import 'md-editor-rt/lib/style.css';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { CenterView } from '../../../shared/types/domain';
 import { useAppStore } from '../../../stores/useAppStore';
+import { useImportStore } from '../../imports/importStore';
 import { A2uiWorkbench } from '../../a2ui/inspector/A2uiWorkbench';
 import { DiffReview } from '../../diff/components/DiffReview';
 import { SelectionAssistant } from '../../selection/components/SelectionAssistant';
@@ -59,7 +60,8 @@ export function EditorPane({
     patchError,
   } = useAppStore();
   const openFile = useAppStore((state) => state.openFile);
-  const selectContextFiles = useAppStore((state) => state.selectContextFiles);
+  const selectImportSources = useImportStore((state) => state.select);
+  const selectContextFiles = () => selectImportSources(workspace?.id);
   const clearWorkspaceError = useAppStore((state) => state.clearWorkspaceError);
   const closeFile = useAppStore((state) => state.closeFile);
   const updateFile = useAppStore((state) => state.updateFile);

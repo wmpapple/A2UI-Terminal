@@ -4,6 +4,7 @@ import { I18nProvider } from '../../../app/i18n/I18nProvider';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { mockFiles } from '../../../shared/mock/workspace';
 import { useAppStore } from '../../../stores/useAppStore';
+import { useImportStore } from '../../imports/importStore';
 import { EditorPane } from './EditorPane';
 
 const togglePreviewMock = vi.hoisted(() => vi.fn());
@@ -345,13 +346,13 @@ describe('EditorPane modes', () => {
 
   it('keeps file selection visible in simple mode without rendering the file tree', () => {
     const selectContextFiles = vi.fn().mockResolvedValue(undefined);
+    useImportStore.setState({ select: selectContextFiles });
     useAppStore.setState({
       files: [],
       openPaths: [],
       activePath: '',
       workspaceLoading: false,
       workspaceError: null,
-      selectContextFiles,
     });
 
     render(

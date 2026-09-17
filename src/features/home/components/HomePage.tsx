@@ -19,6 +19,7 @@ import { useAppStore } from '../../../stores/useAppStore';
 import { useHomeStore } from '../homeStore';
 import { SourceDropZone } from './SourceDropZone';
 import { CreateTextResultModal } from '../../results/components/CreateTextResultModal';
+import { AuthorizedSearch } from './AuthorizedSearch';
 import styles from './HomePage.module.css';
 
 interface Props {
@@ -215,6 +216,8 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
             />
           ) : null}
         </section>
+
+        <AuthorizedSearch onOpenWorkbench={onOpenWorkbench} />
 
         <div className={styles.lowerGrid}>
           <section className={styles.section} aria-labelledby="home-sources-title">

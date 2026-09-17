@@ -20,6 +20,7 @@ pub struct AppState {
     pub active_exports: Mutex<HashMap<String, Arc<crate::application::export::ExportCancellation>>>,
     pub pending_context_manifests: Mutex<HashMap<String, PendingContextManifest>>,
     pub context_index: Mutex<ContextIndex>,
+    pub search_index: Mutex<ContextIndex>,
 }
 
 impl AppState {
@@ -36,6 +37,7 @@ impl AppState {
             active_exports: Mutex::new(HashMap::new()),
             pending_context_manifests: Mutex::new(HashMap::new()),
             context_index: Mutex::new(ContextIndex::default()),
+            search_index: Mutex::new(ContextIndex::default()),
         }
     }
 }

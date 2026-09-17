@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-probe-local-providers"
+description = "Enables the probe_local_providers command without any pre-configured scope."
+commands.allow = ["probe_local_providers"]
+
+[[permission]]
+identifier = "deny-probe-local-providers"
+description = "Denies the probe_local_providers command without any pre-configured scope."
+commands.deny = ["probe_local_providers"]

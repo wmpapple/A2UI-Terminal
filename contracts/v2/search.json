@@ -1,0 +1,43 @@
+{
+  "input": {
+    "workspaceId": "workspace-contract-v2",
+    "query": "发布计划",
+    "limit": 20
+  },
+  "output": {
+    "query": "发布计划",
+    "items": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440001",
+        "kind": "result",
+        "title": "发布纪要",
+        "snippet": "发布计划将在确认后执行。",
+        "updatedAt": "2026-09-16 10:00:00",
+        "score": 2.5
+      },
+      {
+        "id": "source-meeting",
+        "kind": "document_source",
+        "title": "meeting.md",
+        "snippet": "会议资料中的发布计划。",
+        "updatedAt": null,
+        "score": 1.25
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440030",
+        "kind": "context_pack",
+        "title": "发布资料包",
+        "snippet": "发布资料包 meeting.md",
+        "updatedAt": "2026-09-16 09:00:00",
+        "score": 1.0
+      }
+    ],
+    "indexedDocuments": 3,
+    "skippedDocuments": 1,
+    "indexMode": "memory_lexical"
+  },
+  "rebuildOutput": {
+    "clearedDocuments": 3,
+    "resultDataChanged": false
+  }
+}

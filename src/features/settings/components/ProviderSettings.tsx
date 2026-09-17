@@ -6,6 +6,7 @@ import {
   Form,
   Input,
   InputNumber,
+  List,
   Modal,
   Popconfirm,
   Select,
@@ -44,6 +45,10 @@ export function ProviderSettings({ open, onClose, includeSystemSettings = true }
   const selectProvider = useAppStore((state) => state.selectProvider);
   const deleteProviderKey = useAppStore((state) => state.deleteProviderKey);
   const testProvider = useAppStore((state) => state.testProvider);
+  const localProviderProbes = useAppStore((state) => state.localProviderProbes);
+  const localProbeLoading = useAppStore((state) => state.localProbeLoading);
+  const localProbeError = useAppStore((state) => state.localProbeError);
+  const probeLocalProviders = useAppStore((state) => state.probeLocalProviders);
   const [selectedId, setSelectedId] = useState(activeProviderId);
   const selected = configs.find((config) => config.id === selectedId) ?? configs[0];
   const [draft, setDraft] = useState<ProviderConfig | null>(selected ?? null);
@@ -99,6 +104,7 @@ export function ProviderSettings({ open, onClose, includeSystemSettings = true }
         setSelectedId(active?.id ?? activeProviderId);
         setDraft(active ? { ...active } : null);
         setSecret('');
+        void probeLocalProviders();
       }}
       footer={null}
       width={700}
@@ -204,6 +210,74 @@ export function ProviderSettings({ open, onClose, includeSystemSettings = true }
                 </Popconfirm>
               )}
             </Space>
+            <Divider />
+            <section aria-labelledby="local-provider-probe-title">
+              <div className={styles.probeHeader}>
+                <div>
+                  <strong id="local-provider-probe-title">{t('localProviderDetection')}</strong>
+                  <p>{t('localProviderDetectionDescription')}</p>
+                </div>
+                <Button
+                  size="small"
+                  icon={<ExperimentOutlined />}
+                  loading={localProbeLoading}
+                  onClick={() => void probeLocalProviders()}
+                >
+                  {t('detectLocalProviders')}
+                </Button>
+              </div>
+              {localProbeError ? (
+                <Alert type="warning" showIcon title={t('localProbeFailureNonBlocking')} />
+              ) : null}
+              <List
+                size="small"
+                dataSource={localProviderProbes}
+                locale={{ emptyText: t('localProviderProbePending') }}
+                renderItem={(probe) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      title={
+                        <Space wrap>
+                          <span>
+                            {t(
+                              probe.kind === 'ollama'
+                                ? 'ollamaProvider'
+                                : probe.kind === 'lm_studio'
+                                  ? 'lmStudioProvider'
+                                  : 'customLocalProvider'
+                            )}
+                          </span>
+                          <Tag color={probe.status === 'available' ? 'green' : 'default'}>
+                            {t(
+                              probe.status === 'available'
+                                ? 'localProviderAvailable'
+                                : 'localProviderUnavailable'
+                            )}
+                          </Tag>
+                        </Space>
+                      }
+                      description={
+                        <div className={styles.probeDetails}>
+                          <code>{probe.endpoint}</code>
+                          <span>
+                            {probe.models.length > 0
+                              ? t('localProviderModels').replace(
+                                  '{models}',
+                                  probe.models.slice(0, 5).join(', ')
+                                )
+                              : t(
+                                  probe.status === 'available'
+                                    ? 'localProviderNoModels'
+                                    : 'localProviderFailureHint'
+                                )}
+                          </span>
+                        </div>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            </section>
           </div>
         )}
         {includeSystemSettings ? <Divider /> : null}

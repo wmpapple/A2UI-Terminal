@@ -10,5 +10,6 @@ pub mod provider;
 pub mod result;
 pub mod review;
 pub mod revision;
+pub mod search;
 pub mod task;
 pub mod workspace;

@@ -1,5 +1,9 @@
 use a2ui_terminal_lib::a2ui::{A2uiCapabilities, A2uiProcessResult, SurfaceMessage};
 use a2ui_terminal_lib::ai::ContextManifest;
+use a2ui_terminal_lib::application::provider::{LocalProviderProbe, ProcessingOptions};
+use a2ui_terminal_lib::application::search::{
+    RebuildAuthorizedSearchIndexOutput, SearchAuthorizedContentInput, SearchAuthorizedContentOutput,
+};
 use a2ui_terminal_lib::commands::{ChatStreamEvent, ChatStreamResult};
 use a2ui_terminal_lib::document_source::DocumentSourceContent;
 use a2ui_terminal_lib::domain::context_pack::{
@@ -35,6 +39,36 @@ const REVIEW_FIXTURE: &str = include_str!("../../contracts/v2/review.json");
 const EXPORT_FIXTURE: &str = include_str!("../../contracts/v2/export.json");
 const CONTEXT_PACK_FIXTURE: &str = include_str!("../../contracts/v2/context-pack.json");
 const A2UI_CAPABILITIES_FIXTURE: &str = include_str!("../../contracts/v2/a2ui-capabilities.json");
+const SEARCH_FIXTURE: &str = include_str!("../../contracts/v2/search.json");
+const PROVIDER_PROCESSING_FIXTURE: &str =
+    include_str!("../../contracts/v2/provider-processing.json");
+
+#[test]
+fn search_contract_rejects_paths_and_round_trips_safe_results() {
+    let fixture: Value = serde_json::from_str(SEARCH_FIXTURE).unwrap();
+    assert_round_trip::<SearchAuthorizedContentInput>(&fixture["input"]);
+    assert_round_trip::<SearchAuthorizedContentOutput>(&fixture["output"]);
+    assert_round_trip::<RebuildAuthorizedSearchIndexOutput>(&fixture["rebuildOutput"]);
+    for field in ["path", "absolutePath", "content", "prompt", "providerId"] {
+        let mut untrusted = fixture["input"].clone();
+        untrusted[field] = Value::String("not allowed".into());
+        assert!(serde_json::from_value::<SearchAuthorizedContentInput>(untrusted).is_err());
+    }
+}
+
+#[test]
+fn provider_processing_contract_contains_only_bounded_local_status() {
+    let fixture: Value = serde_json::from_str(PROVIDER_PROCESSING_FIXTURE).unwrap();
+    assert_round_trip::<ProcessingOptions>(&fixture["processingOptions"]);
+    let probes = fixture["localProbes"].as_array().unwrap();
+    for probe in probes {
+        assert_round_trip::<LocalProviderProbe>(probe);
+    }
+    let serialized = serde_json::to_string(&fixture).unwrap();
+    for forbidden in ["apiKey", "proxyUrl", "filePath", "prompt", "content"] {
+        assert!(!serialized.contains(forbidden));
+    }
+}
 
 #[test]
 fn context_pack_contract_keeps_create_input_opaque() {

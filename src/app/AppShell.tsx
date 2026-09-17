@@ -6,10 +6,12 @@ import {
   SettingOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
-import { Button, ConfigProvider, Dropdown, message, Tag } from 'antd';
+import { Alert, Button, ConfigProvider, Dropdown, message, Tag } from 'antd';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ChatPanel } from '../features/chat/components/ChatPanel';
 import { HomePage } from '../features/home/components/HomePage';
+import { ImportBatchModal } from '../features/imports/components/ImportBatchModal';
+import { useImportStore } from '../features/imports/importStore';
 import { OnboardingDialog } from '../features/home/components/OnboardingDialog';
 import { scheduleAutomaticUpdateCheck } from '../features/settings/appUpdater';
 import { ProviderSettings } from '../features/settings/components/ProviderSettings';
@@ -45,6 +47,9 @@ export function AppShell() {
   const patchApplying = useAppStore((state) => state.patchApplying);
   const patchError = useAppStore((state) => state.patchError);
   const undoLastPatch = useAppStore((state) => state.undoLastPatch);
+  const acceptImportedSelection = useAppStore((state) => state.acceptImportedSelection);
+  const importError = useImportStore((state) => state.error);
+  const clearImportError = useImportStore((state) => state.clearError);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(() => !readOnboardingComplete());
   const [experienceMode, setExperienceMode] = useState(readExperienceMode);
@@ -216,6 +221,20 @@ export function AppShell() {
           </div>
         </header>
         {content}
+        {route === 'workbench' ? (
+          <>
+            {importError ? (
+              <Alert
+                type="error"
+                showIcon
+                closable
+                title={importError}
+                onClose={clearImportError}
+              />
+            ) : null}
+            <ImportBatchModal onConfirmed={acceptImportedSelection} />
+          </>
+        ) : null}
         <ProviderSettings
           open={professional && settingsOpen}
           includeSystemSettings={false}

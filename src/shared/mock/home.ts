@@ -8,6 +8,8 @@ import type {
   ResultRevision,
   ResultRevisionSummary,
   ResultSummary,
+  SearchAuthorizedContentInput,
+  SearchAuthorizedContentOutput,
   ResultType,
   TaskDetail,
   TaskQuestion,
@@ -242,6 +244,45 @@ export const webMockHomeGateway = {
     return clone(
       workspaceId ? results.filter((item) => item.workspaceId === workspaceId) : results
     );
+  },
+
+  async searchAuthorizedContent(
+    input: SearchAuthorizedContentInput
+  ): Promise<SearchAuthorizedContentOutput> {
+    const query = input.query.trim().toLocaleLowerCase();
+    if (!query || [...query].length > 200) {
+      throw new Error('搜索内容不能为空且不能超过 200 个字符');
+    }
+    const limit = input.limit ?? 20;
+    if (limit < 1 || limit > 50) throw new Error('搜索结果数量必须在 1 到 50 之间');
+    const items = [...resultRecords.values()]
+      .filter((record) =>
+        `${record.detail.title}\n${record.content}`.toLocaleLowerCase().includes(query)
+      )
+      .sort((left, right) => right.detail.updatedAt.localeCompare(left.detail.updatedAt))
+      .slice(0, limit)
+      .map((record) => ({
+        id: record.detail.id,
+        kind: 'result' as const,
+        title: record.detail.title,
+        snippet: record.content.replace(/\s+/g, ' ').trim().slice(0, 220),
+        updatedAt: record.detail.updatedAt,
+        score: 1,
+      }));
+    return {
+      query: input.query.trim(),
+      items,
+      indexedDocuments: resultRecords.size,
+      skippedDocuments: 0,
+      indexMode: 'memory_lexical',
+    };
+  },
+
+  async rebuildAuthorizedSearchIndex() {
+    return {
+      clearedDocuments: resultRecords.size,
+      resultDataChanged: false as const,
+    };
   },
 
   async createTextResult(input: CreateTextResultInput): Promise<ResultDocument> {

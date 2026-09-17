@@ -11,6 +11,7 @@ pub use context::{
     ContextManifestSource, ContextManifestStatus, ContextSourceMode, ContextStrategy,
     PendingContextManifest, ProcessingLocation,
 };
+pub(crate) use retrieval::rank_chunks;
 pub use retrieval::ContextIndex;
 
 use crate::error::AppError;

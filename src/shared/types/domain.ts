@@ -316,6 +316,36 @@ export interface DeleteContextPackOutput {
   originalFilesDeleted: false;
 }
 
+export type SearchItemKind = 'result' | 'document_source' | 'context_pack';
+
+export interface SearchAuthorizedContentInput {
+  workspaceId: string | null;
+  query: string;
+  limit?: number;
+}
+
+export interface SearchAuthorizedContentItem {
+  id: string;
+  kind: SearchItemKind;
+  title: string;
+  snippet: string;
+  updatedAt: string | null;
+  score: number;
+}
+
+export interface SearchAuthorizedContentOutput {
+  query: string;
+  items: SearchAuthorizedContentItem[];
+  indexedDocuments: number;
+  skippedDocuments: number;
+  indexMode: 'memory_lexical';
+}
+
+export interface RebuildAuthorizedSearchIndexOutput {
+  clearedDocuments: number;
+  resultDataChanged: false;
+}
+
 export interface ImportDropBounds {
   left: number;
   top: number;
@@ -418,6 +448,30 @@ export interface ProviderConfig {
   proxyUrl: string | null;
   configured: boolean;
   active: boolean;
+}
+
+export type ProcessingLocationView = 'local' | 'cloud';
+export type ProcessingAvailability = 'ready' | 'setup_required' | 'unavailable';
+export type LocalProviderKind = 'ollama' | 'lm_studio' | 'custom';
+export type LocalProbeStatus = 'available' | 'unavailable';
+
+export interface ProcessingOptions {
+  activeProviderId: string;
+  processingLocation: ProcessingLocationView;
+  availability: ProcessingAvailability;
+  localProviderAvailable: boolean;
+  availableLocalProviders: number;
+  probeCompleted: boolean;
+}
+
+export interface LocalProviderProbe {
+  id: string;
+  kind: LocalProviderKind;
+  status: LocalProbeStatus;
+  endpoint: string;
+  models: string[];
+  latencyMs: number | null;
+  failureCode: string | null;
 }
 
 export type ContextSourceKind = 'selection' | 'current_file' | 'project_file' | 'attached_document';

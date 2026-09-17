@@ -339,6 +339,12 @@
           "markdownDescription": "Enables the get_bootstrap_status command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_processing_options command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-processing-options",
+          "markdownDescription": "Enables the get_processing_options command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_result command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-result",
@@ -465,6 +471,12 @@
           "markdownDescription": "Enables the plan_context command without any pre-configured scope."
         },
         {
+          "description": "Enables the probe_local_providers command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-probe-local-providers",
+          "markdownDescription": "Enables the probe_local_providers command without any pre-configured scope."
+        },
+        {
           "description": "Enables the process_a2ui_message command without any pre-configured scope.",
           "type": "string",
           "const": "allow-process-a2ui-message",
@@ -505,6 +517,12 @@
           "type": "string",
           "const": "allow-read-workspace-file",
           "markdownDescription": "Enables the read_workspace_file command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the rebuild_authorized_search_index command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-rebuild-authorized-search-index",
+          "markdownDescription": "Enables the rebuild_authorized_search_index command without any pre-configured scope."
         },
         {
           "description": "Enables the remove_workspace command without any pre-configured scope.",
@@ -577,6 +595,12 @@
           "type": "string",
           "const": "allow-save-workspace-file",
           "markdownDescription": "Enables the save_workspace_file command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the search_authorized_content command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-search-authorized-content",
+          "markdownDescription": "Enables the search_authorized_content command without any pre-configured scope."
         },
         {
           "description": "Enables the select_context_files command without any pre-configured scope.",
@@ -819,6 +843,12 @@
           "markdownDescription": "Denies the get_bootstrap_status command without any pre-configured scope."
         },
         {
+          "description": "Denies the get_processing_options command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-processing-options",
+          "markdownDescription": "Denies the get_processing_options command without any pre-configured scope."
+        },
+        {
           "description": "Denies the get_result command without any pre-configured scope.",
           "type": "string",
           "const": "deny-get-result",
@@ -945,6 +975,12 @@
           "markdownDescription": "Denies the plan_context command without any pre-configured scope."
         },
         {
+          "description": "Denies the probe_local_providers command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-probe-local-providers",
+          "markdownDescription": "Denies the probe_local_providers command without any pre-configured scope."
+        },
+        {
           "description": "Denies the process_a2ui_message command without any pre-configured scope.",
           "type": "string",
           "const": "deny-process-a2ui-message",
@@ -985,6 +1021,12 @@
           "type": "string",
           "const": "deny-read-workspace-file",
           "markdownDescription": "Denies the read_workspace_file command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the rebuild_authorized_search_index command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-rebuild-authorized-search-index",
+          "markdownDescription": "Denies the rebuild_authorized_search_index command without any pre-configured scope."
         },
         {
           "description": "Denies the remove_workspace command without any pre-configured scope.",
@@ -1057,6 +1099,12 @@
           "type": "string",
           "const": "deny-save-workspace-file",
           "markdownDescription": "Denies the save_workspace_file command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the search_authorized_content command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-search-authorized-content",
+          "markdownDescription": "Denies the search_authorized_content command without any pre-configured scope."
         },
         {
           "description": "Denies the select_context_files command without any pre-configured scope.",

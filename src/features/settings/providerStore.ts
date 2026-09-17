@@ -4,7 +4,13 @@ import { providerController } from './providerController';
 
 type ProviderActions = Pick<
   AppState,
-  'initializeProviders' | 'saveProvider' | 'selectProvider' | 'deleteProviderKey' | 'testProvider'
+  | 'initializeProviders'
+  | 'saveProvider'
+  | 'selectProvider'
+  | 'deleteProviderKey'
+  | 'testProvider'
+  | 'refreshProcessingOptions'
+  | 'probeLocalProviders'
 >;
 
 const providerReviewFingerprint = (config: AppState['providerConfigs'][number] | undefined) =>
@@ -28,6 +34,7 @@ export const createProviderStore = (set: AppSet, get: AppGet): ProviderActions =
         providerConfigs,
         activeProviderId: providerConfigs.find((config) => config.active)?.id ?? 'siliconflow',
       });
+      void get().refreshProcessingOptions();
     } catch (error) {
       set({ providerError: errorDetails(error).message });
     } finally {
@@ -73,6 +80,7 @@ export const createProviderStore = (set: AppSet, get: AppGet): ProviderActions =
         })),
       }));
       if (invalidatesProviderReview) get().invalidateContextReviewsForProviderChange();
+      void get().refreshProcessingOptions();
     } catch (error) {
       set({ providerError: errorDetails(error).message });
     }
@@ -100,6 +108,30 @@ export const createProviderStore = (set: AppSet, get: AppGet): ProviderActions =
       throw new Error(message);
     } finally {
       set({ providerLoading: false });
+    }
+  },
+  refreshProcessingOptions: async () => {
+    if (get().runtimeMode === 'web-mock') return;
+    set({ localProbeLoading: true, localProbeError: null });
+    try {
+      set({ processingOptions: await providerController.processingOptions() });
+    } catch (error) {
+      set({ localProbeError: errorDetails(error).message });
+    } finally {
+      set({ localProbeLoading: false });
+    }
+  },
+  probeLocalProviders: async () => {
+    if (get().runtimeMode === 'web-mock') return;
+    set({ localProbeLoading: true, localProbeError: null });
+    try {
+      const localProviderProbes = await providerController.probeLocal();
+      set({ localProviderProbes });
+      await get().refreshProcessingOptions();
+    } catch (error) {
+      set({ localProbeError: errorDetails(error).message });
+    } finally {
+      set({ localProbeLoading: false });
     }
   },
 });

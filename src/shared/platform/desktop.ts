@@ -16,6 +16,8 @@ import type {
   ChatStreamEvent,
   ChatStreamResult,
   ProviderConfig,
+  ProcessingOptions,
+  LocalProviderProbe,
   RecoveryDraftSummary,
   DocumentPatch,
   DocumentVersion,
@@ -53,6 +55,9 @@ import type {
   ExportResultInput,
   ExportProgressEvent,
   ExportResultOutput,
+  SearchAuthorizedContentInput,
+  SearchAuthorizedContentOutput,
+  RebuildAuthorizedSearchIndexOutput,
 } from '../types/domain';
 
 export interface BootstrapStatus {
@@ -116,6 +121,18 @@ export const desktopApi = {
       workspaceId: workspaceId ?? null,
       includeArchived,
     });
+  },
+
+  async searchAuthorizedContent(
+    input: SearchAuthorizedContentInput
+  ): Promise<SearchAuthorizedContentOutput> {
+    requireDesktop();
+    return invoke<SearchAuthorizedContentOutput>('search_authorized_content', { input });
+  },
+
+  async rebuildAuthorizedSearchIndex(): Promise<RebuildAuthorizedSearchIndexOutput> {
+    requireDesktop();
+    return invoke<RebuildAuthorizedSearchIndexOutput>('rebuild_authorized_search_index');
   },
 
   async getResult(resultId: string): Promise<ResultDetail> {
@@ -445,6 +462,16 @@ export const desktopApi = {
   ): Promise<{ providerId: string; reachable: boolean; latencyMs: number }> {
     requireDesktop();
     return invoke('test_provider_connection', { providerId });
+  },
+
+  async getProcessingOptions(): Promise<ProcessingOptions> {
+    requireDesktop();
+    return invoke<ProcessingOptions>('get_processing_options');
+  },
+
+  async probeLocalProviders(): Promise<LocalProviderProbe[]> {
+    requireDesktop();
+    return invoke<LocalProviderProbe[]>('probe_local_providers');
   },
 
   async listChatSessions(workspaceId: string): Promise<ChatSession[]> {

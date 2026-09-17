@@ -10,6 +10,8 @@ vi.mock('./providerController', () => ({
     select: vi.fn(),
     deleteKey: vi.fn(),
     test: vi.fn(),
+    processingOptions: vi.fn(),
+    probeLocal: vi.fn(),
   },
 }));
 
@@ -37,6 +39,10 @@ beforeEach(() => {
     activeProviderId: cloudProvider.id,
     providerLoading: false,
     providerError: null,
+    processingOptions: null,
+    localProviderProbes: [],
+    localProbeLoading: false,
+    localProbeError: null,
     sessions: [
       {
         id: 'existing-session',
@@ -49,6 +55,15 @@ beforeEach(() => {
     ],
     contextReviewKeyBySession: {},
   });
+  vi.mocked(providerController.processingOptions).mockResolvedValue({
+    activeProviderId: cloudProvider.id,
+    processingLocation: 'cloud',
+    availability: 'ready',
+    localProviderAvailable: false,
+    availableLocalProviders: 0,
+    probeCompleted: true,
+  });
+  vi.mocked(providerController.probeLocal).mockResolvedValue([]);
 });
 
 describe('provider context review invalidation', () => {
@@ -102,5 +117,15 @@ describe('provider context review invalidation', () => {
     expect(useAppStore.getState().contextReviewKeyBySession).toEqual({
       'existing-session': 'reviewed',
     });
+  });
+
+  it('keeps local probing failures separate from Provider configuration', async () => {
+    vi.mocked(providerController.processingOptions).mockRejectedValue(new Error('not running'));
+
+    await useAppStore.getState().refreshProcessingOptions();
+
+    expect(useAppStore.getState().providerError).toBeNull();
+    expect(useAppStore.getState().localProbeError).toBe('not running');
+    expect(useAppStore.getState().providerConfigs).toEqual([cloudProvider]);
   });
 });

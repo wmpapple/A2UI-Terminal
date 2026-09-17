@@ -60,6 +60,11 @@ const CONTEXT_COMMANDS: [&str; 6] = [
     "create_context_pack",
     "delete_context_pack",
 ];
+const SEARCH_COMMANDS: [&str; 2] = [
+    "search_authorized_content",
+    "rebuild_authorized_search_index",
+];
+const PROVIDER_V2_COMMANDS: [&str; 2] = ["get_processing_options", "probe_local_providers"];
 const REVIEW_COMMANDS: [&str; 8] = [
     "create_review_request",
     "get_review",
@@ -139,6 +144,22 @@ fn native_commands_are_registered_and_allowed_for_the_main_window() {
     }
 
     for command in CONTEXT_COMMANDS {
+        assert!(build_script.contains(&format!("\"{command}\"")));
+        assert!(runtime.contains(&format!("commands::{command},")));
+        assert!(permissions
+            .iter()
+            .any(|permission| permission == &format!("allow-{}", command.replace('_', "-"))));
+    }
+
+    for command in SEARCH_COMMANDS {
+        assert!(build_script.contains(&format!("\"{command}\"")));
+        assert!(runtime.contains(&format!("commands::{command},")));
+        assert!(permissions
+            .iter()
+            .any(|permission| permission == &format!("allow-{}", command.replace('_', "-"))));
+    }
+
+    for command in PROVIDER_V2_COMMANDS {
         assert!(build_script.contains(&format!("\"{command}\"")));
         assert!(runtime.contains(&format!("commands::{command},")));
         assert!(permissions
