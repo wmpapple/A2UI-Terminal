@@ -26,5 +26,17 @@ pub fn restore(
     version_id: &str,
     base_hash: &str,
 ) -> Result<SaveOutcome, AppError> {
-    workspace::restore_document_version(storage, workspace_id, relative_path, version_id, base_hash)
+    super::telemetry::observe(
+        storage,
+        super::telemetry::PerformanceOperation::DocumentRestore,
+        || {
+            workspace::restore_document_version(
+                storage,
+                workspace_id,
+                relative_path,
+                version_id,
+                base_hash,
+            )
+        },
+    )
 }

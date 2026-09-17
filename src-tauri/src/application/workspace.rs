@@ -48,7 +48,22 @@ pub fn save_file(
     content: &str,
     base_hash: &str,
 ) -> Result<SaveOutcome, AppError> {
-    workspace::save_file_with_history(storage, workspace_id, relative_path, content, base_hash)
+    let saved = super::telemetry::observe(
+        storage,
+        super::telemetry::PerformanceOperation::ResultSave,
+        || {
+            workspace::save_file_with_history(
+                storage,
+                workspace_id,
+                relative_path,
+                content,
+                base_hash,
+            )
+        },
+    )?;
+    let _ = super::telemetry::record(storage, super::telemetry::ProductEvent::ResultSaved);
+    super::telemetry::mark_first_core_loop(storage, super::telemetry::CoreLoopTrigger::Save);
+    Ok(saved)
 }
 
 pub fn save_draft(
@@ -109,11 +124,101 @@ pub fn save_authorized_file(
     let selected = WorkspaceRepository::new(storage)
         .authorized_file(source_id)?
         .ok_or_else(|| AppError::InvalidInput("Selected file authorization expired".into()))?;
-    workspace::save_file_with_history(
+    save_file(
         storage,
         &selected.workspace_id,
         &selected.virtual_path,
         content,
         base_hash,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::application::telemetry::get_settings;
+
+    #[test]
+    fn workbench_save_invites_only_after_success_without_collecting_events() {
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::write(directory.path().join("test.md"), "before").unwrap();
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace = register(&storage, directory.path()).unwrap();
+        let opened = read_file(&storage, &workspace.id, "test.md").unwrap();
+        save_draft(
+            &storage,
+            &workspace.id,
+            "test.md",
+            "draft",
+            &opened.content_hash,
+        )
+        .unwrap();
+        assert!(!get_settings(&storage).unwrap().invitation_eligible);
+        assert!(save_file(&storage, &workspace.id, "test.md", "after", "stale").is_err());
+        assert!(!get_settings(&storage).unwrap().invitation_eligible);
+        save_file(
+            &storage,
+            &workspace.id,
+            "test.md",
+            "after",
+            &opened.content_hash,
+        )
+        .unwrap();
+        let settings = get_settings(&storage).unwrap();
+        assert!(settings.invitation_eligible);
+        assert!(!settings.enabled);
+        assert_eq!(settings.local_event_count, 0);
+    }
+
+    #[test]
+    fn standalone_authorized_save_also_enables_the_invitation() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("test.md");
+        std::fs::write(&path, "before").unwrap();
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace = resolve_context_workspace(&storage, None).unwrap();
+        let opened = attach_file(&storage, &workspace.id, &path).unwrap();
+        save_authorized_file(
+            &storage,
+            opened.source_id.as_deref().unwrap(),
+            "after",
+            &opened.content_hash,
+        )
+        .unwrap();
+        assert!(get_settings(&storage).unwrap().invitation_eligible);
+        assert_eq!(get_settings(&storage).unwrap().local_event_count, 0);
+    }
+
+    #[test]
+    fn existing_file_save_and_version_restore_produce_operation_samples() {
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::write(directory.path().join("old.md"), "before").unwrap();
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace = register(&storage, directory.path()).unwrap();
+        let opened = read_file(&storage, &workspace.id, "old.md").unwrap();
+        storage.set_telemetry_settings(true, false).unwrap();
+        let saved = save_file(
+            &storage,
+            &workspace.id,
+            "old.md",
+            "after",
+            &opened.content_hash,
+        )
+        .unwrap();
+        let versions = super::super::revision::list(&storage, &workspace.id, "old.md").unwrap();
+        super::super::revision::restore(
+            &storage,
+            &workspace.id,
+            "old.md",
+            &versions.last().unwrap().id,
+            &saved.content_hash,
+        )
+        .unwrap();
+        let settings = get_settings(&storage).unwrap();
+        for key in ["export_save_rate", "undo_rate"] {
+            let metric = settings.kpis.iter().find(|k| k.key == key).unwrap();
+            assert_eq!((metric.numerator, metric.denominator), (1, 1));
+        }
+        assert!(!settings.event_counts.contains_key("result_created"));
+    }
 }

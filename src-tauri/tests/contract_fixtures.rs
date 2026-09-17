@@ -4,6 +4,7 @@ use a2ui_terminal_lib::application::provider::{LocalProviderProbe, ProcessingOpt
 use a2ui_terminal_lib::application::search::{
     RebuildAuthorizedSearchIndexOutput, SearchAuthorizedContentInput, SearchAuthorizedContentOutput,
 };
+use a2ui_terminal_lib::application::telemetry::{TelemetryDictionary, TelemetrySettings};
 use a2ui_terminal_lib::commands::{ChatStreamEvent, ChatStreamResult};
 use a2ui_terminal_lib::document_source::DocumentSourceContent;
 use a2ui_terminal_lib::domain::context_pack::{
@@ -42,6 +43,42 @@ const A2UI_CAPABILITIES_FIXTURE: &str = include_str!("../../contracts/v2/a2ui-ca
 const SEARCH_FIXTURE: &str = include_str!("../../contracts/v2/search.json");
 const PROVIDER_PROCESSING_FIXTURE: &str =
     include_str!("../../contracts/v2/provider-processing.json");
+const TELEMETRY_FIXTURE: &str = include_str!("../../contracts/v2/telemetry.json");
+
+#[test]
+fn telemetry_contract_exposes_only_the_fixed_dictionary_and_counts() {
+    let fixture: Value = serde_json::from_str(TELEMETRY_FIXTURE).unwrap();
+    assert_round_trip::<TelemetrySettings>(&fixture["settings"]);
+    assert_round_trip::<TelemetryDictionary>(&fixture["dictionary"]);
+    let dictionary: TelemetryDictionary =
+        serde_json::from_value(fixture["dictionary"].clone()).unwrap();
+    let exposed_fields = dictionary
+        .common_fields
+        .iter()
+        .chain(
+            dictionary
+                .events
+                .iter()
+                .flat_map(|event| event.fields.iter()),
+        )
+        .map(|field| field.to_ascii_lowercase())
+        .collect::<Vec<_>>()
+        .join(" ");
+    for forbidden in [
+        "absolute_path",
+        "workspace_id",
+        "session_id",
+        "provider_id",
+        "model_id",
+        "user_id",
+        "installation_id",
+    ] {
+        assert!(
+            !exposed_fields.contains(forbidden),
+            "forbidden telemetry field {forbidden}"
+        );
+    }
+}
 
 #[test]
 fn search_contract_rejects_paths_and_round_trips_safe_results() {

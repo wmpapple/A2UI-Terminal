@@ -321,6 +321,12 @@
           "markdownDescription": "Enables the export_diagnostics command without any pre-configured scope."
         },
         {
+          "description": "Enables the export_event_dictionary command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-export-event-dictionary",
+          "markdownDescription": "Enables the export_event_dictionary command without any pre-configured scope."
+        },
+        {
           "description": "Enables the export_result command without any pre-configured scope.",
           "type": "string",
           "const": "allow-export-result",
@@ -361,6 +367,12 @@
           "type": "string",
           "const": "allow-get-task",
           "markdownDescription": "Enables the get_task command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_telemetry_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-telemetry-settings",
+          "markdownDescription": "Enables the get_telemetry_settings command without any pre-configured scope."
         },
         {
           "description": "Enables the inspect_import_batch command without any pre-configured scope.",
@@ -639,6 +651,12 @@
           "markdownDescription": "Enables the set_provider_secret command without any pre-configured scope."
         },
         {
+          "description": "Enables the set_telemetry_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-telemetry-settings",
+          "markdownDescription": "Enables the set_telemetry_settings command without any pre-configured scope."
+        },
+        {
           "description": "Enables the start_task command without any pre-configured scope.",
           "type": "string",
           "const": "allow-start-task",
@@ -825,6 +843,12 @@
           "markdownDescription": "Denies the export_diagnostics command without any pre-configured scope."
         },
         {
+          "description": "Denies the export_event_dictionary command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-export-event-dictionary",
+          "markdownDescription": "Denies the export_event_dictionary command without any pre-configured scope."
+        },
+        {
           "description": "Denies the export_result command without any pre-configured scope.",
           "type": "string",
           "const": "deny-export-result",
@@ -865,6 +889,12 @@
           "type": "string",
           "const": "deny-get-task",
           "markdownDescription": "Denies the get_task command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_telemetry_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-telemetry-settings",
+          "markdownDescription": "Denies the get_telemetry_settings command without any pre-configured scope."
         },
         {
           "description": "Denies the inspect_import_batch command without any pre-configured scope.",
@@ -1141,6 +1171,12 @@
           "type": "string",
           "const": "deny-set-provider-secret",
           "markdownDescription": "Denies the set_provider_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_telemetry_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-telemetry-settings",
+          "markdownDescription": "Denies the set_telemetry_settings command without any pre-configured scope."
         },
         {
           "description": "Denies the start_task command without any pre-configured scope.",

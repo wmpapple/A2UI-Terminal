@@ -869,3 +869,49 @@ export interface OpenA2uiTemplateResult {
   template: A2uiTemplate;
   surface: A2uiSurface;
 }
+
+export interface TelemetrySettings {
+  enabled: boolean;
+  invitationEligible: boolean;
+  invitationDismissed: boolean;
+  uploadConfigured: false;
+  collectionMode: 'local_only';
+  localEventCount: number;
+  eventCounts: Record<string, number>;
+  kpis: TelemetryKpi[];
+}
+
+export interface TelemetryKpi {
+  key:
+    | 'task_completion_rate'
+    | 'review_adoption_rate'
+    | 'accepted_patch_rate'
+    | 'undo_rate'
+    | 'export_save_rate'
+    | 'context_confirmation_rate';
+  numerator: number;
+  denominator: number;
+  rateBasisPoints: number | null;
+}
+
+export interface SetTelemetrySettingsInput {
+  enabled: boolean;
+  dismissInvitation?: boolean;
+}
+
+export interface TelemetryEventDefinition {
+  name: string;
+  descriptionZh: string;
+  descriptionEn: string;
+  fields: string[];
+}
+
+export interface TelemetryDictionary {
+  schemaVersion: 1;
+  uploadConfigured: false;
+  collectionMode: 'local_only';
+  commonFields: string[];
+  neverCollected: string[];
+  events: TelemetryEventDefinition[];
+  localEventCounts: Record<string, number>;
+}

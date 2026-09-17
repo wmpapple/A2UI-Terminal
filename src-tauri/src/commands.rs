@@ -13,7 +13,8 @@ pub use crate::application::provider::{
 };
 use crate::application::{
     adapters, chat, context, context_pack, export as export_service, import as import_service,
-    provider, review, revision, search as search_service, workspace as workspace_service,
+    provider, review, revision, search as search_service, telemetry,
+    workspace as workspace_service,
 };
 use crate::document_source::{DocumentSource, DocumentSourceContent};
 use crate::domain::context_pack::{ContextPack, CreateContextPackInput, DeleteContextPackOutput};
@@ -42,6 +43,7 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Instant;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
@@ -149,6 +151,28 @@ pub fn get_bootstrap_status(state: State<'_, AppState>) -> Result<BootstrapStatu
         schema_version: state.storage.schema_version()?,
         credential_store: "windows-credential-manager",
     })
+}
+
+#[tauri::command]
+pub fn get_telemetry_settings(
+    state: State<'_, AppState>,
+) -> Result<telemetry::TelemetrySettings, AppError> {
+    telemetry::get_settings(&state.storage)
+}
+
+#[tauri::command]
+pub fn set_telemetry_settings(
+    state: State<'_, AppState>,
+    input: telemetry::SetTelemetrySettingsInput,
+) -> Result<telemetry::TelemetrySettings, AppError> {
+    telemetry::set_settings(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn export_event_dictionary(
+    state: State<'_, AppState>,
+) -> Result<telemetry::TelemetryDictionary, AppError> {
+    telemetry::export_dictionary(&state.storage)
 }
 
 #[tauri::command]
@@ -391,7 +415,14 @@ pub fn list_recovery_drafts(
     state: State<'_, AppState>,
     workspace_id: String,
 ) -> Result<Vec<RecoveryDraftSummary>, AppError> {
-    workspace_service::list_recovery_drafts(&state.storage, &workspace_id)
+    let drafts = workspace_service::list_recovery_drafts(&state.storage, &workspace_id)?;
+    if !drafts.is_empty() {
+        let _ = telemetry::record(
+            &state.storage,
+            telemetry::ProductEvent::CrashRecoveryDetected,
+        );
+    }
+    Ok(drafts)
 }
 
 #[tauri::command]
@@ -820,7 +851,11 @@ pub fn plan_context(
         .pending_context_manifests
         .lock()
         .map_err(|_| AppError::StateUnavailable)?;
-    context::plan(&state.storage, &mut index, &mut manifests, input)
+    let manifest = context::plan(&state.storage, &mut index, &mut manifests, input)?;
+    drop(manifests);
+    drop(index);
+    let _ = telemetry::record(&state.storage, telemetry::ProductEvent::ContextPlanned);
+    Ok(manifest)
 }
 
 #[tauri::command]
@@ -880,7 +915,17 @@ pub fn confirm_context_manifest(
         .pending_context_manifests
         .lock()
         .map_err(|_| AppError::StateUnavailable)?;
-    context::confirm(&mut manifests, input)
+    let manifest = context::confirm(&mut manifests, input)?;
+    drop(manifests);
+    let location = match manifest.processing_location {
+        crate::ai::ProcessingLocation::Local => telemetry::ProcessingLocation::Local,
+        crate::ai::ProcessingLocation::Cloud => telemetry::ProcessingLocation::Cloud,
+    };
+    let _ = telemetry::record(
+        &state.storage,
+        telemetry::ProductEvent::ContextConfirmed { location },
+    );
+    Ok(manifest)
 }
 
 #[tauri::command]
@@ -889,6 +934,7 @@ pub async fn stream_chat(
     request: ChatRequest,
     on_event: Channel<ChatStreamEvent>,
 ) -> Result<ChatStreamResult, AppError> {
+    let started = Instant::now();
     let request_id = request.request_id.clone();
     let manifest = {
         let mut manifests = state
@@ -896,6 +942,10 @@ pub async fn stream_chat(
             .lock()
             .map_err(|_| AppError::StateUnavailable)?;
         crate::ai::consume_context_manifest(&state.storage, &mut manifests, &request)?
+    };
+    let processing_location = match manifest.view.processing_location {
+        crate::ai::ProcessingLocation::Local => telemetry::ProcessingLocation::Local,
+        crate::ai::ProcessingLocation::Cloud => telemetry::ProcessingLocation::Cloud,
     };
     let cancellation = Arc::new(AtomicBool::new(false));
     state
@@ -915,6 +965,26 @@ pub async fn stream_chat(
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .remove(&request_id);
+    let (outcome, category) = match &result {
+        Ok(_) => (telemetry::Outcome::Success, telemetry::ErrorCategory::None),
+        Err(error) if error.code() == "REQUEST_CANCELLED" => (
+            telemetry::Outcome::Cancelled,
+            telemetry::error_category(error),
+        ),
+        Err(error) => (
+            telemetry::Outcome::Failure,
+            telemetry::error_category(error),
+        ),
+    };
+    let _ = telemetry::record(
+        &state.storage,
+        telemetry::ProductEvent::AiRequestCompleted {
+            outcome,
+            error_category: category,
+            duration_ms: started.elapsed().as_millis(),
+            location: processing_location,
+        },
+    );
     result
 }
 
@@ -932,14 +1002,17 @@ pub fn apply_document_patch(
     state: State<'_, AppState>,
     request: ApplyPatchRequest,
 ) -> Result<PatchApplication, AppError> {
-    adapters::apply_patch(
+    let applied = adapters::apply_patch(
         &state.storage,
         &request.workspace_id,
         request.patch,
         &request.selected_change_ids,
         request.session_id.as_deref(),
         request.assistant_message_id.as_deref(),
-    )
+    )?;
+    let _ = telemetry::record(&state.storage, telemetry::ProductEvent::AcceptedPatch);
+    telemetry::mark_first_core_loop(&state.storage, telemetry::CoreLoopTrigger::PatchApply);
+    Ok(applied)
 }
 
 #[tauri::command]
@@ -948,7 +1021,13 @@ pub fn undo_document_patch(
     workspace_id: String,
     operation_id: String,
 ) -> Result<PatchApplication, AppError> {
-    adapters::undo_patch(&state.storage, &workspace_id, &operation_id)
+    let undone = telemetry::observe(
+        &state.storage,
+        telemetry::PerformanceOperation::DocumentRestore,
+        || adapters::undo_patch(&state.storage, &workspace_id, &operation_id),
+    )?;
+    let _ = telemetry::record(&state.storage, telemetry::ProductEvent::UndoCompleted);
+    Ok(undone)
 }
 
 #[tauri::command]
@@ -956,7 +1035,9 @@ pub fn create_review_request(
     state: State<'_, AppState>,
     input: CreateReviewRequestInput,
 ) -> Result<ReviewRequest, AppError> {
-    review::create(&state.storage, input)
+    let review = review::create(&state.storage, input)?;
+    let _ = telemetry::record(&state.storage, telemetry::ProductEvent::ReviewPresented);
+    Ok(review)
 }
 
 #[tauri::command]
@@ -980,7 +1061,26 @@ pub fn decide_review_blocks(
     state: State<'_, AppState>,
     input: DecideReviewBlocksInput,
 ) -> Result<ReviewRequest, AppError> {
-    review::decide(&state.storage, input)
+    let decided = review::decide(&state.storage, input)?;
+    let decision = match decided.status {
+        crate::domain::review::ReviewStatus::Accepted => telemetry::ReviewDecision::Accepted,
+        crate::domain::review::ReviewStatus::PartiallyAccepted => {
+            telemetry::ReviewDecision::Partial
+        }
+        _ => telemetry::ReviewDecision::Rejected,
+    };
+    let _ = telemetry::record(
+        &state.storage,
+        telemetry::ProductEvent::ReviewDecision { decision },
+    );
+    if matches!(
+        decided.status,
+        crate::domain::review::ReviewStatus::Accepted
+            | crate::domain::review::ReviewStatus::PartiallyAccepted
+    ) {
+        let _ = telemetry::record(&state.storage, telemetry::ProductEvent::ReviewAdopted);
+    }
+    Ok(decided)
 }
 
 #[tauri::command]
@@ -988,7 +1088,10 @@ pub fn apply_review(
     state: State<'_, AppState>,
     input: ApplyReviewInput,
 ) -> Result<ReviewApplication, AppError> {
-    review::apply(&state.storage, &state.managed_results_dir, input)
+    let applied = review::apply(&state.storage, &state.managed_results_dir, input)?;
+    let _ = telemetry::record(&state.storage, telemetry::ProductEvent::AcceptedPatch);
+    telemetry::mark_first_core_loop(&state.storage, telemetry::CoreLoopTrigger::ReviewApply);
+    Ok(applied)
 }
 
 #[tauri::command]
@@ -997,7 +1100,14 @@ pub fn discard_review(
     workspace_id: String,
     review_id: String,
 ) -> Result<ReviewRequest, AppError> {
-    review::discard(&state.storage, &workspace_id, &review_id)
+    let discarded = review::discard(&state.storage, &workspace_id, &review_id)?;
+    let _ = telemetry::record(
+        &state.storage,
+        telemetry::ProductEvent::ReviewDecision {
+            decision: telemetry::ReviewDecision::Rejected,
+        },
+    );
+    Ok(discarded)
 }
 
 #[tauri::command]
@@ -1013,7 +1123,13 @@ pub fn undo_review(
     state: State<'_, AppState>,
     input: ApplyReviewInput,
 ) -> Result<ReviewApplication, AppError> {
-    review::undo(&state.storage, &state.managed_results_dir, input)
+    let undone = telemetry::observe(
+        &state.storage,
+        telemetry::PerformanceOperation::DocumentRestore,
+        || review::undo(&state.storage, &state.managed_results_dir, input),
+    )?;
+    let _ = telemetry::record(&state.storage, telemetry::ProductEvent::UndoCompleted);
+    Ok(undone)
 }
 
 #[tauri::command]
@@ -1026,7 +1142,21 @@ pub fn process_a2ui_message(
     state: State<'_, AppState>,
     request: ProcessA2uiRequest,
 ) -> Result<Option<A2uiProcessResult>, AppError> {
-    let processed = adapters::process_a2ui(&state.storage, &request)?;
+    let started = Instant::now();
+    let processed = match adapters::process_a2ui(&state.storage, &request) {
+        Ok(processed) => processed,
+        Err(error) => {
+            let _ = telemetry::record(
+                &state.storage,
+                telemetry::ProductEvent::A2uiRendered {
+                    outcome: telemetry::Outcome::Failure,
+                    error_category: telemetry::error_category(&error),
+                    duration_ms: started.elapsed().as_millis(),
+                },
+            );
+            return Err(error);
+        }
+    };
     if let Some(surface) = processed
         .as_ref()
         .and_then(|processed| processed.surface.as_ref())
@@ -1037,6 +1167,26 @@ pub fn process_a2ui_message(
             &surface.surface_id,
         )?;
     }
+    let rendered = processed
+        .as_ref()
+        .and_then(|value| value.surface.as_ref())
+        .is_some();
+    let _ = telemetry::record(
+        &state.storage,
+        telemetry::ProductEvent::A2uiRendered {
+            outcome: if rendered {
+                telemetry::Outcome::Success
+            } else {
+                telemetry::Outcome::Failure
+            },
+            error_category: if rendered {
+                telemetry::ErrorCategory::None
+            } else {
+                telemetry::ErrorCategory::Validation
+            },
+            duration_ms: started.elapsed().as_millis(),
+        },
+    );
     Ok(processed)
 }
 
@@ -1126,7 +1276,11 @@ pub fn execute_a2ui_action(
     state: State<'_, AppState>,
     request: ExecuteActionRequest,
 ) -> Result<ActionExecutionResult, AppError> {
-    adapters::execute_action(&state.storage, request)
+    let executed = adapters::execute_action(&state.storage, request)?;
+    if executed.review.is_some() {
+        let _ = telemetry::record(&state.storage, telemetry::ProductEvent::ReviewPresented);
+    }
+    Ok(executed)
 }
 
 #[tauri::command]
@@ -1166,7 +1320,9 @@ pub fn create_text_result(
     state: State<'_, AppState>,
     input: crate::domain::result::CreateTextResultInput,
 ) -> Result<crate::domain::result::ResultDocument, AppError> {
-    crate::application::result::create_text(&state.storage, &state.managed_results_dir, input)
+    let result =
+        crate::application::result::create_text(&state.storage, &state.managed_results_dir, input)?;
+    Ok(result)
 }
 
 #[tauri::command]
@@ -1186,7 +1342,30 @@ pub fn save_result_document(
     state: State<'_, AppState>,
     input: crate::domain::result::SaveResultDocumentInput,
 ) -> Result<crate::domain::result::ResultDocument, AppError> {
-    crate::application::result::save_document(&state.storage, &state.managed_results_dir, input)
+    let started = Instant::now();
+    let result = crate::application::result::save_document(
+        &state.storage,
+        &state.managed_results_dir,
+        input,
+    );
+    let outcome = if result.is_ok() {
+        telemetry::Outcome::Success
+    } else {
+        telemetry::Outcome::Failure
+    };
+    let _ = telemetry::record(
+        &state.storage,
+        telemetry::ProductEvent::PerformanceSample {
+            operation: telemetry::PerformanceOperation::ResultSave,
+            outcome,
+            duration_ms: started.elapsed().as_millis(),
+        },
+    );
+    if result.is_ok() {
+        let _ = telemetry::record(&state.storage, telemetry::ProductEvent::ResultSaved);
+        telemetry::mark_first_core_loop(&state.storage, telemetry::CoreLoopTrigger::Save);
+    }
+    result
 }
 
 #[tauri::command]
@@ -1220,7 +1399,17 @@ pub fn restore_result_revision(
     state: State<'_, AppState>,
     input: crate::domain::result::RestoreResultRevisionInput,
 ) -> Result<crate::domain::result::ResultDocument, AppError> {
-    crate::application::result::restore_revision(&state.storage, &state.managed_results_dir, input)
+    telemetry::observe(
+        &state.storage,
+        telemetry::PerformanceOperation::DocumentRestore,
+        || {
+            crate::application::result::restore_revision(
+                &state.storage,
+                &state.managed_results_dir,
+                input,
+            )
+        },
+    )
 }
 
 #[tauri::command]
@@ -1291,6 +1480,7 @@ pub async fn export_result(
             exports: &state.active_exports,
             export_id: input.export_id.clone(),
         };
+        let started = Instant::now();
         let work = (|| -> Result<Option<String>, AppError> {
             emit_export_progress(&on_event, &input.export_id, "preparing", 10)?;
             let selection = app
@@ -1381,6 +1571,19 @@ pub async fn export_result(
                     .unwrap_or_else(|| format!("result.{}", input.format.extension())),
             ))
         })();
+        let outcome = match &work {
+            Ok(Some(_)) => telemetry::Outcome::Success,
+            Ok(None) | Err(AppError::RequestCancelled) => telemetry::Outcome::Cancelled,
+            Err(_) => telemetry::Outcome::Failure,
+        };
+        let _ = telemetry::record(
+            &state.storage,
+            telemetry::ProductEvent::PerformanceSample {
+                operation: telemetry::PerformanceOperation::ResultExport,
+                outcome,
+                duration_ms: started.elapsed().as_millis(),
+            },
+        );
         let (status, file_name) = match work {
             Ok(Some(name)) => ("completed", Some(name)),
             Ok(None) | Err(AppError::RequestCancelled) => ("cancelled", None),
@@ -1392,14 +1595,24 @@ pub async fn export_result(
         // The file is committed: a closed Channel must not turn success into
         // a retryable failure which would create a duplicate export.
         let _ = emit_export_progress(&on_event, &input.export_id, status, 100);
-        Ok(ExportResultOutput {
+        let output = ExportResultOutput {
             export_id: input.export_id,
             result_id: input.result_id,
             revision_id: input.revision_id,
             format: input.format,
             status: status.to_string(),
             file_name,
-        })
+        };
+        if status == "completed" {
+            let _ = telemetry::record(
+                &state.storage,
+                telemetry::ProductEvent::ResultExported {
+                    format: output.format,
+                },
+            );
+            telemetry::mark_first_core_loop(&state.storage, telemetry::CoreLoopTrigger::Export);
+        }
+        Ok(output)
     })
     .await
     .map_err(|_| AppError::StateUnavailable)?
@@ -1427,7 +1640,9 @@ pub fn create_task(
     state: State<'_, AppState>,
     input: CreateTaskInput,
 ) -> Result<TaskDetail, AppError> {
-    crate::application::task::create(&state.storage, input)
+    let task = crate::application::task::create(&state.storage, input)?;
+    let _ = telemetry::record(&state.storage, telemetry::ProductEvent::TaskCreated);
+    Ok(task)
 }
 
 #[tauri::command]
@@ -1445,7 +1660,11 @@ pub fn get_task(state: State<'_, AppState>, task_id: String) -> Result<TaskDetai
 
 #[tauri::command]
 pub fn start_task(state: State<'_, AppState>, task_id: String) -> Result<TaskRunResult, AppError> {
-    crate::application::task::start(&state.storage, &state.managed_results_dir, &task_id)
+    let result =
+        crate::application::task::start(&state.storage, &state.managed_results_dir, &task_id)?;
+    let _ = telemetry::record(&state.storage, telemetry::ProductEvent::TaskCompleted);
+    let _ = telemetry::record(&state.storage, telemetry::ProductEvent::ResultCreated);
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -1473,6 +1692,7 @@ mod tests {
                 tasks: 4,
                 results: 10,
                 review_requests: 11,
+                product_events: 12,
             },
         );
         let json = serde_json::to_value(report).unwrap();

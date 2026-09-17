@@ -444,6 +444,7 @@ fn create_managed_document(
             return Err(error);
         }
     };
+    let _ = super::telemetry::record(storage, super::telemetry::ProductEvent::ResultCreated);
     Ok(ResultDocument {
         result: detail_from_row(row)?,
         format,
@@ -956,14 +957,19 @@ pub fn ensure_file_result(
         .document_versions(workspace_id, &document.path, 1)?
         .first()
         .map(|revision| revision.id.clone());
-    ResultRepository::new(storage).ensure_file(
-        &Uuid::new_v4().to_string(),
+    let new_id = Uuid::new_v4().to_string();
+    let result = ResultRepository::new(storage).ensure_file(
+        &new_id,
         workspace_id,
         &document.path,
         title,
         storage_kind,
         current_revision_id.as_deref(),
-    )
+    )?;
+    if result.summary.id == new_id {
+        let _ = super::telemetry::record(storage, super::telemetry::ProductEvent::ResultCreated);
+    }
+    Ok(result)
 }
 
 pub fn ensure_surface_result(
@@ -976,8 +982,9 @@ pub fn ensure_surface_result(
         .map(|snapshot| snapshot.title.as_str())
         .unwrap_or("交互成果");
     let title = validate_title(proposed_title)?;
-    ResultRepository::new(storage).ensure_surface(
-        &Uuid::new_v4().to_string(),
+    let new_id = Uuid::new_v4().to_string();
+    let result = ResultRepository::new(storage).ensure_surface(
+        &new_id,
         &surface.id,
         &surface.workspace_id,
         &surface.surface_id,
@@ -988,7 +995,11 @@ pub fn ensure_surface_result(
         snapshot
             .as_ref()
             .map(|snapshot| snapshot.content_hash.as_str()),
-    )
+    )?;
+    if result.summary.id == new_id {
+        let _ = super::telemetry::record(storage, super::telemetry::ProductEvent::ResultCreated);
+    }
+    Ok(result)
 }
 
 struct SurfaceToolSnapshot {
@@ -1203,6 +1214,7 @@ mod tests {
     #[test]
     fn creates_reopens_saves_restores_and_duplicates_managed_text_results() {
         let storage = Storage::open_in_memory().unwrap();
+        storage.set_telemetry_settings(true, false).unwrap();
         let output = tempfile::tempdir().unwrap();
         let created = create_text(
             &storage,
@@ -1250,11 +1262,46 @@ mod tests {
         assert_eq!(restored.content, created.content);
 
         let copy = duplicate(&storage, output.path(), &created.result.summary.id).unwrap();
+        assert_eq!(
+            super::super::telemetry::get_settings(&storage)
+                .unwrap()
+                .event_counts["result_created"],
+            2
+        );
         assert_ne!(copy.result.summary.id, created.result.summary.id);
         assert_eq!(copy.content, restored.content);
         assert!(copy.result.summary.title.ends_with(" - 副本"));
         assert_eq!(storage.results(None, false).unwrap().len(), 2);
         assert!(storage.recent_workspaces(10).unwrap().is_empty());
+    }
+
+    #[test]
+    fn registering_a_workspace_result_records_creation_once_only_when_enabled() {
+        let storage = Storage::open_in_memory().unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(directory.path().join("test.md"), "test").unwrap();
+        let workspace = workspace::register_workspace(&storage, directory.path()).unwrap();
+        let document = workspace::read_file(&storage, &workspace.id, "test.md").unwrap();
+        storage.set_telemetry_settings(true, false).unwrap();
+        let first = ensure_file_result(&storage, &workspace.id, &document).unwrap();
+        let reopened = ensure_file_result(&storage, &workspace.id, &document).unwrap();
+        assert_eq!(first.summary.id, reopened.summary.id);
+        assert_eq!(
+            super::super::telemetry::get_settings(&storage)
+                .unwrap()
+                .event_counts["result_created"],
+            1
+        );
+        storage.set_telemetry_settings(false, false).unwrap();
+        fs::write(directory.path().join("off.md"), "test").unwrap();
+        let document = workspace::read_file(&storage, &workspace.id, "off.md").unwrap();
+        ensure_file_result(&storage, &workspace.id, &document).unwrap();
+        assert_eq!(
+            super::super::telemetry::get_settings(&storage)
+                .unwrap()
+                .local_event_count,
+            0
+        );
     }
 
     #[test]

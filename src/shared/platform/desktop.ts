@@ -58,6 +58,9 @@ import type {
   SearchAuthorizedContentInput,
   SearchAuthorizedContentOutput,
   RebuildAuthorizedSearchIndexOutput,
+  SetTelemetrySettingsInput,
+  TelemetryDictionary,
+  TelemetrySettings,
 } from '../types/domain';
 
 export interface BootstrapStatus {
@@ -113,6 +116,21 @@ export const desktopApi = {
   async exportDiagnostics(): Promise<{ exported: boolean; fileName: string | null }> {
     requireDesktop();
     return invoke<{ exported: boolean; fileName: string | null }>('export_diagnostics');
+  },
+
+  async getTelemetrySettings(): Promise<TelemetrySettings> {
+    requireDesktop();
+    return invoke<TelemetrySettings>('get_telemetry_settings');
+  },
+
+  async setTelemetrySettings(input: SetTelemetrySettingsInput): Promise<TelemetrySettings> {
+    requireDesktop();
+    return invoke<TelemetrySettings>('set_telemetry_settings', { input });
+  },
+
+  async exportEventDictionary(): Promise<TelemetryDictionary> {
+    requireDesktop();
+    return invoke<TelemetryDictionary>('export_event_dictionary');
   },
 
   async listResults(workspaceId?: string, includeArchived = false): Promise<ResultSummary[]> {

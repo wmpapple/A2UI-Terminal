@@ -30,6 +30,8 @@ import type {
   TaskDetail,
   TaskRunResult,
   TaskTemplate,
+  TelemetryDictionary,
+  TelemetrySettings,
   WorkspaceDocument,
 } from '../types/domain';
 
@@ -177,6 +179,33 @@ const documentSourceCapabilities = new Set([
   'visual_context',
 ]);
 const processingLocations = new Set(['local', 'cloud']);
+const telemetryEventNames = new Set([
+  'task_created',
+  'task_completed',
+  'review_presented',
+  'review_decision',
+  'review_adopted',
+  'accepted_patch',
+  'undo_completed',
+  'result_saved',
+  'result_created',
+  'result_exported',
+  'context_planned',
+  'context_confirmed',
+  'first_core_loop_completed',
+  'ai_request_completed',
+  'a2ui_rendered',
+  'crash_recovery_detected',
+  'performance_sample',
+]);
+const telemetryKpiKeys = new Set([
+  'task_completion_rate',
+  'review_adoption_rate',
+  'accepted_patch_rate',
+  'undo_rate',
+  'export_save_rate',
+  'context_confirmation_rate',
+]);
 const contextManifestStatuses = new Set(['awaiting_confirmation', 'confirmed']);
 const contextStrategies = new Set(['full', 'retrieval', 'hybrid']);
 const contextSourceModes = new Set(['full', 'retrieved', 'excluded']);
@@ -307,6 +336,64 @@ export const isLocalProviderProbe = (value: unknown): value is LocalProviderProb
   value.models.length <= 100 &&
   isNullableNumber(value.latencyMs) &&
   isNullableString(value.failureCode);
+
+const isCountMap = (value: unknown): value is Record<string, number> =>
+  isObject(value) &&
+  Object.entries(value).every(
+    ([name, count]) =>
+      telemetryEventNames.has(name) && isNumber(count) && Number.isInteger(count) && count >= 0
+  );
+
+export const isTelemetrySettings = (value: unknown): value is TelemetrySettings =>
+  isObject(value) &&
+  isBoolean(value.enabled) &&
+  isBoolean(value.invitationEligible) &&
+  isBoolean(value.invitationDismissed) &&
+  value.uploadConfigured === false &&
+  value.collectionMode === 'local_only' &&
+  isNumber(value.localEventCount) &&
+  Number.isInteger(value.localEventCount) &&
+  value.localEventCount >= 0 &&
+  isCountMap(value.eventCounts) &&
+  Array.isArray(value.kpis) &&
+  value.kpis.length === telemetryKpiKeys.size &&
+  value.kpis.every(
+    (kpi) =>
+      isObject(kpi) &&
+      isString(kpi.key) &&
+      telemetryKpiKeys.has(kpi.key) &&
+      isNumber(kpi.numerator) &&
+      Number.isInteger(kpi.numerator) &&
+      kpi.numerator >= 0 &&
+      isNumber(kpi.denominator) &&
+      Number.isInteger(kpi.denominator) &&
+      kpi.denominator >= 0 &&
+      (kpi.rateBasisPoints === null ||
+        (isNumber(kpi.rateBasisPoints) &&
+          Number.isInteger(kpi.rateBasisPoints) &&
+          kpi.rateBasisPoints >= 0 &&
+          kpi.rateBasisPoints <= 10000))
+  );
+
+export const isTelemetryDictionary = (value: unknown): value is TelemetryDictionary =>
+  isObject(value) &&
+  value.schemaVersion === 1 &&
+  value.uploadConfigured === false &&
+  value.collectionMode === 'local_only' &&
+  isStringArray(value.commonFields) &&
+  isStringArray(value.neverCollected) &&
+  Array.isArray(value.events) &&
+  value.events.length === telemetryEventNames.size &&
+  value.events.every(
+    (event) =>
+      isObject(event) &&
+      isString(event.name) &&
+      telemetryEventNames.has(event.name) &&
+      isString(event.descriptionZh) &&
+      isString(event.descriptionEn) &&
+      isStringArray(event.fields)
+  ) &&
+  isCountMap(value.localEventCounts);
 
 const isTableLimits = (value: unknown): boolean =>
   isObject(value) &&

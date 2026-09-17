@@ -9,7 +9,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 13;
+const SCHEMA_VERSION: i64 = 15;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -23,6 +23,8 @@ const MIGRATION_V10: &str = include_str!("../../migrations/0010_tasks_and_templa
 const MIGRATION_V11: &str = include_str!("../../migrations/0011_review_pipeline.sql");
 const MIGRATION_V12: &str = include_str!("../../migrations/0012_context_packs.sql");
 const MIGRATION_V13: &str = include_str!("../../migrations/0013_a2ui_templates.sql");
+const MIGRATION_V14: &str = include_str!("../../migrations/0014_product_events.sql");
+const MIGRATION_V15: &str = include_str!("../../migrations/0015_product_event_allowlist.sql");
 const MIGRATIONS: &[(i64, &str)] = &[
     (1, MIGRATION_V1),
     (2, MIGRATION_V2),
@@ -37,6 +39,8 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (11, MIGRATION_V11),
     (12, MIGRATION_V12),
     (13, MIGRATION_V13),
+    (14, MIGRATION_V14),
+    (15, MIGRATION_V15),
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -473,6 +477,14 @@ pub struct DiagnosticCounts {
     pub tasks: u64,
     pub results: u64,
     pub review_requests: u64,
+    pub product_events: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TelemetrySettingsRow {
+    pub enabled: bool,
+    pub invitation_eligible: bool,
+    pub invitation_dismissed: bool,
 }
 
 fn result_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ResultRow> {
@@ -621,7 +633,139 @@ impl Storage {
             tasks: count("tasks")?,
             results: count("results")?,
             review_requests: count("review_requests")?,
+            product_events: count("product_events")?,
         })
+    }
+
+    pub(crate) fn telemetry_settings(&self) -> Result<TelemetrySettingsRow, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        connection
+            .query_row(
+                "SELECT enabled, invitation_eligible, invitation_dismissed
+                 FROM telemetry_settings WHERE singleton = 1",
+                [],
+                |row| {
+                    Ok(TelemetrySettingsRow {
+                        enabled: row.get::<_, i64>(0)? != 0,
+                        invitation_eligible: row.get::<_, i64>(1)? != 0,
+                        invitation_dismissed: row.get::<_, i64>(2)? != 0,
+                    })
+                },
+            )
+            .map_err(AppError::from)
+    }
+
+    pub(crate) fn set_telemetry_settings(
+        &self,
+        enabled: bool,
+        dismiss_invitation: bool,
+    ) -> Result<(), AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction()?;
+        transaction.execute(
+            "UPDATE telemetry_settings
+             SET enabled = ?1,
+                 invitation_dismissed = CASE
+                   WHEN ?2 = 1 AND invitation_eligible = 1 THEN 1 ELSE invitation_dismissed END,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE singleton = 1",
+            params![
+                if enabled { 1_i64 } else { 0_i64 },
+                if dismiss_invitation { 1_i64 } else { 0_i64 }
+            ],
+        )?;
+        if !enabled {
+            transaction.execute("DELETE FROM product_events", [])?;
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub(crate) fn mark_telemetry_invitation_eligible(&self) -> Result<bool, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let changed = connection.execute(
+            "UPDATE telemetry_settings
+             SET invitation_eligible = 1, updated_at = CURRENT_TIMESTAMP
+             WHERE singleton = 1 AND invitation_eligible = 0",
+            [],
+        )?;
+        Ok(changed > 0)
+    }
+
+    pub(crate) fn insert_product_event(
+        &self,
+        id: &str,
+        event_name: &str,
+        app_version: &str,
+        properties_json: &str,
+    ) -> Result<bool, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let enabled = connection.query_row(
+            "SELECT enabled FROM telemetry_settings WHERE singleton = 1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )? != 0;
+        if !enabled {
+            return Ok(false);
+        }
+        connection.execute(
+            "INSERT INTO product_events
+             (id, event_name, event_version, app_version, platform, properties_json)
+             VALUES (?1, ?2, 1, ?3, 'windows', ?4)",
+            params![id, event_name, app_version, properties_json],
+        )?;
+        Ok(true)
+    }
+
+    pub(crate) fn product_event_counts(&self) -> Result<Vec<(String, u64)>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut statement = connection.prepare(
+            "SELECT event_name, COUNT(*) FROM product_events
+             GROUP BY event_name ORDER BY event_name",
+        )?;
+        let rows = statement.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?.max(0) as u64,
+            ))
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub(crate) fn product_operation_counts(
+        &self,
+        operations: &[&str],
+    ) -> Result<(u64, u64), AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut success = 0;
+        let mut total = 0;
+        for operation in operations {
+            let (s, t) = connection.query_row(
+                "SELECT COALESCE(SUM(json_extract(properties_json, '$.outcome') = 'success'),0), COUNT(*) FROM product_events WHERE event_name='performance_sample' AND json_valid(properties_json) AND json_extract(properties_json, '$.operation')=?1 AND json_extract(properties_json, '$.outcome') IN ('success','failure')",
+                [operation], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
+            )?;
+            success += s as u64;
+            total += t as u64;
+        }
+        Ok((success, total))
     }
 
     pub fn provider_ids(&self) -> Result<Vec<String>, AppError> {
@@ -3273,7 +3417,10 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         let transaction = connection.transaction()?;
         transaction.execute_batch(
-            "DELETE FROM review_requests;
+            "DELETE FROM product_events;
+             DELETE FROM telemetry_settings;
+             INSERT INTO telemetry_settings(singleton) VALUES (1);
+             DELETE FROM review_requests;
              DELETE FROM tasks;
              DELETE FROM results;
              DELETE FROM a2ui_events;
@@ -3428,6 +3575,49 @@ impl Storage {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn upgrades_early_v14_event_allowlist_without_losing_events_or_consent() {
+        let mut connection = rusqlite::Connection::open_in_memory().unwrap();
+        super::Storage::migrate_to(&mut connection, 13, super::MIGRATIONS).unwrap();
+        let mut early = super::MIGRATION_V14.to_string();
+        for name in [
+            "task_created",
+            "review_presented",
+            "review_adopted",
+            "result_created",
+            "context_planned",
+        ] {
+            early = early.replace(&format!("        '{name}',"), "");
+        }
+        connection.execute_batch(&early).unwrap();
+        connection.execute_batch("PRAGMA user_version=14; UPDATE telemetry_settings SET enabled=1, invitation_eligible=1; INSERT INTO product_events(id,event_name,app_version,platform,properties_json) VALUES ('old','result_exported','0.1.9','windows','{}');").unwrap();
+        assert!(connection.execute("INSERT INTO product_events(id,event_name,app_version,platform,properties_json) VALUES ('new','result_created','0.1.9','windows','{}')", []).is_err());
+        super::Storage::migrate_to(&mut connection, 15, super::MIGRATIONS).unwrap();
+        for name in [
+            "task_created",
+            "review_presented",
+            "review_adopted",
+            "result_created",
+            "context_planned",
+        ] {
+            connection.execute("INSERT INTO product_events(id,event_name,app_version,platform,properties_json) VALUES (?1,?1,'0.1.9','windows','{}')", [name]).unwrap();
+        }
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM product_events", [], |r| r
+                    .get::<_, i64>(0))
+                .unwrap(),
+            6
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT enabled FROM telemetry_settings", [], |r| r
+                    .get::<_, i64>(0))
+                .unwrap(),
+            1
+        );
+        assert!(connection.execute("INSERT INTO product_events(id,event_name,app_version,platform,properties_json) VALUES ('bad','unknown','0.1.9','windows','{}')", []).is_err());
+    }
     use super::{Storage, MIGRATIONS, MIGRATION_V1, SCHEMA_VERSION};
     use crate::error::AppError;
     use rusqlite::{params, Connection, OptionalExtension};
@@ -3461,6 +3651,8 @@ mod tests {
             "context_packs",
             "context_pack_items",
             "a2ui_templates",
+            "telemetry_settings",
+            "product_events",
         ] {
             assert!(
                 storage.table_exists(table).unwrap(),

@@ -12,6 +12,18 @@ vi.mock('../../../shared/platform/desktop', () => ({
   desktopApi: {
     exportDiagnostics: exportDiagnosticsMock,
     clearAllLocalData: vi.fn(),
+    getTelemetrySettings: vi.fn().mockResolvedValue({
+      enabled: false,
+      invitationEligible: false,
+      invitationDismissed: false,
+      uploadConfigured: false,
+      collectionMode: 'local_only',
+      localEventCount: 0,
+      eventCounts: {},
+      kpis: [],
+    }),
+    setTelemetrySettings: vi.fn(),
+    exportEventDictionary: vi.fn(),
   },
 }));
 

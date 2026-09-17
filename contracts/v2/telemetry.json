@@ -1,0 +1,146 @@
+{
+  "settings": {
+    "enabled": false,
+    "invitationEligible": true,
+    "invitationDismissed": false,
+    "uploadConfigured": false,
+    "collectionMode": "local_only",
+    "localEventCount": 0,
+    "eventCounts": {},
+    "kpis": [
+      { "key": "task_completion_rate", "numerator": 0, "denominator": 0, "rateBasisPoints": null },
+      { "key": "review_adoption_rate", "numerator": 0, "denominator": 0, "rateBasisPoints": null },
+      { "key": "accepted_patch_rate", "numerator": 0, "denominator": 0, "rateBasisPoints": null },
+      { "key": "undo_rate", "numerator": 0, "denominator": 0, "rateBasisPoints": null },
+      { "key": "export_save_rate", "numerator": 0, "denominator": 0, "rateBasisPoints": null },
+      {
+        "key": "context_confirmation_rate",
+        "numerator": 0,
+        "denominator": 0,
+        "rateBasisPoints": null
+      }
+    ]
+  },
+  "dictionary": {
+    "schemaVersion": 1,
+    "uploadConfigured": false,
+    "collectionMode": "local_only",
+    "commonFields": ["event_name", "event_version", "app_version", "platform"],
+    "neverCollected": [
+      "document_content",
+      "prompt",
+      "ai_response",
+      "file_name_or_path",
+      "image_content",
+      "api_key",
+      "endpoint_or_model_id",
+      "identity_or_contact",
+      "local_index_content"
+    ],
+    "events": [
+      {
+        "name": "task_created",
+        "descriptionZh": "任务已创建",
+        "descriptionEn": "A task was created",
+        "fields": ["created"]
+      },
+      {
+        "name": "task_completed",
+        "descriptionZh": "任务形成成果",
+        "descriptionEn": "A task produced a result",
+        "fields": ["completed"]
+      },
+      {
+        "name": "review_presented",
+        "descriptionZh": "审阅已展示",
+        "descriptionEn": "A review was presented",
+        "fields": ["presented"]
+      },
+      {
+        "name": "review_decision",
+        "descriptionZh": "审阅采用情况",
+        "descriptionEn": "Review adoption outcome",
+        "fields": ["decision"]
+      },
+      {
+        "name": "review_adopted",
+        "descriptionZh": "审阅已采用",
+        "descriptionEn": "A review was adopted",
+        "fields": ["adopted"]
+      },
+      {
+        "name": "accepted_patch",
+        "descriptionZh": "已接受修改",
+        "descriptionEn": "An accepted patch was applied",
+        "fields": ["accepted"]
+      },
+      {
+        "name": "undo_completed",
+        "descriptionZh": "完成撤销",
+        "descriptionEn": "An undo completed",
+        "fields": ["completed"]
+      },
+      {
+        "name": "result_saved",
+        "descriptionZh": "成果已保存",
+        "descriptionEn": "A result was saved",
+        "fields": ["saved"]
+      },
+      {
+        "name": "result_created",
+        "descriptionZh": "成果已创建",
+        "descriptionEn": "A result was created",
+        "fields": ["created"]
+      },
+      {
+        "name": "result_exported",
+        "descriptionZh": "成果已导出",
+        "descriptionEn": "A result was exported",
+        "fields": ["format_category"]
+      },
+      {
+        "name": "context_confirmed",
+        "descriptionZh": "发送清单已确认",
+        "descriptionEn": "A context manifest was confirmed",
+        "fields": ["processing_location"]
+      },
+      {
+        "name": "context_planned",
+        "descriptionZh": "发送清单已准备",
+        "descriptionEn": "A context manifest was prepared",
+        "fields": ["planned"]
+      },
+      {
+        "name": "first_core_loop_completed",
+        "descriptionZh": "首次成果闭环完成",
+        "descriptionEn": "The first core result loop completed",
+        "fields": ["trigger"]
+      },
+      {
+        "name": "ai_request_completed",
+        "descriptionZh": "AI 请求结果与耗时区间",
+        "descriptionEn": "AI request outcome and duration bucket",
+        "fields": ["outcome", "error_category", "duration_bucket", "processing_location"]
+      },
+      {
+        "name": "a2ui_rendered",
+        "descriptionZh": "交互界面渲染结果",
+        "descriptionEn": "A2UI rendering outcome",
+        "fields": ["outcome", "error_category", "duration_bucket"]
+      },
+      {
+        "name": "crash_recovery_detected",
+        "descriptionZh": "发现可恢复草稿",
+        "descriptionEn": "A recoverable draft was detected",
+        "fields": ["recovery_available"]
+      },
+      {
+        "name": "performance_sample",
+        "descriptionZh": "核心操作耗时区间",
+        "descriptionEn": "Core operation duration bucket",
+        "fields": ["operation", "outcome", "duration_bucket"]
+      }
+    ],
+    "localEventCounts": {}
+  }
+}

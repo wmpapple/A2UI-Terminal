@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S4.1 已验收，S4.2 本地模型探测与简单模型策略已实现、待人工验收（见 LOG-0140）
+> 文档状态：V2 目标架构基线；S1.1—S4.2 已验收，S4.3 隐私安全产品事件与 KPI 已实现、待人工验收（见 LOG-0143）
 > 建立日期：2026-08-11  
 > 对照代码：`main` 分支 S3.1 提交 `8222b9e`；用户已于 2026-09-11 验收 S3.1
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
@@ -103,7 +103,7 @@ React components
 | 模式     | S1.3 双模式外壳与 S1.5 成果专用工作台已实现                                                                    | S2.3 后接通成果 AI 上下文                           |
 | 首页     | S1.4 已验收引导/六类入口，S1.5 已接入新建和特定 Result 重开                                                    | 完整导入和真实模型路径仍属后续阶段                  |
 | 模型路径 | S4.2 已实现固定回环本地模型探测、普通模式处理状态和专业模式技术明细                                            | 内置试用服务仍受 O-08 阻塞                          |
-| 指标     | 有安全审计，没有产品事件体系                                                                                   | 无 WUO、激活、审阅、保存、导出、恢复等隐私安全埋点  |
+| 指标     | S4.3 已实现默认关闭的本机产品事件、严格字段字典、六项成果 KPI 和隐私设置                                       | O-06 未关闭前不上传                                 |
 | 搜索     | S4.1 已验收 Result、已授权资料与资料包元数据的本机内存统一搜索                                                 | 持久语义索引不在 P0 范围                            |
 
 ### 3.5 当前结构热点
@@ -340,7 +340,9 @@ Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字
 
 ### 6.1 当前 SQLite
 
-`[IMPLEMENTED — S3.5 ACCEPTED / S4.1 READY FOR ACCEPTANCE]` 当前 schema v13 包含：
+`[IMPLEMENTED — S4.3 READY FOR ACCEPTANCE]` 当前 schema v15 包含：
+
+v15 以事务重建 product_events 白名单约束，兼容早期已安装 v14 缺少五类分母事件的数据库，原样保留事件与隐私设置。已执行的 v14 不会因 SQL 文件更新而重新执行，修正必须通过前向迁移。
 
 - `workspaces`、`workspace_files`、`workspace_drafts`
 - `sessions`、`messages`、`context_snapshots`
@@ -353,25 +355,26 @@ Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字
 - `review_requests` / `review_blocks`（schema v11；候选 payload、逐块决定、应用/冲突/撤销关联）
 - `context_packs` / `context_pack_items`（schema v12；工作区级来源引用集合，不存正文）
 - `a2ui_templates`（schema v13；工作区级安全 Surface 快照、兼容元数据和权限摘要）
+- `telemetry_settings` / `product_events`（schema v14；默认关闭、固定字段、本机计数；无上传队列）
 
 ### 6.2 V2 目标表
 
-`[CURRENT + TARGET]` 从 v9 起只做前向、连续、事务迁移；v9 Result、v10 Task/Template、v11 Review、v12 Context Pack 与 v13 个人 Surface 模板已落地：
+`[CURRENT + TARGET]` 从 v9 起只做前向、连续、事务迁移；v9 Result、v10 Task/Template、v11 Review、v12 Context Pack、v13 个人 Surface 模板与 v14 本机产品事件已落地：
 
-| 表                                     | 作用                                       | 关键关系                                           |
-| -------------------------------------- | ------------------------------------------ | -------------------------------------------------- |
-| `results`                              | 成果聚合和当前状态（v9 已落地基础字段）    | workspace、task、session、current revision         |
-| `tasks`                                | 任务生命周期和结构化输入（v10 基础已落地） | workspace、template、result；context manifest 后续 |
-| `review_requests`                      | 统一审阅头（v11 已落地）                   | result、base revision、patch operation             |
-| `review_blocks`                        | 语义块决定（v11 已落地）                   | review request                                     |
-| `context_manifests`                    | 一次实际发送的策略、模式与汇总             | task、session/request                              |
-| `context_manifest_sources`             | 来源元数据，不存长期正文                   | manifest                                           |
-| `context_packs` / `context_pack_items` | 可复用资料引用集合（v12 已落地）           | workspace、workspace file source                   |
-| `task_templates`                       | 内置任务模板及版本（v10 已落地）           | 当前为全局内置任务模板                             |
-| `a2ui_templates`                       | 个人安全 Surface 模板（v13 已落地）        | workspace；来源 Surface 仅作审计提示，不作级联外键 |
-| `export_jobs`                          | 导出格式、版本、状态、脱敏错误             | result/revision                                    |
-| `product_events`                       | 本地隐私安全行为事件                       | optional task/result                               |
-| `search_documents`                     | 可选的未来持久语义索引；S4.1 P0 不落表     | result/context item                                |
+| 表                                      | 作用                                       | 关键关系                                           |
+| --------------------------------------- | ------------------------------------------ | -------------------------------------------------- |
+| `results`                               | 成果聚合和当前状态（v9 已落地基础字段）    | workspace、task、session、current revision         |
+| `tasks`                                 | 任务生命周期和结构化输入（v10 基础已落地） | workspace、template、result；context manifest 后续 |
+| `review_requests`                       | 统一审阅头（v11 已落地）                   | result、base revision、patch operation             |
+| `review_blocks`                         | 语义块决定（v11 已落地）                   | review request                                     |
+| `context_manifests`                     | 一次实际发送的策略、模式与汇总             | task、session/request                              |
+| `context_manifest_sources`              | 来源元数据，不存长期正文                   | manifest                                           |
+| `context_packs` / `context_pack_items`  | 可复用资料引用集合（v12 已落地）           | workspace、workspace file source                   |
+| `task_templates`                        | 内置任务模板及版本（v10 已落地）           | 当前为全局内置任务模板                             |
+| `a2ui_templates`                        | 个人安全 Surface 模板（v13 已落地）        | workspace；来源 Surface 仅作审计提示，不作级联外键 |
+| `export_jobs`                           | 导出格式、版本、状态、脱敏错误             | result/revision                                    |
+| `telemetry_settings` / `product_events` | 本地隐私设置与严格白名单行为事件（v14）    | 不保存业务对象 ID；O-06 关闭前无上传               |
+| `search_documents`                      | 可选的未来持久语义索引；S4.1 P0 不落表     | result/context item                                |
 
 迁移规则：
 
@@ -389,6 +392,8 @@ v11 迁移只新增 Review 表和索引，保留旧 Patch/Revision/Result；外�
 v12 迁移只新增 Context Pack 头、来源引用和索引；Pack 名称在工作区内大小写不敏感唯一，引用通过 `workspace_files.source_id` 外键级联。撤销来源只删除授权记录及其 Pack 引用，空 Pack 随后清理；不执行任何磁盘文件删除。迁移失败时两张 Pack 表和 `user_version` 一并回滚。
 
 S4.1 不新增 migration。统一搜索沿用 ADR-019 的进程内确定性词法索引，只缓存受控分块和 Hash；每次查询从当前 Result/授权引用重建候选集合，撤销来源、删除资料包、删除/切换工作区或清除数据时清空。`rebuild_authorized_search_index` 只丢弃可重建缓存，不修改 Result、Revision 或原文件。
+
+v14 迁移新增单例 `telemetry_settings` 和 `product_events`。默认 `enabled=0`；事件名由 SQLite CHECK 与 Rust `ProductEvent` 双重限制，属性只能由 Rust 强类型枚举生成，前端没有任意事件写入 IPC。关闭开关会清除本机事件；一键清理删除并重建默认关闭设置。事件没有安装/用户/工作区/会话/成果标识，也没有上传队列或网络端点。
 
 ### 6.3 状态所有权
 
@@ -581,7 +586,7 @@ S3.3 二次人工复验修复（LOG-0120）：要求通用 Provider 重复生成
 - `[DECISION]` 首次关键路径默认提供平台内置模型和受控试用额度，不要求用户配置 API Key；本地 Ollama/LM Studio 和自有 Key 作为可选路径。
 - `[OPEN]` 仓库尚无内置试用服务。实现前仍需确定模型供应、服务端鉴权、额度、滥用控制、成本、隐私条款和失败降级；不能把平台密钥嵌入客户端，也不能用假成功替代。
 
-`[IMPLEMENTED — S4.2 READY FOR ACCEPTANCE]` 本地探测只访问固定 `127.0.0.1:11434/v1`（Ollama）、`127.0.0.1:1234/v1`（LM Studio）和用户已明确保存的 `custom` 回环兼容端点。Rust 将 `localhost` 规范为数值回环，拒绝局域网、通配地址、伪 localhost、带凭据 URL、重定向和代理；只执行短超时、有界响应的 `GET /v1/models`，失败按候选隔离，不修改 Provider 配置或活动状态。普通模式只显示处理位置、可用状态和本机服务数量，Endpoint、模型 ID、Temperature、Proxy 与 Key 继续只存在于专业模式。schema 保持 v13；O-08 不因本阶段关闭。
+`[IMPLEMENTED — S4.2 ACCEPTED]` 本地探测只访问固定 `127.0.0.1:11434/v1`（Ollama）、`127.0.0.1:1234/v1`（LM Studio）和用户已明确保存的 `custom` 回环兼容端点。Rust 将 `localhost` 规范为数值回环，拒绝局域网、通配地址、伪 localhost、带凭据 URL、重定向和代理；只执行短超时、有界响应的 `GET /v1/models`，失败按候选隔离，不修改 Provider 配置或活动状态。普通模式只显示处理位置、可用状态和本机服务数量，Endpoint、模型 ID、Temperature、Proxy 与 Key 继续只存在于专业模式。schema 保持 v13；O-08 不因本阶段关闭。用户已于 2026-09-17 完成人工验收。
 
 ## 9. 简单模式与专业模式
 
@@ -633,7 +638,7 @@ export:   start_export, cancel_export, list_result_exports
 template: list_templates, save_personal_template, archive_personal_template
 search:   search_authorized_content, rebuild_authorized_search_index  # S4.1 已实现并使用最小 Capability
 provider: get_processing_options, probe_local_providers  # S4.2 已实现并使用最小只读 Capability
-telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionary
+telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionary  # S4.3 已实现；仅本机，无上传
 ```
 
 这不是一次性添加清单。每个阶段只开放已实现且有权限测试的命令。
@@ -657,12 +662,15 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 - “内容永不上报”是硬性红线：文档正文、Prompt、AI 回复、文件名、完整/绝对路径、图片内容、API Key、具体 Endpoint、邮箱、姓名、身份信息和本地资料索引内容不得进入匿名事件。
 - 匿名指标默认关闭；用户完成首次核心闭环后，产品可用非打扰方式邀请其主动开启，不得使用默认勾选、阻断流程或诱导性文案。
 - 设置固定提供“隐私 → 帮助改进产品”开关和“查看将发送的数据”入口；开启前即可查看字段，用户可随时关闭，关闭后停止后续上传。
+- `[IMPLEMENTED — S4.3 READY FOR ACCEPTANCE]` 开关默认关闭且关闭时不写事件；首次保存/导出/已审阅修改后才显示非阻断邀请。开启后只记录固定事件和区间字段，关闭会清除本机计数。O-06 未关闭，因此 `uploadConfigured=false`，不存在上传队列、接收端或后台发送。
 - 搜索/检索索引必须继承授权与排除规则，并能随授权撤销删除。
 - 任务模板只存字段结构和规则，不存敏感原文。
 - 清除本地数据必须覆盖 V2 新表、索引和本地遥测，但不删除真实成果文件，除非用户对具体文件另行确认。
 - 诊断计数需扩展到 V2 表，同时保持内容脱敏。
 
 ## 12. 非功能与可观测性
+
+S4.3 LOG-0156/0157 修订：保存/导出与撤销/恢复采用 operation 结束样本的 success/(success+failure)，取消不计，适用于新旧成果。复用 `performance_sample` 固定枚举 result_save/result_export/document_restore；普通持久化编辑和版本恢复不再遗漏，未保存 Ctrl+Z 不上报。AI 审阅/修改接受指标仍独立，不将手动修改视为 AI 接受。
 
 | 领域     | V2 门槛                                                    |
 | -------- | ---------------------------------------------------------- |
@@ -714,7 +722,8 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 | EXP-01…04     | Export Service、export jobs、format adapters        | EXP-01…03 Current（S2.8 已验收）；其余 Target              |
 | RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target                  |
 | SEL-01        | Selection controller → Review Pipeline              | S2.6 Current（已验收）                                     |
-| PRV-04/MDL-05 | Processing options、local probe                     | S4.2 已实现，待桌面人工验收                                |
+| PRV-04/MDL-05 | Processing options、local probe                     | S4.2 Current（已验收）                                     |
+| KPI/PRIVACY   | Product events、allowlist、privacy settings         | S4.3 已实现，待桌面人工验收                                |
 | SRCH-01       | 授权索引和 Search Service                           | S4.1 Current（已验收）                                     |
 | ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                                     |
 | A2UI-06       | capability negotiation + conformance CI             | S3.1 Current（已验收）                                     |
@@ -748,12 +757,12 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 
 ### 15.2 实施前必须关闭的开放问题
 
-| ID   | 问题                                                                       | 阻塞范围                    |
-| ---- | -------------------------------------------------------------------------- | --------------------------- |
-| O-03 | 已按 ADR-021 关闭；本地 Rust 生成器和 OFL 字体，许可证归档见第三方声明     | 已关闭，不再阻塞            |
-| O-06 | 匿名指标上传接收端、保留期、聚合方式和删除机制是什么？                     | 指标与 Beta                 |
-| O-07 | “A2UI 工作台”从 0.1.9 开始采用什么版本号、安装包标识和升级兼容策略？       | V2-D 发布                   |
-| O-08 | 内置试用模型的供应商、服务端鉴权、额度、滥用控制、成本和失败降级如何实现？ | V2-A 首次完整生成、发布验收 |
+| ID   | 问题                                                                       | 阻塞范围                               |
+| ---- | -------------------------------------------------------------------------- | -------------------------------------- |
+| O-03 | 已按 ADR-021 关闭；本地 Rust 生成器和 OFL 字体，许可证归档见第三方声明     | 已关闭，不再阻塞                       |
+| O-06 | 匿名指标上传接收端、保留期、聚合方式和删除机制是什么？                     | 远程上传与 Beta；S4.3 本机事件不受阻塞 |
+| O-07 | “A2UI 工作台”从 0.1.9 开始采用什么版本号、安装包标识和升级兼容策略？       | V2-D 发布                              |
+| O-08 | 内置试用模型的供应商、服务端鉴权、额度、滥用控制、成本和失败降级如何实现？ | V2-A 首次完整生成、发布验收            |
 
 开放问题不得由开发者在代码中静默选择。临时实现若不影响外部行为，必须写入实施账本并标为可逆假设。
 

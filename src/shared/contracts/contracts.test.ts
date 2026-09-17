@@ -17,6 +17,7 @@ import contextPackFixture from '../../../contracts/v2/context-pack.json';
 import a2uiCapabilities from '../../../contracts/v2/a2ui-capabilities.json';
 import searchFixture from '../../../contracts/v2/search.json';
 import providerProcessingFixture from '../../../contracts/v2/provider-processing.json';
+import telemetryFixture from '../../../contracts/v2/telemetry.json';
 import {
   isExportResultInput,
   isExportResultOutput,
@@ -52,6 +53,8 @@ import {
   isSearchAuthorizedContentOutput,
   isProcessingOptions,
   isLocalProviderProbe,
+  isTelemetryDictionary,
+  isTelemetrySettings,
 } from './guards';
 import { desktopApi } from '../platform/desktop';
 
@@ -132,6 +135,8 @@ describe('shared Rust/TypeScript contract fixtures', () => {
     expect(isSearchAuthorizedContentOutput(searchFixture.output)).toBe(true);
     expect(isProcessingOptions(providerProcessingFixture.processingOptions)).toBe(true);
     expect(providerProcessingFixture.localProbes.every(isLocalProviderProbe)).toBe(true);
+    expect(isTelemetrySettings(telemetryFixture.settings)).toBe(true);
+    expect(isTelemetryDictionary(telemetryFixture.dictionary)).toBe(true);
     expect(isReviewRequest(review.request)).toBe(true);
     expect(isReviewApplication(review.application)).toBe(true);
   });
@@ -150,6 +155,30 @@ describe('shared Rust/TypeScript contract fixtures', () => {
         providerProcessingFixture.localProbes
       );
       expect(invokeMock).toHaveBeenLastCalledWith('probe_local_providers');
+    } finally {
+      Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: original });
+    }
+  });
+
+  it('keeps telemetry default-off and exposes the dictionary without content input', async () => {
+    const original = window.__TAURI_INTERNALS__;
+    Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: {} });
+    try {
+      invokeMock.mockResolvedValueOnce(telemetryFixture.settings);
+      await expect(desktopApi.getTelemetrySettings()).resolves.toEqual(telemetryFixture.settings);
+      expect(invokeMock).toHaveBeenLastCalledWith('get_telemetry_settings');
+
+      invokeMock.mockResolvedValueOnce(telemetryFixture.dictionary);
+      await expect(desktopApi.exportEventDictionary()).resolves.toEqual(
+        telemetryFixture.dictionary
+      );
+      expect(invokeMock).toHaveBeenLastCalledWith('export_event_dictionary');
+
+      invokeMock.mockResolvedValueOnce({ ...telemetryFixture.settings, enabled: true });
+      await desktopApi.setTelemetrySettings({ enabled: true });
+      expect(invokeMock).toHaveBeenLastCalledWith('set_telemetry_settings', {
+        input: { enabled: true },
+      });
     } finally {
       Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: original });
     }

@@ -47,6 +47,53 @@
   gap: 12px;
 }
 
+.telemetryPanel,
+.eventDictionary {
+  display: grid;
+  gap: 12px;
+}
+
+.telemetryInviteActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fieldList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.eventItem > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.kpiPanel {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.kpiGrid > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--surface-subtle);
+}
+
 .packComposer {
   display: grid;
   grid-template-columns: minmax(140px, 0.7fr) minmax(220px, 1.3fr) auto;

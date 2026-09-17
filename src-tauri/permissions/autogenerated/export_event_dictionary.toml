@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-export-event-dictionary"
+description = "Enables the export_event_dictionary command without any pre-configured scope."
+commands.allow = ["export_event_dictionary"]
+
+[[permission]]
+identifier = "deny-export-event-dictionary"
+description = "Denies the export_event_dictionary command without any pre-configured scope."
+commands.deny = ["export_event_dictionary"]
