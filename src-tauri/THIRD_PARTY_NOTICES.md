@@ -1,4 +1,4 @@
-# A2UI Terminal third-party notices
+# A2UI 工作台 third-party notices
 
 This application-wide engineering inventory is checked against the committed
 `package-lock.json` and `src-tauri/Cargo.lock`. The `npm run audit:third-party`

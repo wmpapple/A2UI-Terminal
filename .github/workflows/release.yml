@@ -49,7 +49,7 @@ jobs:
           )
           $missing = $required | Where-Object { [string]::IsNullOrWhiteSpace((Get-Item "Env:$_").Value) }
           if ($missing) { throw "Missing production release inputs: $($missing -join ', ')" }
-          ./scripts/verify-release.ps1 -Tag '${{ github.ref_name }}'
+          ./scripts/verify-release.ps1 -Tag '${{ github.ref_name }}' -Mode SignedRelease
       - name: Run release quality gates
         shell: powershell
         run: |
@@ -109,7 +109,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'A2UI Terminal ${{ github.ref_name }}'
+          releaseName: 'A2UI 工作台 ${{ github.ref_name }}'
           releaseBody: 'Signed Windows installers and signed Tauri updater artifacts. Publish this draft only after the smoke checks pass.'
           releaseDraft: true
           prerelease: false
@@ -117,18 +117,7 @@ jobs:
           args: --config src-tauri/tauri.release.conf.json
       - name: Verify Authenticode and updater signatures
         shell: powershell
-        run: |
-          $installers = Get-ChildItem src-tauri/target/release/bundle -Recurse -File |
-            Where-Object { $_.Extension -in '.exe', '.msi' }
-          if (-not $installers) { throw 'No Windows installers were produced.' }
-          foreach ($installer in $installers) {
-            $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
-            if ($signature.Status -ne 'Valid') {
-              throw "Invalid Authenticode signature: $($installer.Name) ($($signature.Status))"
-            }
-          }
-          $updaterSignatures = Get-ChildItem src-tauri/target/release/bundle -Recurse -Filter '*.sig'
-          if (-not $updaterSignatures) { throw 'No Tauri updater signature was produced.' }
+        run: ./scripts/verify-windows-artifacts.ps1 -Mode SignedRelease
       - name: Smoke-test signed desktop binary
         shell: powershell
         run: ./scripts/smoke-desktop.ps1 -BinaryPath ./src-tauri/target/release/a2ui-terminal.exe

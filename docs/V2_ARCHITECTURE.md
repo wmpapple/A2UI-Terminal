@@ -1,6 +1,6 @@
-# A2UI Terminal V2.0 项目架构
+# A2UI 工作台 V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S4.6 已验收，S4.7 已完成实现与自动验证并等待人工验收（见 LOG-0172—0174）
+> 文档状态：V2 目标架构基线；S1.1—S4.7 已验收，S4.8 非签名实现与自动验证完成并等待人工验收，正式签名子项受阻（见 LOG-0175—0177）
 > 建立日期：2026-08-11  
 > 对照代码：`main` 分支 S3.1 提交 `8222b9e`；用户已于 2026-09-11 验收 S3.1
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
@@ -712,7 +712,8 @@ S4.5 LOG-0167 修订：前端以固定枚举记录首页可交互、普通文本
 - Windows desktop E2E/冒烟：真实文件授权、保存、恢复、导出、安装/升级。
 - A2UI conformance：合法/非法 fixture、未知组件/Action、版本不兼容、增量 revision。
 - `[IMPLEMENTED — S3.1 ACCEPTANCE ENV]` Windows 桌面验收通过 `npm run test:a2ui-conformance` 固定 stable、单任务、串行执行和隔离 target；当前库只生成桌面与测试需要的 `rlib`。`staticlib/cdylib` 属于尚未立项的 Tauri 移动端产物，未来启用 Android/iOS 前必须恢复并新增移动构建门禁。
-- `[IMPLEMENTED — S4.7 PENDING ACCEPTANCE]` `contracts/v2/beta-acceptance.json` 把四类 Beta 画像、四个 P0 模板、五类 Result、两个高频生命周期、PRD 12.3 派生准则和 P0 需求组绑定到实际测试/文档锚点；CI 运行 `audit:beta-evidence` 拒绝缺项或失效证据。Playwright 生命周期附件只含场景枚举、布尔结果和耗时，不进入产品遥测。原 PRD 登记路径已不存在，因此该 manifest 明确不是逐字副本；S4.8 前必须用固定 Hash 原件复核或由发布负责人接受限制。
+- `[IMPLEMENTED — S4.7 ACCEPTED]` `contracts/v2/beta-acceptance.json` 把四类 Beta 画像、四个 P0 模板、五类 Result、两个高频生命周期、PRD 12.3 派生准则和 P0 需求组绑定到实际测试/文档锚点；CI 运行 `audit:beta-evidence` 拒绝缺项或失效证据。Playwright 生命周期附件只含场景枚举、布尔结果和耗时，不进入产品遥测。原 PRD 登记路径已不存在，因此该 manifest 明确不是逐字副本；发布负责人已在 S4.7 人工验收中接受该限制。
+- `[IMPLEMENTED — S4.8 NON-SIGNING PENDING ACCEPTANCE / ADR-023]` V2 显示名与版本为“A2UI 工作台 2.0.0”，但 Windows bundle、二进制、数据库、凭据 service 和历史 MSI UpgradeCode 保持不变。NSIS 迁移旧显示名时只替换程序文件，默认升级/卸载保留数据；整目录卸载清理被阻止并引导使用应用内可信清理。release identity 与 unsigned/signed 门可机器校验；没有正式材料时不得生成或接受稳定签名产物。
 
 ### 13.2 发布阻断条件
 
@@ -737,7 +738,7 @@ S4.5 LOG-0167 修订：前端以固定枚举记录首页可交互、普通文本
 | RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target                  |
 | SEL-01        | Selection controller → Review Pipeline              | S2.6 Current（已验收）                                     |
 | PRV-04/MDL-05 | Processing options、local probe                     | S4.2 Current（已验收）                                     |
-| KPI/PRIVACY   | Product events、allowlist、privacy settings         | S4.3 Current；S4.6 安全审计已验收；S4.7 Beta 证据待验收    |
+| KPI/PRIVACY   | Product events、allowlist、privacy settings         | S4.3 Current；S4.6 安全审计与 S4.7 Beta 证据已验收         |
 | SRCH-01       | 授权索引和 Search Service                           | S4.1 Current（已验收）                                     |
 | ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                                     |
 | A2UI-06       | capability negotiation + conformance CI             | S3.1 Current（已验收）                                     |
@@ -768,15 +769,16 @@ S4.5 LOG-0167 修订：前端以固定枚举记录首页可交互、普通文本
 17. 用户可主动新建文本成果；AI 只能提议创建文件，用户接受 Review 前不得发生真实写入。
 18. 首期规范编辑格式为 UTF-8 Markdown/纯文本，不以完整 Office/PDF/XLSX 结构兼容或无损回写为目标。
 19. A2UI 生产协议固定官方 v0.9.1 与本地自定义 Catalog；私有 1.0 仅兼容，不冒充官方 1.0。
+20. Windows V2 显示名和版本采用“A2UI 工作台 2.0.0”，但保留历史技术身份、用户数据命名空间和 MSI UpgradeCode；升级与普通卸载默认保留数据，正式发布必须签名并验证升级。
 
 ### 15.2 实施前必须关闭的开放问题
 
-| ID   | 问题                                                                       | 阻塞范围                               |
-| ---- | -------------------------------------------------------------------------- | -------------------------------------- |
-| O-03 | 已按 ADR-021 关闭；本地 Rust 生成器和 OFL 字体，许可证归档见第三方声明     | 已关闭，不再阻塞                       |
-| O-06 | 匿名指标上传接收端、保留期、聚合方式和删除机制是什么？                     | 远程上传与 Beta；S4.3 本机事件不受阻塞 |
-| O-07 | “A2UI 工作台”从 0.1.9 开始采用什么版本号、安装包标识和升级兼容策略？       | V2-D 发布                              |
-| O-08 | 内置试用模型的供应商、服务端鉴权、额度、滥用控制、成本和失败降级如何实现？ | V2-A 首次完整生成、发布验收            |
+| ID   | 问题                                                                        | 阻塞范围                               |
+| ---- | --------------------------------------------------------------------------- | -------------------------------------- |
+| O-03 | 已按 ADR-021 关闭；本地 Rust 生成器和 OFL 字体，许可证归档见第三方声明      | 已关闭，不再阻塞                       |
+| O-06 | 匿名指标上传接收端、保留期、聚合方式和删除机制是什么？                      | 远程上传与 Beta；S4.3 本机事件不受阻塞 |
+| O-07 | 已按 ADR-023 关闭；2.0.0 改显示名但保留技术身份、数据命名空间与 UpgradeCode | 已关闭；正式签名材料仍是执行阻塞       |
+| O-08 | 内置试用模型的供应商、服务端鉴权、额度、滥用控制、成本和失败降级如何实现？  | V2-A 首次完整生成、发布验收            |
 
 开放问题不得由开发者在代码中静默选择。临时实现若不影响外部行为，必须写入实施账本并标为可逆假设。
 

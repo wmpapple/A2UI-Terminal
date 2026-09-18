@@ -446,7 +446,7 @@ describe('desktop workspace state', () => {
     vi.spyOn(desktopApi, 'saveWorkspaceDraft').mockResolvedValue();
     vi.spyOn(desktopApi, 'saveWorkspaceFile').mockRejectedValue({
       code: 'FILE_CONFLICT',
-      message: 'file changed outside A2UI Terminal',
+      message: 'file changed outside A2UI Workbench',
     });
     useAppStore.setState({
       workspace: { id: 'workspace-1', name: 'Project', available: true, kind: 'directory' },

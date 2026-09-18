@@ -352,7 +352,7 @@ pub async fn select_workspace(
     let selected = app
         .dialog()
         .file()
-        .set_title("选择 A2UI Terminal 工作区")
+        .set_title("选择 A2UI 工作台的工作区")
         .blocking_pick_folder();
     let Some(selected) = selected else {
         return Ok(None);
@@ -513,7 +513,7 @@ pub async fn select_context_files(
     let selected = app
         .dialog()
         .file()
-        .set_title("Select files for A2UI Terminal")
+        .set_title("Select files for A2UI Workbench")
         .add_filter(
             "Supported files",
             &[

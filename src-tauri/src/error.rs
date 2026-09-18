@@ -67,7 +67,7 @@ pub enum AppError {
     InvalidEncoding,
     #[error("selected file exceeds the size limit")]
     FileTooLarge,
-    #[error("file changed outside A2UI Terminal")]
+    #[error("file changed outside A2UI Workbench")]
     FileConflict,
     #[error(transparent)]
     Provider(#[from] ProviderFailure),

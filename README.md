@@ -1,6 +1,6 @@
-# A2UI Terminal
+# A2UI 工作台
 
-A2UI Terminal 是一个 Windows 优先、本地数据优先、文件修改必须审阅的 AI 工作台。桌面版支持真实工作区、显式上下文、持久化多会话、多个 AI Provider、语义 Patch、Diff、应用与撤销，以及受限 A2UI Runtime；Web 版只运行确定性 Mock，不访问真实文件、系统凭据或 Provider。
+A2UI 工作台（技术仓库名 `A2UI-Terminal`）是一个 Windows 优先、本地数据优先、文件修改必须审阅的 AI 工作台。桌面版支持真实工作区、显式上下文、持久化多会话、多个 AI Provider、语义 Patch、Diff、应用与撤销，以及受限 A2UI Runtime；Web 版只运行确定性 Mock，不访问真实文件、系统凭据或 Provider。
 
 ## 已实现能力
 

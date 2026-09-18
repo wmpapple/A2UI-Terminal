@@ -1,0 +1,42 @@
+{
+  "contractVersion": 1,
+  "releaseVersion": "2.0.0",
+  "previousDesktopVersion": "0.1.9",
+  "displayName": "A2UI 工作台",
+  "englishDisplayName": "A2UI Workbench",
+  "repositoryPackageName": "a2ui-terminal",
+  "technicalIdentity": {
+    "bundleIdentifier": "com.a2ui.terminal",
+    "mainBinaryName": "a2ui-terminal",
+    "databaseFileName": "a2ui-terminal.sqlite3",
+    "credentialService": "com.a2ui.terminal.provider"
+  },
+  "windows": {
+    "allowDowngrades": false,
+    "installMode": "currentUser",
+    "wixUpgradeCode": "04082aee-f6fd-526d-9670-71abf0ca6863",
+    "wixLanguage": "zh-CN",
+    "legacyNsisProductName": "A2UI Terminal",
+    "legacyNsisManufacturer": "a2ui",
+    "legacyMigrationHook": "src-tauri/windows/nsis-hooks.nsh"
+  },
+  "dataPolicy": {
+    "upgrade": "preserve",
+    "uninstallDefault": "preserve",
+    "explicitClear": "settings-before-uninstall",
+    "installerDeleteAppData": "blocked-to-protect-managed-results",
+    "preservedScopes": [
+      "sqlite-history-and-drafts",
+      "managed-results",
+      "credential-manager-provider-secrets",
+      "user-project-files",
+      "exported-files"
+    ]
+  },
+  "stableRelease": {
+    "requiresAuthenticode": true,
+    "requiresUpdaterSignature": true,
+    "requiresProtectedProductionApproval": true,
+    "currentBlocker": "formal-signing-materials-not-provided"
+  }
+}

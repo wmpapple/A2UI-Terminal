@@ -211,5 +211,5 @@ pub fn run() {
             commands::start_task,
         ])
         .run(tauri::generate_context!())
-        .expect("failed to start A2UI Terminal");
+        .expect("failed to start A2UI Workbench");
 }

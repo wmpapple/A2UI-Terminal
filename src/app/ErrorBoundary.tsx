@@ -24,7 +24,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
       return (
         <Result
           status="error"
-          title="A2UI Terminal could not render"
+          title="A2UI Workbench could not render"
           extra={<Button onClick={() => window.location.reload()}>Reload</Button>}
         />
       );

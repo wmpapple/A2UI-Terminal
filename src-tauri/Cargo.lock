@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "a2ui-terminal"
-version = "0.1.9"
+version = "2.0.0"
 dependencies = [
  "base64 0.22.1",
  "csv",

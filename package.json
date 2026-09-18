@@ -1,7 +1,7 @@
 {
   "name": "a2ui-terminal",
   "private": true,
-  "version": "0.1.9",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,6 +17,7 @@
     "test:e2e:install": "playwright install chromium",
     "audit:third-party": "node scripts/audit-third-party.mjs",
     "audit:beta-evidence": "node scripts/verify-beta-acceptance.mjs",
+    "audit:release": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-release.ps1",
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

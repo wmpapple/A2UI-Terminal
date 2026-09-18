@@ -1137,7 +1137,7 @@ fn semantic_patch_system_prompt(workspace_id: &str) -> String {
     let catalog_components = capabilities.catalog.components.join(", ");
     let catalog_actions = capabilities.catalog.actions.join(", ");
     format!(
-        r#"You are A2UI Terminal's coding assistant. Never claim a file was changed.
+        r#"You are A2UI Workbench's coding assistant. Never claim a file was changed.
 When modifying a supplied non-empty editable file, return exactly one JSON object and no prose. It must use this schema:
 {{"version":"1.0","type":"document_patch","workspaceId":"{workspace_id}","summary":"short summary","changes":[{{"id":"unique id","path":"exact context label","operation":"replace|insert_before|insert_after|delete","anchor":{{"before":"an exact non-empty uniquely occurring substring"}},"content":"replacement or insertion text; empty for delete","reason":"reason","risk":"low|medium|high"}}]}}
 Keep the patch compact: at most 3 changes, each anchor at most 500 characters, and each content at most 1500 characters. Never repeat unchanged file content. Do not calculate or include baseRevision, baseHash, or beforeHash; the trusted Rust runtime derives them from the current disk contents. Only propose changes for explicitly supplied editable text context. Do not use regex anchors, absolute paths, traversal, guessed content, or duplicate/overlapping anchors.

@@ -23,9 +23,9 @@ jobs:
           components: clippy,rustfmt
       - name: Install dependencies
         run: npm ci
-      - name: Verify synchronized versions
+      - name: Verify unsigned release identity
         shell: powershell
-        run: ./scripts/verify-release.ps1
+        run: ./scripts/verify-release.ps1 -Mode UnsignedAcceptance
       - name: Run frontend and Rust gates
         shell: powershell
         run: |
@@ -33,12 +33,15 @@ jobs:
           cargo test --manifest-path src-tauri/Cargo.toml --all-features
       - name: Build unsigned NSIS and MSI acceptance packages
         uses: tauri-apps/tauri-action@v1
+      - name: Verify packages are complete and unsigned
+        shell: powershell
+        run: ./scripts/verify-windows-artifacts.ps1 -Mode UnsignedAcceptance
       - name: Smoke-test desktop startup
         shell: powershell
         run: ./scripts/smoke-desktop.ps1 -BinaryPath ./src-tauri/target/release/a2ui-terminal.exe
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: a2ui-terminal-windows-${{ github.sha }}-unsigned
+          name: a2ui-workbench-windows-${{ github.sha }}-unsigned
           path: src-tauri/target/release/bundle/**
           if-no-files-found: error
