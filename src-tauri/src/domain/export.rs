@@ -14,6 +14,19 @@ pub enum ExportFormat {
 }
 
 impl ExportFormat {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Markdown => "markdown",
+            Self::PlainText => "plain_text",
+            Self::Docx => "docx",
+            Self::Pdf => "pdf",
+            Self::Rtf => "rtf",
+            Self::Csv => "csv",
+            Self::Xlsx => "xlsx",
+            Self::Json => "json",
+        }
+    }
+
     pub fn extension(self) -> &'static str {
         match self {
             Self::Markdown => "md",

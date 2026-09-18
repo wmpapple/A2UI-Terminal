@@ -11,6 +11,7 @@ use a2ui_terminal_lib::domain::context_pack::{
     ContextPack, CreateContextPackInput, DeleteContextPackOutput,
 };
 use a2ui_terminal_lib::domain::import::{ImportBatch, ImportDropOutcome};
+use a2ui_terminal_lib::domain::recovery::RecoveryStatus;
 use a2ui_terminal_lib::domain::result::{
     ResultDetail, ResultDocument, ResultRevision, ResultSummary,
 };
@@ -44,6 +45,17 @@ const SEARCH_FIXTURE: &str = include_str!("../../contracts/v2/search.json");
 const PROVIDER_PROCESSING_FIXTURE: &str =
     include_str!("../../contracts/v2/provider-processing.json");
 const TELEMETRY_FIXTURE: &str = include_str!("../../contracts/v2/telemetry.json");
+const RECOVERY_FIXTURE: &str = include_str!("../../contracts/v2/recovery.json");
+
+#[test]
+fn recovery_contract_exposes_no_destination_path_or_draft_content() {
+    let fixture: Value = serde_json::from_str(RECOVERY_FIXTURE).unwrap();
+    assert_round_trip::<RecoveryStatus>(&fixture);
+    let serialized = serde_json::to_string(&fixture).unwrap();
+    for forbidden in ["targetPath", "absolutePath", "content\""] {
+        assert!(!serialized.contains(forbidden));
+    }
+}
 
 #[test]
 fn telemetry_contract_exposes_only_the_fixed_dictionary_and_counts() {

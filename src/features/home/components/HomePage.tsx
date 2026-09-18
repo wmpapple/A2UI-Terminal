@@ -96,6 +96,7 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
   const runtimeMode = useAppStore((state) => state.runtimeMode);
   const templates = useHomeStore((state) => state.templates);
   const recentResults = useHomeStore((state) => state.recentResults);
+  const recoveryStatus = useHomeStore((state) => state.recoveryStatus);
   const activeTask = useHomeStore((state) => state.activeTask);
   const taskRunResult = useHomeStore((state) => state.taskRunResult);
   const initialized = useHomeStore((state) => state.initialized);
@@ -147,6 +148,9 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
       ? value
       : new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
   };
+  const recoveryResultId =
+    recoveryStatus?.resultDrafts[0]?.resultId ??
+    recoveryStatus?.exportJobs.find((job) => job.status === 'interrupted')?.resultId;
 
   return (
     <main className={styles.page} aria-labelledby="home-page-title">
@@ -164,6 +168,37 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
             <Button onClick={onOpenGuide}>{t('replayOnboarding')}</Button>
           </div>
         </div>
+
+        {recoveryStatus &&
+        (recoveryStatus.resultDrafts.length > 0 ||
+          recoveryStatus.activeReviewCount > 0 ||
+          recoveryStatus.exportJobs.some((job) => job.status === 'interrupted')) ? (
+          <Alert
+            className={styles.notice}
+            type="info"
+            showIcon
+            title={t('recoveryCenterTitle')}
+            description={t('recoveryCenterDescription')
+              .replace('{drafts}', String(recoveryStatus.resultDrafts.length))
+              .replace('{reviews}', String(recoveryStatus.activeReviewCount))
+              .replace('{tasks}', String(recoveryStatus.recoveredTaskCount))
+              .replace(
+                '{exports}',
+                String(
+                  recoveryStatus.exportJobs.filter(
+                    (job) => job.recovered || job.status === 'interrupted'
+                  ).length
+                )
+              )}
+            action={
+              recoveryResultId ? (
+                <Button size="small" onClick={() => onOpenWorkbench(recoveryResultId)}>
+                  {t('recoveryOpenResult')}
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : null}
 
         {error && taskAction === null ? (
           <Alert

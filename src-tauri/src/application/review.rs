@@ -75,7 +75,12 @@ pub fn decide(
     validate_id(&input.review_id, "审阅标识无效")?;
     validate_id(&input.workspace_id, "工作区标识无效")?;
     let current = get(storage, &input.review_id)?;
-    if current.workspace_id != input.workspace_id || current.status != ReviewStatus::Pending {
+    if current.workspace_id != input.workspace_id
+        || !matches!(
+            current.status,
+            ReviewStatus::Pending | ReviewStatus::Accepted | ReviewStatus::PartiallyAccepted
+        )
+    {
         return Err(AppError::InvalidInput(
             "审阅不属于当前工作区或已决定".into(),
         ));
@@ -439,7 +444,16 @@ fn create_document_patch(
     input: &CreateReviewRequestInput,
     raw: &str,
 ) -> Result<ReviewRequest, AppError> {
-    let review = patch::parse_review(storage, &input.workspace_id, raw)?;
+    let mut review = patch::parse_review(storage, &input.workspace_id, raw)?;
+    // Model IDs are unique only within a proposal, not within the database.
+    // Validate them first, then namespace both the blocks and executable payload.
+    let id = Uuid::new_v4().to_string();
+    for change in &mut review.changes {
+        change.id = format!("{id}:{}", change.id);
+    }
+    for change in &mut review.patch.changes {
+        change.id = format!("{id}:{}", change.id);
+    }
     let risk = review
         .changes
         .iter()
@@ -458,7 +472,6 @@ fn create_document_patch(
         candidate_files,
     };
     let payload_json = serde_json::to_string(&payload).map_err(|_| AppError::StateUnavailable)?;
-    let id = Uuid::new_v4().to_string();
     let blocks = review
         .changes
         .iter()
@@ -1108,6 +1121,181 @@ mod tests {
             AppError::InvalidInput(message)
                 if message == "找不到目标文件，或该文件尚未加入当前工作区；请先在左侧选择目标文件，再重新生成交互卡片"
         ));
+    }
+
+    #[test]
+    fn repeated_model_block_ids_do_not_collide_across_reviews() {
+        let (workspace, managed, storage, workspace_id) = setup();
+        fs::write(workspace.path().join("repeat.md"), "旧标题：周会").unwrap();
+        let raw = serde_json::json!({
+            "version": "1.0", "type": "document_patch", "workspaceId": workspace_id,
+            "summary": "更新标题", "changes": [{
+                "id": "change-1", "path": "repeat.md", "operation": "replace",
+                "anchor": "旧标题：周会", "content": "新标题：产品周会",
+                "reason": "更新", "risk": "low"
+            }]
+        })
+        .to_string();
+        let first = create(
+            &storage,
+            create_input(&workspace_id, ReviewSource::Chat, raw.clone()),
+        )
+        .unwrap();
+        let second = create(
+            &storage,
+            create_input(&workspace_id, ReviewSource::Chat, raw.clone()),
+        )
+        .unwrap();
+        assert_ne!(first.blocks[0].id, second.blocks[0].id);
+        discard(&storage, &workspace_id, &first.id).unwrap();
+        let third = create(
+            &storage,
+            create_input(&workspace_id, ReviewSource::Chat, raw),
+        )
+        .unwrap();
+        assert_ne!(second.blocks[0].id, third.blocks[0].id);
+        assert_eq!(
+            fs::read_to_string(workspace.path().join("repeat.md")).unwrap(),
+            "旧标题：周会"
+        );
+        decide_all(&storage, &second, true, None);
+        apply(
+            &storage,
+            managed.path(),
+            ApplyReviewInput {
+                review_id: second.id,
+                workspace_id: workspace_id.clone(),
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            fs::read_to_string(workspace.path().join("repeat.md")).unwrap(),
+            "新标题：产品周会"
+        );
+        assert_eq!(
+            get(&storage, &third.id).unwrap().status,
+            ReviewStatus::Pending
+        );
+    }
+
+    #[test]
+    fn saved_partial_choices_survive_reopen_and_apply_once() {
+        let database_dir = tempfile::tempdir().unwrap();
+        let workspace_dir = tempfile::tempdir().unwrap();
+        let managed = tempfile::tempdir().unwrap();
+        let database = database_dir.path().join("choices.sqlite3");
+        let workspace_id = Uuid::new_v4().to_string();
+        let original = "旧标题：周会\n负责人：待定\n";
+        fs::write(workspace_dir.path().join("meeting.md"), original).unwrap();
+        let review_id = {
+            let storage = Storage::open(&database).unwrap();
+            storage
+                .upsert_workspace(
+                    &workspace_id,
+                    "Review recovery",
+                    workspace_dir.path().to_str().unwrap(),
+                )
+                .unwrap();
+            let raw = serde_json::json!({
+                "version": "1.0", "type": "document_patch", "workspaceId": workspace_id,
+                "summary": "更新周会", "changes": [
+                    {"id": "title", "path": "meeting.md", "operation": "replace",
+                     "anchor": "旧标题：周会", "content": "新标题：产品周会", "reason": "更新标题", "risk": "low"},
+                    {"id": "owner", "path": "meeting.md", "operation": "replace",
+                     "anchor": "负责人：待定", "content": "负责人：Ada", "reason": "更新负责人", "risk": "low"}
+                ]
+            }).to_string();
+            let review = create(
+                &storage,
+                create_input(&workspace_id, ReviewSource::Chat, raw),
+            )
+            .unwrap();
+            // Fully accepted but not applied is also recoverable and still editable.
+            let accepted = decide_all(&storage, &review, true, None);
+            assert_eq!(
+                list_active(&storage, &workspace_id).unwrap()[0].status,
+                ReviewStatus::Accepted
+            );
+            let saved = decide(
+                &storage,
+                DecideReviewBlocksInput {
+                    review_id: review.id.clone(),
+                    workspace_id: workspace_id.clone(),
+                    decisions: accepted
+                        .blocks
+                        .iter()
+                        .enumerate()
+                        .map(|(index, block)| ReviewBlockDecision {
+                            block_id: block.id.clone(),
+                            accepted: index == 0,
+                            file_name: None,
+                        })
+                        .collect(),
+                },
+            )
+            .unwrap();
+            assert_eq!(saved.status, ReviewStatus::PartiallyAccepted);
+            assert_eq!(
+                fs::read_to_string(workspace_dir.path().join("meeting.md")).unwrap(),
+                original
+            );
+            review.id
+        };
+        let storage = Storage::open(&database).unwrap();
+        let restored = list_active(&storage, &workspace_id).unwrap();
+        assert_eq!(restored.len(), 1);
+        assert_eq!(restored[0].blocks[0].status, ReviewBlockStatus::Accepted);
+        assert_eq!(restored[0].blocks[1].status, ReviewBlockStatus::Rejected);
+        let input = ApplyReviewInput {
+            review_id: review_id.clone(),
+            workspace_id: workspace_id.clone(),
+        };
+        let first = apply(&storage, managed.path(), input.clone()).unwrap();
+        let version_count = storage
+            .document_versions(&workspace_id, "meeting.md", 200)
+            .unwrap()
+            .len();
+        let again = apply(&storage, managed.path(), input).unwrap();
+        assert_eq!(
+            storage
+                .document_versions(&workspace_id, "meeting.md", 200)
+                .unwrap()
+                .len(),
+            version_count
+        );
+        assert_eq!(first.operation_id, again.operation_id);
+        assert_eq!(
+            fs::read_to_string(workspace_dir.path().join("meeting.md")).unwrap(),
+            "新标题：产品周会\n负责人：待定\n"
+        );
+        assert!(list_active(&storage, &workspace_id).unwrap().is_empty());
+        assert!(decide(
+            &storage,
+            DecideReviewBlocksInput {
+                review_id,
+                workspace_id,
+                decisions: vec![],
+            }
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn accepted_unapplied_review_can_be_discarded_without_writes() {
+        let (_workspace, managed, storage, workspace_id) = setup();
+        let review = create(
+            &storage,
+            create_input(
+                &workspace_id,
+                ReviewSource::Chat,
+                create_file_raw(&workspace_id, "discard.md"),
+            ),
+        )
+        .unwrap();
+        decide_all(&storage, &review, true, None);
+        discard(&storage, &workspace_id, &review.id).unwrap();
+        assert!(list_active(&storage, &workspace_id).unwrap().is_empty());
+        assert_eq!(fs::read_dir(managed.path()).unwrap().count(), 0);
     }
 
     #[test]

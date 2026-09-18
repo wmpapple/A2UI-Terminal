@@ -66,6 +66,9 @@ export function ResultWorkbench({
   const error = useResultStore((state) => state.error);
   const openResult = useResultStore((state) => state.openResult);
   const updateDraft = useResultStore((state) => state.updateDraft);
+  const persistDraft = useResultStore((state) => state.persistDraft);
+  const restoreRecoveryDraft = useResultStore((state) => state.restoreRecoveryDraft);
+  const discardRecoveryDraft = useResultStore((state) => state.discardRecoveryDraft);
   const save = useResultStore((state) => state.save);
   const loadRevisions = useResultStore((state) => state.loadRevisions);
   const previewRevision = useResultStore((state) => state.previewRevision);
@@ -82,6 +85,12 @@ export function ResultWorkbench({
   useEffect(() => {
     void openResult(resultId);
   }, [openResult, resultId]);
+
+  useEffect(() => {
+    if (saveStatus !== 'dirty') return;
+    const timer = window.setTimeout(() => void persistDraft(), 250);
+    return () => window.clearTimeout(timer);
+  }, [draftContent, persistDraft, saveStatus]);
 
   useEffect(() => {
     if (saveStatus !== 'dirty') return;
@@ -198,6 +207,30 @@ export function ResultWorkbench({
         <Alert type="error" showIcon title={reviewUndoError} data-testid="review-undo-error" />
       ) : null}
       {error ? <Alert type="error" showIcon title={error} closable onClose={clearError} /> : null}
+      <Modal
+        open={activeDocument.recoveryDraft !== null}
+        title={t('resultRecoveryTitle')}
+        closable={false}
+        maskClosable={false}
+        footer={[
+          <Button key="disk" onClick={() => void discardRecoveryDraft()}>
+            {t('resultRecoveryKeepDisk')}
+          </Button>,
+          <Button key="restore" type="primary" onClick={restoreRecoveryDraft}>
+            {t('resultRecoveryRestore')}
+          </Button>,
+        ]}
+      >
+        <Alert
+          type={activeDocument.recoveryDraft?.conflicted ? 'warning' : 'info'}
+          showIcon
+          title={
+            activeDocument.recoveryDraft?.conflicted
+              ? t('resultRecoveryConflict')
+              : t('resultRecoveryDescription')
+          }
+        />
+      </Modal>
       <ResultContentAdapter
         type={activeDocument.result.type}
         format={activeDocument.format}

@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 实施与连续变更记录
 
-> 当前状态：**S4.2 已通过用户人工验收（LOG-0141）；S4.3 已实现并完成自动验证（LOG-0143），待人工验收，不得开始 S4.4**
+> 当前状态：**S4.3 已通过用户人工验收（LOG-0158）；S4.4 M04 审阅恢复及重复生成修正待复验（LOG-0164，验证限制见该条），不得开始 S4.5**
 >
 > 建立日期：2026-08-11  
 > 配套架构：[V2_ARCHITECTURE.md](V2_ARCHITECTURE.md)  
@@ -380,7 +380,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S4.3 隐私安全产品事件与 KPI
 
-状态：`待人工验收`
+状态：`已完成`
 
 - 对应：第 9 章指标和事件。
 - 工作：事件字典、字段 allowlist、Task Completion、Review Adoption、Accepted Patch、Undo、Export/Save、Context Confirmation、首次核心闭环、AI 成功/失败/耗时、A2UI 渲染、崩溃和性能指标；设置“隐私 → 帮助改进产品”和“查看将发送的数据”。
@@ -388,7 +388,7 @@ src/features/workspace/components/VersionHistoryDrawer.tsx
 
 #### S4.4 崩溃恢复与迁移全链路
 
-状态：`待开始`
+状态：`待人工验收`
 
 - 工作：Task、Result、未提交输入、Review、Export Job 跨崩溃恢复；数据库滚回/前向兼容；旧数据惰性归档。
 - 验收：在每个生命周期点故障注入；不会重复应用 Review 或重复导出覆盖；迁移失败安全停止。
@@ -524,10 +524,11 @@ npm run tauri build -- --debug --no-bundle
 | S3.5 保存个人安全 Surface              | 已完成     | LOG-0134 | 用户已于 2026-09-16 明确验收通过 |
 | S4.1 最近成果与统一搜索                | 已完成     | LOG-0138 | 用户已于 2026-09-17 明确验收通过 |
 | S4.2 本地模型探测与简单模型策略        | 已完成     | LOG-0141 | 用户已于 2026-09-17 明确验收通过 |
-| S4.3 隐私安全产品事件与 KPI            | 待人工验收 | LOG-0143 | 实现与自动验证完成，执行 M01—M06 |
-| S4.4…S4.8                              | 待开始     | —        | 不得提前实施                     |
+| S4.3 隐私安全产品事件与 KPI            | 已完成     | LOG-0158 | 用户已于 2026-09-17 明确验收通过 |
+| S4.4 崩溃恢复与迁移全链路              | 待人工验收 | LOG-0164 | 复验 M04 重复生成与恢复           |
+| S4.5…S4.8                              | 待开始     | —        | 不得提前实施                     |
 
-S1.1—S4.2 均已通过自动验证和用户人工验收。S4.3 已实现并完成自动验证，等待用户按 `S4_3_MANUAL_ACCEPTANCE.md` 验收；通过前不得进入 S4.4。
+S1.1—S4.3 均已通过自动验证和用户人工验收。S4.4 已完成实现与自动验证，正在等待用户人工验收；明确验收通过前不得进入 S4.5。
 
 ## 10. 连续变更账本
 
@@ -2486,7 +2487,69 @@ S1.1—S4.2 均已通过自动验证和用户人工验收。S4.3 已实现并完
 - 界面调整为“保存/导出成功率”“撤销/恢复成功率”，明确 AI 审阅范围和操作说明；M03 改为可直接用旧成果验证。
 - 验证：应用层 72 项通过、1 项人工 PDF 忽略；随后新增真实旧文件保存/版本恢复回归所在 3 项通过；前端设置 3 项、typecheck、lint、严格 Clippy 与 diff 检查通过。无业务数据重置，S4.3 仍待用户复验。
 
+### LOG-0158 — S4.3 — USER ACCEPTANCE / COMPLETE
+
+- 时间：2026-09-17（Asia/Shanghai）；执行者/会话：用户与 Codex `/root`。
+- 用户结论：用户明确回复 `S4.3 验收通过`；LOG-0144—LOG-0157 的邀请、存量 v14 白名单、成果事件覆盖与操作成功率修正一并纳入最终验收。
+- 状态：S4.3 从 `待人工验收` 更新为 `已完成`；允许开始 S4.4，但不得提前实施 S4.5。
+- Migration / IPC / Capability：本条只归档验收；保留当前未提交的 S4.3 schema v14/v15、三项遥测 IPC 和权限，不重置工作树。
+
+### LOG-0159 — S4.4 — START
+
+- 时间：2026-09-17（Asia/Shanghai）；执行者/会话：Codex `/root`。
+- 基线 commit 与工作树：HEAD `343052c`（`s4.2`）；S4.3 及其验收修正仍在未提交工作树，均视为受保护前置改动。
+- 用户授权：S4.3 验收通过并明确要求开始下一阶段。
+- 目标与允许范围：补齐 Task、托管 Result 未提交输入、Review、Export Job 的跨崩溃恢复；验证 migration 原子回滚、较新 schema 安全拒绝和旧文件/Surface 惰性归档。
+- 实施边界：只新增前向 migration；不改写 v1—v15。恢复不得自动覆盖外部变化，不得重复应用 Review 或静默覆盖导出目标；失败必须保留可重试状态或安全停止。真实项目文件仍不因 migration、清理或归档被批量复制/删除。
+- 预计数据/IPC/Capability：schema v16 增加 Task 运行意图、Result 恢复草稿和 Export Job；新增最小恢复读取/草稿操作 IPC 并同步权限、注册与共享合同。Review 复用 v11 持久状态和既有幂等应用路径。
+- 下一具体动作：先建立 v16 表与迁移/故障测试，再实现启动协调和 Task/Result/Export 恢复，最后接入用户可见恢复入口、全量质量门和人工验收单。
+
+### LOG-0160 — S4.4 — IMPLEMENTATION / VALIDATION COMPLETE
+
+- 时间：2026-09-17（Asia/Shanghai）；执行者/会话：Codex `/root`。
+- 基线与工作树：HEAD `343052c`（`s4.2`）；S4.3 与 S4.4 修改均保持未提交，未重置或改写用户历史。
+- 数据与启动恢复：新增前向 schema v16 `task_runs`、`result_drafts`、`export_jobs`。启动在迁移/完整性检查后恢复 Task 稳定意图，并将未完成导出按目标字节 Hash 确认完成或安全标记中断；不自动重新导出、不覆盖冲突目标。
+- Result / Review：Result 编辑约 250 ms 持久化独立草稿，打开时由用户选择恢复或保留磁盘，外部变化显示冲突；Review 继续复用 v11 持久状态、操作关联和既有幂等应用，启动不自动应用。
+- UI / 合同 / 权限：首页显示可操作恢复摘要，成果工作台提供恢复/保留选择；新增 `contracts/v2/recovery.json` 和 `save_result_draft`、`discard_result_draft`、`get_recovery_status` 三项最小 IPC，完成 Rust/TypeScript guard、Tauri manifest、权限、主窗口 allowlist 与生成 schema 同步。恢复摘要不返回草稿正文或导出绝对路径。
+- 迁移与故障注入：v16 中途失败会同时回滚三张表和 `user_version`；高于支持版本的数据库保持不变并拒绝启动；v0—v15 逐版本升级保留原记录，旧文件/Surface 不批量复制。Task 文件前/后边界、Result 外部冲突、Review 重开/幂等与 Export Hash 匹配/不匹配均有自动测试。
+- 自动验证：前端 typecheck、lint、44 文件/208 项测试和生产构建通过；Rust lib 190 项通过、1 项人工 PDF 预览按设计忽略，集成测试 32 项通过；严格 Clippy、rustfmt、修改文件 Prettier 和 `git diff --check` 通过。仓库级 Prettier 仍受既有历史文件与旧文档解析异常影响，未批量改写无关文件。
+- 文档：新增 `S4_4_VALIDATION.md`、`S4_4_MANUAL_ACCEPTANCE.md`，并同步架构、SQLite 恢复和隐私说明。
+- 状态与下一动作：S4.4 为 `待人工验收`，不是已完成。用户按 M01—M06 验收并明确回复 `S4.4 验收通过` 前，不得开始 S4.5。
+
+### LOG-0161 — S4.4 — REVIEW RECOVERY CORRECTION / START
+
+- 时间：2026-09-17（Asia/Shanghai）；执行者：Codex `/root`；基线 HEAD `37a50bd`，保留现有未提交 S4.4 修改。
+- 用户报告 M04 选择接受后审阅消失、无法返回并再次生成失败。已确认前端把决定与应用串联、勾选不持久化；恢复查询漏掉 accepted/partially_accepted，重复 decide 拒绝已决定请求。
+- 范围：补充不写文件的保存选择入口、恢复已决定未应用审阅和安全重试，添加前后端回归，澄清 M04。生成失败需另核对错误，不能推断已修复 Provider 问题。
+- 不新增 migration、IPC 或 Capability；不清理用户数据，不自动应用旧审阅。S4.4 修复中，不进入 S4.5。
+
+### LOG-0162 — S4.4 — REVIEW RECOVERY CORRECTION / COMPLETE
+
+- 时间：2026-09-18（Asia/Shanghai）；执行者：Codex `/root`。本条完成缺陷修正，不代表 S4.4 已验收。
+- 修正：增加“保存选择（不应用）”，明确勾选/保存与真实写入的区别；活动查询恢复 accepted/partially_accepted，应用前可调整或拒绝，终态不放宽；拒绝块跨重启保持未选。已保存未改变的决定不重复提交，IPC 应用失败保留审阅状态。
+- 代码文件：`src/features/diff/reviewStore.ts`、`reviewSelection.ts`、`reviewStore.test.ts`、`components/DiffReview.tsx`、`components/DiffReview.test.tsx`、`src/stores/types.ts`、`src/app/i18n/messages.ts`、`src-tauri/src/application/review.rs`、`src-tauri/src/storage/mod.rs`。
+- 文档文件：`docs/S4_4_MANUAL_ACCEPTANCE.md`、`S4_4_VALIDATION.md`、`SQLITE_CRASH_RECOVERY.md`、`V2_ARCHITECTURE.md`、本账本。无新增生成文件、migration、IPC、Capability 或 ADR；保留原工作树改动，未清理用户数据。
+- 验证：前端 typecheck/lint/build 通过，全量 45 文件/213 项通过，最后共用判断调整后相关 20 项和审阅 12 项复跑通过；Rust `cargo test --manifest-path src-tauri/Cargo.toml -j1 -- --test-threads=1` 为 192 单测通过、1 项人工 PDF 忽略、32 集成通过；严格全目标全特性 Clippy、rustfmt、修改前端文件 Prettier 通过。
+- 首次默认并行 Rust 测试有一项既有 Provider 心跳超时测试失败（191 通过、1 失败、1 忽略），串行全套复跑通过，未改动 Provider 测试或实现。真实桌面和用户的再次生成失败尚未复现，不声称已修复生成问题。
+- 下一动作：重启桌面应用，在原工作区按更新后的 M04 保存选择、关闭重开、只应用一次；若生成仍失败，提供脱敏界面提示/错误码。不进入 S4.5。
+
+### LOG-0163 — S4.4 — REVIEW BLOCK ID COLLISION / START
+
+- 时间：2026-09-18；基线 `37a50bd`，保留现有 S4.4 工作树。用户补充再次生成错误为 `local database operation failed`。
+- 检查发现模型的修改块 ID 直接作为 review_blocks 全局主键，而模型只保证单方案内唯一；重复生成可能违反主键约束。先建立重复候选回归，再为新 Review 分配本机块 ID，同步内部 Patch 引用。不改历史数据或 migration，不放宽校验。
+- 同时修正数据库错误被当成模型格式错误自动重试的问题；仅处理此缺陷，不开始 S4.5。
+
+### LOG-0164 — S4.4 — REVIEW BLOCK ID COLLISION / CORRECTION
+
+- 时间：2026-09-18；执行者：Codex `/root`。回归先复现第二次相同模型块 ID 触发 SQLite extended_code=1555、`UNIQUE constraint failed: review_blocks.id`；不是依据泛化错误推断数据库损坏。
+- 修正：先验证方案内部 ID 唯一，再对新 Review 的块和内部 Patch 引用统一添加本机 Review UUID 前缀；旧记录、schema、权限不变。数据库/状态故障返回本地存储失败，不进入模型格式重试；旧消息的同类错误也显示中文存储提示，不误称安全拒绝。
+- 修改文件：`src-tauri/src/application/review.rs`、`src-tauri/src/application/chat.rs`、`src/features/chat/components/ChatMessageList.tsx`、`src/features/chat/components/ChatPanel.test.tsx`、`src/app/i18n/messages.ts`、`docs/S4_4_MANUAL_ACCEPTANCE.md`、`docs/S4_4_VALIDATION.md`、`docs/SQLITE_CRASH_RECOVERY.md`、本账本。无新增生成文件、migration、IPC、Capability 或 ADR。
+- 验证：新增重复候选/拒绝后再次生成/独立 ID/实际应用测试通过；`cargo test --manifest-path src-tauri/Cargo.toml --lib application:: -j1 -- --test-threads=1` 为 79 通过、1 项人工 PDF 忽略。前端全量 45 文件/214 项通过，typecheck/lint/build、严格全目标全特性 Clippy、rustfmt 和修改前端文件 Prettier 通过。
+- 限制：全量 Rust 为 192 通过、1 失败、1 忽略，失败仍是既有 Provider 心跳超时测试；再次全量执行因运行中的 `target/debug/a2ui-terminal.exe` 被占用而构建失败，未终止用户进程。首次前端测试进程无报告退出，单独重跑全量成功。未宣称本轮全量 Rust 通过。
+- 下一步：用户退出旧桌面应用后重新启动开发版本，在临时文档重复生成并按 M04 复验；无需清空数据库或删除已有 Review。若仍失败需继续定位实际存储原因，S4.4 不视为验收通过。
+
 ### 新账本记录模板
+
 
 ```markdown
 ### LOG-NNNN — Sx.y — START | PROGRESS | COMPLETE | BLOCKED | CORRECTION
@@ -2589,11 +2652,11 @@ S1.1—S4.2 均已通过自动验证和用户人工验收。S4.3 已实现并完
 
 ## 12. 交接摘要
 
-截至 LOG-0143（S4.3 实现和自动验证完成，待人工验收）：
+截至 LOG-0160（S4.4 实现和自动验证完成，待人工验收）：
 
 - V1 可信内核及此前可靠性、版本历史和崩溃恢复修复已提交；S0.1 自动验证与用户人工验收均已通过，详细证据见 [S0_1_V1_BASELINE_VALIDATION.md](S0_1_V1_BASELINE_VALIDATION.md)。
 - S0.2 已建立五类领域和稳定错误的共享 JSON fixture、Rust serde 合同测试、TypeScript guards/合同测试与未知字段策略，并已通过用户人工验收。
-- V2 产品功能已完成并验收 S1.1—S4.2。S4.3 已新增 schema v14 的默认关闭本机产品事件、严格字段字典、六项成果 KPI、首次闭环邀请和隐私设置，自动验证完成，等待桌面人工验收。O-06 未关闭，因此没有指标上传；Provider 图片多模态发送和内置试用服务仍未实现。
+- V2 产品功能已完成并验收 S1.1—S4.3。S4.4 已新增 schema v16 的 Task 执行意图、Result 恢复草稿和 Export Job，完成启动协调、用户恢复入口、迁移回滚/前向拒绝和故障注入，等待桌面人工验收。O-06 未关闭，因此没有指标上传；Provider 图片多模态发送和内置试用服务仍未实现。
 - S0.3 已完成 Gateway/controller/领域 slice 拆分，`useAppStore` 成为 71 行组合根，并已通过用户人工验收。
 - S0.4 已完成 Provider、Chat、Revision、Workspace 与 A2UI/Patch adapter 的 Rust application/repository 边界拆分，并已通过人工验收。
 - S2.2 已建立统一 `DocumentSource`、CSV/XLSX 受限结构化读取、公式/注入风险标记、图片原始视觉来源、8 MB 内本地预览、多批累积和工作区隔离的单项撤销，且已于 2026-08-20 通过用户验收。
@@ -2601,7 +2664,7 @@ S1.1—S4.2 均已通过自动验证和用户人工验收。S4.3 已实现并完
 - S2.3 代码质量整改已把 `ChatPanel` 收敛为组合层，将 Context Manifest 编排、消息协议呈现和输入/拖放拆为独立模块；前端架构测试固定该依赖方向。Rust 应用层边界测试改为自动扫描整个 `src/application` 目录，不再漏掉新增 `context.rs`。大规模 Storage/DocumentSource 物理拆分留待 S2.3 验收后的独立重构基线。
 - S2.3 对已授权零字节文本目标只提供准确能力限制：Rust 明确识别空文件，跳过不可能成功的后台模型重试，前端隐藏手动重试且保持零写入。真正的安全首次写入已作为显式合同/E2E 场景排入 S2.5，当前没有放宽非空锚点或实现写入。
 - S2.4 已按 ADR-019 实现 Rust 可信 Planner、约 1600/200 字符确定性结构分块、本地词法/BM25-like 检索、中文 bigram、Full/Retrieval/Hybrid、32000 token 预算、可追溯块范围和进程内 workspace/source/hash 索引。Manifest 消费前会复验授权与 Hash；索引不会持久化，可手动清理，并在撤销、变化、切换、删除、清除数据或退出时失效。Schema 仍为 v10，仅新增 `clear_context_index` 最小 IPC；自动验证结果见 LOG-0073。
-- S2.5 已验收持久 Review、AI 创建/首次写入、冲突、幂等、撤销与恢复；S2.6 已验收六类选区动作和只读解释；S2.7—S4.2 均已完成用户验收。S4.3 的实现与自动验证见 LOG-0143，完成人工验收前不得开始 S4.4。
+- S2.5 已验收持久 Review、AI 创建/首次写入、冲突、幂等、撤销与恢复；S2.6 已验收六类选区动作和只读解释；S2.7—S4.3 均已完成用户验收。S4.4 的实现与自动验证见 LOG-0160，完成人工验收前不得开始 S4.5。
 - 任何新对话都应以本文件第 9 节看板、第 10 节最新账本和第 11 节开放问题为当前事实。
 - S2.8 人工发现的 PDF 排版和原生确认替换缺陷已按 LOG-0098 修复、复验并在 LOG-0100 验收；不沿用旧版 M04 的“一律拒绝已有文件”规则。
 - M02 的 CSV 创建能力原已存在；LOG-0099 将新建类型明确标为“表格（CSV）”并补充验收步骤，避免把领域类型“表格”和内部格式 CSV 的映射误判为不支持。

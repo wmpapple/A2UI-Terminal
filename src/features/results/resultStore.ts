@@ -24,6 +24,9 @@ interface ResultState {
   createTextResult: (input: CreateTextResultInput) => Promise<ResultDocument | null>;
   openResult: (resultId: string) => Promise<void>;
   updateDraft: (content: string) => void;
+  persistDraft: () => Promise<void>;
+  restoreRecoveryDraft: () => void;
+  discardRecoveryDraft: () => Promise<void>;
   save: () => Promise<void>;
   loadRevisions: () => Promise<void>;
   previewRevision: (revisionId: string) => Promise<void>;
@@ -87,7 +90,11 @@ export const useResultStore = create<ResultState>((set, get) => ({
     set({ loading: true, error: null, preview: null, revisions: [] });
     try {
       const activeDocument = await resultController.open(resultId);
-      set({ activeDocument, draftContent: activeDocument.content, saveStatus: 'saved' });
+      set({
+        activeDocument,
+        draftContent: activeDocument.content,
+        saveStatus: activeDocument.recoveryDraft ? 'draft' : 'saved',
+      });
     } catch (error) {
       set({ activeDocument: null, error: errorDetails(error).message });
     } finally {
@@ -102,6 +109,47 @@ export const useResultStore = create<ResultState>((set, get) => ({
       draftContent,
       saveStatus: draftContent === current.content ? 'saved' : 'dirty',
     });
+  },
+
+  persistDraft: async () => {
+    const { activeDocument, draftContent, saveStatus } = get();
+    if (!activeDocument || saveStatus !== 'dirty' || draftContent === activeDocument.content)
+      return;
+    try {
+      await resultController.saveDraft(
+        activeDocument.result.id,
+        draftContent,
+        activeDocument.contentHash
+      );
+    } catch (error) {
+      set({ error: errorDetails(error).message });
+    }
+  },
+
+  restoreRecoveryDraft: () => {
+    const activeDocument = get().activeDocument;
+    const recoveryDraft = activeDocument?.recoveryDraft;
+    if (!activeDocument || !recoveryDraft) return;
+    set({
+      activeDocument: { ...activeDocument, recoveryDraft: null },
+      draftContent: recoveryDraft.content,
+      saveStatus: recoveryDraft.content === activeDocument.content ? 'saved' : 'dirty',
+    });
+  },
+
+  discardRecoveryDraft: async () => {
+    const activeDocument = get().activeDocument;
+    if (!activeDocument?.recoveryDraft) return;
+    try {
+      await resultController.discardDraft(activeDocument.result.id);
+      set({
+        activeDocument: { ...activeDocument, recoveryDraft: null },
+        draftContent: activeDocument.content,
+        saveStatus: 'saved',
+      });
+    } catch (error) {
+      set({ error: errorDetails(error).message });
+    }
   },
 
   save: async () => {

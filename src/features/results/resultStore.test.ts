@@ -27,6 +27,7 @@ const document: ResultDocument = {
   sizeBytes: 9,
   editable: true,
   appliedReview: null,
+  recoveryDraft: null,
 };
 
 const revision: ResultRevisionSummary = {
@@ -91,5 +92,39 @@ describe('resultStore', () => {
     expect(useResultStore.getState().activeDocument).toEqual(document);
     expect(useResultStore.getState().draftContent).toBe('冲突内容');
     expect(useResultStore.getState().saveStatus).toBe('conflict');
+  });
+
+  it('persists dirty input separately and lets the user restore or discard it', async () => {
+    const recoveryDraft = {
+      content: '# 尚未保存\n',
+      contentHash: 'b'.repeat(64),
+      baseHash: document.contentHash,
+      conflicted: false,
+      updatedAt: '2026-09-17 18:00:00',
+    };
+    const persist = vi.spyOn(resultController, 'saveDraft').mockResolvedValue(recoveryDraft);
+    useResultStore.setState({ activeDocument: document, draftContent: document.content });
+    act(() => useResultStore.getState().updateDraft(recoveryDraft.content));
+    await act(() => useResultStore.getState().persistDraft());
+    expect(persist).toHaveBeenCalledWith('result-1', recoveryDraft.content, document.contentHash);
+
+    useResultStore.setState({
+      activeDocument: { ...document, recoveryDraft },
+      draftContent: document.content,
+      saveStatus: 'draft',
+    });
+    act(() => useResultStore.getState().restoreRecoveryDraft());
+    expect(useResultStore.getState().draftContent).toBe(recoveryDraft.content);
+    expect(useResultStore.getState().saveStatus).toBe('dirty');
+
+    const discard = vi.spyOn(resultController, 'discardDraft').mockResolvedValue(true);
+    useResultStore.setState({
+      activeDocument: { ...document, recoveryDraft },
+      draftContent: document.content,
+      saveStatus: 'draft',
+    });
+    await act(() => useResultStore.getState().discardRecoveryDraft());
+    expect(discard).toHaveBeenCalledWith('result-1');
+    expect(useResultStore.getState().activeDocument?.recoveryDraft).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type {
   ResultSummary,
+  RecoveryStatus,
   TaskDetail,
   TaskRunResult,
   TaskTemplate,
@@ -11,6 +12,7 @@ import { homeController } from './homeController';
 interface HomeState {
   templates: TaskTemplate[];
   recentResults: ResultSummary[];
+  recoveryStatus: RecoveryStatus | null;
   activeTask: TaskDetail | null;
   taskRunResult: TaskRunResult | null;
   initialized: boolean;
@@ -27,6 +29,7 @@ interface HomeState {
 export const homeInitialState = {
   templates: [],
   recentResults: [],
+  recoveryStatus: null,
   activeTask: null,
   taskRunResult: null,
   initialized: false,
@@ -37,6 +40,7 @@ export const homeInitialState = {
   HomeState,
   | 'templates'
   | 'recentResults'
+  | 'recoveryStatus'
   | 'activeTask'
   | 'taskRunResult'
   | 'initialized'
@@ -52,11 +56,17 @@ export const useHomeStore = create<HomeState>((set, get) => ({
     if (get().loading) return;
     set({ loading: true, error: null });
     try {
-      const [templates, recentResults] = await Promise.all([
+      const [templates, recentResults, recoveryStatus] = await Promise.all([
         homeController.listTemplates(),
         homeController.listResults(),
+        homeController.getRecoveryStatus(),
       ]);
-      set({ templates, recentResults: recentResults.slice(0, 5), initialized: true });
+      set({
+        templates,
+        recentResults: recentResults.slice(0, 5),
+        recoveryStatus,
+        initialized: true,
+      });
     } catch (error) {
       set({ error: errorDetails(error).message });
     } finally {

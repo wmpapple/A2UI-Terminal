@@ -54,7 +54,8 @@
     "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "sizeBytes": 18,
     "editable": true,
-    "appliedReview": null
+    "appliedReview": null,
+    "recoveryDraft": null
   },
   "revision": {
     "id": "550e8400-e29b-41d4-a716-446655440021",
@@ -88,7 +89,8 @@
       "contentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "sizeBytes": 27,
       "editable": true,
-      "appliedReview": null
+      "appliedReview": null,
+      "recoveryDraft": null
     },
     {
       "result": {
@@ -112,7 +114,8 @@
       "contentHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "sizeBytes": 12,
       "editable": true,
-      "appliedReview": null
+      "appliedReview": null,
+      "recoveryDraft": null
     },
     {
       "result": {
@@ -136,7 +139,8 @@
       "contentHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "sizeBytes": 13,
       "editable": true,
-      "appliedReview": null
+      "appliedReview": null,
+      "recoveryDraft": null
     },
     {
       "result": {
@@ -160,7 +164,8 @@
       "contentHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "sizeBytes": 15,
       "editable": true,
-      "appliedReview": null
+      "appliedReview": null,
+      "recoveryDraft": null
     }
   ]
 }

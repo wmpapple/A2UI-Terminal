@@ -5,12 +5,14 @@ import type {
   ExportResultOutput,
   ResultDetail,
   ResultDocument,
+  ResultRecoveryDraft,
   ResultRevision,
   ResultRevisionSummary,
   ResultSummary,
   SearchAuthorizedContentInput,
   SearchAuthorizedContentOutput,
   ResultType,
+  RecoveryStatus,
   TaskDetail,
   TaskQuestion,
   TaskRunResult,
@@ -203,6 +205,7 @@ const initialRecords = () =>
   ]);
 
 let resultRecords = initialRecords();
+const resultDrafts = new Map<string, ResultRecoveryDraft>();
 
 const clone = <T>(value: T): T => structuredClone(value);
 
@@ -214,6 +217,7 @@ const documentFor = (record: MockResultRecord): ResultDocument => ({
   sizeBytes: new TextEncoder().encode(record.content).length,
   editable: true,
   appliedReview: clone(record.appliedReview),
+  recoveryDraft: clone(resultDrafts.get(record.detail.id) ?? null),
 });
 
 const requireRecord = (resultId: string) => {
@@ -408,7 +412,43 @@ export const webMockHomeGateway = {
       record.detail = { ...record.detail, currentRevisionId: revisionId, updatedAt: timestamp };
       results = results.map((item) => (item.id === resultId ? record.detail : item));
     }
+    resultDrafts.delete(resultId);
     return clone(documentFor(record));
+  },
+
+  async saveResultDraft(
+    resultId: string,
+    content: string,
+    baseHash: string
+  ): Promise<ResultRecoveryDraft> {
+    requireRecord(resultId);
+    const draft: ResultRecoveryDraft = {
+      content,
+      contentHash: mockHash(content),
+      baseHash,
+      conflicted: mockHash(requireRecord(resultId).content) !== baseHash,
+      updatedAt: new Date().toISOString(),
+    };
+    resultDrafts.set(resultId, draft);
+    return clone(draft);
+  },
+
+  async discardResultDraft(resultId: string): Promise<boolean> {
+    return resultDrafts.delete(resultId);
+  },
+
+  async getRecoveryStatus(): Promise<RecoveryStatus> {
+    return {
+      schemaVersion: 16,
+      resultDrafts: [...resultDrafts.entries()].map(([resultId, draft]) => ({
+        resultId,
+        title: requireRecord(resultId).detail.title,
+        updatedAt: draft.updatedAt,
+      })),
+      activeReviewCount: 0,
+      recoveredTaskCount: 0,
+      exportJobs: [],
+    };
   },
 
   async listResultRevisions(resultId: string): Promise<ResultRevisionSummary[]> {
@@ -638,6 +678,7 @@ export function resetWebMockHomeGateway(): void {
   tasks = new Map();
   sequence = 0;
   resultRecords = initialRecords();
+  resultDrafts.clear();
 }
 
 export async function createWebMockReviewResult(input: {

@@ -15,6 +15,9 @@ export const resultController = {
   open: (resultId: string) => gateway().readResultDocument(resultId),
   save: (resultId: string, content: string, baseHash: string) =>
     gateway().saveResultDocument(resultId, content, baseHash),
+  saveDraft: (resultId: string, content: string, baseHash: string) =>
+    gateway().saveResultDraft(resultId, content, baseHash),
+  discardDraft: (resultId: string) => gateway().discardResultDraft(resultId),
   listRevisions: (resultId: string) => gateway().listResultRevisions(resultId),
   readRevision: (resultId: string, revisionId: string) =>
     gateway().readResultRevision(resultId, revisionId),

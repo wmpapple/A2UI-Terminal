@@ -1369,6 +1369,29 @@ pub fn save_result_document(
 }
 
 #[tauri::command]
+pub fn save_result_draft(
+    state: State<'_, AppState>,
+    input: crate::domain::result::SaveResultDraftInput,
+) -> Result<crate::domain::result::ResultRecoveryDraft, AppError> {
+    crate::application::result::save_draft(&state.storage, &state.managed_results_dir, input)
+}
+
+#[tauri::command]
+pub fn discard_result_draft(
+    state: State<'_, AppState>,
+    result_id: String,
+) -> Result<bool, AppError> {
+    crate::application::result::discard_draft(&state.storage, &result_id)
+}
+
+#[tauri::command]
+pub fn get_recovery_status(
+    state: State<'_, AppState>,
+) -> Result<crate::domain::recovery::RecoveryStatus, AppError> {
+    crate::application::recovery::status(&state.storage)
+}
+
+#[tauri::command]
 pub fn list_result_revisions(
     state: State<'_, AppState>,
     result_id: String,
@@ -1480,6 +1503,12 @@ pub async fn export_result(
             exports: &state.active_exports,
             export_id: input.export_id.clone(),
         };
+        state.storage.create_export_job(
+            &input.export_id,
+            &input.result_id,
+            &input.revision_id,
+            input.format.as_str(),
+        )?;
         let started = Instant::now();
         let work = (|| -> Result<Option<String>, AppError> {
             emit_export_progress(&on_event, &input.export_id, "preparing", 10)?;
@@ -1536,6 +1565,17 @@ pub async fn export_result(
                     return Ok(None);
                 }
             }
+            let file_name = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("result.{}", input.format.extension()));
+            let target_path = path
+                .to_str()
+                .ok_or_else(|| AppError::InvalidInput("导出目标路径无法安全记录".into()))?;
+            state
+                .storage
+                .set_export_job_target(&input.export_id, target_path, &file_name)?;
             let destination = crate::application::export_target::ExportTarget::selected(
                 &path,
                 true,
@@ -1563,13 +1603,15 @@ pub async fn export_result(
                 &input.result_id,
                 &path,
             )?;
+            state.storage.mark_export_job_writing(
+                &input.export_id,
+                &crate::application::recovery::sha256_hex(&bytes),
+            )?;
             destination.write(&bytes, &cancellation)?;
-            Ok(Some(
-                path.file_name()
-                    .and_then(|name| name.to_str())
-                    .map(str::to_string)
-                    .unwrap_or_else(|| format!("result.{}", input.format.extension())),
-            ))
+            // Once the atomic destination commit succeeds, a bookkeeping failure must not
+            // turn the operation into a retryable error that could overwrite the same target.
+            let _ = state.storage.mark_export_job_committed(&input.export_id);
+            Ok(Some(file_name))
         })();
         let outcome = match &work {
             Ok(Some(_)) => telemetry::Outcome::Success,
@@ -1585,9 +1627,25 @@ pub async fn export_result(
             },
         );
         let (status, file_name) = match work {
-            Ok(Some(name)) => ("completed", Some(name)),
-            Ok(None) | Err(AppError::RequestCancelled) => ("cancelled", None),
+            Ok(Some(name)) => {
+                let _ = state
+                    .storage
+                    .finish_export_job(&input.export_id, "completed", None, false);
+                ("completed", Some(name))
+            }
+            Ok(None) | Err(AppError::RequestCancelled) => {
+                let _ = state
+                    .storage
+                    .finish_export_job(&input.export_id, "cancelled", None, false);
+                ("cancelled", None)
+            }
             Err(error) => {
+                let _ = state.storage.finish_export_job(
+                    &input.export_id,
+                    "failed",
+                    Some(error.code()),
+                    false,
+                );
                 let _ = emit_export_progress(&on_event, &input.export_id, "failed", 100);
                 return Err(error);
             }
@@ -1693,6 +1751,9 @@ mod tests {
                 results: 10,
                 review_requests: 11,
                 product_events: 12,
+                task_runs: 13,
+                result_drafts: 14,
+                export_jobs: 15,
             },
         );
         let json = serde_json::to_value(report).unwrap();

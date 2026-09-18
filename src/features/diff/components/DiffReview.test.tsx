@@ -19,6 +19,37 @@ beforeEach(() => {
 });
 
 describe('DiffReview', () => {
+  it('saves choices without removing review or changing the document', async () => {
+    const before = useAppStore.getState().files;
+    render(
+      <I18nProvider>
+        <DiffReview />
+      </I18nProvider>
+    );
+    fireEvent.click(screen.getByRole('button', { name: '保存选择（不应用）' }));
+    await waitFor(() => expect(screen.getByText(/选择已保存，可以关闭应用/)).toBeInTheDocument());
+    expect(screen.getByRole('checkbox', { name: 'README.md' })).toBeChecked();
+    expect(useAppStore.getState().files).toBe(before);
+    expect(useAppStore.getState().pendingDiff).not.toBeNull();
+  });
+
+  it('does not select a restored rejected block by default', () => {
+    const proposal = createMockDiff(mockFiles[0]);
+    useAppStore.setState({
+      pendingDiff: {
+        ...proposal,
+        status: 'partially_accepted',
+        blocks: [{ ...proposal.blocks[0], status: 'rejected', selected: undefined }],
+      },
+    });
+    render(
+      <I18nProvider>
+        <DiffReview />
+      </I18nProvider>
+    );
+    expect(screen.getByRole('checkbox', { name: 'README.md' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: /应用已选修改/ })).toBeDisabled();
+  });
   it('renders only validated semantic blocks with before and after content', () => {
     render(
       <I18nProvider>
@@ -138,6 +169,7 @@ describe('DiffReview', () => {
                 reviewId: proposal.id,
                 workspaceId: proposal.workspaceId,
               },
+              recoveryDraft: null,
             },
           },
         });

@@ -148,6 +148,9 @@ export function ChatMessageList({
         const createReviewReady = chatMessage.errorCode === 'CREATE_REVIEW_READY';
         const replaceReviewReady = chatMessage.errorCode === 'REPLACE_REVIEW_READY';
         const patchFailed = chatMessage.errorCode === 'PATCH_VALIDATION_FAILED';
+        const reviewStorageFailed =
+          chatMessage.errorCode === 'DATABASE_ERROR' ||
+          (patchFailed && chatMessage.protocolError?.includes('local database operation failed'));
         const patchFailureReason = validationFailureReason(chatMessage.protocolError);
         const emptyFileReviewRequired = patchFailureReason?.startsWith('目标文件为空');
         const a2uiFailed = chatMessage.errorCode === 'A2UI_VALIDATION_FAILED';
@@ -176,7 +179,16 @@ export function ChatMessageList({
             className={`${styles.message} ${chatMessage.role === 'user' ? styles.user : styles.assistant}`}
           >
             <div className={styles.role}>{chatMessage.role === 'user' ? 'YOU' : 'A2UI'}</div>
-            {fileCreationUnavailable ? (
+            {reviewStorageFailed ? (
+              <div className={styles.protocolError}>
+                <Alert
+                  type="error"
+                  showIcon
+                  title={t('reviewStorageFailed')}
+                  description={t('reviewStorageFailedDescription')}
+                />
+              </div>
+            ) : fileCreationUnavailable ? (
               <div className={styles.protocolError}>
                 <Alert
                   type="info"

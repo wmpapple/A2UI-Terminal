@@ -281,6 +281,14 @@ where
                     Err(error) => return Err(error),
                 }
             }
+            let review_storage_failed = review_result.as_ref().is_some_and(|result| {
+                matches!(
+                    result,
+                    Err(AppError::Database(_)
+                        | AppError::DatabaseIntegrity
+                        | AppError::StateUnavailable)
+                )
+            });
             let (validated_review, patch_error) = match review_result {
                 Some(Ok(review)) => (Some(review), None),
                 Some(Err(error)) if super::review::looks_like_candidate(&content) => {
@@ -399,7 +407,9 @@ where
                 && patch_error.is_none()
                 && a2ui_result.is_none()
                 && claims_unverified_file_completion(&content);
-            let error_code = if patch_error.is_some() {
+            let error_code = if review_storage_failed {
+                Some("DATABASE_ERROR".to_string())
+            } else if patch_error.is_some() {
                 Some("PATCH_VALIDATION_FAILED".to_string())
             } else if let Some(review) = &validated_review {
                 Some(
@@ -422,7 +432,10 @@ where
             } else {
                 None
             };
-            let assistant_content = if let Some(review) = validated_review.as_ref() {
+            let assistant_content = if review_storage_failed {
+                "修改方案未能保存到本地。文件没有被修改；请重启应用后重试，不要清空数据。"
+                    .to_string()
+            } else if let Some(review) = validated_review.as_ref() {
                 review_completion_content(review)
             } else if let Some(result) = a2ui_result.as_ref() {
                 a2ui_completion_content(result)
@@ -432,7 +445,11 @@ where
             repository.update_assistant(
                 &request.assistant_message_id,
                 &assistant_content,
-                "complete",
+                if review_storage_failed {
+                    "error"
+                } else {
+                    "complete"
+                },
                 error_code.as_deref(),
             )?;
             let _ = emit(ChatStreamEvent::Complete {
@@ -443,7 +460,12 @@ where
                 request_id: request.request_id,
                 message_id: request.assistant_message_id,
                 content: assistant_content,
-                status: "complete".into(),
+                status: if review_storage_failed {
+                    "error"
+                } else {
+                    "complete"
+                }
+                .into(),
                 error_code,
                 error_message: None,
                 retryable: false,
@@ -1207,7 +1229,7 @@ fn should_retry_invalid_review(
     if !super::review::looks_like_candidate(content) {
         return false;
     }
-    review_result.is_err()
+    matches!(review_result, Err(AppError::InvalidInput(_)))
 }
 
 #[cfg(test)]
@@ -1243,6 +1265,14 @@ mod tests {
         assert!(!should_retry_invalid_review(
             "ordinary guidance",
             &malformed
+        ));
+        assert!(!should_retry_invalid_review(
+            r#"{"type":"document_patch"}"#,
+            &Err(AppError::Database(rusqlite::Error::InvalidQuery))
+        ));
+        assert!(!should_retry_invalid_review(
+            r#"{"type":"document_patch"}"#,
+            &Err(AppError::FileConflict)
         ));
     }
 

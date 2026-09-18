@@ -245,6 +245,29 @@ describe('ChatPanel patch presentation', () => {
     expect(screen.queryByText(/MACHINE_ONLY_PROTOCOL/)).not.toBeInTheDocument();
   });
 
+  it('explains old database failures without claiming unsafe AI output or an automatic retry', () => {
+    useAppStore.setState((state) => ({
+      sessions: state.sessions.map((session) => ({
+        ...session,
+        messages: session.messages.map((message) => ({
+          ...message,
+          status: 'complete' as const,
+          errorCode: 'PATCH_VALIDATION_FAILED',
+          protocolError: 'AI 修改方案未通过安全校验：local database operation failed',
+        })),
+      })),
+      chatRequestId: null,
+    }));
+    render(
+      <I18nProvider>
+        <ChatPanel />
+      </I18nProvider>
+    );
+    expect(screen.getByText('修改方案未能保存到本地')).toBeInTheDocument();
+    expect(screen.queryByText('AI 修改方案未通过安全校验')).not.toBeInTheDocument();
+    expect(screen.queryByText(/系统已自动重试/)).not.toBeInTheDocument();
+  });
+
   it('routes an ordinary patch for a blank file back to the supported full-content review', () => {
     useAppStore.setState((state) => ({
       sessions: state.sessions.map((session) => ({

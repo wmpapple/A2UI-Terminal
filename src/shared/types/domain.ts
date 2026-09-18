@@ -108,6 +108,15 @@ export interface ResultDocument {
   sizeBytes: number;
   editable: boolean;
   appliedReview: ResultAppliedReview | null;
+  recoveryDraft: ResultRecoveryDraft | null;
+}
+
+export interface ResultRecoveryDraft {
+  content: string;
+  contentHash: string;
+  baseHash: string;
+  conflicted: boolean;
+  updatedAt: string;
 }
 
 export interface ResultAppliedReview {
@@ -149,6 +158,40 @@ export interface ExportProgressEvent {
 export interface ExportResultOutput extends ExportResultInput {
   status: 'completed' | 'cancelled';
   fileName: string | null;
+}
+
+export interface RecoveryResultDraftSummary {
+  resultId: string;
+  title: string;
+  updatedAt: string;
+}
+
+export interface RecoveryExportJob {
+  id: string;
+  resultId: string;
+  revisionId: string;
+  format: ExportFormat;
+  status:
+    | 'preparing'
+    | 'generating'
+    | 'writing'
+    | 'committed'
+    | 'completed'
+    | 'cancelled'
+    | 'failed'
+    | 'interrupted';
+  fileName: string | null;
+  errorCode: string | null;
+  recovered: boolean;
+  updatedAt: string;
+}
+
+export interface RecoveryStatus {
+  schemaVersion: number;
+  resultDrafts: RecoveryResultDraftSummary[];
+  activeReviewCount: number;
+  recoveredTaskCount: number;
+  exportJobs: RecoveryExportJob[];
 }
 
 export interface WorkspaceFile {

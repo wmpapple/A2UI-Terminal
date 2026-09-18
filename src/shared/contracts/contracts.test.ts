@@ -18,6 +18,7 @@ import a2uiCapabilities from '../../../contracts/v2/a2ui-capabilities.json';
 import searchFixture from '../../../contracts/v2/search.json';
 import providerProcessingFixture from '../../../contracts/v2/provider-processing.json';
 import telemetryFixture from '../../../contracts/v2/telemetry.json';
+import recoveryFixture from '../../../contracts/v2/recovery.json';
 import {
   isExportResultInput,
   isExportResultOutput,
@@ -55,6 +56,7 @@ import {
   isLocalProviderProbe,
   isTelemetryDictionary,
   isTelemetrySettings,
+  isRecoveryStatus,
 } from './guards';
 import { desktopApi } from '../platform/desktop';
 
@@ -137,6 +139,9 @@ describe('shared Rust/TypeScript contract fixtures', () => {
     expect(providerProcessingFixture.localProbes.every(isLocalProviderProbe)).toBe(true);
     expect(isTelemetrySettings(telemetryFixture.settings)).toBe(true);
     expect(isTelemetryDictionary(telemetryFixture.dictionary)).toBe(true);
+    expect(isRecoveryStatus(recoveryFixture)).toBe(true);
+    expect(JSON.stringify(recoveryFixture)).not.toContain('targetPath');
+    expect(JSON.stringify(recoveryFixture)).not.toContain('absolutePath');
     expect(isReviewRequest(review.request)).toBe(true);
     expect(isReviewApplication(review.application)).toBe(true);
   });

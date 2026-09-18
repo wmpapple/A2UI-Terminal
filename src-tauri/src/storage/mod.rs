@@ -9,7 +9,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 15;
+const SCHEMA_VERSION: i64 = 16;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -25,6 +25,7 @@ const MIGRATION_V12: &str = include_str!("../../migrations/0012_context_packs.sq
 const MIGRATION_V13: &str = include_str!("../../migrations/0013_a2ui_templates.sql");
 const MIGRATION_V14: &str = include_str!("../../migrations/0014_product_events.sql");
 const MIGRATION_V15: &str = include_str!("../../migrations/0015_product_event_allowlist.sql");
+const MIGRATION_V16: &str = include_str!("../../migrations/0016_recovery_jobs.sql");
 const MIGRATIONS: &[(i64, &str)] = &[
     (1, MIGRATION_V1),
     (2, MIGRATION_V2),
@@ -41,6 +42,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (13, MIGRATION_V13),
     (14, MIGRATION_V14),
     (15, MIGRATION_V15),
+    (16, MIGRATION_V16),
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -105,6 +107,60 @@ fn context_pack_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ContextPac
         name: row.get(2)?,
         created_at: row.get(3)?,
         updated_at: row.get(4)?,
+    })
+}
+
+fn task_run_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<TaskRunRow> {
+    let content: Vec<u8> = row.get(8)?;
+    let content = String::from_utf8(content).map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(8, rusqlite::types::Type::Blob, Box::new(error))
+    })?;
+    Ok(TaskRunRow {
+        task_id: row.get(0)?,
+        result_id: row.get(1)?,
+        workspace_id: row.get(2)?,
+        title: row.get(3)?,
+        file_name: row.get(4)?,
+        storage_ref: row.get(5)?,
+        managed_state_json: row.get(6)?,
+        revision_id: row.get(7)?,
+        content,
+        content_hash: row.get(9)?,
+        status: row.get(10)?,
+        error_code: row.get(11)?,
+        recovered: row.get::<_, i64>(12)? != 0,
+    })
+}
+
+fn result_draft_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ResultDraftRow> {
+    let content: Vec<u8> = row.get(2)?;
+    let content = String::from_utf8(content).map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(2, rusqlite::types::Type::Blob, Box::new(error))
+    })?;
+    Ok(ResultDraftRow {
+        result_id: row.get(0)?,
+        base_hash: row.get(1)?,
+        content,
+        content_hash: row.get(3)?,
+        updated_at: row.get(4)?,
+    })
+}
+
+fn export_job_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ExportJobRow> {
+    Ok(ExportJobRow {
+        id: row.get(0)?,
+        result_id: row.get(1)?,
+        revision_id: row.get(2)?,
+        format: row.get(3)?,
+        status: row.get(4)?,
+        target_path: row.get(5)?,
+        file_name: row.get(6)?,
+        output_hash: row.get(7)?,
+        error_code: row.get(8)?,
+        recovered: row.get::<_, i64>(9)? != 0,
+        created_at: row.get(10)?,
+        updated_at: row.get(11)?,
+        completed_at: row.get(12)?,
     })
 }
 
@@ -460,6 +516,69 @@ pub struct ManagedTaskResultRow<'a> {
     pub content_hash: &'a str,
 }
 
+#[derive(Debug, Clone)]
+pub struct TaskRunRow {
+    pub task_id: String,
+    pub result_id: String,
+    pub workspace_id: String,
+    pub title: String,
+    pub file_name: String,
+    pub storage_ref: String,
+    pub managed_state_json: String,
+    pub revision_id: String,
+    pub content: String,
+    pub content_hash: String,
+    pub status: String,
+    pub error_code: Option<String>,
+    pub recovered: bool,
+}
+
+pub struct NewTaskRunRow<'a> {
+    pub task_id: &'a str,
+    pub result_id: &'a str,
+    pub workspace_id: &'a str,
+    pub title: &'a str,
+    pub file_name: &'a str,
+    pub storage_ref: &'a str,
+    pub managed_state_json: &'a str,
+    pub revision_id: &'a str,
+    pub content: &'a str,
+    pub content_hash: &'a str,
+}
+
+#[derive(Debug, Clone)]
+pub struct ResultDraftRow {
+    pub result_id: String,
+    pub base_hash: String,
+    pub content: String,
+    pub content_hash: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ResultDraftSummaryRow {
+    pub result_id: String,
+    pub title: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportJobRow {
+    pub id: String,
+    pub result_id: String,
+    pub revision_id: String,
+    pub format: String,
+    pub status: String,
+    pub target_path: Option<String>,
+    pub file_name: Option<String>,
+    pub output_hash: Option<String>,
+    pub error_code: Option<String>,
+    pub recovered: bool,
+    pub created_at: String,
+    pub updated_at: String,
+    pub completed_at: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticCounts {
@@ -478,6 +597,9 @@ pub struct DiagnosticCounts {
     pub results: u64,
     pub review_requests: u64,
     pub product_events: u64,
+    pub task_runs: u64,
+    pub result_drafts: u64,
+    pub export_jobs: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -634,6 +756,9 @@ impl Storage {
             results: count("results")?,
             review_requests: count("review_requests")?,
             product_events: count("product_events")?,
+            task_runs: count("task_runs")?,
+            result_drafts: count("result_drafts")?,
+            export_jobs: count("export_jobs")?,
         })
     }
 
@@ -744,6 +869,151 @@ impl Storage {
                 row.get::<_, i64>(1)?.max(0) as u64,
             ))
         })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn create_export_job(
+        &self,
+        id: &str,
+        result_id: &str,
+        revision_id: &str,
+        format: &str,
+    ) -> Result<(), AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        connection.execute(
+            "INSERT INTO export_jobs(id, result_id, revision_id, format, status)
+             VALUES (?1, ?2, ?3, ?4, 'preparing')",
+            params![id, result_id, revision_id, format],
+        )?;
+        Ok(())
+    }
+
+    pub fn set_export_job_target(
+        &self,
+        id: &str,
+        target_path: &str,
+        file_name: &str,
+    ) -> Result<(), AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let updated = connection.execute(
+            "UPDATE export_jobs SET status = 'generating', target_path = ?2,
+                    file_name = ?3, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?1 AND status = 'preparing'",
+            params![id, target_path, file_name],
+        )?;
+        if updated == 1 {
+            Ok(())
+        } else {
+            Err(AppError::StateUnavailable)
+        }
+    }
+
+    pub fn mark_export_job_writing(&self, id: &str, output_hash: &str) -> Result<(), AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let updated = connection.execute(
+            "UPDATE export_jobs SET status = 'writing', output_hash = ?2,
+                    updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?1 AND status = 'generating'",
+            params![id, output_hash],
+        )?;
+        if updated == 1 {
+            Ok(())
+        } else {
+            Err(AppError::StateUnavailable)
+        }
+    }
+
+    pub fn mark_export_job_committed(&self, id: &str) -> Result<(), AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let updated = connection.execute(
+            "UPDATE export_jobs SET status = 'committed', updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?1 AND status = 'writing'",
+            [id],
+        )?;
+        if updated == 1 {
+            Ok(())
+        } else {
+            Err(AppError::StateUnavailable)
+        }
+    }
+
+    pub fn finish_export_job(
+        &self,
+        id: &str,
+        status: &str,
+        error_code: Option<&str>,
+        recovered: bool,
+    ) -> Result<(), AppError> {
+        if !matches!(status, "completed" | "cancelled" | "failed" | "interrupted") {
+            return Err(AppError::InvalidInput("导出恢复状态无效".into()));
+        }
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let updated = connection.execute(
+            "UPDATE export_jobs SET status = ?2, error_code = ?3, recovered = ?4,
+                    updated_at = CURRENT_TIMESTAMP,
+                    completed_at = CASE WHEN ?2 IN ('completed', 'cancelled', 'failed')
+                                        THEN CURRENT_TIMESTAMP ELSE NULL END
+             WHERE id = ?1 AND status NOT IN ('completed', 'cancelled', 'failed')",
+            params![
+                id,
+                status,
+                error_code,
+                if recovered { 1_i64 } else { 0_i64 }
+            ],
+        )?;
+        if updated == 1 {
+            Ok(())
+        } else {
+            let existing = connection.query_row(
+                "SELECT status FROM export_jobs WHERE id = ?1",
+                [id],
+                |row| row.get::<_, String>(0),
+            )?;
+            if existing == status {
+                Ok(())
+            } else {
+                Err(AppError::StateUnavailable)
+            }
+        }
+    }
+
+    pub fn unfinished_export_jobs(&self) -> Result<Vec<ExportJobRow>, AppError> {
+        self.export_jobs_with_filter(
+            "WHERE status IN ('preparing', 'generating', 'writing', 'committed')",
+        )
+    }
+
+    pub fn recent_export_jobs(&self) -> Result<Vec<ExportJobRow>, AppError> {
+        self.export_jobs_with_filter("ORDER BY updated_at DESC, rowid DESC LIMIT 20")
+    }
+
+    fn export_jobs_with_filter(&self, suffix: &str) -> Result<Vec<ExportJobRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let sql = format!(
+            "SELECT id, result_id, revision_id, format, status, target_path, file_name,
+                    output_hash, error_code, recovered, created_at, updated_at, completed_at
+             FROM export_jobs {suffix}"
+        );
+        let mut statement = connection.prepare(&sql)?;
+        let rows = statement.query_map([], export_job_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
     }
 
@@ -1902,7 +2172,7 @@ impl Storage {
                     application_operation_id, output_result_id, error_code,
                     created_at, decided_at, applied_at
              FROM review_requests
-             WHERE workspace_id = ?1 AND status IN ('pending', 'conflicted')
+             WHERE workspace_id = ?1 AND status IN ('pending', 'accepted', 'partially_accepted', 'conflicted')
              ORDER BY created_at DESC, id DESC",
         )?;
         let rows = statement.query_map([workspace_id], review_request_from_row)?;
@@ -1958,7 +2228,10 @@ impl Storage {
                 |row| row.get(0),
             )
             .optional()?;
-        if current.as_deref() != Some("pending") {
+        if !matches!(
+            current.as_deref(),
+            Some("pending" | "accepted" | "partially_accepted")
+        ) {
             return Err(AppError::InvalidInput("审阅请求已决定或已失效".into()));
         }
         let total = transaction.query_row(
@@ -1979,7 +2252,7 @@ impl Storage {
             let changed = transaction.execute(
                 "UPDATE review_blocks
                  SET status = ?3, decided_file_name = ?4
-                 WHERE id = ?1 AND review_id = ?2 AND status = 'pending'",
+                 WHERE id = ?1 AND review_id = ?2",
                 params![block_id, review_id, decision, file_name],
             )?;
             if changed != 1 {
@@ -1997,7 +2270,7 @@ impl Storage {
             "UPDATE review_requests
              SET status = ?2, decided_at = CURRENT_TIMESTAMP,
                  payload_json = COALESCE(?3, payload_json)
-             WHERE id = ?1 AND status = 'pending'",
+             WHERE id = ?1 AND status IN ('pending', 'accepted', 'partially_accepted')",
             params![review_id, status, payload_json],
         )?;
         transaction.commit()?;
@@ -2035,7 +2308,7 @@ impl Storage {
             "UPDATE review_requests
              SET status = 'rejected', decided_at = COALESCE(decided_at, CURRENT_TIMESTAMP),
                  error_code = NULL
-             WHERE id = ?1 AND status IN ('pending', 'conflicted', 'failed')",
+             WHERE id = ?1 AND status IN ('pending', 'accepted', 'partially_accepted', 'conflicted', 'failed')",
             [review_id],
         )?;
         if changed == 1 {
@@ -3108,6 +3381,248 @@ impl Storage {
             .optional()?)
     }
 
+    pub fn save_result_draft(
+        &self,
+        result_id: &str,
+        base_hash: &str,
+        content: &str,
+        content_hash: &str,
+    ) -> Result<ResultDraftRow, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        connection.execute(
+            "INSERT INTO result_drafts(result_id, base_hash, content, content_hash)
+             VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(result_id) DO UPDATE SET
+                base_hash = excluded.base_hash,
+                content = excluded.content,
+                content_hash = excluded.content_hash,
+                updated_at = CURRENT_TIMESTAMP",
+            params![result_id, base_hash, content.as_bytes(), content_hash],
+        )?;
+        connection
+            .query_row(
+                "SELECT result_id, base_hash, content, content_hash, updated_at
+                 FROM result_drafts WHERE result_id = ?1",
+                [result_id],
+                result_draft_from_row,
+            )
+            .map_err(AppError::from)
+    }
+
+    pub fn result_draft(&self, result_id: &str) -> Result<Option<ResultDraftRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT result_id, base_hash, content, content_hash, updated_at
+                 FROM result_drafts WHERE result_id = ?1",
+                [result_id],
+                result_draft_from_row,
+            )
+            .optional()?)
+    }
+
+    pub fn delete_result_draft(&self, result_id: &str) -> Result<bool, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection.execute(
+            "DELETE FROM result_drafts WHERE result_id = ?1",
+            [result_id],
+        )? > 0)
+    }
+
+    pub fn result_draft_count(&self) -> Result<u64, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(
+            connection.query_row("SELECT COUNT(*) FROM result_drafts", [], |row| {
+                row.get::<_, i64>(0).map(|value| value.max(0) as u64)
+            })?,
+        )
+    }
+
+    pub fn result_draft_summaries(&self) -> Result<Vec<ResultDraftSummaryRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut statement = connection.prepare(
+            "SELECT d.result_id, r.title, d.updated_at
+             FROM result_drafts d
+             JOIN results r ON r.id = d.result_id
+             ORDER BY d.updated_at DESC, d.result_id",
+        )?;
+        let rows = statement.query_map([], |row| {
+            Ok(ResultDraftSummaryRow {
+                result_id: row.get(0)?,
+                title: row.get(1)?,
+                updated_at: row.get(2)?,
+            })
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn active_review_count(&self) -> Result<u64, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection.query_row(
+            "SELECT COUNT(*) FROM review_requests
+             WHERE status IN ('pending', 'partially_accepted', 'accepted', 'conflicted')",
+            [],
+            |row| row.get::<_, i64>(0).map(|value| value.max(0) as u64),
+        )?)
+    }
+
+    pub fn recovered_task_count(&self) -> Result<u64, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection.query_row(
+            "SELECT COUNT(*) FROM task_runs WHERE recovered = 1",
+            [],
+            |row| row.get::<_, i64>(0).map(|value| value.max(0) as u64),
+        )?)
+    }
+
+    pub fn prepare_task_run(&self, input: NewTaskRunRow<'_>) -> Result<TaskRunRow, AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        if let Some(existing) = transaction
+            .query_row(
+                "SELECT task_id, result_id, workspace_id, title, file_name, storage_ref,
+                        managed_state_json, revision_id, content, content_hash, status,
+                        error_code, recovered
+                 FROM task_runs WHERE task_id = ?1",
+                [input.task_id],
+                task_run_from_row,
+            )
+            .optional()?
+        {
+            transaction.commit()?;
+            return Ok(existing);
+        }
+        let claimed = transaction.execute(
+            "UPDATE tasks SET status = 'running', updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?1 AND workspace_id = ?2 AND status = 'ready' AND result_id IS NULL",
+            params![input.task_id, input.workspace_id],
+        )?;
+        if claimed != 1 {
+            return Err(AppError::InvalidInput(
+                "当前任务尚未就绪、已经执行或不属于该工作区".into(),
+            ));
+        }
+        transaction.execute(
+            "INSERT INTO task_runs
+                (task_id, result_id, workspace_id, title, file_name, storage_ref,
+                 managed_state_json, revision_id, content, content_hash)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                input.task_id,
+                input.result_id,
+                input.workspace_id,
+                input.title,
+                input.file_name,
+                input.storage_ref,
+                input.managed_state_json,
+                input.revision_id,
+                input.content.as_bytes(),
+                input.content_hash,
+            ],
+        )?;
+        let row = transaction.query_row(
+            "SELECT task_id, result_id, workspace_id, title, file_name, storage_ref,
+                    managed_state_json, revision_id, content, content_hash, status,
+                    error_code, recovered
+             FROM task_runs WHERE task_id = ?1",
+            [input.task_id],
+            task_run_from_row,
+        )?;
+        transaction.commit()?;
+        Ok(row)
+    }
+
+    pub fn task_run(&self, task_id: &str) -> Result<Option<TaskRunRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        Ok(connection
+            .query_row(
+                "SELECT task_id, result_id, workspace_id, title, file_name, storage_ref,
+                        managed_state_json, revision_id, content, content_hash, status,
+                        error_code, recovered
+                 FROM task_runs WHERE task_id = ?1",
+                [task_id],
+                task_run_from_row,
+            )
+            .optional()?)
+    }
+
+    pub fn pending_task_runs(&self) -> Result<Vec<TaskRunRow>, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut statement = connection.prepare(
+            "SELECT task_id, result_id, workspace_id, title, file_name, storage_ref,
+                    managed_state_json, revision_id, content, content_hash, status,
+                    error_code, recovered
+             FROM task_runs WHERE status = 'prepared' ORDER BY created_at, task_id",
+        )?;
+        let rows = statement.query_map([], task_run_from_row)?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn mark_task_run_failed(&self, task_id: &str, error_code: &str) -> Result<(), AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        transaction.execute(
+            "UPDATE task_runs SET status = 'failed', error_code = ?2,
+                    recovered = 1, updated_at = CURRENT_TIMESTAMP
+             WHERE task_id = ?1 AND status = 'prepared'",
+            params![task_id, error_code],
+        )?;
+        transaction.execute(
+            "UPDATE tasks SET status = 'failed', error_code = ?2,
+                    updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?1 AND status = 'running'",
+            params![task_id, error_code],
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn mark_task_run_recovered(&self, task_id: &str) -> Result<(), AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        connection.execute(
+            "UPDATE task_runs SET recovered = 1, updated_at = CURRENT_TIMESTAMP
+             WHERE task_id = ?1 AND status = 'prepared'",
+            [task_id],
+        )?;
+        Ok(())
+    }
+
     pub fn insert_task(&self, task: NewTaskRow<'_>) -> Result<TaskRow, AppError> {
         let connection = self
             .connection
@@ -3203,12 +3718,43 @@ impl Storage {
             .lock()
             .map_err(|_| AppError::StateUnavailable)?;
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let claimed = transaction.execute(
-            "UPDATE tasks SET status = 'running', updated_at = CURRENT_TIMESTAMP
-             WHERE id = ?1 AND workspace_id = ?2 AND status = 'ready' AND result_id IS NULL",
-            params![input.task_id, input.workspace_id],
-        )?;
-        if claimed != 1 {
+        let task_state = transaction
+            .query_row(
+                "SELECT status, result_id FROM tasks WHERE id = ?1 AND workspace_id = ?2",
+                params![input.task_id, input.workspace_id],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+            )
+            .optional()?;
+        if matches!(
+            task_state.as_ref(),
+            Some((status, Some(result_id))) if status == "completed" && result_id == input.result_id
+        ) {
+            let row = transaction.query_row(
+                "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
+                        r.storage_kind, r.storage_ref, r.current_revision_id,
+                        r.active_session_id, NULL, r.created_at, r.updated_at,
+                        r.completed_at, r.managed_state_json
+                 FROM results r WHERE r.id = ?1",
+                [input.result_id],
+                result_from_row,
+            )?;
+            transaction.commit()?;
+            return Ok(row);
+        }
+        let intent_matches = transaction.query_row(
+            "SELECT COUNT(*) FROM task_runs
+             WHERE task_id = ?1 AND result_id = ?2 AND workspace_id = ?3
+               AND revision_id = ?4 AND content_hash = ?5 AND status = 'prepared'",
+            params![
+                input.task_id,
+                input.result_id,
+                input.workspace_id,
+                input.revision_id,
+                input.content_hash,
+            ],
+            |row| row.get::<_, i64>(0),
+        )? == 1;
+        if !matches!(task_state, Some((status, None)) if status == "running") || !intent_matches {
             return Err(AppError::InvalidInput(
                 "当前任务尚未就绪、已经执行或不属于该工作区".into(),
             ));
@@ -3251,6 +3797,12 @@ impl Storage {
                  completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
              WHERE id = ?1 AND status = 'running'",
             params![input.task_id, input.result_id],
+        )?;
+        transaction.execute(
+            "UPDATE task_runs SET status = 'completed', error_code = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+             WHERE task_id = ?1 AND status = 'prepared'",
+            [input.task_id],
         )?;
         let row = transaction.query_row(
             "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
@@ -3420,6 +3972,9 @@ impl Storage {
             "DELETE FROM product_events;
              DELETE FROM telemetry_settings;
              INSERT INTO telemetry_settings(singleton) VALUES (1);
+             DELETE FROM export_jobs;
+             DELETE FROM result_drafts;
+             DELETE FROM task_runs;
              DELETE FROM review_requests;
              DELETE FROM tasks;
              DELETE FROM results;
@@ -3653,6 +4208,9 @@ mod tests {
             "a2ui_templates",
             "telemetry_settings",
             "product_events",
+            "task_runs",
+            "result_drafts",
+            "export_jobs",
         ] {
             assert!(
                 storage.table_exists(table).unwrap(),
@@ -4005,6 +4563,40 @@ mod tests {
             .optional()
             .unwrap()
             .unwrap_or(false));
+    }
+
+    #[test]
+    fn failed_v16_migration_rolls_back_all_recovery_tables_and_schema_version() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        Storage::configure(&connection).unwrap();
+        Storage::migrate_to(&mut connection, 15, MIGRATIONS).unwrap();
+        let failure = Storage::migrate_to(
+            &mut connection,
+            16,
+            &[(
+                16,
+                "CREATE TABLE task_runs(id TEXT); CREATE TABLE result_drafts(id TEXT); \
+                 CREATE TABLE export_jobs(id TEXT); INSERT INTO missing_table VALUES (1);",
+            )],
+        );
+        assert!(failure.is_err());
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .unwrap(),
+            15
+        );
+        for table in ["task_runs", "result_drafts", "export_jobs"] {
+            assert!(!connection
+                .query_row(
+                    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1",
+                    [table],
+                    |_| Ok(true),
+                )
+                .optional()
+                .unwrap()
+                .unwrap_or(false));
+        }
     }
 
     #[test]
@@ -4377,6 +4969,26 @@ mod tests {
             .optional()
             .unwrap();
         assert!(probe.is_none());
+    }
+
+    #[test]
+    fn newer_schema_is_refused_without_changing_its_version() {
+        let directory = tempfile::tempdir().unwrap();
+        let database_path = directory.path().join("newer.sqlite3");
+        let connection = Connection::open(&database_path).unwrap();
+        connection
+            .execute_batch(&format!("PRAGMA user_version={};", SCHEMA_VERSION + 1))
+            .unwrap();
+        drop(connection);
+
+        assert!(Storage::open(&database_path).is_err());
+        let connection = Connection::open(&database_path).unwrap();
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+                .unwrap(),
+            SCHEMA_VERSION + 1
+        );
     }
 
     #[test]

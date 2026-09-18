@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S4.2 已验收，S4.3 隐私安全产品事件与 KPI 已实现、待人工验收（见 LOG-0143）
+> 文档状态：V2 目标架构基线；S1.1—S4.3 已验收，S4.4 崩溃恢复与迁移全链路已实现并等待人工验收（见 LOG-0160）
 > 建立日期：2026-08-11  
 > 对照代码：`main` 分支 S3.1 提交 `8222b9e`；用户已于 2026-09-11 验收 S3.1
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
@@ -82,7 +82,7 @@ React components
 - 流式响应、停止、分阶段超时、稳定错误码和部分响应保留。
 - schema v11 统一 Review Request：聊天、来源适配、逐块接受/拒绝、安全应用、冲突三选项、跨重启恢复和撤销；既有 `document_patch`/Revision 内核继续承担真实写入与版本审计。
 - 官方 A2UI v0.9.1/v0.9 协商、本地固定 Catalog（13 个基础组件、S3.2 的 6 个大众组件及 S3.4 的 `ResultSummary`）、严格 Schema、增量更新、Action 审计和 Inspector。
-- SQLite schema v13、迁移完整性检查、外键检查、WAL 和崩溃恢复；v9 Result、v10 Task/Template、v11 Review Pipeline、v12 Context Pack 和 v13 个人 Surface 模板均已验收。
+- SQLite schema v16、迁移完整性检查、外键检查、WAL 和崩溃恢复；v9 Result、v10 Task/Template、v11 Review Pipeline、v12 Context Pack、v13 个人 Surface 模板、v14/v15 本机产品事件和 v16 恢复任务均已落地。
 - S4.1 本机统一搜索：未归档 Result 标题/当前正文、当前工作区已授权 DocumentSource 正文和 Context Pack 安全元数据；确定性内存词法索引可清理重建，撤权即时失效，搜索结果不含绝对路径。
 - Windows CI、内部未签名包、正式签名/Updater 工作流框架、脱敏诊断和本地数据清除。
 
@@ -303,6 +303,8 @@ ReviewRequest
 
 `[IMPLEMENTED — S2.6 ACCEPTED]` 编辑器文本选区和 textarea 表格/代码选区会显示统一选区助手，提供润色、缩短、改专业、解释、提取重点和自定义六类动作。动作先建立仅含当前选区的 Context Manifest，并展示目标文件、字符数和本机/云端处理位置；敏感云端清单继续要求明确确认。修改类请求通过现有 `stream_chat` 的受限 `reviewSource=selection` 进入同一 Review Pipeline，接受前不修改编辑器或文件；Rust 持久化的 Review 来源为 `selection`，Patch 应用时继续复核文件 Hash、授权、唯一锚点和冲突。解释类请求使用 `explanationOnly` 只读模式：Rust 不解析或持久化 Review/A2UI 候选，只保存用户可读说明，文件完成声明防伪规则仍然生效。切换文件或工作区继续清除旧选区；重复锚点或外部变化安全失败，不以首次字符串匹配绕过 Patch 内核。
 
+`[S4.4 M04 CORRECTION — PENDING ACCEPTANCE]` Review 的“保存选择（不应用）”与真实文件应用分离。恢复查询除 pending/conflicted 外包含 accepted/partially_accepted；后两者在应用前可重新决定或丢弃，终态仍拒绝重新决定。前端恢复以持久块状态为准，应用没有变化的已保存决定时不重复提交 decide。该修正不新增表、IPC 或权限。
+
 ### 5.4 Context Manifest 与 Context Pack
 
 ```text
@@ -340,9 +342,11 @@ Template 不是 Prompt 文本列表，至少包含：版本、任务类别、字
 
 ### 6.1 当前 SQLite
 
-`[IMPLEMENTED — S4.3 READY FOR ACCEPTANCE]` 当前 schema v15 包含：
+`[IMPLEMENTED — S4.4 READY FOR ACCEPTANCE]` 当前 schema v16 包含：
 
 v15 以事务重建 product_events 白名单约束，兼容早期已安装 v14 缺少五类分母事件的数据库，原样保留事件与隐私设置。已执行的 v14 不会因 SQL 文件更新而重新执行，修正必须通过前向迁移。
+
+v16 只新增 Task 执行意图、Result 未提交输入和 Export Job 恢复表。应用在窗口可交互前协调恢复：Task 复用稳定 ID 并核验文件 Hash；Result 由用户选择恢复或保留磁盘；Export 只核验已提交字节或标记中断，不自动重新导出。
 
 - `workspaces`、`workspace_files`、`workspace_drafts`
 - `sessions`、`messages`、`context_snapshots`
@@ -356,10 +360,13 @@ v15 以事务重建 product_events 白名单约束，兼容早期已安装 v14 �
 - `context_packs` / `context_pack_items`（schema v12；工作区级来源引用集合，不存正文）
 - `a2ui_templates`（schema v13；工作区级安全 Surface 快照、兼容元数据和权限摘要）
 - `telemetry_settings` / `product_events`（schema v14；默认关闭、固定字段、本机计数；无上传队列）
+- `task_runs`（schema v16；Task 写文件前的稳定执行意图、状态和恢复标记）
+- `result_drafts`（schema v16；Result 未提交正文、基础/正文 Hash 和更新时间）
+- `export_jobs`（schema v16；版本绑定导出阶段、仅本机目标、输出 Hash 和脱敏错误）
 
 ### 6.2 V2 目标表
 
-`[CURRENT + TARGET]` 从 v9 起只做前向、连续、事务迁移；v9 Result、v10 Task/Template、v11 Review、v12 Context Pack、v13 个人 Surface 模板与 v14 本机产品事件已落地：
+`[CURRENT + TARGET]` 从 v9 起只做前向、连续、事务迁移；v9 Result、v10 Task/Template、v11 Review、v12 Context Pack、v13 个人 Surface 模板、v14/v15 本机产品事件与 v16 恢复表已落地：
 
 | 表                                      | 作用                                       | 关键关系                                           |
 | --------------------------------------- | ------------------------------------------ | -------------------------------------------------- |
@@ -372,7 +379,9 @@ v15 以事务重建 product_events 白名单约束，兼容早期已安装 v14 �
 | `context_packs` / `context_pack_items`  | 可复用资料引用集合（v12 已落地）           | workspace、workspace file source                   |
 | `task_templates`                        | 内置任务模板及版本（v10 已落地）           | 当前为全局内置任务模板                             |
 | `a2ui_templates`                        | 个人安全 Surface 模板（v13 已落地）        | workspace；来源 Surface 仅作审计提示，不作级联外键 |
-| `export_jobs`                           | 导出格式、版本、状态、脱敏错误             | result/revision                                    |
+| `task_runs`                             | Task 跨文件/数据库边界恢复（v16）          | task、workspace、预分配 result/revision            |
+| `result_drafts`                         | Result 未提交输入恢复（v16）               | result、base/content hash                          |
+| `export_jobs`                           | 导出格式、版本、阶段、提交 Hash（v16）     | result/revision                                    |
 | `telemetry_settings` / `product_events` | 本地隐私设置与严格白名单行为事件（v14）    | 不保存业务对象 ID；O-06 关闭前无上传               |
 | `search_documents`                      | 可选的未来持久语义索引；S4.1 P0 不落表     | result/context item                                |
 
@@ -662,7 +671,7 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 - “内容永不上报”是硬性红线：文档正文、Prompt、AI 回复、文件名、完整/绝对路径、图片内容、API Key、具体 Endpoint、邮箱、姓名、身份信息和本地资料索引内容不得进入匿名事件。
 - 匿名指标默认关闭；用户完成首次核心闭环后，产品可用非打扰方式邀请其主动开启，不得使用默认勾选、阻断流程或诱导性文案。
 - 设置固定提供“隐私 → 帮助改进产品”开关和“查看将发送的数据”入口；开启前即可查看字段，用户可随时关闭，关闭后停止后续上传。
-- `[IMPLEMENTED — S4.3 READY FOR ACCEPTANCE]` 开关默认关闭且关闭时不写事件；首次保存/导出/已审阅修改后才显示非阻断邀请。开启后只记录固定事件和区间字段，关闭会清除本机计数。O-06 未关闭，因此 `uploadConfigured=false`，不存在上传队列、接收端或后台发送。
+- `[IMPLEMENTED — S4.3 ACCEPTED]` 开关默认关闭且关闭时不写事件；首次保存/导出/已审阅修改后才显示非阻断邀请。开启后只记录固定事件和区间字段，关闭会清除本机计数。O-06 未关闭，因此 `uploadConfigured=false`，不存在上传队列、接收端或后台发送。
 - 搜索/检索索引必须继承授权与排除规则，并能随授权撤销删除。
 - 任务模板只存字段结构和规则，不存敏感原文。
 - 清除本地数据必须覆盖 V2 新表、索引和本地遥测，但不删除真实成果文件，除非用户对具体文件另行确认。

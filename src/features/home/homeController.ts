@@ -10,6 +10,7 @@ export const homeController = {
   search: (workspaceId: string | null, query: string) =>
     gateway().searchAuthorizedContent({ workspaceId, query, limit: 20 }),
   rebuildSearchIndex: () => gateway().rebuildAuthorizedSearchIndex(),
+  getRecoveryStatus: () => gateway().getRecoveryStatus(),
   createTask: (workspaceId: string, templateId: string) =>
     gateway().createTask(workspaceId, templateId),
   answerTask: (taskId: string, answers: Record<string, unknown>) =>

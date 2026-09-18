@@ -37,6 +37,7 @@ pub fn run() {
                 application::result::prepare_managed_results_dir(&app_data_dir)?;
             let storage = Storage::open(&app_data_dir.join("a2ui-terminal.sqlite3"))?;
             storage.cleanup_expired_versions()?;
+            application::recovery::reconcile_startup(&storage, &managed_results_dir)?;
             app.manage(AppState::new(storage, managed_results_dir));
             Ok(())
         })
@@ -194,6 +195,9 @@ pub fn run() {
             commands::create_text_result,
             commands::read_result_document,
             commands::save_result_document,
+            commands::save_result_draft,
+            commands::discard_result_draft,
+            commands::get_recovery_status,
             commands::list_result_revisions,
             commands::read_result_revision,
             commands::restore_result_revision,

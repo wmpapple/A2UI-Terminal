@@ -4,7 +4,7 @@ use crate::domain::task::{
 };
 use crate::error::AppError;
 use crate::repository::task::TaskRepository;
-use crate::storage::{ManagedTaskResultRow, Storage};
+use crate::storage::{ManagedTaskResultRow, NewTaskRunRow, Storage, TaskRunRow};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -100,19 +100,34 @@ pub fn start(
     let task = repository
         .get(task_id)?
         .ok_or_else(|| AppError::InvalidInput("任务不存在".into()))?;
-    if task.status != TaskStatus::Ready {
+    if task.status == TaskStatus::Completed {
+        let result_id = task.result_id.clone().ok_or(AppError::StateUnavailable)?;
+        return Ok(TaskRunResult {
+            task,
+            result: super::result::get(storage, &result_id)?,
+            output_mode: "local_scaffold".into(),
+        });
+    }
+    if !matches!(task.status, TaskStatus::Ready | TaskStatus::Running) {
         return Err(AppError::InvalidInput("任务尚未就绪或已经执行".into()));
     }
+    let run = if task.status == TaskStatus::Running {
+        storage
+            .task_run(task_id)?
+            .ok_or(AppError::StateUnavailable)?
+    } else {
+        prepare_run(storage, &task)?
+    };
+    complete_run(storage, managed_results_dir, &run, false)
+}
+
+fn prepare_run(storage: &Storage, task: &TaskDetail) -> Result<TaskRunRow, AppError> {
+    let repository = TaskRepository::new(storage);
     let template = repository
         .template_version(&task.template_id, task.template_version)?
         .ok_or(AppError::StateUnavailable)?;
     let result_id = Uuid::new_v4().to_string();
     let file_name = format!("{result_id}.md");
-    let output_path = managed_results_dir.join(&file_name);
-    if !output_path.starts_with(managed_results_dir) {
-        return Err(AppError::StateUnavailable);
-    }
-    fs::create_dir_all(managed_results_dir)?;
     let title = result_title(&template, &task.input_answers);
     let content = scaffold_markdown(&title, &template, &task.input_answers);
     let digest = Sha256::digest(content.as_bytes());
@@ -129,42 +144,107 @@ pub fn start(
         "localScaffold": true
     }))
     .map_err(|_| AppError::StateUnavailable)?;
-    let write_result = (|| -> Result<(), std::io::Error> {
-        let mut output = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&output_path)?;
-        output.write_all(content.as_bytes())?;
-        output.sync_all()
-    })();
-    if let Err(error) = write_result {
-        let _ = fs::remove_file(&output_path);
-        return Err(AppError::Io(error));
-    }
-    let result = match repository.complete_with_result(ManagedTaskResultRow {
+    storage.prepare_task_run(NewTaskRunRow {
+        task_id: &task.id,
         result_id: &result_id,
-        task_id,
         workspace_id: &task.workspace_id,
         title: &title,
+        file_name: &file_name,
         storage_ref: &storage_ref,
-        source_ref: &file_name,
         managed_state_json: &managed_state,
         revision_id: &revision_id,
         content: &content,
         content_hash: &content_hash,
-    }) {
-        Ok(result) => result,
-        Err(error) => {
-            let _ = fs::remove_file(&output_path);
-            return Err(error);
+    })
+}
+
+fn complete_run(
+    storage: &Storage,
+    managed_results_dir: &Path,
+    run: &TaskRunRow,
+    recovered: bool,
+) -> Result<TaskRunResult, AppError> {
+    if Path::new(&run.file_name).components().count() != 1
+        || Path::new(&run.file_name)
+            .extension()
+            .and_then(|value| value.to_str())
+            != Some("md")
+    {
+        storage.mark_task_run_failed(&run.task_id, "RECOVERY_PATH_INVALID")?;
+        return Err(AppError::StateUnavailable);
+    }
+    fs::create_dir_all(managed_results_dir)?;
+    let output_path = managed_results_dir.join(&run.file_name);
+    if !output_path.starts_with(managed_results_dir) {
+        storage.mark_task_run_failed(&run.task_id, "RECOVERY_PATH_INVALID")?;
+        return Err(AppError::StateUnavailable);
+    }
+    if output_path.exists() {
+        let bytes = fs::read(&output_path)?;
+        if sha256_hex(&bytes) != run.content_hash {
+            storage.mark_task_run_failed(&run.task_id, "FILE_CONFLICT")?;
+            return Err(AppError::FileConflict);
         }
-    };
-    let completed = repository.get(task_id)?.ok_or(AppError::StateUnavailable)?;
+    } else {
+        let mut output = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&output_path)?;
+        let write_result = output
+            .write_all(run.content.as_bytes())
+            .and_then(|()| output.sync_all());
+        if let Err(error) = write_result {
+            drop(output);
+            let _ = fs::remove_file(&output_path);
+            return Err(AppError::Io(error));
+        }
+    }
+    if recovered {
+        storage.mark_task_run_recovered(&run.task_id)?;
+    }
+    let result = TaskRepository::new(storage).complete_with_result(ManagedTaskResultRow {
+        result_id: &run.result_id,
+        task_id: &run.task_id,
+        workspace_id: &run.workspace_id,
+        title: &run.title,
+        storage_ref: &run.storage_ref,
+        source_ref: &run.file_name,
+        managed_state_json: &run.managed_state_json,
+        revision_id: &run.revision_id,
+        content: &run.content,
+        content_hash: &run.content_hash,
+    })?;
+    let completed = TaskRepository::new(storage)
+        .get(&run.task_id)?
+        .ok_or(AppError::StateUnavailable)?;
     Ok(TaskRunResult {
         task: completed,
         result,
         output_mode: "local_scaffold".into(),
     })
+}
+
+pub fn recover_pending_runs(
+    storage: &Storage,
+    managed_results_dir: &Path,
+) -> Result<u64, AppError> {
+    let runs = storage.pending_task_runs()?;
+    let mut recovered = 0;
+    for run in runs {
+        if complete_run(storage, managed_results_dir, &run, true).is_ok() {
+            recovered += 1;
+        }
+    }
+    Ok(recovered)
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    let mut encoded = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        write!(&mut encoded, "{byte:02x}").expect("writing to a String cannot fail");
+    }
+    encoded
 }
 
 fn validate_uuid(value: &str, label: &str) -> Result<(), AppError> {
@@ -291,7 +371,7 @@ mod tests {
     }
 
     #[test]
-    fn task_answers_are_allowlisted_and_a_task_cannot_run_twice() {
+    fn task_answers_are_allowlisted_and_a_completed_task_is_idempotent() {
         let storage = Storage::open_in_memory().unwrap();
         storage
             .upsert_workspace("workspace-task", "Tasks", "C:\\tasks")
@@ -325,12 +405,46 @@ mod tests {
         )
         .unwrap();
         let output = tempfile::tempdir().unwrap();
-        start(&storage, output.path(), &created.id).unwrap();
-        assert!(matches!(
-            start(&storage, output.path(), &created.id),
-            Err(AppError::InvalidInput(_))
-        ));
+        let first = start(&storage, output.path(), &created.id).unwrap();
+        let second = start(&storage, output.path(), &created.id).unwrap();
+        assert_eq!(first.result.summary.id, second.result.summary.id);
         assert_eq!(fs::read_dir(output.path()).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn prepared_task_recovers_exactly_once_after_the_file_write_boundary() {
+        let storage = Storage::open_in_memory().unwrap();
+        storage
+            .upsert_workspace("workspace-task", "Tasks", "C:\\tasks")
+            .unwrap();
+        let created = create(
+            &storage,
+            CreateTaskInput {
+                workspace_id: "workspace-task".into(),
+                template_id: "meeting_minutes".into(),
+            },
+        )
+        .unwrap();
+        let ready = answer(
+            &storage,
+            AnswerTaskInput {
+                task_id: created.id.clone(),
+                answers: [("meetingTitle".into(), Value::String("恢复例会".into()))]
+                    .into_iter()
+                    .collect(),
+            },
+        )
+        .unwrap();
+        let run = prepare_run(&storage, &ready).unwrap();
+        let output = tempfile::tempdir().unwrap();
+        fs::write(output.path().join(&run.file_name), run.content.as_bytes()).unwrap();
+
+        assert_eq!(recover_pending_runs(&storage, output.path()).unwrap(), 1);
+        assert_eq!(recover_pending_runs(&storage, output.path()).unwrap(), 0);
+        assert_eq!(fs::read_dir(output.path()).unwrap().count(), 1);
+        let completed = get(&storage, &created.id).unwrap();
+        assert_eq!(completed.status, TaskStatus::Completed);
+        assert_eq!(completed.result_id.as_deref(), Some(run.result_id.as_str()));
     }
 
     #[test]

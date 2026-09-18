@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 16,
+  "resultDrafts": [
+    {
+      "resultId": "550e8400-e29b-41d4-a716-446655440020",
+      "title": "会议纪要",
+      "updatedAt": "2026-09-17 18:00:00"
+    }
+  ],
+  "activeReviewCount": 1,
+  "recoveredTaskCount": 1,
+  "exportJobs": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440090",
+      "resultId": "550e8400-e29b-41d4-a716-446655440020",
+      "revisionId": "550e8400-e29b-41d4-a716-446655440021",
+      "format": "pdf",
+      "status": "interrupted",
+      "fileName": "会议纪要.pdf",
+      "errorCode": "EXPORT_INTERRUPTED",
+      "recovered": true,
+      "updatedAt": "2026-09-17 18:01:00"
+    }
+  ]
+}

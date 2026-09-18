@@ -1,8 +1,9 @@
 use crate::a2ui::{validate_surface, A2uiNode, A2uiSurfaceState};
 use crate::domain::result::{
     validate_title, CreateTextResultInput, RestoreResultRevisionInput, ResultAppliedReview,
-    ResultDetail, ResultDocument, ResultRevision, ResultRevisionSummary, ResultStorageKind,
-    ResultSummary, ResultType, SaveResultDocumentInput, TextResultFormat,
+    ResultDetail, ResultDocument, ResultRecoveryDraft, ResultRevision, ResultRevisionSummary,
+    ResultStorageKind, ResultSummary, ResultType, SaveResultDocumentInput, SaveResultDraftInput,
+    TextResultFormat,
 };
 use crate::error::AppError;
 use crate::repository::result::{detail_from_row, ResultRepository};
@@ -228,6 +229,12 @@ pub fn save_document(
     let source = result_source(storage, &input.result_id)?;
     let result_type = result_type_from_storage(&source.result.result_type)?;
     validate_result_content(result_type, &input.content)?;
+    storage.save_result_draft(
+        &input.result_id,
+        &input.base_hash,
+        &input.content,
+        &content_hash(input.content.as_bytes()),
+    )?;
     match source.source_kind.as_str() {
         "managed_local" => save_managed_document(
             storage,
@@ -249,7 +256,41 @@ pub fn save_document(
         }
         _ => return Err(AppError::InvalidInput("成果不是可编辑的文档".into())),
     }
+    storage.delete_result_draft(&input.result_id)?;
     read_document(storage, managed_results_dir, &input.result_id)
+}
+
+pub fn save_draft(
+    storage: &Storage,
+    managed_results_dir: &Path,
+    input: SaveResultDraftInput,
+) -> Result<ResultRecoveryDraft, AppError> {
+    validate_result_id(&input.result_id)?;
+    validate_hash(&input.base_hash)?;
+    let document = read_document(storage, managed_results_dir, &input.result_id)?;
+    if !document.editable {
+        return Err(AppError::InvalidInput("成果不是可编辑的文档".into()));
+    }
+    validate_result_content(document.result.summary.result_type, &input.content)?;
+    let content_hash = content_hash(input.content.as_bytes());
+    let row = storage.save_result_draft(
+        &input.result_id,
+        &input.base_hash,
+        &input.content,
+        &content_hash,
+    )?;
+    Ok(ResultRecoveryDraft {
+        content: row.content,
+        content_hash: row.content_hash,
+        base_hash: row.base_hash.clone(),
+        conflicted: row.base_hash != document.content_hash,
+        updated_at: row.updated_at,
+    })
+}
+
+pub fn discard_draft(storage: &Storage, result_id: &str) -> Result<bool, AppError> {
+    validate_result_id(result_id)?;
+    storage.delete_result_draft(result_id)
 }
 
 pub fn list_revisions(
@@ -453,6 +494,7 @@ fn create_managed_document(
         size_bytes: content.len() as u64,
         editable: true,
         applied_review: applied_review_for_result(storage, &result_id)?,
+        recovery_draft: None,
     })
 }
 
@@ -521,14 +563,32 @@ fn read_from_source(
     let row = storage
         .result(&source.result.id)?
         .ok_or(AppError::StateUnavailable)?;
+    let result = detail_from_row(row)?;
+    let recovery_draft = if let Some(draft) = storage.result_draft(&source.result.id)? {
+        if draft.content_hash == hash {
+            storage.delete_result_draft(&source.result.id)?;
+            None
+        } else {
+            Some(ResultRecoveryDraft {
+                content: draft.content,
+                content_hash: draft.content_hash,
+                conflicted: draft.base_hash != hash,
+                base_hash: draft.base_hash,
+                updated_at: draft.updated_at,
+            })
+        }
+    } else {
+        None
+    };
     Ok(ResultDocument {
-        result: detail_from_row(row)?,
+        result,
         format,
         content,
         content_hash: hash,
         size_bytes,
         editable,
         applied_review: applied_review_for_result(storage, &source.result.id)?,
+        recovery_draft,
     })
 }
 
@@ -1197,7 +1257,7 @@ mod tests {
     use super::*;
     use crate::domain::result::{
         CreateTextResultInput, RestoreResultRevisionInput, SaveResultDocumentInput,
-        TextResultFormat,
+        SaveResultDraftInput, TextResultFormat,
     };
     use crate::storage::Storage;
 
@@ -1273,6 +1333,51 @@ mod tests {
         assert!(copy.result.summary.title.ends_with(" - 副本"));
         assert_eq!(storage.results(None, false).unwrap().len(), 2);
         assert!(storage.recent_workspaces(10).unwrap().is_empty());
+    }
+
+    #[test]
+    fn result_draft_survives_reopen_and_never_overwrites_an_external_change() {
+        let storage = Storage::open_in_memory().unwrap();
+        let output = tempfile::tempdir().unwrap();
+        let created = create_text(
+            &storage,
+            output.path(),
+            CreateTextResultInput {
+                title: "恢复内容".into(),
+                file_name: "recover.md".into(),
+                result_type: ResultType::Document,
+                format: TextResultFormat::Markdown,
+            },
+        )
+        .unwrap();
+        save_draft(
+            &storage,
+            output.path(),
+            SaveResultDraftInput {
+                result_id: created.result.summary.id.clone(),
+                content: "# 尚未保存\n".into(),
+                base_hash: created.content_hash.clone(),
+            },
+        )
+        .unwrap();
+
+        let reopened = read_document(&storage, output.path(), &created.result.summary.id).unwrap();
+        assert_eq!(reopened.content, created.content);
+        assert_eq!(
+            reopened.recovery_draft.as_ref().unwrap().content,
+            "# 尚未保存\n"
+        );
+        assert!(!reopened.recovery_draft.as_ref().unwrap().conflicted);
+
+        fs::write(output.path().join("recover.md"), "# 外部修改\n").unwrap();
+        let conflicted =
+            read_document(&storage, output.path(), &created.result.summary.id).unwrap();
+        assert_eq!(conflicted.content, "# 外部修改\n");
+        assert!(conflicted.recovery_draft.unwrap().conflicted);
+        assert_eq!(
+            fs::read_to_string(output.path().join("recover.md")).unwrap(),
+            "# 外部修改\n"
+        );
     }
 
     #[test]

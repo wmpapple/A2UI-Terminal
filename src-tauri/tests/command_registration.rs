@@ -23,12 +23,15 @@ const NATIVE_COMMANDS: [&str; 19] = [
     "list_recovery_drafts",
 ];
 
-const RESULT_COMMANDS: [&str; 11] = [
+const RESULT_COMMANDS: [&str; 14] = [
     "list_results",
     "get_result",
     "create_text_result",
     "read_result_document",
     "save_result_document",
+    "save_result_draft",
+    "discard_result_draft",
+    "get_recovery_status",
     "list_result_revisions",
     "read_result_revision",
     "restore_result_revision",

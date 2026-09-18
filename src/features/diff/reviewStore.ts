@@ -7,6 +7,7 @@ import {
 import { errorDetails } from '../../stores/support';
 import type { AppGet, AppSet, AppState } from '../../stores/types';
 import { reviewController } from './reviewController';
+import { reviewSelectionIsSaved } from './reviewSelection';
 
 type ReviewActions = Pick<
   AppState,
@@ -15,6 +16,7 @@ type ReviewActions = Pick<
   | 'togglePatchChange'
   | 'setReviewFileName'
   | 'applyDiff'
+  | 'saveReviewSelection'
   | 'resolveReviewConflict'
   | 'undoLastPatch'
 >;
@@ -50,7 +52,9 @@ export const createReviewStore = (set: AppSet, get: AppGet): ReviewActions => ({
         ? {
             ...state.pendingDiff,
             blocks: state.pendingDiff.blocks.map((block) =>
-              block.id === changeId ? { ...block, selected: !(block.selected ?? true) } : block
+              block.id === changeId
+                ? { ...block, selected: !(block.selected ?? block.status !== 'rejected') }
+                : block
             ),
           }
         : null,
@@ -60,16 +64,59 @@ export const createReviewStore = (set: AppSet, get: AppGet): ReviewActions => ({
       pendingDiff: state.pendingDiff
         ? {
             ...state.pendingDiff,
+            status: 'pending',
             blocks: state.pendingDiff.blocks.map((block) =>
               block.id === blockId ? { ...block, decidedFileName: fileName } : block
             ),
           }
         : null,
     })),
+  saveReviewSelection: async () => {
+    const proposal = get().pendingDiff;
+    const workspace = get().workspace;
+    if (!proposal || get().patchApplying) return;
+    if (get().runtimeMode === 'desktop' && !workspace) return;
+    if (reviewSelectionIsSaved(proposal)) return;
+    if (!proposal.blocks.some((block) => block.selected ?? block.status !== 'rejected')) return;
+    set({ patchApplying: true, patchError: null });
+    try {
+      const decisions = proposal.blocks.map((block) => ({
+        blockId: block.id,
+        accepted: block.selected ?? block.status !== 'rejected',
+        fileName:
+          block.kind === 'create_file'
+            ? (block.decidedFileName ?? block.suggestedFileName)
+            : undefined,
+      }));
+      const persisted =
+        get().runtimeMode === 'desktop'
+          ? await reviewController.decide(proposal.id, workspace!.id, decisions)
+          : {
+              ...proposal,
+              status: decisions.every((item) => item.accepted)
+                ? ('accepted' as const)
+                : ('partially_accepted' as const),
+              blocks: proposal.blocks.map((block, index) => ({
+                ...block,
+                status: decisions[index].accepted ? ('accepted' as const) : ('rejected' as const),
+                selected: decisions[index].accepted,
+              })),
+            };
+      if (get().pendingDiff?.id === proposal.id && get().workspace?.id === workspace?.id) {
+        set({ pendingDiff: persisted });
+      }
+    } catch (error) {
+      set({ patchError: errorDetails(error).message });
+    } finally {
+      set({ patchApplying: false });
+    }
+  },
   applyDiff: async () => {
     const proposal = get().pendingDiff;
-    if (!proposal) return;
-    const selected = proposal.blocks.filter((block) => block.selected ?? true);
+    if (!proposal || get().patchApplying) return;
+    const selected = proposal.blocks.filter(
+      (block) => block.selected ?? block.status !== 'rejected'
+    );
     if (selected.length === 0) {
       set({ patchError: '请至少选择一个修改块' });
       return;
@@ -137,18 +184,21 @@ export const createReviewStore = (set: AppSet, get: AppGet): ReviewActions => ({
     if (!workspace) return;
     set({ patchApplying: true, patchError: null });
     try {
-      await reviewController.decide(
-        proposal.id,
-        workspace.id,
-        proposal.blocks.map((block) => ({
-          blockId: block.id,
-          accepted: block.selected ?? true,
-          fileName:
-            block.kind === 'create_file'
-              ? (block.decidedFileName ?? block.suggestedFileName)
-              : undefined,
-        }))
-      );
+      const persisted = reviewSelectionIsSaved(proposal)
+        ? proposal
+        : await reviewController.decide(
+            proposal.id,
+            workspace.id,
+            proposal.blocks.map((block) => ({
+              blockId: block.id,
+              accepted: block.selected ?? block.status !== 'rejected',
+              fileName:
+                block.kind === 'create_file'
+                  ? (block.decidedFileName ?? block.suggestedFileName)
+                  : undefined,
+            }))
+          );
+      set({ pendingDiff: persisted });
       const application = await reviewController.apply(proposal.id, workspace.id);
       const remaining = await reviewController.listActive(workspace.id);
       set((state) => ({

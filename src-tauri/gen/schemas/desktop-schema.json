@@ -291,6 +291,12 @@
           "markdownDescription": "Enables the delete_provider_secret command without any pre-configured scope."
         },
         {
+          "description": "Enables the discard_result_draft command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-discard-result-draft",
+          "markdownDescription": "Enables the discard_result_draft command without any pre-configured scope."
+        },
+        {
           "description": "Enables the discard_review command without any pre-configured scope.",
           "type": "string",
           "const": "allow-discard-review",
@@ -349,6 +355,12 @@
           "type": "string",
           "const": "allow-get-processing-options",
           "markdownDescription": "Enables the get_processing_options command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_recovery_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-recovery-status",
+          "markdownDescription": "Enables the get_recovery_status command without any pre-configured scope."
         },
         {
           "description": "Enables the get_result command without any pre-configured scope.",
@@ -597,6 +609,12 @@
           "markdownDescription": "Enables the save_result_document command without any pre-configured scope."
         },
         {
+          "description": "Enables the save_result_draft command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-result-draft",
+          "markdownDescription": "Enables the save_result_draft command without any pre-configured scope."
+        },
+        {
           "description": "Enables the save_workspace_draft command without any pre-configured scope.",
           "type": "string",
           "const": "allow-save-workspace-draft",
@@ -813,6 +831,12 @@
           "markdownDescription": "Denies the delete_provider_secret command without any pre-configured scope."
         },
         {
+          "description": "Denies the discard_result_draft command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-discard-result-draft",
+          "markdownDescription": "Denies the discard_result_draft command without any pre-configured scope."
+        },
+        {
           "description": "Denies the discard_review command without any pre-configured scope.",
           "type": "string",
           "const": "deny-discard-review",
@@ -871,6 +895,12 @@
           "type": "string",
           "const": "deny-get-processing-options",
           "markdownDescription": "Denies the get_processing_options command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_recovery_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-recovery-status",
+          "markdownDescription": "Denies the get_recovery_status command without any pre-configured scope."
         },
         {
           "description": "Denies the get_result command without any pre-configured scope.",
@@ -1117,6 +1147,12 @@
           "type": "string",
           "const": "deny-save-result-document",
           "markdownDescription": "Denies the save_result_document command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_result_draft command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-result-draft",
+          "markdownDescription": "Denies the save_result_draft command without any pre-configured scope."
         },
         {
           "description": "Denies the save_workspace_draft command without any pre-configured scope.",

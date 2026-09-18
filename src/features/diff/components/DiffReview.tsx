@@ -3,6 +3,7 @@ import { Alert, Button, Checkbox, Empty, Input, Tag } from 'antd';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { useAppStore } from '../../../stores/useAppStore';
 import styles from './DiffReview.module.css';
+import { reviewSelectionIsSaved } from '../reviewSelection';
 
 interface Props {
   onOpenResult?: (resultId: string) => void;
@@ -14,6 +15,7 @@ export function DiffReview({ onOpenResult }: Props) {
   const applying = useAppStore((state) => state.patchApplying);
   const error = useAppStore((state) => state.patchError);
   const applyDiff = useAppStore((state) => state.applyDiff);
+  const saveReviewSelection = useAppStore((state) => state.saveReviewSelection);
   const rejectDiff = useAppStore((state) => state.rejectDiff);
   const togglePatchChange = useAppStore((state) => state.togglePatchChange);
   const setReviewFileName = useAppStore((state) => state.setReviewFileName);
@@ -33,7 +35,10 @@ export function DiffReview({ onOpenResult }: Props) {
       </div>
     );
 
-  const selectedCount = proposal.blocks.filter((block) => block.selected ?? true).length;
+  const selectedCount = proposal.blocks.filter(
+    (block) => block.selected ?? block.status !== 'rejected'
+  ).length;
+  const choicesSaved = reviewSelectionIsSaved(proposal);
   const applyAndContinue = async () => {
     await applyDiff();
     const application = useAppStore.getState().lastReviewApplication;
@@ -54,6 +59,8 @@ export function DiffReview({ onOpenResult }: Props) {
           {proposal.blocks.length} {t('changeBlocks')} · {selectedCount} {t('selectedBlocks')}
         </p>
       </div>
+      <Alert type="info" showIcon title={t('reviewSelectionHint')} />
+      {choicesSaved ? <Alert type="success" showIcon title={t('reviewSelectionSaved')} /> : null}
       {proposal.source === 'a2ui_action' ? (
         <Alert
           type="warning"
@@ -68,7 +75,7 @@ export function DiffReview({ onOpenResult }: Props) {
           <article className={styles.change} key={change.id}>
             <header className={styles.changeHeader}>
               <Checkbox
-                checked={change.selected ?? true}
+                checked={change.selected ?? change.status !== 'rejected'}
                 disabled={applying}
                 onChange={() => togglePatchChange(change.id)}
               >
@@ -134,6 +141,12 @@ export function DiffReview({ onOpenResult }: Props) {
           <>
             <Button icon={<CloseOutlined />} disabled={applying} onClick={rejectDiff}>
               {t('rejectAll')}
+            </Button>
+            <Button
+              disabled={applying || selectedCount === 0}
+              onClick={() => void saveReviewSelection()}
+            >
+              {t('saveReviewSelection')}
             </Button>
             <Button
               type="primary"

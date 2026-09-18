@@ -100,6 +100,24 @@ pub struct SaveResultDocumentInput {
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SaveResultDraftInput {
+    pub result_id: String,
+    pub content: String,
+    pub base_hash: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ResultRecoveryDraft {
+    pub content: String,
+    pub content_hash: String,
+    pub base_hash: String,
+    pub conflicted: bool,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RestoreResultRevisionInput {
     pub result_id: String,
     pub revision_id: String,
@@ -123,6 +141,8 @@ pub struct ResultDocument {
     pub size_bytes: u64,
     pub editable: bool,
     pub applied_review: Option<ResultAppliedReview>,
+    #[serde(default)]
+    pub recovery_draft: Option<ResultRecoveryDraft>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

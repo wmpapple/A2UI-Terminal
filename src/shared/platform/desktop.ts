@@ -35,6 +35,7 @@ import type {
   WorkspaceSummary,
   ResultDetail,
   ResultDocument,
+  ResultRecoveryDraft,
   ResultRevision,
   ResultRevisionSummary,
   ResultSummary,
@@ -61,6 +62,7 @@ import type {
   SetTelemetrySettingsInput,
   TelemetryDictionary,
   TelemetrySettings,
+  RecoveryStatus,
 } from '../types/domain';
 
 export interface BootstrapStatus {
@@ -177,6 +179,27 @@ export const desktopApi = {
     return invoke<ResultDocument>('save_result_document', {
       input: { resultId, content, baseHash },
     });
+  },
+
+  async saveResultDraft(
+    resultId: string,
+    content: string,
+    baseHash: string
+  ): Promise<ResultRecoveryDraft> {
+    requireDesktop();
+    return invoke<ResultRecoveryDraft>('save_result_draft', {
+      input: { resultId, content, baseHash },
+    });
+  },
+
+  async discardResultDraft(resultId: string): Promise<boolean> {
+    requireDesktop();
+    return invoke<boolean>('discard_result_draft', { resultId });
+  },
+
+  async getRecoveryStatus(): Promise<RecoveryStatus> {
+    requireDesktop();
+    return invoke<RecoveryStatus>('get_recovery_status');
   },
 
   async listResultRevisions(resultId: string): Promise<ResultRevisionSummary[]> {

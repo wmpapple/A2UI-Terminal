@@ -26,6 +26,10 @@ export const messages = {
     homeEyebrow: '从目标到成果',
     homeQuestion: '今天想完成什么？',
     homeIntroduction: '选择一个目标或添加资料。重要修改仍会先让你查看，成果会保存在本地。',
+    recoveryCenterTitle: '已检查上次未完成的工作',
+    recoveryCenterDescription:
+      '未保存成果 {drafts} 项，待处理审阅 {reviews} 项，已恢复任务 {tasks} 项，导出恢复记录 {exports} 项。',
+    recoveryOpenResult: '打开相关成果',
     homeActionsTitle: '开始一项任务',
     homeActionsFixed: '六类固定入口',
     homeActionWriteTitle: '写一份文档',
@@ -199,6 +203,11 @@ export const messages = {
     resultSaveStatus_saved: '已保存',
     resultSaveStatus_dirty: '有未保存修改',
     resultSaveStatus_draft: '草稿',
+    resultRecoveryTitle: '发现未保存的成果内容',
+    resultRecoveryDescription: '上次退出前的编辑尚未写入成果文件。请选择是否恢复。',
+    resultRecoveryConflict: '成果文件已在外部变化。恢复后请检查差异，再决定是否保存。',
+    resultRecoveryRestore: '恢复未保存内容',
+    resultRecoveryKeepDisk: '保留磁盘版本',
     resultSaveStatus_saving: '保存中',
     resultSaveStatus_conflict: '外部冲突',
     resultSaveStatus_error: '保存失败',
@@ -511,6 +520,10 @@ export const messages = {
     deleteKeyConfirm: '从系统凭据库删除该 Provider 的 API Key？',
     cancel: '取消',
     acceptSelected: '应用已选修改',
+    saveReviewSelection: '保存选择（不应用）',
+    reviewSelectionHint:
+      '勾选要接受的修改，取消勾选表示不采用。保存选择不会修改文件；只有“应用已选修改”才会写入并结束本次审阅。',
+    reviewSelectionSaved: '选择已保存，可以关闭应用后继续审阅；文件尚未修改。',
     rejectAll: '全部拒绝',
     noDiff: '暂无待审阅方案',
     noDiffHint:
@@ -529,6 +542,9 @@ export const messages = {
     undoReviewSuccess: '已撤销上次 AI 修改，并删除对应的 AI 创建成果',
     undoReviewUnavailable: '无法撤销上次 AI 修改，请查看当前页面的错误提示',
     patchValidationFailed: 'AI 修改方案未通过安全校验',
+    reviewStorageFailed: '修改方案未能保存到本地',
+    reviewStorageFailedDescription:
+      '这是本地存储错误，不代表 AI 方案不安全。文件没有被修改；请重启应用后重试，若仍失败请反馈此提示，不要清空数据。',
     patchValidationFailedDescription:
       '系统已自动重试，但仍未得到完整方案。文件没有被修改，你可以点击重试。',
     emptyFileReviewRequiredDescription:
@@ -634,6 +650,10 @@ export const messages = {
     homeQuestion: 'What would you like to finish today?',
     homeIntroduction:
       'Choose a goal or add source material. Important changes remain reviewable, and outcomes stay local.',
+    recoveryCenterTitle: 'Previous unfinished work checked',
+    recoveryCenterDescription:
+      '{drafts} unsaved results, {reviews} active reviews, {tasks} recovered tasks, and {exports} export recovery records.',
+    recoveryOpenResult: 'Open related result',
     homeActionsTitle: 'Start a task',
     homeActionsFixed: 'Six fixed entry points',
     homeActionWriteTitle: 'Write a document',
@@ -828,6 +848,12 @@ export const messages = {
     resultSaveStatus_saved: 'Saved',
     resultSaveStatus_dirty: 'Unsaved changes',
     resultSaveStatus_draft: 'Draft',
+    resultRecoveryTitle: 'Unsaved result content found',
+    resultRecoveryDescription:
+      'Edits from the previous session were not written to the result file.',
+    resultRecoveryConflict: 'The result file changed externally. Review differences before saving.',
+    resultRecoveryRestore: 'Restore unsaved content',
+    resultRecoveryKeepDisk: 'Keep disk version',
     resultSaveStatus_saving: 'Saving',
     resultSaveStatus_conflict: 'External conflict',
     resultSaveStatus_error: 'Save failed',
@@ -1175,6 +1201,11 @@ export const messages = {
     deleteKeyConfirm: 'Delete this provider API key from the system credential store?',
     cancel: 'Cancel',
     acceptSelected: 'Apply selected changes',
+    saveReviewSelection: 'Save choices (do not apply)',
+    reviewSelectionHint:
+      'Select changes to accept; uncheck changes to exclude. Saving choices does not change files. Only “Apply selected changes” writes files and finishes this review.',
+    reviewSelectionSaved:
+      'Choices saved. You can close the app and continue later; files are unchanged.',
     rejectAll: 'Reject all',
     noDiff: 'No proposal is waiting for review',
     noDiffHint:
@@ -1194,6 +1225,9 @@ export const messages = {
     undoReviewSuccess: 'The last AI change was undone and its created result was removed',
     undoReviewUnavailable: 'Could not undo the last AI change. Check the error shown here.',
     patchValidationFailed: 'The AI patch failed safety validation',
+    reviewStorageFailed: 'Could not save the change proposal locally',
+    reviewStorageFailedDescription:
+      'This is a local storage error, not a safety verdict. Files were not changed. Restart the app and retry; if it persists, report this message without clearing your data.',
     patchValidationFailedDescription:
       'The system retried automatically but still did not receive a complete patch. No file was changed.',
     emptyFileReviewRequiredDescription:

@@ -20,6 +20,7 @@ import type {
   PatchReview,
   ResultDetail,
   ResultDocument,
+  RecoveryStatus,
   ResultRevision,
   ResultSummary,
   ReviewApplication,
@@ -539,7 +540,53 @@ export const isResultDocument = (value: unknown): value is ResultDocument =>
   (value.appliedReview === null ||
     (isObject(value.appliedReview) &&
       isString(value.appliedReview.reviewId) &&
-      isString(value.appliedReview.workspaceId)));
+      isString(value.appliedReview.workspaceId))) &&
+  (value.recoveryDraft === null ||
+    (isObject(value.recoveryDraft) &&
+      isString(value.recoveryDraft.content) &&
+      isString(value.recoveryDraft.contentHash) &&
+      isString(value.recoveryDraft.baseHash) &&
+      isBoolean(value.recoveryDraft.conflicted) &&
+      isString(value.recoveryDraft.updatedAt)));
+
+export const isRecoveryStatus = (value: unknown): value is RecoveryStatus =>
+  isObject(value) &&
+  isNumber(value.schemaVersion) &&
+  Array.isArray(value.resultDrafts) &&
+  value.resultDrafts.every(
+    (draft) =>
+      isObject(draft) &&
+      isString(draft.resultId) &&
+      isString(draft.title) &&
+      isString(draft.updatedAt)
+  ) &&
+  isNumber(value.activeReviewCount) &&
+  isNumber(value.recoveredTaskCount) &&
+  Array.isArray(value.exportJobs) &&
+  value.exportJobs.every(
+    (job) =>
+      isObject(job) &&
+      isString(job.id) &&
+      isString(job.resultId) &&
+      isString(job.revisionId) &&
+      isString(job.format) &&
+      exportFormats.has(job.format) &&
+      isString(job.status) &&
+      new Set([
+        'preparing',
+        'generating',
+        'writing',
+        'committed',
+        'completed',
+        'cancelled',
+        'failed',
+        'interrupted',
+      ]).has(job.status) &&
+      isNullableString(job.fileName) &&
+      isNullableString(job.errorCode) &&
+      isBoolean(job.recovered) &&
+      isString(job.updatedAt)
+  );
 
 export const isResultRevision = (value: unknown): value is ResultRevision =>
   isObject(value) &&

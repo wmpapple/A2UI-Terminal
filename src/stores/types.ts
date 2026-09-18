@@ -111,6 +111,7 @@ export interface AppState {
   togglePatchChange: (changeId: string) => void;
   setReviewFileName: (blockId: string, fileName: string) => void;
   applyDiff: () => Promise<void>;
+  saveReviewSelection: () => Promise<void>;
   resolveReviewConflict: (resolution: ReviewConflictResolution) => Promise<void>;
   undoLastPatch: (review?: ResultAppliedReview) => Promise<boolean>;
   setSelectedText: (text: string) => void;

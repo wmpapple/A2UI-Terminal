@@ -7,6 +7,7 @@ mod export_pdf;
 pub mod export_target;
 pub mod import;
 pub mod provider;
+pub mod recovery;
 pub mod result;
 pub mod review;
 pub mod revision;

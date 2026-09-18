@@ -29,6 +29,7 @@ const document: ResultDocument = {
   sizeBytes: 20,
   editable: true,
   appliedReview: null,
+  recoveryDraft: null,
 };
 
 describe('ResultWorkbench', () => {
