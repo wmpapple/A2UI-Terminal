@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
 import type { FileSaveStatus, ResultAppliedReview } from '../../../shared/types/domain';
+import { finishPerformanceMeasurement } from '../../../shared/performance/performanceBudget';
 import { resultAdapterDefinitions } from '../resultAdapters';
 import { useResultStore } from '../resultStore';
 import { ExportResultModal } from './ExportResultModal';
@@ -83,7 +84,14 @@ export function ResultWorkbench({
   const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
-    void openResult(resultId);
+    let cancelled = false;
+    void openResult(resultId).then(() => {
+      if (cancelled || useResultStore.getState().activeDocument?.result.id !== resultId) return;
+      window.requestAnimationFrame(() => finishPerformanceMeasurement('resultOpen'));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [openResult, resultId]);
 
   useEffect(() => {
@@ -118,7 +126,12 @@ export function ResultWorkbench({
     if (copy) onDuplicated(copy.result.id);
   };
 
-  if (loading && !activeDocument) return <Skeleton className={styles.loading} active />;
+  if (loading && !activeDocument)
+    return (
+      <div className={styles.loading} role="status" aria-label={t('resultLoading')}>
+        <Skeleton active />
+      </div>
+    );
   if (!activeDocument)
     return (
       <div className={styles.empty}>
@@ -133,7 +146,11 @@ export function ResultWorkbench({
   const adapter = resultAdapterDefinitions[activeDocument.result.type];
 
   return (
-    <section className={styles.workbench} aria-label={t('resultWorkspace')}>
+    <section
+      className={styles.workbench}
+      aria-label={t('resultWorkspace')}
+      aria-busy={loading || saving}
+    >
       <header className={styles.toolbar}>
         <div className={styles.identity}>
           <strong>{activeDocument.result.title}</strong>
@@ -156,7 +173,9 @@ export function ResultWorkbench({
               ]}
             />
           ) : null}
-          <Tag color={saveColors[saveStatus]}>{t(saveStatusKeys[saveStatus])}</Tag>
+          <Tag color={saveColors[saveStatus]} role="status" aria-live="polite">
+            {t(saveStatusKeys[saveStatus])}
+          </Tag>
           <Button
             icon={<SaveOutlined />}
             loading={saving}

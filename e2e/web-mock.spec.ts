@@ -1,8 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
-  await page.evaluate(() => localStorage.clear());
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('a2ui-e2e-storage-ready') === 'true') return;
+    localStorage.clear();
+    sessionStorage.setItem('a2ui-e2e-storage-ready', 'true');
+  });
   await page.goto('/');
 });
 

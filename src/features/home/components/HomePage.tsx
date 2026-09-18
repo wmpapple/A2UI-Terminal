@@ -15,6 +15,10 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
 import type { ResultStatus } from '../../../shared/types/domain';
+import {
+  finishPerformanceMeasurement,
+  startPerformanceMeasurement,
+} from '../../../shared/performance/performanceBudget';
 import { useAppStore } from '../../../stores/useAppStore';
 import { useHomeStore } from '../homeStore';
 import { SourceDropZone } from './SourceDropZone';
@@ -117,6 +121,22 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
     void initialize();
   }, [initialize]);
 
+  useEffect(() => {
+    if (!initialized || loading) return;
+    const frame = window.requestAnimationFrame(() =>
+      finishPerformanceMeasurement('homeInteractive')
+    );
+    return () => window.cancelAnimationFrame(frame);
+  }, [initialized, loading]);
+
+  useEffect(() => {
+    if (taskAction === null) return;
+    const frame = window.requestAnimationFrame(() =>
+      finishPerformanceMeasurement('requestFeedback')
+    );
+    return () => window.cancelAnimationFrame(frame);
+  }, [taskAction]);
+
   const actionTemplates = useMemo(() => {
     const ids = actions.find((item) => item.id === taskAction)?.templateIds ?? [];
     return templates.filter((template) => ids.includes(template.id));
@@ -133,6 +153,7 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
       return;
     }
     resetTask();
+    startPerformanceMeasurement('requestFeedback');
     setTaskAction(action.id);
   };
 
@@ -153,7 +174,7 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
     recoveryStatus?.exportJobs.find((job) => job.status === 'interrupted')?.resultId;
 
   return (
-    <main className={styles.page} aria-labelledby="home-page-title">
+    <main className={styles.page} aria-labelledby="home-page-title" aria-busy={loading}>
       <div className={styles.content}>
         <div className={styles.hero}>
           <div>

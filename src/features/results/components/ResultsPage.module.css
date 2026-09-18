@@ -40,6 +40,12 @@
   gap: 10px;
 }
 
+.resultCount {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 .card {
   justify-content: space-between;
   gap: 18px;
@@ -47,6 +53,8 @@
   border: 1px solid var(--border);
   background: var(--panel);
   border-radius: 12px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 82px;
 }
 
 .card strong {
@@ -60,4 +68,11 @@
   gap: 6px;
   color: var(--text-muted);
   font-size: 12px;
+}
+
+.loadMore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
 }

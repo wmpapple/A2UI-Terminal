@@ -9,6 +9,9 @@ import { useResultStore } from '../resultStore';
 import { CreateTextResultModal } from './CreateTextResultModal';
 import styles from './ResultsPage.module.css';
 
+const INITIAL_RESULT_COUNT = 40;
+const RESULT_COUNT_STEP = 40;
+
 interface Props {
   onOpenResult: (resultId: string) => void;
 }
@@ -31,6 +34,7 @@ export function ResultsPage({ onOpenResult }: Props) {
   const loadResults = useResultStore((state) => state.loadResults);
   const clearError = useResultStore((state) => state.clearError);
   const [createOpen, setCreateOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_RESULT_COUNT);
 
   useEffect(() => {
     void loadResults();
@@ -42,7 +46,7 @@ export function ResultsPage({ onOpenResult }: Props) {
   };
 
   return (
-    <main className={styles.page} aria-labelledby="results-page-title">
+    <main className={styles.page} aria-labelledby="results-page-title" aria-busy={loading}>
       <div className={styles.content}>
         <header className={styles.header}>
           <div>
@@ -62,8 +66,15 @@ export function ResultsPage({ onOpenResult }: Props) {
             </Button>
           </Empty>
         ) : null}
+        {!error && (!loading || results.length > 0) ? (
+          <div className={styles.resultCount} role="status" aria-live="polite">
+            {t('resultsShowingCount')
+              .replace('{visible}', String(Math.min(visibleCount, results.length)))
+              .replace('{total}', String(results.length))}
+          </div>
+        ) : null}
         <div className={styles.grid}>
-          {results.map((result) => (
+          {results.slice(0, visibleCount).map((result) => (
             <article key={result.id} className={styles.card}>
               <div>
                 <strong>{result.title}</strong>
@@ -86,6 +97,17 @@ export function ResultsPage({ onOpenResult }: Props) {
             </article>
           ))}
         </div>
+        {visibleCount < results.length ? (
+          <div className={styles.loadMore}>
+            <Button
+              onClick={() =>
+                setVisibleCount((current) => Math.min(current + RESULT_COUNT_STEP, results.length))
+              }
+            >
+              {t('showMoreResults')}
+            </Button>
+          </div>
+        ) : null}
       </div>
       <CreateTextResultModal
         open={createOpen}

@@ -11,8 +11,9 @@
   --surface-hover: #f0f1f4;
   --surface-subtle: #f6f7f9;
   --text: #464b55;
-  --text-muted: #7d8490;
+  --text-muted: #5f6672;
   --text-strong: #17191d;
+  --focus-ring: #4338ca;
   color: var(--text);
   background: var(--canvas);
   font-family: Inter, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -40,9 +41,12 @@ textarea {
 }
 button:focus-visible,
 input:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -52,5 +56,17 @@ textarea:focus-visible {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+@media (forced-colors: active) {
+  *:focus-visible {
+    outline: 3px solid Highlight !important;
+  }
+  .ant-tag,
+  .ant-alert,
+  button,
+  input,
+  textarea {
+    border: 1px solid CanvasText !important;
   }
 }

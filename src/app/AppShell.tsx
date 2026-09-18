@@ -7,7 +7,7 @@ import {
   ToolOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, ConfigProvider, Dropdown, message, Tag } from 'antd';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChatPanel } from '../features/chat/components/ChatPanel';
 import { HomePage } from '../features/home/components/HomePage';
 import { ImportBatchModal } from '../features/imports/components/ImportBatchModal';
@@ -22,6 +22,10 @@ import { ResultWorkbench } from '../features/results/components/ResultWorkbench'
 import { EditorPane } from '../features/workspace/components/EditorPane';
 import { WorkspaceSidebar } from '../features/workspace/components/WorkspaceSidebar';
 import { getRuntimeMode } from '../shared/platform/runtime';
+import {
+  finishPerformanceMeasurement,
+  startPerformanceMeasurement,
+} from '../shared/performance/performanceBudget';
 import type { ResultAppliedReview } from '../shared/types/domain';
 import { useAppStore } from '../stores/useAppStore';
 import { useI18n } from './i18n/useI18n';
@@ -56,6 +60,8 @@ export function AppShell() {
   const [route, setRoute] = useState(() => routeFromHash(window.location.hash));
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const [messageApi, messageContextHolder] = message.useMessage();
+  const mainContentRef = useRef<HTMLDivElement>(null);
+  const initialRouteRef = useRef(true);
   const professional = experienceMode === 'professional';
 
   useEffect(() => {
@@ -70,6 +76,18 @@ export function AppShell() {
     window.addEventListener('hashchange', syncRoute);
     return () => window.removeEventListener('hashchange', syncRoute);
   }, []);
+
+  useEffect(() => {
+    if (initialRouteRef.current) {
+      initialRouteRef.current = false;
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      mainContentRef.current?.focus({ preventScroll: true });
+      finishPerformanceMeasurement('requestFeedback');
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeResultId, route]);
 
   const changeExperienceMode = (nextMode: ExperienceMode) => {
     writeExperienceMode(nextMode);
@@ -87,7 +105,11 @@ export function AppShell() {
     openRoute('workbench');
   };
 
-  const openResult = (resultId: string) => openWorkbench(resultId);
+  const openResult = (resultId: string) => {
+    startPerformanceMeasurement('requestFeedback');
+    startPerformanceMeasurement('resultOpen');
+    openWorkbench(resultId);
+  };
 
   const undoCreatedResult = async (review: ResultAppliedReview) => {
     const undone = await undoLastPatch(review);
@@ -174,6 +196,9 @@ export function AppShell() {
     >
       {messageContextHolder}
       <div className={styles.app}>
+        <a className={styles.skipLink} href="#main-content">
+          {t('skipToMainContent')}
+        </a>
         <header className={styles.titlebar} data-tauri-drag-region>
           <div className={styles.brand} data-tauri-drag-region>
             <span className={styles.logo}>A</span>
@@ -220,7 +245,15 @@ export function AppShell() {
             </Dropdown>
           </div>
         </header>
-        {content}
+        <div
+          ref={mainContentRef}
+          id="main-content"
+          className={styles.mainContent}
+          tabIndex={-1}
+          aria-label={t('mainContent')}
+        >
+          {content}
+        </div>
         {route === 'workbench' ? (
           <>
             {importError ? (
