@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 1,
+  "stage": "S4.7",
+  "source": {
+    "prdSection": "12.3",
+    "prdSha256": "E56FD2303B6228C5FC7AB1936FB1C2B71229845D6780DFDA2ACE06D69347AA3C",
+    "originalAvailableAtExecution": false,
+    "basis": [
+      "docs/V2_IMPLEMENTATION_PLAN.md#5-p0-需求追踪矩阵",
+      "docs/V2_ARCHITECTURE.md#14-需求追踪摘要",
+      "docs/V2_IMPLEMENTATION_PLAN.md#s47-beta-e2e-与发布验收"
+    ],
+    "note": "This is a traceability manifest derived from repository-pinned requirements, not a verbatim reproduction of the unavailable PRD."
+  },
+  "targetProfiles": [
+    {
+      "id": "office_collaboration",
+      "labelZh": "办公协作用户",
+      "templates": ["meeting_minutes", "weekly_report"],
+      "evidence": [
+        {
+          "path": "e2e/beta-acceptance.spec.ts",
+          "contains": "office user completes, saves, and exports meeting minutes"
+        }
+      ]
+    },
+    {
+      "id": "knowledge_research",
+      "labelZh": "阅读与研究用户",
+      "templates": ["document_summary"],
+      "evidence": [
+        {
+          "path": "e2e/beta-acceptance.spec.ts",
+          "contains": "knowledge user completes, saves, and exports the document-summary scenario"
+        }
+      ]
+    },
+    {
+      "id": "career_content",
+      "labelZh": "求职与内容修改用户",
+      "templates": ["resume_optimization"],
+      "evidence": [
+        {
+          "path": "e2e/beta-acceptance.spec.ts",
+          "contains": "four P0 templates and the completed table and structured-result entries are reachable"
+        }
+      ]
+    },
+    {
+      "id": "structured_workflow",
+      "labelZh": "数据与流程搭建用户",
+      "templates": [],
+      "evidence": [
+        {
+          "path": "e2e/web-mock.spec.ts",
+          "contains": "typed spreadsheet, checklist, form, and tool Result adapters"
+        }
+      ]
+    }
+  ],
+  "p0Templates": ["meeting_minutes", "document_summary", "weekly_report", "resume_optimization"],
+  "resultTypes": [
+    {
+      "id": "document",
+      "evidence": [
+        {
+          "path": "e2e/beta-acceptance.spec.ts",
+          "contains": "meeting minutes within the 90 second path"
+        }
+      ]
+    },
+    {
+      "id": "spreadsheet",
+      "evidence": [
+        {
+          "path": "e2e/web-mock.spec.ts",
+          "contains": "typed spreadsheet, checklist, form, and tool Result adapters"
+        }
+      ]
+    },
+    {
+      "id": "checklist",
+      "evidence": [
+        {
+          "path": "e2e/web-mock.spec.ts",
+          "contains": "typed spreadsheet, checklist, form, and tool Result adapters"
+        }
+      ]
+    },
+    {
+      "id": "form",
+      "evidence": [
+        {
+          "path": "e2e/web-mock.spec.ts",
+          "contains": "typed spreadsheet, checklist, form, and tool Result adapters"
+        }
+      ]
+    },
+    {
+      "id": "tool",
+      "evidence": [
+        {
+          "path": "e2e/web-mock.spec.ts",
+          "contains": "typed spreadsheet, checklist, form, and tool Result adapters"
+        }
+      ]
+    }
+  ],
+  "highFrequencyScenarios": [
+    {
+      "id": "meeting_minutes",
+      "completion": true,
+      "save": true,
+      "export": true,
+      "firstEffectiveResultBudgetMs": 90000,
+      "evidence": [
+        {
+          "path": "e2e/beta-acceptance.spec.ts",
+          "contains": "beta-meeting_minutes-lifecycle.json"
+        }
+      ]
+    },
+    {
+      "id": "document_summary",
+      "completion": true,
+      "save": true,
+      "export": true,
+      "firstEffectiveResultBudgetMs": 90000,
+      "evidence": [
+        {
+          "path": "e2e/beta-acceptance.spec.ts",
+          "contains": "beta-document_summary-lifecycle.json"
+        }
+      ]
+    }
+  ],
+  "section12_3Criteria": [
+    {
+      "id": "BETA-12.3-01",
+      "statementZh": "四类目标用户均有场景证据",
+      "mode": "automated",
+      "evidence": [
+        {
+          "path": "e2e/beta-acceptance.spec.ts",
+          "contains": "targetProfile"
+        }
+      ]
+    },
+    {
+      "id": "BETA-12.3-02",
+      "statementZh": "四个 P0 模板均可到达",
+      "mode": "automated",
+      "evidence": [
+        {
+          "path": "e2e/beta-acceptance.spec.ts",
+          "contains": "four P0 templates"
+        }
+      ]
+    },
+    {
+      "id": "BETA-12.3-03",
+      "statementZh": "首次有效成果路径不超过 90 秒",
+      "mode": "automated_and_manual",
+      "evidence": [
+        {
+          "path": "e2e/beta-acceptance.spec.ts",
+          "contains": "FIRST_EFFECTIVE_RESULT_BUDGET_MS"
+        },
+        {
+          "path": "docs/S4_7_MANUAL_ACCEPTANCE.md",
+          "contains": "M01 首次有效成果与四类用户"
+        }
+      ]
+    },
+    {
+      "id": "BETA-12.3-04",
+      "statementZh": "文档、表格、清单、表单和小工具均有保存或重开证据",
+      "mode": "automated",
+      "evidence": [
+        {
+          "path": "e2e/web-mock.spec.ts",
+          "contains": "typed spreadsheet, checklist, form, and tool Result adapters"
+        },
+        {
+          "path": "e2e/web-mock.spec.ts",
+          "contains": "text Result without chat"
+        }
+      ]
+    },
+    {
+      "id": "BETA-12.3-05",
+      "statementZh": "错误不会破坏既有成果且可安全重试",
+      "mode": "automated_and_manual",
+      "evidence": [
+        {
+          "path": "e2e/beta-acceptance.spec.ts",
+          "contains": "duplicate-name failure keeps the existing result"
+        },
+        {
+          "path": "docs/S4_7_MANUAL_ACCEPTANCE.md",
+          "contains": "M05 错误、取消与恢复"
+        }
+      ]
+    },
+    {
+      "id": "BETA-12.3-06",
+      "statementZh": "AI 写入、上下文、动态界面和高风险动作继续受安全门约束",
+      "mode": "automated_and_manual",
+      "evidence": [
+        {
+          "path": "e2e/web-mock.spec.ts",
+          "contains": "keeps file changes behind review"
+        },
+        {
+          "path": "docs/S4_7_MANUAL_ACCEPTANCE.md",
+          "contains": "M04 安全红线回归"
+        }
+      ]
+    },
+    {
+      "id": "BETA-12.3-07",
+      "statementZh": "至少两个高频场景具有完成、保存和导出数据",
+      "mode": "automated",
+      "evidence": [
+        {
+          "path": "e2e/beta-acceptance.spec.ts",
+          "contains": "attachLifecycleEvidence"
+        }
+      ]
+    },
+    {
+      "id": "BETA-12.3-08",
+      "statementZh": "隐私、清理、可访问性和性能发布门有保留证据",
+      "mode": "automated_and_manual",
+      "evidence": [
+        {
+          "path": "docs/S4_7_VALIDATION.md",
+          "contains": "跨阶段发布门"
+        },
+        {
+          "path": "docs/S4_7_MANUAL_ACCEPTANCE.md",
+          "contains": "M06 Beta 候选发布检查"
+        }
+      ]
+    }
+  ],
+  "p0Traceability": [
+    {
+      "requirement": "ONB-01",
+      "evidence": [{ "path": "e2e/beta-acceptance.spec.ts", "contains": "finishOnboarding" }]
+    },
+    {
+      "requirement": "HOME-01/02",
+      "evidence": [{ "path": "e2e/beta-acceptance.spec.ts", "contains": "four P0 templates" }]
+    },
+    {
+      "requirement": "IMP-01/02",
+      "evidence": [
+        {
+          "path": "e2e/web-mock.spec.ts",
+          "contains": "reviews and locally previews text, table, and image sources"
+        }
+      ]
+    },
+    {
+      "requirement": "TASK-01/02",
+      "evidence": [{ "path": "e2e/beta-acceptance.spec.ts", "contains": "taskCompleted" }]
+    },
+    {
+      "requirement": "WS-01/02/03/04",
+      "evidence": [
+        {
+          "path": "e2e/web-mock.spec.ts",
+          "contains": "creates, saves, versions, copies, and reopens"
+        }
+      ]
+    },
+    {
+      "requirement": "CTX-01/02/03",
+      "evidence": [{ "path": "e2e/web-mock.spec.ts", "contains": "completes context review" }]
+    },
+    {
+      "requirement": "CTX-05",
+      "evidence": [{ "path": "docs/S2_4_MANUAL_ACCEPTANCE.md", "contains": "验收通过" }]
+    },
+    {
+      "requirement": "REV-01…04/06",
+      "evidence": [
+        { "path": "e2e/web-mock.spec.ts", "contains": "keeps AI-created travel documents behind" }
+      ]
+    },
+    {
+      "requirement": "OUT-01…04",
+      "evidence": [{ "path": "e2e/web-mock.spec.ts", "contains": "trusted A2UI surface" }]
+    },
+    {
+      "requirement": "EXP-01/02/03",
+      "evidence": [{ "path": "e2e/beta-acceptance.spec.ts", "contains": "saveAndExportDocument" }]
+    },
+    {
+      "requirement": "RES-01",
+      "evidence": [{ "path": "e2e/web-mock.spec.ts", "contains": "Result without chat" }]
+    },
+    {
+      "requirement": "SEL-01",
+      "evidence": [
+        { "path": "e2e/web-mock.spec.ts", "contains": "routes selection edits through review" }
+      ]
+    },
+    {
+      "requirement": "PRV-04",
+      "evidence": [{ "path": "docs/S4_2_MANUAL_ACCEPTANCE.md", "contains": "验收通过" }]
+    },
+    {
+      "requirement": "ARC-03",
+      "evidence": [{ "path": "docs/PROVIDER_RELIABILITY.md", "contains": "OpenAI-Compatible" }]
+    },
+    {
+      "requirement": "A2UI-06",
+      "evidence": [{ "path": "docs/S3_1_VALIDATION.md", "contains": "v0.9.1" }]
+    }
+  ],
+  "releaseBoundaries": [
+    "O-06 remote telemetry upload is not implemented; Beta evidence is local-only.",
+    "O-08 built-in trial service is not implemented; real Provider timing remains a manual environment check.",
+    "Authenticode, updater signing, version migration, installer upgrade and publishing belong to S4.8."
+  ]
+}

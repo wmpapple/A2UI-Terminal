@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S4.5 已验收，S4.6 隐私、诊断、清理与安全审计已完成实现与自动验证，等待人工验收（见 LOG-0169—0171）
+> 文档状态：V2 目标架构基线；S1.1—S4.6 已验收，S4.7 已完成实现与自动验证并等待人工验收（见 LOG-0172—0174）
 > 建立日期：2026-08-11  
 > 对照代码：`main` 分支 S3.1 提交 `8222b9e`；用户已于 2026-09-11 验收 S3.1
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
@@ -712,6 +712,7 @@ S4.5 LOG-0167 修订：前端以固定枚举记录首页可交互、普通文本
 - Windows desktop E2E/冒烟：真实文件授权、保存、恢复、导出、安装/升级。
 - A2UI conformance：合法/非法 fixture、未知组件/Action、版本不兼容、增量 revision。
 - `[IMPLEMENTED — S3.1 ACCEPTANCE ENV]` Windows 桌面验收通过 `npm run test:a2ui-conformance` 固定 stable、单任务、串行执行和隔离 target；当前库只生成桌面与测试需要的 `rlib`。`staticlib/cdylib` 属于尚未立项的 Tauri 移动端产物，未来启用 Android/iOS 前必须恢复并新增移动构建门禁。
+- `[IMPLEMENTED — S4.7 PENDING ACCEPTANCE]` `contracts/v2/beta-acceptance.json` 把四类 Beta 画像、四个 P0 模板、五类 Result、两个高频生命周期、PRD 12.3 派生准则和 P0 需求组绑定到实际测试/文档锚点；CI 运行 `audit:beta-evidence` 拒绝缺项或失效证据。Playwright 生命周期附件只含场景枚举、布尔结果和耗时，不进入产品遥测。原 PRD 登记路径已不存在，因此该 manifest 明确不是逐字副本；S4.8 前必须用固定 Hash 原件复核或由发布负责人接受限制。
 
 ### 13.2 发布阻断条件
 
@@ -727,7 +728,7 @@ S4.5 LOG-0167 修订：前端以固定枚举记录首页可交互、普通文本
 | PRD 能力      | 架构承载                                            | 状态                                                       |
 | ------------- | --------------------------------------------------- | ---------------------------------------------------------- |
 | ONB/HOME      | app routing、home feature、Result queries           | S1.4 与 HOME-03/S4.1 已验收                                |
-| IMP/TASK      | Import Service、DocumentSource、Task/Template       | Task/模板与 S2.1 Current；S2.2 已实现待验收                |
+| IMP/TASK      | Import Service、DocumentSource、Task/Template       | 导入、DocumentSource、Task 与四个 P0 模板均已验收          |
 | WS            | Result Workbench、typed editors、mode shell         | 五类 Result adapter Current（S2.7 已验收）                 |
 | CTX-01…06     | Context Planner、Manifest、Pack、local/cloud status | Planner、Manifest 与 Pack 已验收                           |
 | REV-01…06     | Review Request + 现有 Patch/Revision 内核           | S2.5 Current（已验收）；Selection 来源已接线               |
@@ -736,7 +737,7 @@ S4.5 LOG-0167 修订：前端以固定枚举记录首页可交互、普通文本
 | RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target                  |
 | SEL-01        | Selection controller → Review Pipeline              | S2.6 Current（已验收）                                     |
 | PRV-04/MDL-05 | Processing options、local probe                     | S4.2 Current（已验收）                                     |
-| KPI/PRIVACY   | Product events、allowlist、privacy settings         | S4.3 Current（已验收）；S4.6 安全审计待人工验收            |
+| KPI/PRIVACY   | Product events、allowlist、privacy settings         | S4.3 Current；S4.6 安全审计已验收；S4.7 Beta 证据待验收    |
 | SRCH-01       | 授权索引和 Search Service                           | S4.1 Current（已验收）                                     |
 | ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                                     |
 | A2UI-06       | capability negotiation + conformance CI             | S3.1 Current（已验收）                                     |

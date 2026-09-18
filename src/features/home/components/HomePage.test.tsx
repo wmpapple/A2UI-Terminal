@@ -77,7 +77,7 @@ describe('HomePage', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not pretend later table or trusted-tool capabilities are available', () => {
+  it('opens the completed table and structured-result capabilities from Home', () => {
     render(
       <I18nProvider>
         <HomePage onOpenWorkbench={vi.fn()} onOpenGuide={vi.fn()} />
@@ -85,7 +85,13 @@ describe('HomePage', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /分析表格或数据/ }));
-    expect(screen.getByText(/当前不会伪装已读取数据/)).toBeVisible();
+    let dialog = screen.getByRole('dialog', { name: '新建成果' });
+    expect(within(dialog).getByText('表格（CSV）', { exact: true })).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /制作表单 \/ 清单 \/ 小工具/ }));
+    dialog = screen.getByRole('dialog', { name: '新建成果' });
+    expect(within(dialog).getByText('清单', { exact: true })).toBeInTheDocument();
   });
 
   it('opens a result returned by the authorized local search', async () => {

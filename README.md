@@ -49,6 +49,8 @@ npm run check
 npm run test:coverage
 npm run test:e2e:install
 npm run test:e2e
+npm run audit:beta-evidence
+npm run test:e2e:beta
 ```
 
 ```powershell

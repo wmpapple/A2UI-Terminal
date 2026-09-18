@@ -484,7 +484,7 @@ mod tests {
     use crate::error::AppError;
     use reqwest::StatusCode;
     use std::io::{Read, Write};
-    use std::net::TcpListener;
+    use std::net::{Shutdown, TcpListener};
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
     use std::time::{Duration, Instant};
@@ -648,15 +648,24 @@ mod tests {
             let server = std::thread::spawn(move || {
                 let (mut socket, _) = listener.accept().unwrap();
                 let _ = socket.read(&mut [0u8; 4096]);
-                socket.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nTransfer-Encoding: chunked\r\n\r\n").unwrap();
+                let done = "data: [DONE]\n\n";
+                let content_length = payload.len() * 30 + done.len();
+                write!(
+                    socket,
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {content_length}\r\n\r\n"
+                )
+                .unwrap();
                 for _ in 0..30 {
-                    if write!(socket, "{:x}\r\n{}\r\n", payload.len(), payload).is_err() {
+                    if socket.write_all(payload.as_bytes()).is_err() {
                         break;
                     }
                     std::thread::sleep(Duration::from_millis(10));
                 }
-                let done = "data: [DONE]\n\n";
-                let _ = write!(socket, "{:x}\r\n{}\r\n0\r\n\r\n", done.len(), done);
+                if socket.write_all(done.as_bytes()).is_ok() {
+                    let _ = socket.flush();
+                    let _ = socket.shutdown(Shutdown::Write);
+                    std::thread::sleep(Duration::from_millis(25));
+                }
             });
             let mut config = default_providers().remove(3);
             config.endpoint = format!("http://{address}/v1");

@@ -6,6 +6,19 @@
 - `.github/workflows/internal-build.yml`：手动生成未签名 NSIS/MSI 验收包。该产物不得作为正式版本发布。
 - `.github/workflows/release.yml`：推送与版本完全一致的 `v*` tag 后，在受保护的 `production` environment 中构建 Authenticode 签名安装包和 Tauri updater 产物，并创建 Draft Release。
 
+### S4.7 Beta 候选门
+
+进入 S4.8 正式签名与升级验证前，Beta 候选还必须满足：
+
+- `npm run audit:beta-evidence`：校验四类目标画像、四个 P0 模板、五类 Result、PRD 12.3 派生准则和全部 P0 需求证据没有缺项或失效锚点；
+- `npm run test:e2e:beta`：会议纪要与文档总结各自形成完成/保存/导出数据，首次有效成果 Web Mock 路径不超过 90 秒，并覆盖四模板入口和失败后安全重试；
+- `npm run test:e2e`：执行包含导入、上下文、Review、A2UI、五类 Result、性能和可访问性的完整 Web Mock 回归；
+- 按 `S4_7_MANUAL_ACCEPTANCE.md` 在 Windows Desktop 复验真实保存/导出、Provider 失败、恢复和键盘路径。
+
+CI 会执行机器可读证据审计和完整 Web E2E。证据 manifest 不含用户正文、文件名、路径或凭据；Playwright 的 Beta 生命周期附件只包含场景枚举、布尔结果和耗时。
+
+`internal-build.yml` 生成的仍是明确标记 `unsigned` 的内部验收包。通过 S4.7 不等于完成 Authenticode、Updater 签名、上一版升级或稳定发布；这些只属于 S4.8。
+
 ## GitHub production 配置
 
 Repository/Environment variables：

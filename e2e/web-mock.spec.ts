@@ -339,7 +339,7 @@ test('exports the saved Result through an explicitly labelled Web Mock dialog', 
   await expect(page.getByText('已保存', { exact: true })).toBeVisible();
 });
 
-test('creates and reopens typed spreadsheet, checklist, and form Result adapters', async ({
+test('creates and reopens typed spreadsheet, checklist, form, and tool Result adapters', async ({
   page,
 }) => {
   await skipOnboarding(page);
@@ -399,6 +399,27 @@ test('creates and reopens typed spreadsheet, checklist, and form Result adapters
   expect(
     Math.abs(checkboxBox!.y + checkboxBox!.height / 2 - (labelBox!.y + labelBox!.height / 2))
   ).toBeLessThanOrEqual(2);
+
+  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await page.getByRole('button', { name: '新建成果' }).click();
+  create = page.getByRole('dialog', { name: '新建成果' });
+  await create.getByLabel('成果标题').fill('安全小工具');
+  await create.getByLabel('成果类型').click();
+  await page.getByText('小工具', { exact: true }).last().click();
+  await create.getByLabel('本地文件名').fill('安全小工具.json');
+  await create.getByRole('button', { name: '创建并打开' }).click();
+
+  await expect(page.getByLabel('工具配置编辑器')).toContainText('安全小工具');
+  await page.getByText('编辑', { exact: true }).click();
+  await page.getByLabel('工具配置编辑器').getByRole('textbox').nth(2).fill('仅保存受控配置');
+  await expect(page.getByText('有未保存修改')).toBeVisible();
+  await expect(page.getByText('已保存', { exact: true })).toBeVisible({ timeout: 5000 });
+
+  await navigation.getByRole('button', { name: /成果$/ }).click();
+  const tool = page.getByRole('article').filter({ hasText: '安全小工具' });
+  await expect(tool.getByText('小工具', { exact: true })).toBeVisible();
+  await tool.getByRole('button', { name: /继续处理/ }).click();
+  await expect(page.getByLabel('工具配置编辑器')).toContainText('仅保存受控配置');
 });
 
 test('reviews and locally previews text, table, and image sources before any AI send', async ({

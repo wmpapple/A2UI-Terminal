@@ -14,7 +14,7 @@ import { Alert, Button, Card, Empty, Form, Input, Modal, Select, Skeleton, Tag }
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
-import type { ResultStatus } from '../../../shared/types/domain';
+import type { ResultStatus, ResultType } from '../../../shared/types/domain';
 import {
   finishPerformanceMeasurement,
   startPerformanceMeasurement,
@@ -32,6 +32,13 @@ interface Props {
 }
 
 type HomeAction = 'write' | 'modify' | 'organize' | 'analyze' | 'build' | 'free';
+
+interface CreatePreset {
+  initialType: ResultType;
+  allowedTypes?: ResultType[];
+}
+
+const structuredResultTypes: ResultType[] = ['checklist', 'form', 'tool'];
 
 const actions: Array<{
   id: HomeAction;
@@ -113,8 +120,7 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
   const resetTask = useHomeStore((state) => state.resetTask);
   const clearError = useHomeStore((state) => state.clearError);
   const [taskAction, setTaskAction] = useState<HomeAction | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createPreset, setCreatePreset] = useState<CreatePreset | null>(null);
   const workspaceId = workspace?.id ?? (runtimeMode === 'web-mock' ? 'web-mock-workspace' : null);
 
   useEffect(() => {
@@ -143,13 +149,16 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
   }, [taskAction, templates]);
 
   const openAction = (action: (typeof actions)[number]) => {
-    setNotice(null);
     if (action.id === 'free') {
       onOpenWorkbench();
       return;
     }
-    if (action.id === 'analyze' || action.id === 'build') {
-      setNotice(t(action.id === 'analyze' ? 'homeAnalyzeNotReady' : 'homeBuildNotReady'));
+    if (action.id === 'analyze') {
+      setCreatePreset({ initialType: 'spreadsheet', allowedTypes: ['spreadsheet'] });
+      return;
+    }
+    if (action.id === 'build') {
+      setCreatePreset({ initialType: 'checklist', allowedTypes: structuredResultTypes });
       return;
     }
     resetTask();
@@ -183,7 +192,11 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
             <p>{t('homeIntroduction')}</p>
           </div>
           <div>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setCreatePreset({ initialType: 'document' })}
+            >
               {t('createResult')}
             </Button>{' '}
             <Button onClick={onOpenGuide}>{t('replayOnboarding')}</Button>
@@ -261,16 +274,6 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
               </Card>
             ))}
           </div>
-          {notice ? (
-            <Alert
-              className={styles.notice}
-              type="info"
-              showIcon
-              closable
-              title={notice}
-              onClose={() => setNotice(null)}
-            />
-          ) : null}
         </section>
 
         <AuthorizedSearch onOpenWorkbench={onOpenWorkbench} />
@@ -414,10 +417,12 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
         ) : null}
       </Modal>
       <CreateTextResultModal
-        open={createOpen}
-        onCancel={() => setCreateOpen(false)}
+        open={createPreset !== null}
+        initialType={createPreset?.initialType}
+        allowedTypes={createPreset?.allowedTypes}
+        onCancel={() => setCreatePreset(null)}
         onCreated={(resultId) => {
-          setCreateOpen(false);
+          setCreatePreset(null);
           onOpenWorkbench(resultId);
         }}
       />

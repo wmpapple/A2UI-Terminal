@@ -28,6 +28,8 @@ jobs:
         run: npm ci
       - name: Run frontend quality gate
         run: npm run check
+      - name: Verify S4.7 Beta evidence traceability
+        run: npm run audit:beta-evidence
       - name: Enforce critical-module coverage
         run: npm run test:coverage
       - name: Audit production dependencies

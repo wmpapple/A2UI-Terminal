@@ -18,6 +18,8 @@ interface Props {
   open: boolean;
   onCancel: () => void;
   onCreated: (resultId: string) => void;
+  initialType?: ResultType;
+  allowedTypes?: ResultType[];
 }
 
 interface FormValues {
@@ -27,7 +29,13 @@ interface FormValues {
   format: TextResultFormat;
 }
 
-export function CreateTextResultModal({ open, onCancel, onCreated }: Props) {
+export function CreateTextResultModal({
+  open,
+  onCancel,
+  onCreated,
+  initialType = 'document',
+  allowedTypes,
+}: Props) {
   const { t } = useI18n();
   const [form] = Form.useForm<FormValues>();
   const createTextResult = useResultStore((state) => state.createTextResult);
@@ -39,9 +47,14 @@ export function CreateTextResultModal({ open, onCancel, onCreated }: Props) {
   useEffect(() => {
     if (open) {
       clearError();
-      form.setFieldsValue({ title: '', fileName: '', type: 'document', format: 'markdown' });
+      form.setFieldsValue({
+        title: '',
+        fileName: '',
+        type: initialType,
+        format: defaultFormatForResultType(initialType),
+      });
     }
-  }, [clearError, form, open]);
+  }, [clearError, form, initialType, open]);
 
   const create = async (values: FormValues) => {
     const input: CreateTextResultInput = {
@@ -83,13 +96,15 @@ export function CreateTextResultModal({ open, onCancel, onCreated }: Props) {
         <Form.Item name="type" label={t('resultType')} rules={[{ required: true }]}>
           <Select
             onChange={changeType}
-            options={(Object.keys(resultAdapterDefinitions) as ResultType[]).map((type) => ({
-              value: type,
-              label:
-                type === 'spreadsheet'
-                  ? t('createResultTypeSpreadsheet')
-                  : t(resultAdapterDefinitions[type].labelKey as MessageKey),
-            }))}
+            options={(Object.keys(resultAdapterDefinitions) as ResultType[])
+              .filter((type) => !allowedTypes || allowedTypes.includes(type))
+              .map((type) => ({
+                value: type,
+                label:
+                  type === 'spreadsheet'
+                    ? t('createResultTypeSpreadsheet')
+                    : t(resultAdapterDefinitions[type].labelKey as MessageKey),
+              }))}
           />
         </Form.Item>
         <Form.Item name="format" label={t('resultFormat')} rules={[{ required: true }]}>
