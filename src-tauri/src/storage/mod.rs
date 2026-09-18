@@ -583,19 +583,29 @@ pub struct ExportJobRow {
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticCounts {
     pub workspaces: u64,
+    pub workspace_files: u64,
     pub sessions: u64,
     pub messages: u64,
+    pub context_snapshots: u64,
+    pub context_packs: u64,
+    pub context_pack_items: u64,
     pub workspace_drafts: u64,
     pub document_versions: u64,
     pub patch_operations: u64,
+    pub audit_events: u64,
     pub a2ui_surfaces: u64,
     pub a2ui_messages: u64,
     pub a2ui_events: u64,
     pub a2ui_templates: u64,
+    pub provider_settings: u64,
+    pub app_settings: u64,
     pub configured_providers: u64,
+    pub task_templates: u64,
     pub tasks: u64,
     pub results: u64,
     pub review_requests: u64,
+    pub review_blocks: u64,
+    pub telemetry_settings: u64,
     pub product_events: u64,
     pub task_runs: u64,
     pub result_drafts: u64,
@@ -742,19 +752,29 @@ impl Storage {
 
         Ok(DiagnosticCounts {
             workspaces: count("workspaces")?,
+            workspace_files: count("workspace_files")?,
             sessions: count("sessions")?,
             messages: count("messages")?,
+            context_snapshots: count("context_snapshots")?,
+            context_packs: count("context_packs")?,
+            context_pack_items: count("context_pack_items")?,
             workspace_drafts: count("workspace_drafts")?,
             document_versions: count("document_versions")?,
             patch_operations: count("patch_operations")?,
+            audit_events: count("audit_events")?,
             a2ui_surfaces: count("a2ui_surfaces")?,
             a2ui_messages: count("a2ui_messages")?,
             a2ui_events: count("a2ui_events")?,
             a2ui_templates: count("a2ui_templates")?,
+            provider_settings: count("provider_settings")?,
+            app_settings: count("app_settings")?,
             configured_providers: count("credential_refs")?,
+            task_templates: count("task_templates")?,
             tasks: count("tasks")?,
             results: count("results")?,
             review_requests: count("review_requests")?,
+            review_blocks: count("review_blocks")?,
+            telemetry_settings: count("telemetry_settings")?,
             product_events: count("product_events")?,
             task_runs: count("task_runs")?,
             result_drafts: count("result_drafts")?,
@@ -3975,20 +3995,26 @@ impl Storage {
              DELETE FROM export_jobs;
              DELETE FROM result_drafts;
              DELETE FROM task_runs;
+             DELETE FROM review_blocks;
              DELETE FROM review_requests;
              DELETE FROM tasks;
              DELETE FROM results;
              DELETE FROM a2ui_events;
              DELETE FROM a2ui_messages;
+             DELETE FROM a2ui_templates;
              DELETE FROM a2ui_surfaces;
+             DELETE FROM context_pack_items;
+             DELETE FROM context_packs;
              DELETE FROM workspace_drafts;
              DELETE FROM workspace_files;
+             DELETE FROM context_snapshots;
              DELETE FROM audit_events;
              DELETE FROM document_versions;
              DELETE FROM patch_operations;
              DELETE FROM messages;
              DELETE FROM sessions;
              DELETE FROM workspaces;
+             DELETE FROM task_templates WHERE builtin = 0;
              DELETE FROM credential_refs;
              DELETE FROM provider_settings;
              DELETE FROM app_settings;",
@@ -5062,12 +5088,158 @@ mod tests {
     }
 
     #[test]
-    fn clear_all_preserves_schema() {
+    fn clear_all_removes_every_v2_record_but_preserves_schema_builtins_and_real_files() {
+        let directory = tempfile::tempdir().unwrap();
+        let managed_results = directory.path().join("my-results");
+        fs::create_dir(&managed_results).unwrap();
+        let preserved_result = managed_results.join("managed-result.md");
+        fs::write(&preserved_result, "must remain on disk").unwrap();
         let storage = Storage::open_in_memory().expect("migration should succeed");
+        let hash = "a".repeat(64);
+        {
+            let connection = storage.connection.lock().unwrap();
+            connection
+                .execute_batch(&format!(
+                    "INSERT INTO provider_settings(id, provider_type, endpoint, model, temperature)
+                        VALUES ('provider-private', 'openai_compatible', 'https://private.invalid/v1', 'private-model', 0.2);
+                     INSERT INTO credential_refs(provider_id) VALUES ('provider-private');
+                     INSERT INTO app_settings(key, value_json) VALUES ('private-setting', '{{\"value\":true}}');
+                     INSERT INTO audit_events(event_type, outcome, subject_ref, details_json)
+                        VALUES ('private-event', 'ok', 'private-subject', '{{}}');
+                     INSERT INTO product_events(id, event_name, app_version, platform, properties_json)
+                        VALUES ('event-private', 'result_created', '0.1.9', 'windows', '{{}}');
+                     UPDATE telemetry_settings SET enabled = 1, invitation_eligible = 1 WHERE singleton = 1;
+                     INSERT INTO workspaces(id, name, root_path) VALUES ('workspace-private', 'Private', 'C:\\private');
+                     INSERT INTO sessions(id, workspace_id, title) VALUES ('session-private', 'workspace-private', 'Private');
+                     INSERT INTO messages(id, session_id, role, body)
+                        VALUES ('message-private', 'session-private', 'user', 'private body');
+                     INSERT INTO context_snapshots
+                        (id, session_id, request_id, sources_json, character_count, estimated_tokens)
+                        VALUES ('snapshot-private', 'session-private', 'request-private', '[]', 1, 1);
+                     INSERT INTO workspace_files(source_id, workspace_id, absolute_path, virtual_path)
+                        VALUES ('source-private', 'workspace-private', 'C:\\private\\source.md', 'source.md');
+                     INSERT INTO context_packs(id, workspace_id, name)
+                        VALUES ('pack-private', 'workspace-private', 'Private pack');
+                     INSERT INTO context_pack_items(pack_id, source_id, position)
+                        VALUES ('pack-private', 'source-private', 0);
+                     INSERT INTO workspace_drafts
+                        (workspace_id, relative_path, content, base_hash, content_hash)
+                        VALUES ('workspace-private', 'draft.md', 'private draft', 'base', '{hash}');
+                     INSERT INTO patch_operations(id, workspace_id, summary, patch_json)
+                        VALUES ('patch-private', 'workspace-private', 'Private patch', '{{}}');
+                     INSERT INTO document_versions
+                        (id, workspace_id, relative_path, content, content_hash, expires_at, operation_id)
+                        VALUES ('revision-private', 'workspace-private', 'result.md', X'61', '{hash}', '2999-01-01', 'patch-private');
+                     INSERT INTO a2ui_surfaces
+                        (id, surface_id, workspace_id, session_id, message_id, protocol_version, revision, state_json, raw_message, validation_json)
+                        VALUES ('surface-row-private', 'surface-private', 'workspace-private', 'session-private', 'message-private', 'v0.9.1', 1, '{{}}', 'private raw', '{{}}');
+                     INSERT INTO a2ui_messages
+                        (id, workspace_id, session_id, message_id, surface_id, raw_message, valid, validation_json, duration_ms)
+                        VALUES ('a2ui-message-private', 'workspace-private', 'session-private', 'message-private', 'surface-private', 'private raw', 1, '{{}}', 1);
+                     INSERT INTO a2ui_events
+                        (id, surface_row_id, component_id, event_name, action_type, risk, decision, payload_json, duration_ms)
+                        VALUES ('a2ui-event-private', 'surface-row-private', 'component-private', 'click', 'submit_form', 'low', 'allowed', '{{}}', 1);
+                     INSERT INTO a2ui_templates
+                        (id, workspace_id, name, source_surface_id, protocol_version, catalog_id, state_json, permission_json)
+                        VALUES ('a2ui-template-private', 'workspace-private', 'Private template', 'surface-private', 'v0.9.1', 'basic', '{{}}', '{{}}');
+                     INSERT INTO task_templates
+                        (id, version, name, description, task_kind, desired_result_type, field_schema_json, default_sections_json, risk_level, builtin)
+                        SELECT 'custom-private', 1, name, description, task_kind, desired_result_type,
+                               field_schema_json, default_sections_json, risk_level, 0
+                        FROM task_templates WHERE builtin = 1 LIMIT 1;
+                     INSERT INTO tasks
+                        (id, workspace_id, template_id, template_version, task_kind, desired_result_type, status)
+                        VALUES ('task-private', 'workspace-private', 'custom-private', 1, 'write', 'document', 'running');
+                     INSERT INTO results
+                        (id, workspace_id, task_id, result_type, title, status, storage_kind, storage_ref, source_kind, source_ref, current_revision_id, managed_state_json)
+                        VALUES ('result-private', 'workspace-private', 'task-private', 'document', 'Private result', 'ready', 'managed_local', 'managed-result.md', 'managed_local', 'result-private', 'revision-private', '{{}}');
+                     UPDATE tasks SET result_id = 'result-private' WHERE id = 'task-private';
+                     INSERT INTO review_requests
+                        (id, workspace_id, result_id, source, operation_kind, summary, risk, payload_json)
+                        VALUES ('review-private', 'workspace-private', 'result-private', 'chat', 'replace_result', 'Private review', 'high', '{{}}');
+                     INSERT INTO review_blocks
+                        (id, review_id, position, kind, target_label, before_content, after_content, reason, risk)
+                        VALUES ('block-private', 'review-private', 0, 'replace_result', 'Private', 'before', 'after', 'reason', 'high');
+                     INSERT INTO task_runs
+                        (task_id, result_id, workspace_id, title, file_name, storage_ref, managed_state_json, revision_id, content, content_hash)
+                        VALUES ('task-private', 'result-private', 'workspace-private', 'Private run', 'private.md', 'managed-result.md', '{{}}', 'revision-private', X'61', '{hash}');
+                     INSERT INTO result_drafts(result_id, base_hash, content, content_hash)
+                        VALUES ('result-private', '{hash}', X'61', '{hash}');
+                     INSERT INTO export_jobs(id, result_id, revision_id, format, status, target_path, file_name)
+                        VALUES ('export-private', 'result-private', 'revision-private', 'pdf', 'completed', 'C:\\private\\export.pdf', 'export.pdf');"
+                ))
+                .unwrap();
+        }
+
         storage.clear_all().expect("clear should succeed");
 
         assert_eq!(storage.schema_version().unwrap(), SCHEMA_VERSION);
         assert!(storage.table_exists("workspaces").unwrap());
+        assert_eq!(
+            fs::read_to_string(&preserved_result).unwrap(),
+            "must remain on disk"
+        );
+
+        let connection = storage.connection.lock().unwrap();
+        for table in [
+            "workspaces",
+            "workspace_files",
+            "sessions",
+            "messages",
+            "context_snapshots",
+            "context_packs",
+            "context_pack_items",
+            "workspace_drafts",
+            "document_versions",
+            "patch_operations",
+            "audit_events",
+            "a2ui_surfaces",
+            "a2ui_messages",
+            "a2ui_events",
+            "a2ui_templates",
+            "provider_settings",
+            "app_settings",
+            "credential_refs",
+            "tasks",
+            "results",
+            "review_requests",
+            "review_blocks",
+            "product_events",
+            "task_runs",
+            "result_drafts",
+            "export_jobs",
+        ] {
+            let count: i64 = connection
+                .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
+                    row.get(0)
+                })
+                .unwrap();
+            assert_eq!(count, 0, "{table} retained local data");
+        }
+        let custom_templates: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM task_templates WHERE builtin = 0",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let builtin_templates: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM task_templates WHERE builtin = 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let telemetry_defaults: (i64, i64, i64, i64) = connection
+            .query_row(
+                "SELECT COUNT(*), enabled, invitation_eligible, invitation_dismissed FROM telemetry_settings",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .unwrap();
+        assert_eq!(custom_templates, 0);
+        assert!(builtin_templates > 0);
+        assert_eq!(telemetry_defaults, (1, 0, 0, 0));
     }
 
     #[test]

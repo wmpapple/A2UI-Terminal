@@ -1,4 +1,6 @@
-use a2ui_terminal_lib::a2ui::{A2uiCapabilities, A2uiProcessResult, SurfaceMessage};
+use a2ui_terminal_lib::a2ui::{
+    process_message, A2uiCapabilities, A2uiProcessResult, ProcessA2uiRequest, SurfaceMessage,
+};
 use a2ui_terminal_lib::ai::ContextManifest;
 use a2ui_terminal_lib::application::provider::{LocalProviderProbe, ProcessingOptions};
 use a2ui_terminal_lib::application::search::{
@@ -10,7 +12,7 @@ use a2ui_terminal_lib::document_source::DocumentSourceContent;
 use a2ui_terminal_lib::domain::context_pack::{
     ContextPack, CreateContextPackInput, DeleteContextPackOutput,
 };
-use a2ui_terminal_lib::domain::import::{ImportBatch, ImportDropOutcome};
+use a2ui_terminal_lib::domain::import::{ImportBatch, ImportDropOutcome, ImportItemStatus};
 use a2ui_terminal_lib::domain::recovery::RecoveryStatus;
 use a2ui_terminal_lib::domain::result::{
     ResultDetail, ResultDocument, ResultRevision, ResultSummary,
@@ -19,7 +21,7 @@ use a2ui_terminal_lib::domain::review::{ReviewApplication, ReviewRequest};
 use a2ui_terminal_lib::domain::task::{TaskDetail, TaskRunResult, TaskTemplate};
 use a2ui_terminal_lib::error::{AppError, ProviderFailure};
 use a2ui_terminal_lib::patch::{DocumentPatch, PatchApplication, PatchReview};
-use a2ui_terminal_lib::storage::ChatSessionRecord;
+use a2ui_terminal_lib::storage::{ChatSessionRecord, Storage};
 use a2ui_terminal_lib::workspace::{DocumentVersion, DocumentVersionSummary, WorkspaceDocument};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -46,6 +48,68 @@ const PROVIDER_PROCESSING_FIXTURE: &str =
     include_str!("../../contracts/v2/provider-processing.json");
 const TELEMETRY_FIXTURE: &str = include_str!("../../contracts/v2/telemetry.json");
 const RECOVERY_FIXTURE: &str = include_str!("../../contracts/v2/recovery.json");
+const SECURITY_AUDIT_FIXTURE: &str = include_str!("../../contracts/v2/security-audit.json");
+
+#[test]
+fn security_audit_fixture_exercises_import_export_search_and_a2ui_guards() {
+    use a2ui_terminal_lib::application::import::inspect_paths;
+    use a2ui_terminal_lib::application::search::SearchAuthorizedContentInput;
+    use a2ui_terminal_lib::document_source::escape_spreadsheet_formula;
+    use std::fs;
+
+    let fixture: Value = serde_json::from_str(SECURITY_AUDIT_FIXTURE).unwrap();
+
+    let directory = tempfile::tempdir().unwrap();
+    let import_path = directory
+        .path()
+        .join(fixture["import"]["fileName"].as_str().unwrap());
+    fs::write(&import_path, fixture["import"]["content"].as_str().unwrap()).unwrap();
+    let inspected = inspect_paths(vec![import_path], None).unwrap();
+    assert_eq!(inspected.batch.items[0].status, ImportItemStatus::Rejected);
+    assert!(!inspected.batch.items[0].readable);
+    assert_eq!(
+        inspected.batch.items[0].reason_code.as_deref(),
+        fixture["import"]["expectedReasonCode"].as_str()
+    );
+
+    for row in fixture["export"].as_array().unwrap() {
+        assert_eq!(
+            escape_spreadsheet_formula(row["input"].as_str().unwrap()),
+            row["expected"].as_str().unwrap()
+        );
+    }
+
+    assert!(
+        serde_json::from_value::<SearchAuthorizedContentInput>(fixture["search"].clone()).is_err()
+    );
+    let storage = Storage::open(&directory.path().join("security-audit.sqlite3")).unwrap();
+    storage
+        .upsert_workspace(
+            "security-workspace",
+            "Security fixture",
+            "C:\\security-fixture",
+        )
+        .unwrap();
+    storage
+        .create_session("security-workspace", "security-session", "Security fixture")
+        .unwrap();
+    let result = process_message(
+        &storage,
+        &ProcessA2uiRequest {
+            workspace_id: "security-workspace".into(),
+            session_id: "security-session".into(),
+            message_id: "security-message".into(),
+            raw_message: fixture["a2ui"].to_string(),
+        },
+    )
+    .unwrap()
+    .unwrap();
+    assert!(result.surface.is_none());
+    assert_eq!(
+        result.inspection.validation.error_code.as_deref(),
+        Some("A2UI_CATALOG_UNSUPPORTED")
+    );
+}
 
 #[test]
 fn recovery_contract_exposes_no_destination_path_or_draft_content() {

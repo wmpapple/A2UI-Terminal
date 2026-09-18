@@ -7,6 +7,7 @@ import {
 import { Alert, Button, Divider, Input, Modal, Progress, Tag, message } from 'antd';
 import { useState, useSyncExternalStore } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
+import { clearWebviewLocalData, scheduleApplicationReload } from '../../../app/localData';
 import { getRuntimeMode } from '../../../shared/platform/runtime';
 import {
   checkForAppUpdate,
@@ -47,8 +48,9 @@ export function SystemSettings() {
     setClearing(true);
     try {
       await systemController.clearAllLocalData(confirmation);
+      clearWebviewLocalData();
       message.success(t('localDataCleared'));
-      window.setTimeout(() => window.location.reload(), 250);
+      scheduleApplicationReload();
     } catch {
       message.error(t('clearDataFailed'));
       setClearing(false);

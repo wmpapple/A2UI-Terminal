@@ -86,8 +86,13 @@ pub struct DiagnosticReport {
 struct DiagnosticPrivacy {
     message_bodies_included: bool,
     file_contents_included: bool,
+    file_names_included: bool,
+    prompts_included: bool,
+    model_responses_included: bool,
     workspace_paths_included: bool,
+    provider_endpoints_included: bool,
     provider_secrets_included: bool,
+    diagnostic_logs_included: bool,
 }
 
 #[derive(Serialize)]
@@ -262,7 +267,8 @@ pub fn clear_all_local_data(
         .active_exports
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
-        .values()
+        .drain()
+        .map(|(_, cancellation)| cancellation)
     {
         cancellation.cancel();
     }
@@ -276,7 +282,7 @@ fn build_diagnostic_report(
     counts: DiagnosticCounts,
 ) -> DiagnosticReport {
     DiagnosticReport {
-        format_version: "1.0",
+        format_version: "1.1",
         app_version,
         schema_version,
         generated_at_unix_seconds: SystemTime::now()
@@ -289,8 +295,13 @@ fn build_diagnostic_report(
         privacy: DiagnosticPrivacy {
             message_bodies_included: false,
             file_contents_included: false,
+            file_names_included: false,
+            prompts_included: false,
+            model_responses_included: false,
             workspace_paths_included: false,
+            provider_endpoints_included: false,
             provider_secrets_included: false,
+            diagnostic_logs_included: false,
         },
     }
 }
@@ -1737,19 +1748,29 @@ mod tests {
             6,
             DiagnosticCounts {
                 workspaces: 1,
+                workspace_files: 1,
                 sessions: 2,
                 messages: 3,
+                context_snapshots: 1,
+                context_packs: 1,
+                context_pack_items: 1,
                 workspace_drafts: 4,
                 document_versions: 5,
                 patch_operations: 6,
+                audit_events: 1,
                 a2ui_surfaces: 7,
                 a2ui_messages: 8,
                 a2ui_events: 9,
                 a2ui_templates: 2,
+                provider_settings: 1,
+                app_settings: 1,
                 configured_providers: 1,
+                task_templates: 4,
                 tasks: 4,
                 results: 10,
                 review_requests: 11,
+                review_blocks: 12,
+                telemetry_settings: 1,
                 product_events: 12,
                 task_runs: 13,
                 result_drafts: 14,
@@ -1760,7 +1781,12 @@ mod tests {
 
         assert_eq!(json["privacy"]["messageBodiesIncluded"], false);
         assert_eq!(json["privacy"]["fileContentsIncluded"], false);
+        assert_eq!(json["privacy"]["fileNamesIncluded"], false);
+        assert_eq!(json["privacy"]["promptsIncluded"], false);
+        assert_eq!(json["privacy"]["modelResponsesIncluded"], false);
         assert_eq!(json["privacy"]["workspacePathsIncluded"], false);
+        assert_eq!(json["privacy"]["providerEndpointsIncluded"], false);
         assert_eq!(json["privacy"]["providerSecretsIncluded"], false);
+        assert_eq!(json["privacy"]["diagnosticLogsIncluded"], false);
     }
 }

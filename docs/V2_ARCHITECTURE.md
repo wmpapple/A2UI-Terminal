@@ -1,6 +1,6 @@
 # A2UI Terminal V2.0 项目架构
 
-> 文档状态：V2 目标架构基线；S1.1—S4.5 已验收，S4.6 隐私、诊断、清理与安全审计正在实施（见 LOG-0169—0170）
+> 文档状态：V2 目标架构基线；S1.1—S4.5 已验收，S4.6 隐私、诊断、清理与安全审计已完成实现与自动验证，等待人工验收（见 LOG-0169—0171）
 > 建立日期：2026-08-11  
 > 对照代码：`main` 分支 S3.1 提交 `8222b9e`；用户已于 2026-09-11 验收 S3.1
 > PRD：`A2UI_Terminal_V2.0_大众化产品需求文档_市场调研增强版 (1).docx`  
@@ -677,6 +677,8 @@ telemetry:get_telemetry_settings, set_telemetry_settings, export_event_dictionar
 - 清除本地数据必须覆盖 V2 新表、索引和本地遥测，但不删除真实成果文件，除非用户对具体文件另行确认。
 - 诊断计数需扩展到 V2 表，同时保持内容脱敏。
 
+S4.6 LOG-0170 修订：完整资产、攻击者、信任边界、失败原则和剩余风险见 [THREAT_MODEL.md](THREAT_MODEL.md)。诊断格式 v1.1 只输出版本、平台与全部 V2 数据域的数量，并逐项声明正文、文件内容/名称、Prompt、模型回复、路径、Provider Endpoint/密钥和原始日志均未包含。清理顺序固定为“已知 Credential Manager Key → 单个 SQLite 事务 → 进程内待确认/索引/活动任务 → WebView storage”，WebView 只在 Rust 成功后清理；数据库保留 Schema、默认关闭的 telemetry singleton 和内置空白任务模板，项目文件、`my-results` 托管成果和已导出文件一律不删除。依赖门禁从锁文件复核全部生产 npm/Windows Rust 包的许可证与完整性，并把直接依赖、字体和固定 A2UI 上游 commit 写入随包 NOTICE。
+
 ## 12. 非功能与可观测性
 
 S4.3 LOG-0156/0157 修订：保存/导出与撤销/恢复采用 operation 结束样本的 success/(success+failure)，取消不计，适用于新旧成果。复用 `performance_sample` 固定枚举 result_save/result_export/document_restore；普通持久化编辑和版本恢复不再遗漏，未保存 Ctrl+Z 不上报。AI 审阅/修改接受指标仍独立，不将手动修改视为 AI 接受。
@@ -694,7 +696,7 @@ S4.3 LOG-0156/0157 修订：保存/导出与撤销/恢复采用 operation 结束
 
 S4.5 LOG-0167 修订：前端以固定枚举记录首页可交互、普通文本成果打开和点击反馈，样本只在当前窗口内存保留，不写本地遥测或业务库。首页样本只有在模板、最近成果和 S4.4 恢复摘要完成读取后结束；成果样本在真实读取完成并提交下一帧后结束，不能用空壳或隐藏加载满足预算。成果列表按 40 项批次展示且不截断仓库结果。应用提供跳至正文、路由/成果切换焦点、加载/保存读屏状态、强制颜色和减少动画路径；状态文字不得被颜色取代。Chromium 基线不是 Desktop 验收替代品，真实 WebView2、磁盘、讲述人、缩放和对比度仍需人工记录。
 
-日志采用结构化稳定错误码和 `operationId`；正文、路径、密钥和未授权上下文默认脱敏。诊断报告只导出版本、平台、Schema、能力和计数。
+日志采用结构化稳定错误码和 `operationId`；正文、路径、密钥和未授权上下文默认脱敏。诊断报告只导出版本、平台、Schema 和计数，不打包原始日志。
 
 ## 13. 测试架构
 
@@ -734,7 +736,7 @@ S4.5 LOG-0167 修订：前端以固定枚举记录首页可交互、普通文本
 | RES-01        | Result 聚合                                         | 文本创建/重开/版本 Current，归档等 Target                  |
 | SEL-01        | Selection controller → Review Pipeline              | S2.6 Current（已验收）                                     |
 | PRV-04/MDL-05 | Processing options、local probe                     | S4.2 Current（已验收）                                     |
-| KPI/PRIVACY   | Product events、allowlist、privacy settings         | S4.3 已实现，待桌面人工验收                                |
+| KPI/PRIVACY   | Product events、allowlist、privacy settings         | S4.3 Current（已验收）；S4.6 安全审计待人工验收            |
 | SRCH-01       | 授权索引和 Search Service                           | S4.1 Current（已验收）                                     |
 | ARC-03        | Compatible Provider adapter 准入                    | 部分 Current，需制度化                                     |
 | A2UI-06       | capability negotiation + conformance CI             | S3.1 Current（已验收）                                     |

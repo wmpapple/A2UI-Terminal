@@ -15,6 +15,8 @@
 
 V2 增量合同位于 `contracts/v2/`。S2.3 新增 `context-manifest.json`，固定 Rust 返回的来源元数据、排除原因、处理位置、敏感确认和确认状态；fixture 只含虚构标签与 Hash，不含正文、Prompt、Endpoint 或绝对路径。
 
+S4.6 新增 `contracts/v2/security-audit.json`。它不是新的 IPC 合同，而是导入、导出、检索和 A2UI 共用的对抗输入：敏感 `.env` 必须拒绝，表格公式前缀必须转义，检索 DTO 不接受绝对路径，A2UI 不接受外部 Catalog。Rust 集成测试必须让同一 fixture 实际穿过四个可信校验入口，不能只验证 JSON 可解析。
+
 Fixture 使用固定、虚构、无密钥内容；不得放入真实路径、文档正文、Prompt、AI 回复或凭据。
 
 ## 未知字段策略

@@ -500,7 +500,8 @@ export const messages = {
     clearAllLocalData: '一键清除所有本地数据',
     clearDataWarning:
       '此操作将删除会话、消息、草稿、文档版本、A2UI 历史、Provider 设置和系统凭据。',
-    projectFilesPreserved: '真实项目文件不会被删除。此操作不可撤销。',
+    projectFilesPreserved:
+      '真实项目文件、“我的成果”托管文件和已导出文件不会被删除；应用内记录、凭据与界面偏好会被永久清除。此操作不可撤销。',
     typeToConfirm: '请输入确认文本：',
     clearDataConfirmButton: '永久清除',
     localDataCleared: '所有 A2UI Terminal 本地数据已清除',
@@ -1185,7 +1186,8 @@ export const messages = {
     clearAllLocalData: 'Clear all local data',
     clearDataWarning:
       'This deletes sessions, messages, drafts, document versions, A2UI history, provider settings, and system credentials.',
-    projectFilesPreserved: 'Real project files are preserved. This action cannot be undone.',
+    projectFilesPreserved:
+      'Project files, managed files in My Results, and exported files are preserved. In-app records, credentials, and interface preferences are permanently cleared. This action cannot be undone.',
     typeToConfirm: 'Enter the confirmation text:',
     clearDataConfirmButton: 'Permanently clear',
     localDataCleared: 'All local A2UI Terminal data was cleared',

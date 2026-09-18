@@ -20,7 +20,7 @@ API Key 不写入 SQLite、localStorage、日志或项目文件，只保存在 W
 
 用户随时可以关闭匿名指标；当前实现会同时停止后续采集并清除已保存的本机产品事件计数。“一键清除所有本地数据”同样会清除 `product_events` 和 `telemetry_settings`，随后恢复为默认关闭。Web Mock 不访问桌面遥测表。
 
-简单/专业模式偏好仅在本地浏览器存储中保存固定值 `simple` 或 `professional`，不包含文档正文、Prompt、AI 回复、文件名、路径、Endpoint、Provider 配置或密钥。切换模式不会复制、上传或迁移 Result、Task、会话和上下文授权数据，也不会改变任何安全权限。
+简单/专业模式、首次引导和工作台列宽偏好仅保存在本机 WebView storage，不包含文档正文、Prompt、AI 回复、文件名、路径、Endpoint、Provider 配置或密钥。切换模式不会复制、上传或迁移 Result、Task、会话和上下文授权数据，也不会改变任何安全权限。“一键清除所有本地数据”只有在可信 Rust 清理成功后才清空 localStorage/sessionStorage；若 Rust 清理失败，前端偏好也保持不变，避免界面误报清理完成。
 
 首次引导完成状态仅以 `a2ui.onboarding-complete.v1=true` 保存在本地浏览器存储中。引导选择的目标不持久化；资料正文、文件名、路径和隐私确认内容不会写入该偏好。首页最近成果从本地 Result 元数据读取，不从聊天正文或会话标题推断。首页资料区同时支持受控系统选择器和 Tauri 原生桌面拖放；React 只注册资料区的逻辑坐标，原生拖入路径由 Rust 接收，前端不会读取 `DataTransfer` 中的路径或正文。
 
@@ -44,20 +44,21 @@ S2.4 P0 不下载、不调用本地或云端 Embedding 模型。分块正文、�
 
 ## 诊断导出
 
-脱敏诊断文件只包含：
+脱敏诊断文件格式 v1.1 只包含：
 
 - 应用版本和数据库 Schema 版本；
 - 操作系统与 CPU 架构；
-- 工作区、会话、消息、草稿、版本、Task、Result、Review、Patch、A2UI 和本机产品事件记录数量。
+- 工作区/授权文件、会话/消息/上下文快照、Context Pack、草稿/版本/Patch、A2UI、Provider/App 设置项、凭据引用、Task/模板/执行意图、Result/草稿、Review/Block、Export Job、Telemetry 设置和本机产品事件的记录数量。
 
-它不包含消息正文、文件内容、工作区名称/路径、API Key、Endpoint、代理地址或原始日志。请在发送诊断文件前仍进行人工检查。
+它不包含消息正文、文件内容、文件名、Prompt、AI 回复、工作区名称/路径、API Key、Endpoint、代理地址、模型 ID 或原始日志；`privacy` 字段逐项声明这些类别均未包含。数量可能揭示使用规模，因此请在发送诊断文件前仍进行人工检查。
 
 ## 删除与保留
 
 - 删除某个工作区：同步删除该工作区在应用中的会话、消息、草稿、版本、Patch 与 A2UI 历史；不删除磁盘项目文件。
 - Result API 只返回 `result://` 不透明引用，不返回真实文件绝对路径；旧文件/Surface 只在显式打开时惰性关联，不扫描或复制整个工作区正文。
 - 文本 Result 新建只接受 `.md`、`.markdown`、`.txt` 单层名称，拒绝绝对路径、穿越、非法字符、保留名和静默覆盖；失败时不保留半成品 Result/Revision。
-- 一键清除所有本地数据：删除全部应用数据库业务数据和 Windows Credential Manager 中已知的 Provider Key；不删除磁盘项目文件。
+- 一键清除所有本地数据：先删除数据库中记录的和内置 Provider 对应的 Windows Credential Manager Key，再用一个 SQLite 事务删除工作区授权、会话/消息、Context Pack、草稿/版本/Patch、A2UI、Task/自定义模板/执行意图、Result/草稿、Review、Export Job、设置、审计和产品事件，并把匿名指标恢复为默认关闭；随后清空进程内待确认导入、Context Manifest、检索索引、拖放目标、活动请求/导出和 WebView 本地/会话偏好。内置空白任务模板与数据库 Schema 保留。
+- 清理不会删除磁盘项目文件、`my-results` 中的托管成果文件或用户已经导出的文件；清理后这些文件仍在磁盘，但应用内索引、历史和授权已消失，需要用户重新添加。任一凭据或数据库步骤失败时返回失败，不能把 WebView 偏好清空后伪装成全部成功。
 - 卸载：是否保留应用数据取决于安装/卸载器选择；正式发布验收必须验证并向用户展示实际策略。
 
 所有清理操作在 UI 中明确说明影响范围，并需要二次确认。

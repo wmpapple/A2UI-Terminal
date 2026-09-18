@@ -14,6 +14,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
+    "audit:third-party": "node scripts/audit-third-party.mjs",
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

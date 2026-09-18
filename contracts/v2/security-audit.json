@@ -1,0 +1,33 @@
+{
+  "import": {
+    "fileName": ".env",
+    "content": "A2UI_SECURITY_FIXTURE_SECRET=never-read",
+    "expectedReasonCode": "SENSITIVE_OR_HIDDEN_PATH"
+  },
+  "export": [
+    { "input": "=2+2", "expected": "'=2+2" },
+    { "input": "+SUM(A1:A2)", "expected": "'+SUM(A1:A2)" },
+    { "input": "-10+20", "expected": "'-10+20" },
+    { "input": "@cmd", "expected": "'@cmd" },
+    { "input": "ordinary text", "expected": "ordinary text" }
+  ],
+  "search": {
+    "workspaceId": null,
+    "query": "private",
+    "limit": 20,
+    "absolutePath": "C:\\private\\secret.txt"
+  },
+  "a2ui": {
+    "data": [
+      {
+        "version": "v0.9.1",
+        "createSurface": {
+          "surfaceId": "hostile-surface",
+          "catalogId": "https://attacker.invalid/catalog.json"
+        }
+      }
+    ],
+    "kind": "data",
+    "metadata": { "mimeType": "application/a2ui+json" }
+  }
+}
