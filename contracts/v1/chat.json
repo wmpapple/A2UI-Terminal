@@ -1,5 +1,6 @@
 {
   "session": {
+    "pinned": false,
     "id": "session-contract-v1",
     "workspaceId": "workspace-contract-v1",
     "title": "Contract fixture",

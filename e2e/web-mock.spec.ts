@@ -23,6 +23,40 @@ const skipOnboarding = async (page: import('@playwright/test').Page) => {
   if (await skip.isVisible()) await skip.click();
 };
 
+const selectEditorText = async (
+  editor: import('@playwright/test').Locator,
+  selectedText: string
+) => {
+  await editor.evaluate((element, text) => {
+    const nodes: Text[] = [];
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) nodes.push(node as Text);
+    const content = nodes.map((node) => node.data).join('');
+    const start = content.indexOf(text);
+    if (start < 0) throw new Error(`Could not find "${text}" in the editor`);
+    const boundary = (offset: number) => {
+      let consumed = 0;
+      for (const node of nodes) {
+        if (offset <= consumed + node.data.length) return { node, offset: offset - consumed };
+        consumed += node.data.length;
+      }
+      throw new Error('Editor selection boundary is outside the document');
+    };
+    const from = boundary(start);
+    const to = boundary(start + text.length);
+    const range = document.createRange();
+    range.setStart(from.node, from.offset);
+    range.setEnd(to.node, to.offset);
+    const selection = window.getSelection();
+    if (!selection) throw new Error('Browser selection is unavailable');
+    (element as HTMLElement).focus();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.dispatchEvent(new Event('selectionchange', { bubbles: true }));
+    element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  }, selectedText);
+};
+
 test('aligns all six fixed task-card contents to the same inset', async ({ page }) => {
   await page.evaluate(() => localStorage.setItem('a2ui.onboarding-complete.v1', 'true'));
   await page.reload();
@@ -130,7 +164,7 @@ test('defaults to the simple navigation shell and persists professional mode', a
 test('completes context review and renders a trusted A2UI surface', async ({ page }) => {
   await openProfessionalWorkbench(page);
   await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('Create an A2UI form');
-  await page.getByRole('button', { name: /send 发送$/ }).click();
+  await page.getByRole('button', { name: '发送', exact: true }).click();
 
   const review = page.getByRole('dialog', { name: '发送前确认上下文' });
   await expect(review).toBeVisible();
@@ -142,7 +176,7 @@ test('completes context review and renders a trusted A2UI surface', async ({ pag
   await expect(page.getByText('Research profile')).toBeVisible();
 
   await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('Create another A2UI form');
-  await page.getByRole('button', { name: /send 发送$/ }).click();
+  await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect(review).toBeHidden();
   await expect(page.getByText('Create another A2UI form', { exact: true })).toBeVisible();
 
@@ -189,7 +223,7 @@ test('completes context review and renders a trusted A2UI surface', async ({ pag
 test('keeps file changes behind review before applying the Web Mock patch', async ({ page }) => {
   await openProfessionalWorkbench(page);
   await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('Update the sample count');
-  await page.getByRole('button', { name: /send 发送$/ }).click();
+  await page.getByRole('button', { name: '发送', exact: true }).click();
   const contextReview = page.getByRole('dialog', { name: '发送前确认上下文' });
   await contextReview.getByRole('button', { name: '生成发送清单' }).click();
   await contextReview.getByRole('button', { name: '确认并发送' }).click();
@@ -205,14 +239,8 @@ test('routes selection edits through review and keeps explanations read-only', a
   await openProfessionalWorkbench(page);
   await page.getByText('src/experiment.ts', { exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'src/experiment.ts' });
-  const original = await editor.inputValue();
-  await editor.evaluate((element) => {
-    const textarea = element as HTMLTextAreaElement;
-    const start = textarea.value.indexOf('context-window');
-    textarea.focus();
-    textarea.setSelectionRange(start, start + 'context-window'.length);
-    textarea.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-  });
+  const original = await editor.textContent();
+  await selectEditorText(editor, 'context-window');
 
   const assistant = page.getByRole('region', { name: '选区助手' });
   await expect(assistant).toBeVisible();
@@ -222,26 +250,20 @@ test('routes selection edits through review and keeps explanations read-only', a
   await confirmation.getByRole('button', { name: '生成审阅方案' }).click();
   await expect(page.getByRole('region', { name: '审阅中心' })).toBeVisible();
   await page.getByRole('button', { name: '全部拒绝' }).click();
-  await expect(editor).toHaveValue(original);
+  await expect(editor).toHaveText(original ?? '');
 
-  await editor.evaluate((element) => {
-    const textarea = element as HTMLTextAreaElement;
-    const start = textarea.value.indexOf('context-window');
-    textarea.focus();
-    textarea.setSelectionRange(start, start + 'context-window'.length);
-    textarea.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-  });
+  await selectEditorText(editor, 'context-window');
   await assistant.getByRole('button', { name: /解\s*释/ }).click();
   await confirmation.getByRole('button', { name: '生成解释' }).click();
   await expect(page.getByText('这是对当前选区的只读解释。编辑器和文件均未修改。')).toBeVisible();
   await expect(page.getByRole('region', { name: '审阅中心' })).toHaveCount(0);
-  await expect(editor).toHaveValue(original);
+  await expect(editor).toHaveText(original ?? '');
 });
 
 test('keeps AI-created travel documents behind a complete create-file review', async ({ page }) => {
   await openProfessionalWorkbench(page);
   const composer = page.getByPlaceholder('描述你希望对当前文件做出的修改…');
-  const send = page.getByRole('button', { name: /send 发送$/ });
+  const send = page.getByRole('button', { name: '发送', exact: true });
 
   await composer.fill('生成一份杭州三日游文档');
   await send.click();
@@ -503,7 +525,7 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   const navigation = page.getByRole('navigation', { name: '主导航' });
   await navigation.getByRole('button', { name: /工作台/ }).click();
   await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('仅本次分析销售表');
-  await page.getByRole('button', { name: /send 发送/ }).click();
+  await page.getByRole('button', { name: '发送', exact: true }).click();
   const oneTimeReview = page.getByRole('dialog', { name: '发送前确认上下文' });
   await oneTimeReview.getByRole('checkbox', { name: /sales.xlsx/ }).click();
   await oneTimeReview.getByRole('button', { name: '生成发送清单' }).click();
@@ -512,7 +534,7 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   await expect(oneTimeReview).toBeHidden();
 
   await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('再次分析销售表');
-  await page.getByRole('button', { name: /send 发送/ }).click();
+  await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect(oneTimeReview).toBeHidden();
   await expect(page.getByText('再次分析销售表', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '修改发送清单' }).click();
@@ -537,7 +559,7 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   await savedContext.getByRole('checkbox', { name: /季度数据/ }).click();
   await savedContext.getByRole('button', { name: '保存上下文' }).click();
   await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('总结季度数据');
-  await page.getByRole('button', { name: /send 发送/ }).click();
+  await page.getByRole('button', { name: '发送', exact: true }).click();
   const review = page.getByRole('dialog', { name: '发送前确认上下文' });
   await expect(review.getByRole('checkbox', { name: /季度数据/ })).toBeChecked();
   await review.getByRole('button', { name: '生成发送清单' }).click();
@@ -546,7 +568,7 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   await expect(review).toBeHidden();
 
   await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('继续总结季度数据');
-  await page.getByRole('button', { name: /send 发送/ }).click();
+  await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect(review).toBeHidden();
   await expect(page.getByText('继续总结季度数据', { exact: true })).toBeVisible();
 

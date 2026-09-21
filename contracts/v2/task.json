@@ -67,6 +67,7 @@
       "type": "document",
       "title": "会议纪要 - 产品例会",
       "status": "draft",
+      "pinned": false,
       "storageKind": "managed_local",
       "currentRevisionId": null,
       "a2uiSurfaceId": null,
