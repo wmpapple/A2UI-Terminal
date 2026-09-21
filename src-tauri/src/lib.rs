@@ -5,9 +5,11 @@ pub mod commands;
 pub mod document_source;
 pub mod domain;
 pub mod error;
+pub mod parser;
 pub mod patch;
 pub mod repository;
 pub mod security;
+mod smoke;
 pub mod state;
 pub mod storage;
 pub mod workspace;
@@ -27,18 +29,29 @@ impl Drop for NativeImportDropGuard<'_> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    smoke::initialize().expect("Invalid desktop smoke test configuration");
+    let mut context = tauri::generate_context!();
+    if let Some(root) = smoke::root() {
+        for window in &mut context.config_mut().app.windows {
+            window.data_directory = Some(root.join("webview"));
+        }
+    }
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
-            let app_data_dir = app.path().app_data_dir()?;
+            let app_data_dir = match smoke::root() {
+                Some(root) => root.join("app-data"),
+                None => app.path().app_data_dir()?,
+            };
             let managed_results_dir =
                 application::result::prepare_managed_results_dir(&app_data_dir)?;
             let storage = Storage::open(&app_data_dir.join("a2ui-terminal.sqlite3"))?;
             storage.cleanup_expired_versions()?;
             application::recovery::reconcile_startup(&storage, &managed_results_dir)?;
             app.manage(AppState::new(storage, managed_results_dir));
+            smoke::write_ready()?;
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -214,6 +227,6 @@ pub fn run() {
             commands::get_task,
             commands::start_task,
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("failed to start A2UI Workbench");
 }

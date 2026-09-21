@@ -43,7 +43,15 @@ export function CommandPalette({ onClose, onNavigate, onCreate, onOpenWorkbench 
       width={720}
       onCancel={onClose}
       afterOpenChange={(open) => {
-        if (open) inputRef.current?.focus();
+        // A user may already be typing in local search before the opening
+        // animation ends. Keep focused text inputs, but move focus away from
+        // Modal's default close button/focus trap into the command field.
+        const dialog = inputRef.current?.input?.closest('[role="dialog"]');
+        const activeElement = document.activeElement;
+        const focusedControl =
+          dialog?.contains(activeElement) &&
+          activeElement?.matches('input, textarea, select, [contenteditable="true"]');
+        if (open && !focusedControl) inputRef.current?.focus();
       }}
     >
       <Input

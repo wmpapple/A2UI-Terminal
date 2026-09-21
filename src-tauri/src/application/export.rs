@@ -274,10 +274,41 @@ pub(super) fn repair_pdf_unicode(bytes: &[u8], lines: &[String]) -> Result<Vec<u
     let invalid = || AppError::InvalidInput("PDF 字符映射失败，请选择其他导出格式".into());
     let mut pdf = Document::load_mem(bytes).map_err(|_| invalid())?;
     let mut source = lines.iter();
-    let mut mapping = std::collections::BTreeMap::new();
+    let mut mappings = std::collections::BTreeMap::new();
     for page in pdf.get_pages().values() {
+        // printpdf stores /Font as an indirect dictionary; lopdf 0.31's
+        // get_page_fonts only handles a direct /Font dictionary.
+        let resources = pdf
+            .get_dictionary(*page)
+            .map_err(|_| invalid())?
+            .get_deref(b"Resources", &pdf)
+            .and_then(Object::as_dict)
+            .map_err(|_| invalid())?;
+        let fonts = resources
+            .get_deref(b"Font", &pdf)
+            .and_then(Object::as_dict)
+            .map_err(|_| invalid())?;
+        let mut active_font = None;
         let content = pdf.get_page_content(*page).map_err(|_| invalid())?;
         for operation in Content::decode(&content).map_err(|_| invalid())?.operations {
+            if operation.operator == "Tf" {
+                let name = operation
+                    .operands
+                    .first()
+                    .ok_or_else(invalid)?
+                    .as_name()
+                    .map_err(|_| invalid())?;
+                active_font = Some(
+                    fonts
+                        .get_deref(name, &pdf)
+                        .and_then(Object::as_dict)
+                        .map_err(|_| invalid())?
+                        .get(b"ToUnicode")
+                        .map_err(|_| invalid())?
+                        .as_reference()
+                        .map_err(|_| invalid())?,
+                );
+            }
             if operation.operator != "Tj" {
                 continue;
             }
@@ -293,6 +324,9 @@ pub(super) fn repair_pdf_unicode(bytes: &[u8], lines: &[String]) -> Result<Vec<u
                     "PDF 字体未覆盖部分字符，请选择 DOCX、RTF 或原始格式导出".into(),
                 ));
             }
+            let mapping = mappings
+                .entry(active_font.ok_or_else(invalid)?)
+                .or_insert_with(std::collections::BTreeMap::new);
             for (glyph, character) in glyphs.chunks_exact(2).zip(text.chars()) {
                 let id = u16::from_be_bytes([glyph[0], glyph[1]]);
                 if mapping
@@ -307,39 +341,23 @@ pub(super) fn repair_pdf_unicode(bytes: &[u8], lines: &[String]) -> Result<Vec<u
     if source.next().is_some() {
         return Err(invalid());
     }
-    let mut cmap = String::from("/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /A2UIUnicode def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n");
-    let entries: Vec<_> = mapping.into_iter().collect();
-    for block in entries.chunks(100) {
-        cmap.push_str(&format!("{} beginbfchar\n", block.len()));
-        for (glyph, character) in block {
-            let mut units = [0; 2];
-            let unicode = character
-                .encode_utf16(&mut units)
-                .iter()
-                .map(|unit| format!("{unit:04X}"))
-                .collect::<String>();
-            cmap.push_str(&format!("<{glyph:04X}> <{unicode}>\n"));
+    for (reference, mapping) in mappings {
+        let mut cmap = String::from("/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /A2UIUnicode def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n");
+        let entries: Vec<_> = mapping.into_iter().collect();
+        for block in entries.chunks(100) {
+            cmap.push_str(&format!("{} beginbfchar\n", block.len()));
+            for (glyph, character) in block {
+                let mut units = [0; 2];
+                let unicode = character
+                    .encode_utf16(&mut units)
+                    .iter()
+                    .map(|unit| format!("{unit:04X}"))
+                    .collect::<String>();
+                cmap.push_str(&format!("<{glyph:04X}> <{unicode}>\n"));
+            }
+            cmap.push_str("endbfchar\n");
         }
-        cmap.push_str("endbfchar\n");
-    }
-    cmap.push_str("endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n");
-    let references: Vec<_> = pdf
-        .objects
-        .values()
-        .filter_map(|object| {
-            object
-                .as_dict()
-                .ok()?
-                .get(b"ToUnicode")
-                .ok()?
-                .as_reference()
-                .ok()
-        })
-        .collect();
-    if !entries.is_empty() && references.is_empty() {
-        return Err(invalid());
-    }
-    for reference in references {
+        cmap.push_str("endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n");
         pdf.objects.insert(
             reference,
             Object::Stream(Stream::new(Dictionary::new(), cmap.as_bytes().to_vec())),
@@ -519,7 +537,10 @@ mod tests {
             }
         }
         assert!(found_font);
-        assert!(pdf("unsupported", &["emoji 😀".into()]).is_err());
+        let emoji = pdf("emoji", &["中文 😀 🙂 e\u{301}".into()]).unwrap();
+        let text = pdf_extract::extract_text_from_mem(&emoji).unwrap();
+        assert!(text.contains("中文 😀 🙂 e\u{301}"), "{text:?}");
+        assert!(pdf("unsupported", &["\u{10ffff}".into()]).is_err());
         assert!(pdf("tabs", &["a\tb".into()]).is_ok());
     }
 

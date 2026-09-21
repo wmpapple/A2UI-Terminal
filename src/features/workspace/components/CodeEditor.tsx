@@ -6,6 +6,7 @@ import { HighlightStyle, LanguageDescription, syntaxHighlighting } from '@codemi
 import { languages } from '@codemirror/language-data';
 import { tags } from '@lezer/highlight';
 import styles from './CodeEditor.module.css';
+import { codeMirrorSelection, type SourceEditorPort } from '../../selection/editorAdapter';
 
 interface Props {
   path: string;
@@ -13,6 +14,7 @@ interface Props {
   disabled: boolean;
   onChange: (value: string) => void;
   onSelection: (value: string) => void;
+  onEditorPort?: (port: SourceEditorPort | null) => void;
 }
 
 const highlight = HighlightStyle.define([
@@ -31,6 +33,13 @@ export function CodeEditor(props: Props) {
   useLayoutEffect(() => {
     latest.current = props;
   });
+
+  useLayoutEffect(() => {
+    props.onEditorPort?.({
+      read: () => (latest.current.disabled ? null : codeMirrorSelection(view.current ?? undefined)),
+    });
+    return () => props.onEditorPort?.(null);
+  }, [props.onEditorPort]);
 
   useLayoutEffect(() => {
     if (!host.current) return;

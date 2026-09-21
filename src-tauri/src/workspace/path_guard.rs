@@ -1,11 +1,8 @@
 use crate::error::AppError;
+pub use crate::parser::{
+    is_supported_document_path, is_supported_text_path, is_supported_workspace_path,
+};
 use std::path::{Component, Path, PathBuf};
-
-const SUPPORTED_EXTENSIONS: &[&str] = &[
-    "css", "html", "js", "json", "jsx", "md", "mjs", "py", "toml", "ts", "tsx", "txt", "yaml",
-    "yml",
-];
-const SUPPORTED_DOCUMENT_EXTENSIONS: &[&str] = &["docx", "pdf"];
 
 pub fn canonicalize_root(root: &Path) -> Result<PathBuf, AppError> {
     let canonical = root.canonicalize()?;
@@ -31,33 +28,6 @@ pub fn resolve_existing_file(root: &Path, relative_path: &Path) -> Result<PathBu
         return Err(AppError::InvalidInput("文件必须位于当前工作区内".into()));
     }
     Ok(candidate)
-}
-
-pub fn is_supported_workspace_path(path: &Path) -> bool {
-    is_supported_text_path(path)
-        || path
-            .extension()
-            .and_then(|extension| extension.to_str())
-            .map(|extension| {
-                SUPPORTED_DOCUMENT_EXTENSIONS.contains(&extension.to_ascii_lowercase().as_str())
-            })
-            .unwrap_or(false)
-}
-
-pub fn is_supported_document_path(path: &Path) -> bool {
-    path.extension()
-        .and_then(|extension| extension.to_str())
-        .map(|extension| {
-            SUPPORTED_DOCUMENT_EXTENSIONS.contains(&extension.to_ascii_lowercase().as_str())
-        })
-        .unwrap_or(false)
-}
-
-pub fn is_supported_text_path(path: &Path) -> bool {
-    path.extension()
-        .and_then(|extension| extension.to_str())
-        .map(|extension| SUPPORTED_EXTENSIONS.contains(&extension.to_ascii_lowercase().as_str()))
-        .unwrap_or(false)
 }
 
 fn validate_relative_path(path: &Path) -> Result<(), AppError> {

@@ -1,0 +1,1160 @@
+{
+  "snapshotVersion": 1,
+  "capturedAt": "2026-09-21T07:03:24.560Z",
+  "gitHead": "35023d75a0d87e5e16f1d0de8a554e4eb6b49a69",
+  "schemaVersion": 18,
+  "applicationVersion": "2.0.0",
+  "productIdentifier": "com.a2ui.terminal",
+  "nodeVersion": "v22.23.2",
+  "rustVersion": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "commandCount": 94,
+  "commands": [
+    {
+      "name": "answer_task_questions",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "apply_document_patch",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "apply_review",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "cancel_export",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "clear_all_local_data",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "clear_context_index",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "confirm_context_manifest",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "confirm_import",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "create_chat_session",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "create_context_pack",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "create_review_request",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "create_task",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "create_text_result",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "decide_review_blocks",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "delete_a2ui_inspection",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "delete_a2ui_surface",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "delete_a2ui_template",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "delete_chat_session",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "delete_context_pack",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "delete_provider_secret",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "delete_result",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "discard_result_draft",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "discard_review",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "discard_workspace_draft",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "duplicate_result",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "execute_a2ui_action",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "export_diagnostics",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "export_event_dictionary",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "export_result",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "get_a2ui_capabilities",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "get_bootstrap_status",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "get_processing_options",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "get_recovery_status",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "get_result",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "get_review",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "get_task",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "get_telemetry_settings",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "inspect_import_batch",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_a2ui_inspections",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_a2ui_surfaces",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_a2ui_templates",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_active_reviews",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_chat_sessions",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_context_packs",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_document_sources",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_document_versions",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_provider_configs",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_recent_workspaces",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_recovery_drafts",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_result_revisions",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_results",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_task_templates",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "list_workspace_files",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "open_a2ui_template",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "pin_chat_session",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "pin_result",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "plan_context",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "probe_local_providers",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "process_a2ui_message",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "provider_secret_status",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "read_document_source",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "read_document_version",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "read_result_document",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "read_result_revision",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "read_workspace_file",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "rebuild_authorized_search_index",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "remove_workspace",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "resolve_review_conflict",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "restore_document_version",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "restore_result_revision",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "restore_workspace",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "revoke_document_source",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "save_a2ui_template",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "save_context_file",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "save_provider_config",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "save_result_document",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "save_result_draft",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "save_workspace_draft",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "save_workspace_file",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "search_authorized_content",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "select_context_files",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "select_import_sources",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "select_workspace",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "set_active_provider",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "set_import_drop_target",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "set_provider_secret",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "set_telemetry_settings",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "start_task",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "stop_chat",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "stream_chat",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "test_provider_connection",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "undo_document_patch",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "undo_review",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    },
+    {
+      "name": "validate_document_patch",
+      "runtimeRegistered": true,
+      "buildRegistered": true,
+      "mainWindowAllowed": true,
+      "generatedPermissionExists": true,
+      "desktopAdapterMentions": true
+    }
+  ],
+  "mainWindowCapability": {
+    "$schema": "../gen/schemas/desktop-schema.json",
+    "identifier": "main-capability",
+    "description": "Minimum permissions for the A2UI 工作台 main window",
+    "windows": ["main"],
+    "platforms": ["windows"],
+    "permissions": [
+      "allow-get-bootstrap-status",
+      "allow-set-provider-secret",
+      "allow-provider-secret-status",
+      "allow-delete-provider-secret",
+      "allow-clear-all-local-data",
+      "allow-export-diagnostics",
+      "allow-get-telemetry-settings",
+      "allow-set-telemetry-settings",
+      "allow-export-event-dictionary",
+      "allow-select-workspace",
+      "allow-list-recent-workspaces",
+      "allow-restore-workspace",
+      "allow-list-workspace-files",
+      "allow-read-workspace-file",
+      "allow-list-recovery-drafts",
+      "allow-save-workspace-file",
+      "allow-save-workspace-draft",
+      "allow-discard-workspace-draft",
+      "allow-remove-workspace",
+      "allow-select-context-files",
+      "allow-select-import-sources",
+      "allow-inspect-import-batch",
+      "allow-set-import-drop-target",
+      "core:event:allow-listen",
+      "core:event:allow-unlisten",
+      "allow-confirm-import",
+      "allow-list-document-sources",
+      "allow-read-document-source",
+      "allow-revoke-document-source",
+      "allow-list-context-packs",
+      "allow-create-context-pack",
+      "allow-delete-context-pack",
+      "allow-save-context-file",
+      "allow-list-document-versions",
+      "allow-read-document-version",
+      "allow-restore-document-version",
+      "allow-list-provider-configs",
+      "allow-save-provider-config",
+      "allow-set-active-provider",
+      "allow-test-provider-connection",
+      "allow-get-processing-options",
+      "allow-probe-local-providers",
+      "allow-list-chat-sessions",
+      "allow-delete-chat-session",
+      "allow-pin-chat-session",
+      "allow-delete-result",
+      "allow-pin-result",
+      "allow-create-chat-session",
+      "allow-plan-context",
+      "allow-clear-context-index",
+      "allow-search-authorized-content",
+      "allow-rebuild-authorized-search-index",
+      "allow-confirm-context-manifest",
+      "allow-stream-chat",
+      "allow-stop-chat",
+      "allow-validate-document-patch",
+      "allow-apply-document-patch",
+      "allow-undo-document-patch",
+      "allow-create-review-request",
+      "allow-get-review",
+      "allow-list-active-reviews",
+      "allow-decide-review-blocks",
+      "allow-apply-review",
+      "allow-discard-review",
+      "allow-resolve-review-conflict",
+      "allow-undo-review",
+      "allow-get-a2ui-capabilities",
+      "allow-process-a2ui-message",
+      "allow-list-a2ui-surfaces",
+      "allow-list-a2ui-inspections",
+      "allow-save-a2ui-template",
+      "allow-list-a2ui-templates",
+      "allow-open-a2ui-template",
+      "allow-delete-a2ui-template",
+      "allow-delete-a2ui-surface",
+      "allow-delete-a2ui-inspection",
+      "allow-execute-a2ui-action",
+      "allow-list-results",
+      "allow-get-result",
+      "allow-create-text-result",
+      "allow-read-result-document",
+      "allow-save-result-document",
+      "allow-save-result-draft",
+      "allow-discard-result-draft",
+      "allow-get-recovery-status",
+      "allow-list-result-revisions",
+      "allow-read-result-revision",
+      "allow-restore-result-revision",
+      "allow-duplicate-result",
+      "allow-export-result",
+      "allow-cancel-export",
+      "allow-list-task-templates",
+      "allow-create-task",
+      "allow-answer-task-questions",
+      "allow-get-task",
+      "allow-start-task",
+      "updater:default",
+      "process:allow-restart"
+    ]
+  },
+  "searchMode": "memory_lexical",
+  "providerKinds": ["silicon_flow", "deep_seek", "open_ai", "custom"],
+  "a2ui": {
+    "preferred": "v0.9.1",
+    "compatible": ["v0.9"],
+    "legacyPrivate": "1.0",
+    "catalogId": "urn:a2ui-terminal:catalog:basic:v1"
+  },
+  "context": {
+    "ttlSeconds": 600,
+    "tokenBudget": 32000,
+    "maxSelectedSources": 20,
+    "oneTimeConsumption": true
+  },
+  "fileHashes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "bb0c4ec4377e087803a00dedddb88625943a56725c365bb49ae65e97eaffde62"
+    },
+    {
+      "path": "contracts/a2ui/v0_9_1/README.md",
+      "sha256": "57585bb0f80fc818478eef1bde20e94074b076959cab9b5683445d6d7584c593"
+    },
+    {
+      "path": "contracts/a2ui/v0_9_1/runtime-cases.json",
+      "sha256": "e90d58ca938a1a4c83d27f8967fcf62200631760705322511ef7a3ef4049dc90"
+    },
+    {
+      "path": "contracts/a2ui/v0_9_1/upstream/00_simple-text.json",
+      "sha256": "130ae3b46fa16b24246fb5bcd5d14d9707abbae8adda5fbd047ad98d1b13a56b"
+    },
+    {
+      "path": "contracts/v1/a2ui.json",
+      "sha256": "8720b631f266e73b4a981d819ae2bc585a01ca75ea0ca5591608ae54dcaefe09"
+    },
+    {
+      "path": "contracts/v1/chat.json",
+      "sha256": "4f3a3382117a32842025598832db623ee82fcba1abb1d032cdf20e37fadc8a4c"
+    },
+    {
+      "path": "contracts/v1/error.json",
+      "sha256": "0bbb22dbfb2a61d33ff6a58251392aac19a242fa652565d807232de56637611b"
+    },
+    {
+      "path": "contracts/v1/patch.json",
+      "sha256": "063a396a929d026add1c06af7a6456d748efb7639153938e48b43a0b49b8a0b2"
+    },
+    {
+      "path": "contracts/v1/revision.json",
+      "sha256": "420e6fffcae73d74f5e7b3d703b76750d963d7232c07f3d86f527ab61e55effd"
+    },
+    {
+      "path": "contracts/v1/workspace.json",
+      "sha256": "c4568f84add7d0b335aa0733fb1adbeadd32083c255de1764e3635af21c79fd8"
+    },
+    {
+      "path": "contracts/v2/a2ui-capabilities.json",
+      "sha256": "9c798a15ba54741ab4ba1e5f30f8e667aaf3561c949914dbb9146a74b7d7317d"
+    },
+    {
+      "path": "contracts/v2/beta-acceptance.json",
+      "sha256": "a3e82e3f7416fb29bb008f56302981a381ba3b35ac344b1e06926557e6c3f1dd"
+    },
+    {
+      "path": "contracts/v2/context-manifest.json",
+      "sha256": "bcc4f08d70dd95d336af7318f0439974f42dfb2c04baad6bcc0aa5555503b334"
+    },
+    {
+      "path": "contracts/v2/context-pack.json",
+      "sha256": "4e11080be8bc82cc2727464db6e84a17781f4d691210f62d9f6f5ec13a764280"
+    },
+    {
+      "path": "contracts/v2/document-source.json",
+      "sha256": "b1d19130376afa76fd3b8cfddd2ced38cc9542049d1b091dcf40b794eb1275ae"
+    },
+    {
+      "path": "contracts/v2/export.json",
+      "sha256": "e886b119ad864299e6c449b723cc9f0fc29e8fa2238398de9055c4a20ac2dc69"
+    },
+    {
+      "path": "contracts/v2/import-drop.json",
+      "sha256": "67e35584bac85fb80bc93c5f9a8157eda598efa959d3880d6f86a6e9b2342c01"
+    },
+    {
+      "path": "contracts/v2/import.json",
+      "sha256": "66ce643442e7ddf797a6da4932b5fc646de35548910af44fff5833e2344730d6"
+    },
+    {
+      "path": "contracts/v2/provider-processing.json",
+      "sha256": "08f6850580dc9803cf3a7c85f25952e42e5fc4f442bb8ed54130e6f3e22f942e"
+    },
+    {
+      "path": "contracts/v2/recovery.json",
+      "sha256": "2493c5829e23c43548c4e7f6bf8d1f5b4eda4d451485604b5e9320a495d6eef5"
+    },
+    {
+      "path": "contracts/v2/release-identity.json",
+      "sha256": "e0c85e47ee906fb787e1120c6b47aab12221e5360dde4d0d80b5ec25b38705a4"
+    },
+    {
+      "path": "contracts/v2/result.json",
+      "sha256": "0561fc04a0cf085cb4224185c35ceda8bcefa1fc1f438a56e42a51050d6a4b7d"
+    },
+    {
+      "path": "contracts/v2/review.json",
+      "sha256": "34d4ac8fc5bbfdfd9e5fcc433bedf86aed0263f6e03a56ea52e72464af3f1ad7"
+    },
+    {
+      "path": "contracts/v2/search.json",
+      "sha256": "d5916e58b15ec342c0dc330eed9258005bbd373d5188a9a3ff63a8ec730bb2d1"
+    },
+    {
+      "path": "contracts/v2/security-audit.json",
+      "sha256": "16e07581755a8171d80ebd175c81956f0db92230f8d641e4277c1742b679c3d0"
+    },
+    {
+      "path": "contracts/v2/task.json",
+      "sha256": "d1cbaafd2e5630b9af69f4a355d086237b05f88d7a85d98a29398b3cf45915fa"
+    },
+    {
+      "path": "contracts/v2/telemetry.json",
+      "sha256": "3d7a277d3b1d867fbbc373c30f214c121d1ceaf1644eddf3cc81c65328738d3e"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "79e48dcaccee8cb5053b6f1395731bea50f12c99f08db3067d13b151144e0d2b"
+    },
+    {
+      "path": "package.json",
+      "sha256": "ef31fcf65c30a846e5bbd926a3ed744ebad36342ab8bf8dd62d22b0ba4b5a205"
+    },
+    {
+      "path": "src-tauri/Cargo.lock",
+      "sha256": "2eda2d3047cc8564cefe09a1fdab46a7c89d074e97a3defa6d64fd360ed9eaf3"
+    },
+    {
+      "path": "src-tauri/Cargo.toml",
+      "sha256": "f1074c453205da6e4a02160378be3803a099b3f53974845b02cfafa60a9320f4"
+    },
+    {
+      "path": "src-tauri/build.rs",
+      "sha256": "257565975445229f098ed9976a03559c2e3ec5d86e074d8787303be9e52f9c4c"
+    },
+    {
+      "path": "src-tauri/capabilities/main.json",
+      "sha256": "c33ad00647c24fa172735c2dadaa51dbc81d7d3b52dee5c7bc669a473905b1b9"
+    },
+    {
+      "path": "src-tauri/migrations/0001_initial.sql",
+      "sha256": "4274a8fc59f3d0b7fd5df295419bf6ace58467d7d04db3c021d6ae0723b6564a"
+    },
+    {
+      "path": "src-tauri/migrations/0002_workspace_drafts.sql",
+      "sha256": "7af68df059e07f99e3217543ce8122c4c512e96b7d3c3e36ac3c7f6962fed9bc"
+    },
+    {
+      "path": "src-tauri/migrations/0003_providers_and_chat.sql",
+      "sha256": "5c8272bc44841301ce4ea37aeb84b316af743521403ca68b05715e100657c219"
+    },
+    {
+      "path": "src-tauri/migrations/0004_standalone_workspaces.sql",
+      "sha256": "1684633a363fd535fde5c147536115dae549a4088bfd65bb4dc62a8686e12948"
+    },
+    {
+      "path": "src-tauri/migrations/0005_semantic_patches.sql",
+      "sha256": "062cedfb77933088dba6fedb55b6c8f4bd74691ff1b0666628b84cd75d8432a3"
+    },
+    {
+      "path": "src-tauri/migrations/0006_a2ui_runtime.sql",
+      "sha256": "093e3a09977c9c8894c34d2da693413564ebf4a8d51a4b3e943fd6f94f42b81d"
+    },
+    {
+      "path": "src-tauri/migrations/0007_document_history.sql",
+      "sha256": "2366be9556f57b63998e5f504ef3a9299237c0364fccaf8efcd8d545a9cffc18"
+    },
+    {
+      "path": "src-tauri/migrations/0008_crash_recovery.sql",
+      "sha256": "ba7e0c8ba1be9733f8936a6387f485e17948eb19403f961b4932185e33d653d3"
+    },
+    {
+      "path": "src-tauri/migrations/0009_results.sql",
+      "sha256": "f94fdd918481d164652ce7527ccce6e570e94b98e8f003ed9f9b2b2db1c15a2d"
+    },
+    {
+      "path": "src-tauri/migrations/0010_tasks_and_templates.sql",
+      "sha256": "d1677b0ae355eaf978509203bb1f9de1ffd74e4f7bd219288cf818bd8fa56c14"
+    },
+    {
+      "path": "src-tauri/migrations/0011_review_pipeline.sql",
+      "sha256": "eb861fb8fb55474e321dc34097875e59774fa825394f4f832946fd10b127da84"
+    },
+    {
+      "path": "src-tauri/migrations/0012_context_packs.sql",
+      "sha256": "57817f62ce36b321c5dd5f4b80c2e86d8654cf83368c2d170a73db6596fc414d"
+    },
+    {
+      "path": "src-tauri/migrations/0013_a2ui_templates.sql",
+      "sha256": "bd84a24b54a783d3a4529ed33c207efad6e52cda5501af13a1a43683921175f3"
+    },
+    {
+      "path": "src-tauri/migrations/0014_product_events.sql",
+      "sha256": "925607cd470c6c53445d3d9db80c4a34b60000fbd46c9fda35809885ff73b34c"
+    },
+    {
+      "path": "src-tauri/migrations/0015_product_event_allowlist.sql",
+      "sha256": "022626be9fb697a9f9bb9858e0ac9480282ac03c688aae4934fe1556a50afec7"
+    },
+    {
+      "path": "src-tauri/migrations/0016_recovery_jobs.sql",
+      "sha256": "1d4488c07244addc8bb5d9af9efee1e7e7cb56c5df2c452dc3f2e0d844c7a273"
+    },
+    {
+      "path": "src-tauri/migrations/0017_history_management.sql",
+      "sha256": "ae7956ce440b94168183ac12a2f4e2ca1ed88f3cc90c3c7c6cd8d76bb6881465"
+    },
+    {
+      "path": "src-tauri/migrations/0018_result_pinning.sql",
+      "sha256": "b6485d8e35c166085b911caae02a5ddf54fc0f2862b362420a7c763e01513965"
+    },
+    {
+      "path": "src-tauri/src/ai/context.rs",
+      "sha256": "5194bbcbd3052da078b221d0e8f1afdedd5f39c6bf5739c82735a6ff08487a93"
+    },
+    {
+      "path": "src-tauri/src/ai/mod.rs",
+      "sha256": "ec63e72822ebeec27e9516f7eec57ff59e5ab412c02251a2cbe1ebb2e65e9b08"
+    },
+    {
+      "path": "src-tauri/src/ai/planner.rs",
+      "sha256": "06b5a6150bc086c752e03ab33b30d980fc60c5f2a2145439974b2d838d7b74e1"
+    },
+    {
+      "path": "src-tauri/src/ai/retrieval.rs",
+      "sha256": "cd0540d842f47412d6ab0bfb473e8a501b72065e32d1655793c0a95f4115d1e3"
+    },
+    {
+      "path": "src-tauri/src/application/context.rs",
+      "sha256": "31256d90c23bed43dd63b55be50b2587c98d2638ff22365f9e6ce77e3e247588"
+    },
+    {
+      "path": "src-tauri/src/application/provider.rs",
+      "sha256": "0b3f2bfa058a7517504db3b2e1d32d996603327241cbdcc5b7bab87b4ab03622"
+    },
+    {
+      "path": "src-tauri/src/application/review.rs",
+      "sha256": "6c5d010492ae7963237aa1bbac1c6f57d94265a21fbbb8efc20026c290e80edd"
+    },
+    {
+      "path": "src-tauri/src/application/task.rs",
+      "sha256": "c7dd9c34f315d441ba0f082ad3497c3b26ec6986a447b09b5e60dcae3d5c55b0"
+    },
+    {
+      "path": "src-tauri/src/commands.rs",
+      "sha256": "c34e42d3a159ba225acf98746eb0bfe8c858fcce398e57f1dc4746a1dfe08d14"
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "sha256": "3f5d79b4f15895eaee0f01f3a25df644527adae30a9915a7e7f81b1f96ffbfdd"
+    },
+    {
+      "path": "src-tauri/src/state.rs",
+      "sha256": "fdbcab5099e519fde28ee79da6e7a75e45003bb4397482fb9368db1aaef2277a"
+    },
+    {
+      "path": "src-tauri/src/storage/mod.rs",
+      "sha256": "a1e4a5ea2b78059526d3040ac6b38dcf7f0bd11f07b821690a0ea8c4fcb87fe6"
+    },
+    {
+      "path": "src-tauri/tauri.conf.json",
+      "sha256": "32f308a531f1ae4efe67f2fec3efc303162d207eddebad5968238a3e2c65611b"
+    },
+    {
+      "path": "src/shared/contracts/guards.ts",
+      "sha256": "1adea51e976cc162518e203ebc0a1a2a757964837f129448a31e1f2c94fc80ad"
+    },
+    {
+      "path": "src/shared/platform/desktop.ts",
+      "sha256": "f01e0d6aca2b1b1dc3fbf0a79f04eef4c8f8808d08efdec418abc01e0f9fd180"
+    },
+    {
+      "path": "src/shared/platform/gateway.ts",
+      "sha256": "3d0bcfc005e1594d9b5b8a9d2cbe9ff419b2efe455b93ee455587a967fd1e19a"
+    },
+    {
+      "path": "src/shared/types/domain.ts",
+      "sha256": "745685bcbca25a9f5633252356a8c6e9ffff5c8f4de4b802a130fb8a4d5c4f3d"
+    }
+  ]
+}

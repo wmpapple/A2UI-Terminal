@@ -1,0 +1,51 @@
+{
+  "snapshot": {
+    "target": {
+      "kind": "workspace_file",
+      "workspaceId": "11111111-1111-4111-8111-111111111111",
+      "sourceId": "22222222-2222-4222-8222-222222222222"
+    },
+    "revisionId": null,
+    "contentHash": "b30f82587c52a462aefe20bbc786913833b6c2d60e3712f693277f2ba773161a",
+    "format": "text",
+    "text": "中文🙂é\r\nEnd",
+    "editable": true,
+    "hasUnsavedDraft": false
+  },
+  "selection": {
+    "target": {
+      "kind": "workspace_file",
+      "workspaceId": "11111111-1111-4111-8111-111111111111",
+      "sourceId": "22222222-2222-4222-8222-222222222222"
+    },
+    "revisionId": null,
+    "contentHash": "b30f82587c52a462aefe20bbc786913833b6c2d60e3712f693277f2ba773161a",
+    "start": 2,
+    "end": 4,
+    "offsetUnit": "utf16",
+    "selectedTextHash": "d06f1525f791397809f9bc98682b5c13318eca4c3123433467fd4dffda44fd14"
+  },
+  "parsed": {
+    "format": "txt",
+    "parserVersion": "local-v1",
+    "rawHash": "b30f82587c52a462aefe20bbc786913833b6c2d60e3712f693277f2ba773161a",
+    "extractedHash": "b30f82587c52a462aefe20bbc786913833b6c2d60e3712f693277f2ba773161a",
+    "blocks": [
+      {
+        "id": "block-1",
+        "text": "中文🙂é\r\nEnd",
+        "locator": {
+          "kind": "text_range",
+          "start": 0,
+          "end": 11,
+          "offsetUnit": "utf16"
+        }
+      }
+    ],
+    "warnings": []
+  },
+  "resultTarget": {
+    "kind": "result",
+    "resultId": "33333333-3333-4333-8333-333333333333"
+  }
+}

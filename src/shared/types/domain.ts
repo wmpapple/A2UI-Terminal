@@ -1,4 +1,10 @@
 export type Locale = 'zh-CN' | 'en-US';
+export type {
+  DocumentTarget,
+  DocumentSnapshot,
+  SelectionSnapshot,
+  ParsedDocument,
+} from './document';
 export type CenterView = 'editor' | 'diff' | 'surface';
 export type MessageRole = 'user' | 'assistant';
 export type ProviderKind = 'silicon_flow' | 'deep_seek' | 'open_ai' | 'custom';

@@ -1,4 +1,5 @@
 pub mod chat;
+pub(crate) mod document;
 pub mod provider;
 pub mod result;
 pub mod review;

@@ -1,3 +1,10 @@
+export {
+  isDocumentTarget,
+  isDocumentSnapshot,
+  isSelectionSnapshot,
+  isParsedDocument,
+} from './document';
+
 import type {
   ExportResultInput,
   ExportResultOutput,

@@ -7,6 +7,7 @@ import { mockFiles } from '../../../shared/mock/workspace';
 import { useAppStore } from '../../../stores/useAppStore';
 import { useImportStore } from '../../imports/importStore';
 import { EditorPane } from './EditorPane';
+import type { SourceEditorPort } from '../../selection/editorAdapter';
 
 const togglePreviewMock = vi.hoisted(() => vi.fn());
 const editorLifecycleMock = vi.hoisted(() => ({
@@ -31,7 +32,19 @@ vi.mock('md-editor-rt', async () => {
     ref
   ) {
     const [mountId] = useState(() => ++editorLifecycleMock.nextMountId);
-    useImperativeHandle(ref, () => ({ togglePreview: togglePreviewMock }), []);
+    useImperativeHandle(
+      ref,
+      () => ({
+        togglePreview: togglePreviewMock,
+        getEditorView: () => ({
+          state: {
+            doc: { toString: () => modelValue },
+            selection: { ranges: [{}], main: { from: 0, to: 2 } },
+          },
+        }),
+      }),
+      [modelValue]
+    );
     useEffect(() => {
       editorLifecycleMock.changeCallbacks.set(mountId, onChange);
       return () => {
@@ -81,6 +94,19 @@ describe('EditorPane modes', () => {
       workspaceLoading: false,
       selectedText: '',
     });
+  });
+
+  it('reads Markdown source positions and refuses preview selections', async () => {
+    const onEditorPort = vi.fn<(port: SourceEditorPort | null) => void>();
+    render(
+      <I18nProvider>
+        <EditorPane onEditorPort={onEditorPort} />
+      </I18nProvider>
+    );
+    await screen.findByTestId('markdown-editor');
+    expect(onEditorPort.mock.calls.at(-1)?.[0]?.read()).toMatchObject({ start: 0, end: 2 });
+    fireEvent.click(screen.getByRole('button', { name: '开启预览' }));
+    expect(onEditorPort.mock.calls.at(-1)?.[0]?.read()).toBeNull();
   });
 
   it('auto-saves each dirty file on its own one-second schedule', () => {

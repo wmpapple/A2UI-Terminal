@@ -14,13 +14,11 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt::Write as _;
 use std::fs;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 use walkdir::{DirEntry, WalkDir};
 
-pub const MAX_TEXT_FILE_BYTES: u64 = 2 * 1024 * 1024;
-pub const MAX_DOCUMENT_FILE_BYTES: u64 = 25 * 1024 * 1024;
+pub use crate::parser::{MAX_DOCUMENT_FILE_BYTES, MAX_TEXT_FILE_BYTES};
 const MAX_WORKSPACE_FILES: usize = 20_000;
 const MAX_WALK_DEPTH: usize = 32;
 const IGNORED_DIRECTORIES: &[&str] = &[
@@ -243,12 +241,7 @@ pub fn read_file(
     )?;
     let size_bytes = bytes.len() as u64;
     let content_hash = content_hash(&bytes);
-    let content = if extracted {
-        extract_document_text(&path, &bytes)?
-    } else {
-        String::from_utf8(bytes).map_err(|_| AppError::InvalidEncoding)?
-    };
-    validate_content_size(&content)?;
+    let content = crate::parser::parse_bytes(&path, &bytes)?.text();
     let draft = if extracted {
         None
     } else {
@@ -290,12 +283,7 @@ pub fn read_selected_file(path: &Path, source_id: &str) -> Result<WorkspaceDocum
     )?;
     let size_bytes = bytes.len() as u64;
     let content_hash = content_hash(&bytes);
-    let content = if extracted {
-        extract_document_text(&path, &bytes)?
-    } else {
-        String::from_utf8(bytes).map_err(|_| AppError::InvalidEncoding)?
-    };
-    validate_content_size(&content)?;
+    let content = crate::parser::parse_bytes(&path, &bytes)?.text();
     let name = path
         .file_name()
         .and_then(|value| value.to_str())
@@ -783,75 +771,6 @@ fn ensure_editable_path(relative_path: &str) -> Result<(), AppError> {
         ));
     }
     Ok(())
-}
-
-fn extract_document_text(path: &Path, bytes: &[u8]) -> Result<String, AppError> {
-    match path
-        .extension()
-        .and_then(|extension| extension.to_str())
-        .map(str::to_ascii_lowercase)
-        .as_deref()
-    {
-        Some("docx") => extract_docx_text(bytes),
-        Some("pdf") => {
-            let text = pdf_extract::extract_text_from_mem(bytes).map_err(|error| {
-                AppError::InvalidInput(format!("Unable to extract PDF text: {error}"))
-            })?;
-            if text.trim().is_empty() {
-                return Err(AppError::InvalidInput(
-                    "This PDF has no extractable text layer; OCR is required".into(),
-                ));
-            }
-            Ok(text)
-        }
-        _ => Err(AppError::InvalidInput("Unsupported document type".into())),
-    }
-}
-
-fn extract_docx_text(bytes: &[u8]) -> Result<String, AppError> {
-    let cursor = std::io::Cursor::new(bytes);
-    let mut archive = zip::ZipArchive::new(cursor)
-        .map_err(|error| AppError::InvalidInput(format!("Invalid DOCX package: {error}")))?;
-    let mut document = archive.by_name("word/document.xml").map_err(|_| {
-        AppError::InvalidInput("DOCX package does not contain word/document.xml".into())
-    })?;
-    let mut xml = String::new();
-    document.read_to_string(&mut xml).map_err(AppError::Io)?;
-    let mut reader = quick_xml::Reader::from_str(&xml);
-    let mut output = String::new();
-    loop {
-        match reader.read_event() {
-            Ok(quick_xml::events::Event::Text(text)) => {
-                let decoded = text.xml_content().map_err(|error| {
-                    AppError::InvalidInput(format!("Invalid DOCX text: {error}"))
-                })?;
-                output.push_str(&decoded);
-            }
-            Ok(quick_xml::events::Event::GeneralRef(reference)) => {
-                let entity = format!("&{};", String::from_utf8_lossy(reference.as_ref()));
-                let decoded = quick_xml::escape::unescape(&entity).map_err(|error| {
-                    AppError::InvalidInput(format!("Invalid DOCX entity: {error}"))
-                })?;
-                output.push_str(&decoded);
-            }
-            Ok(quick_xml::events::Event::End(end)) if end.name().as_ref() == b"w:p" => {
-                output.push('\n');
-            }
-            Ok(quick_xml::events::Event::Eof) => break,
-            Err(error) => {
-                return Err(AppError::InvalidInput(format!(
-                    "Unable to parse DOCX content: {error}"
-                )))
-            }
-            _ => {}
-        }
-    }
-    if output.trim().is_empty() {
-        return Err(AppError::InvalidInput(
-            "This DOCX document contains no extractable body text".into(),
-        ));
-    }
-    Ok(output.trim().to_string())
 }
 
 fn content_hash(content: &[u8]) -> String {

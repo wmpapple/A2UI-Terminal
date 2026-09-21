@@ -248,6 +248,10 @@ export const messages = {
     exportStage_cancelled: '导出已取消，成果未受影响',
     resultChangeSummary: '已保存版本 {before} 行，当前编辑内容 {after} 行。',
     noResultHistory: '暂无历史版本',
+    resultSavedChanges: '对比最近一个内容不同的历史版本与当前已保存版本（打开时的快照）。',
+    resultDraftChanges: '对比已保存版本与本次编辑（打开时的快照，自动保存不会改变此对比）。',
+    resultNoPreviousChanges: '当前没有未保存的修改，也没有内容不同的历史版本可供对比。',
+    resultChangesLoadFailed: '读取历史版本失败，请关闭后重试。',
     resultSaveStatus_saved: '已保存',
     resultSaveStatus_dirty: '有未保存修改',
     resultSaveStatus_draft: '草稿',
@@ -952,6 +956,12 @@ export const messages = {
     exportStage_cancelled: 'Export cancelled; the result was not changed',
     resultChangeSummary: 'Saved version: {before} lines. Current edit: {after} lines.',
     noResultHistory: 'No versions yet',
+    resultSavedChanges:
+      'Comparing the most recent different version with the saved version, captured when opened.',
+    resultDraftChanges:
+      'Comparing the saved version with this edit. Autosave will not change this captured comparison.',
+    resultNoPreviousChanges: 'No unsaved changes or different historical version to compare.',
+    resultChangesLoadFailed: 'Could not load version history. Close this dialog and try again.',
     resultSaveStatus_saved: 'Saved',
     resultSaveStatus_dirty: 'Unsaved changes',
     resultSaveStatus_draft: 'Draft',

@@ -38,6 +38,31 @@ const V1_COMMANDS: [&str; 36] = [
 ];
 
 #[test]
+fn shared_parser_has_no_storage_workspace_or_provider_dependency() {
+    let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/parser");
+    for entry in std::fs::read_dir(directory).unwrap() {
+        let path = entry.unwrap().path();
+        if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+            continue;
+        }
+        let source = std::fs::read_to_string(path).unwrap();
+        for forbidden in [
+            "crate::workspace",
+            "crate::storage",
+            "crate::document_source",
+            "tauri::",
+            "reqwest",
+            "SecretStore",
+        ] {
+            assert!(
+                !source.contains(forbidden),
+                "Shared parser depends on {forbidden}"
+            );
+        }
+    }
+}
+
+#[test]
 fn all_36_v1_commands_remain_registered() {
     let runtime = include_str!("../src/lib.rs");
     let commands = include_str!("../src/commands.rs");
@@ -70,6 +95,8 @@ fn tauri_commands_delegate_domain_work_to_application_services() {
         ".update_assistant_message(",
         ".workspace_file_by_source(",
         ".remove_workspace(",
+        ".with_read(",
+        ".with_transaction(",
     ] {
         assert!(
             !commands.contains(forbidden),

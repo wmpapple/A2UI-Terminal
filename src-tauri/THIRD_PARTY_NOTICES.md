@@ -140,6 +140,16 @@ conservatively.
 
 ## Rendering and security review
 
+PDF fallback also embeds the original unmodified Noto Emoji variable TrueType
+font (monochrome), under SIL Open Font License 1.1.
+
+- Source: https://github.com/google/fonts/blob/main/ofl/notoemoji/NotoEmoji%5Bwght%5D.ttf
+- Local asset: assets/fonts/NotoEmoji-VF.ttf
+- SHA-256: DE6C18832938AFC99CAF132B39D6A30A19BAC7F2E812E28DB2535B4608D27551
+- License and copyright: assets/fonts/NotoEmoji-OFL.txt (included in bundles).
+- Embedded at compile time; no system fonts or runtime downloads are required.
+- Unicode maps are rebuilt separately for each embedded font.
+
 Default optional image generation features of docx-rs/printpdf are disabled.
 PDF uses local glyph subsetting; its Unicode mapping is rebuilt from actual
 source lines after subsetting. Missing glyphs or ambiguous mappings fail

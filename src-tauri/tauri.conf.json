@@ -62,7 +62,12 @@
         "installerHooks": "windows/nsis-hooks.nsh"
       }
     },
-    "resources": ["assets/fonts/OFL.txt", "assets/licenses/*", "THIRD_PARTY_NOTICES.md"]
+    "resources": [
+      "assets/fonts/OFL.txt",
+      "assets/fonts/NotoEmoji-OFL.txt",
+      "assets/licenses/*",
+      "THIRD_PARTY_NOTICES.md"
+    ]
   },
   "plugins": {
     "updater": {

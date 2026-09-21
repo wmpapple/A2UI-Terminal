@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../app/i18n/I18nProvider';
 import type { ResultDocument } from '../../../shared/types/domain';
 import { resultInitialState, useResultStore } from '../resultStore';
 import { ResultAssistantPanel } from './ResultAssistantPanel';
 import { ResultWorkbench } from './ResultWorkbench';
+import { resultController } from '../resultController';
 
 const document: ResultDocument = {
   result: {
@@ -34,6 +35,7 @@ const document: ResultDocument = {
 
 describe('ResultWorkbench', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     useResultStore.setState({
       ...resultInitialState,
       activeDocument: document,
@@ -49,6 +51,71 @@ describe('ResultWorkbench', () => {
       clearPreview: vi.fn(),
       clearError: vi.fn(),
     });
+  });
+
+  it('keeps the before/after comparison when autosave finishes while the dialog is open', async () => {
+    useResultStore.setState({ draftContent: '修改后的正文', saveStatus: 'dirty' });
+    render(
+      <I18nProvider>
+        <ResultWorkbench resultId="result-1" onDuplicated={vi.fn()} onOpenResults={vi.fn()} />
+      </I18nProvider>
+    );
+    fireEvent.click(screen.getByRole('button', { name: /查看修改/ }));
+    const dialog = within(screen.getByRole('dialog', { name: '查看修改' }));
+    await waitFor(() => expect(dialog.getByText(document.content.trim())).toBeVisible());
+    expect(dialog.getByText('修改后的正文')).toBeVisible();
+    act(() =>
+      useResultStore.setState({
+        activeDocument: { ...document, content: '修改后的正文' },
+        draftContent: '修改后的正文',
+        saveStatus: 'saved',
+      })
+    );
+    expect(dialog.getByText(document.content.trim())).toBeVisible();
+    expect(dialog.getByText('修改后的正文')).toBeVisible();
+  });
+
+  it('compares a saved document with a different historical version', async () => {
+    const old = {
+      id: 'old',
+      contentHash: 'b'.repeat(64),
+      source: 'autosave' as const,
+      summary: '保存成果',
+      createdAt: document.result.createdAt,
+      isCurrent: false,
+    };
+    vi.spyOn(resultController, 'listRevisions').mockResolvedValue([old]);
+    vi.spyOn(resultController, 'readRevision').mockResolvedValue({
+      ...old,
+      content: '修改前的正文',
+    });
+    render(
+      <I18nProvider>
+        <ResultWorkbench resultId="result-1" onDuplicated={vi.fn()} onOpenResults={vi.fn()} />
+      </I18nProvider>
+    );
+    fireEvent.click(screen.getByRole('button', { name: /查看修改/ }));
+    const dialog = within(screen.getByRole('dialog', { name: '查看修改' }));
+    await waitFor(() => expect(dialog.getByText('修改前的正文')).toBeVisible());
+    expect(dialog.getByText(document.content.trim())).toBeVisible();
+    expect(resultController.readRevision).toHaveBeenCalledWith('result-1', 'old');
+  });
+
+  it('explains when no different version exists instead of showing identical columns', async () => {
+    vi.spyOn(resultController, 'listRevisions').mockResolvedValue([]);
+    render(
+      <I18nProvider>
+        <ResultWorkbench resultId="result-1" onDuplicated={vi.fn()} onOpenResults={vi.fn()} />
+      </I18nProvider>
+    );
+    fireEvent.click(screen.getByRole('button', { name: /查看修改/ }));
+    const dialog = within(screen.getByRole('dialog', { name: '查看修改' }));
+    await waitFor(() =>
+      expect(
+        dialog.getByText('当前没有未保存的修改，也没有内容不同的历史版本可供对比。')
+      ).toBeVisible()
+    );
+    expect(dialog.queryByText('修改前')).not.toBeInTheDocument();
   });
 
   it('shows the result-first actions and edits through the Result store', () => {

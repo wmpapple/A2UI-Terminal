@@ -11,7 +11,8 @@ import {
   UndoOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Drawer, Empty, Modal, Segmented, Skeleton, Tag } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { resultController } from '../resultController';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
 import type { FileSaveStatus, ResultAppliedReview } from '../../../shared/types/domain';
@@ -81,6 +82,21 @@ export function ResultWorkbench({
   const clearError = useResultStore((state) => state.clearError);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
+  const diffRequest = useRef(0);
+  const [comparison, setComparison] = useState<{
+    resultId: string;
+    before: string | null;
+    after: string;
+    saved: boolean;
+    loading: boolean;
+    error: boolean;
+  } | null>(null);
+  useEffect(
+    () => () => {
+      diffRequest.current++;
+    },
+    [resultId]
+  );
   const [viewMode, setViewMode] = useState<'preview' | 'edit'>('preview');
   const [exportOpen, setExportOpen] = useState(false);
 
@@ -108,13 +124,32 @@ export function ResultWorkbench({
   }, [draftContent, save, saveStatus]);
 
   const changed = activeDocument ? draftContent !== activeDocument.content : false;
-  const changeStats = useMemo(() => {
-    if (!activeDocument) return { before: 0, after: 0 };
-    return {
-      before: activeDocument.content.split('\n').length,
-      after: draftContent.split('\n').length,
+  const showChanges = async () => {
+    if (!activeDocument) return;
+    const request = ++diffRequest.current;
+    const snapshot = {
+      resultId: activeDocument.result.id,
+      before: changed ? activeDocument.content : null,
+      after: draftContent,
+      saved: !changed,
+      loading: !changed,
+      error: false,
     };
-  }, [activeDocument, draftContent]);
+    setComparison(snapshot);
+    setDiffOpen(true);
+    if (changed) return;
+    try {
+      const history = await resultController.listRevisions(snapshot.resultId);
+      const previous = history.find((item) => item.contentHash !== activeDocument.contentHash);
+      const before = previous
+        ? (await resultController.readRevision(snapshot.resultId, previous.id)).content
+        : null;
+      if (request === diffRequest.current) setComparison({ ...snapshot, before, loading: false });
+    } catch {
+      if (request === diffRequest.current)
+        setComparison({ ...snapshot, loading: false, error: true });
+    }
+  };
 
   const showHistory = () => {
     setHistoryOpen(true);
@@ -186,7 +221,7 @@ export function ResultWorkbench({
           >
             {t('saveResult')}
           </Button>
-          <Button icon={<DiffOutlined />} onClick={() => setDiffOpen(true)}>
+          <Button icon={<DiffOutlined />} onClick={() => void showChanges()}>
             {t('viewChanges')}
           </Button>
           {appliedReview && onUndoReview ? (
@@ -270,27 +305,36 @@ export function ResultWorkbench({
       ) : null}
 
       <Modal
-        open={diffOpen}
+        open={diffOpen && comparison?.resultId === activeDocument.result.id}
         title={t('viewChanges')}
         footer={null}
         width={900}
-        onCancel={() => setDiffOpen(false)}
+        onCancel={() => {
+          diffRequest.current++;
+          setDiffOpen(false);
+        }}
       >
-        <p>
-          {t('resultChangeSummary')
-            .replace('{before}', String(changeStats.before))
-            .replace('{after}', String(changeStats.after))}
-        </p>
-        <div className={styles.diffGrid}>
-          <div>
-            <strong>{t('before')}</strong>
-            <pre>{activeDocument.content}</pre>
-          </div>
-          <div>
-            <strong>{t('after')}</strong>
-            <pre>{draftContent}</pre>
-          </div>
-        </div>
+        {comparison?.loading ? (
+          <Skeleton active />
+        ) : comparison?.error ? (
+          <Alert type="error" showIcon title={t('resultChangesLoadFailed')} />
+        ) : comparison?.before === null ? (
+          <Empty description={t('resultNoPreviousChanges')} />
+        ) : comparison ? (
+          <>
+            <p>{t(comparison.saved ? 'resultSavedChanges' : 'resultDraftChanges')}</p>
+            <div className={styles.diffGrid}>
+              <div>
+                <strong>{t('before')}</strong>
+                <pre>{comparison.before}</pre>
+              </div>
+              <div>
+                <strong>{t('after')}</strong>
+                <pre>{comparison.after}</pre>
+              </div>
+            </div>
+          </>
+        ) : null}
       </Modal>
 
       <Drawer

@@ -57,8 +57,16 @@ impl SecretStore {
     }
 
     fn entry(provider_id: &str) -> Result<Entry, AppError> {
+        ensure_credentials_enabled(crate::smoke::root().is_some())?;
         Entry::new(SERVICE_NAME, provider_id).map_err(map_store_error)
     }
+}
+
+fn ensure_credentials_enabled(smoke_mode: bool) -> Result<(), AppError> {
+    if smoke_mode {
+        return Err(AppError::CredentialUnavailable);
+    }
+    Ok(())
 }
 
 fn map_store_error(error: keyring::v1::Error) -> AppError {
@@ -89,6 +97,15 @@ pub fn validate_provider_id(provider_id: &str) -> Result<String, AppError> {
 #[cfg(test)]
 mod tests {
     use super::validate_provider_id;
+
+    #[test]
+    fn smoke_mode_blocks_system_credential_access() {
+        assert!(matches!(
+            super::ensure_credentials_enabled(true),
+            Err(crate::error::AppError::CredentialUnavailable)
+        ));
+        assert!(super::ensure_credentials_enabled(false).is_ok());
+    }
 
     #[test]
     fn normalizes_provider_ids() {

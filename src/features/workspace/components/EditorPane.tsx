@@ -23,6 +23,7 @@ import { WorkbenchAppearanceControl } from '../../../app/WorkbenchAppearanceCont
 import { useSystemTheme } from '../../../app/useSystemTheme';
 import styles from './EditorPane.module.css';
 import { CodeEditor } from './CodeEditor';
+import { codeMirrorSelection, type SourceEditorPort } from '../../selection/editorAdapter';
 
 const MarkdownEditor = lazy(() =>
   import('md-editor-rt').then((module) => ({ default: module.MdEditor }))
@@ -38,12 +39,14 @@ interface EditorPaneProps {
   showInspector?: boolean;
   showSimpleFileActions?: boolean;
   onOpenResult?: (resultId: string) => void;
+  onEditorPort?: (port: SourceEditorPort | null) => void;
 }
 
 export function EditorPane({
   showInspector = true,
   showSimpleFileActions = false,
   onOpenResult,
+  onEditorPort,
 }: EditorPaneProps) {
   const dark = useSystemTheme();
   const { locale, t } = useI18n();
@@ -117,6 +120,21 @@ export function EditorPane({
     const editor = instance as ExposeParam | null;
     markdownEditorRef.current = editor;
   }, []);
+
+  useEffect(() => {
+    if (!isMarkdown) {
+      if (!activeFile || isExtractedDocument) onEditorPort?.(null);
+      return;
+    }
+    onEditorPort?.({
+      read: () => {
+        // Do not map selections in the rendered preview back to Markdown source.
+        if (previewEnabled || workspaceLoading || activeFile?.editable === false) return null;
+        return codeMirrorSelection(markdownEditorRef.current?.getEditorView());
+      },
+    });
+    return () => onEditorPort?.(null);
+  }, [activeFile, isMarkdown, isExtractedDocument, previewEnabled, workspaceLoading, onEditorPort]);
 
   useEffect(() => {
     const timers = autosaveTimersRef.current;
@@ -412,6 +430,7 @@ export function EditorPane({
             value={activeFile.content}
             disabled={workspaceLoading || activeFile.editable === false}
             onSelection={setSelectedText}
+            onEditorPort={onEditorPort}
             onChange={(value) => updateFile(activeFile.path, value, workspace?.id)}
           />
         ) : (

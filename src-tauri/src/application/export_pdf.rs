@@ -5,6 +5,8 @@ use printpdf::{Color, Mm, PdfDocument, Rgb, TextRenderingMode};
 use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use std::io::Cursor;
 
+const PDF_EMOJI_FONT: &[u8] = include_bytes!("../../assets/fonts/NotoEmoji-VF.ttf");
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 enum Kind {
     #[default]
@@ -17,6 +19,7 @@ enum Kind {
 struct Style {
     bold: bool,
     code: bool,
+    font: usize,
 }
 #[derive(Clone, Debug)]
 struct Span {
@@ -124,6 +127,7 @@ fn markdown_blocks(content: &str) -> Vec<Block> {
                     Style {
                         bold: strong > 0,
                         code,
+                        ..Style::default()
                     },
                 );
             }
@@ -132,6 +136,7 @@ fn markdown_blocks(content: &str) -> Vec<Block> {
                 Style {
                     bold: strong > 0,
                     code: true,
+                    ..Style::default()
                 },
             ),
             Event::SoftBreak => current.push(" ", Style::default()),
@@ -192,7 +197,11 @@ fn width(face: &ttf_parser::Face<'_>, ch: char, size: f32) -> Result<f32, AppErr
             / 72.0,
     )
 }
-fn wrap(block: &Block, face: &ttf_parser::Face<'_>, max_width: f32) -> Result<Vec<Row>, AppError> {
+fn wrap(
+    block: &Block,
+    faces: &[ttf_parser::Face<'_>],
+    max_width: f32,
+) -> Result<Vec<Row>, AppError> {
     let mut paragraphs = vec![Vec::new()];
     for span in &block.spans {
         for ch in span
@@ -205,10 +214,19 @@ fn wrap(block: &Block, face: &ttf_parser::Face<'_>, max_width: f32) -> Result<Ve
                 paragraphs.push(Vec::new());
                 continue;
             }
+            let font = faces
+                .iter()
+                .position(|face| face.glyph_index(ch).is_some_and(|glyph| glyph.0 != 0))
+                .ok_or_else(|| {
+                    AppError::InvalidInput(format!(
+                        "PDF 字体暂不支持字符 U+{:04X}，请选择 DOCX、RTF 或原始格式导出",
+                        ch as u32
+                    ))
+                })?;
             paragraphs.last_mut().unwrap().push(Glyph {
                 ch,
-                style: span.style,
-                width: width(face, ch, block.size())?,
+                style: Style { font, ..span.style },
+                width: width(&faces[font], ch, block.size())?,
             });
         }
     }
@@ -284,9 +302,31 @@ pub fn generate(title: &str, content: &str, markdown: bool) -> Result<Vec<u8>, A
         .map_err(|_| AppError::InvalidInput("PDF 字体无法加载".into()))?;
     let (document, mut page, mut layer_id) =
         PdfDocument::new(title, Mm(210.0), Mm(297.0), "Content");
-    let font = document
-        .add_external_font_with_subsetting(Cursor::new(PDF_FONT), true)
-        .map_err(|_| AppError::InvalidInput("PDF 字体无法加载".into()))?;
+    let needs_fallback = blocks
+        .iter()
+        .flat_map(|block| &block.spans)
+        .flat_map(|span| span.text.chars())
+        .filter(|ch| !matches!(ch, '\n' | '\r' | '\t'))
+        .any(|ch| face.glyph_index(ch).is_none_or(|glyph| glyph.0 == 0));
+    let mut font_data = vec![PDF_FONT];
+    if needs_fallback {
+        font_data.push(PDF_EMOJI_FONT);
+    }
+    let faces = font_data
+        .iter()
+        .map(|data| {
+            ttf_parser::Face::parse(data, 0)
+                .map_err(|_| AppError::InvalidInput("PDF 字体无法加载".into()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let fonts = font_data
+        .iter()
+        .map(|data| {
+            document
+                .add_external_font_with_subsetting(Cursor::new(*data), true)
+                .map_err(|_| AppError::InvalidInput("PDF 字体无法加载".into()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     let mut y = 277.0_f32;
     let mut actual_text = Vec::new();
     for block in blocks {
@@ -300,7 +340,7 @@ pub fn generate(title: &str, content: &str, markdown: bool) -> Result<Vec<u8>, A
             };
         let rows = wrap(
             &block,
-            &face,
+            &faces,
             174.0 - inset - if block.list { 4.0 } else { 0.0 },
         )?;
         if matches!(block.kind, Kind::Heading(_)) {
@@ -362,7 +402,7 @@ pub fn generate(title: &str, content: &str, markdown: bool) -> Result<Vec<u8>, A
                 let span_width: f32 = span
                     .text
                     .chars()
-                    .map(|ch| width(&face, ch, size))
+                    .map(|ch| width(&faces[span.style.font], ch, size))
                     .collect::<Result<Vec<_>, _>>()?
                     .iter()
                     .sum();
@@ -388,7 +428,7 @@ pub fn generate(title: &str, content: &str, markdown: bool) -> Result<Vec<u8>, A
                         0.12
                     },
                 );
-                layer.use_text(&span.text, size, Mm(x), Mm(y), &font);
+                layer.use_text(&span.text, size, Mm(x), Mm(y), &fonts[span.style.font]);
                 actual_text.push(span.text.clone());
                 x += span_width;
             }
@@ -405,6 +445,34 @@ pub fn generate(title: &str, content: &str, markdown: bool) -> Result<Vec<u8>, A
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn acceptance_sample_preserves_emoji_combining_marks_and_chinese() {
+        let content = include_str!("../../../docs/V2.X/M0_ACCEPTANCE_SAMPLES.md");
+        let bytes = generate("M0 验收样本", content, true).unwrap();
+        let text = pdf_extract::extract_text_from_mem(&bytes).unwrap();
+        for expected in ["🙂", "e\u{301}", "8 万元", "中文"] {
+            assert!(text.contains(expected), "missing {expected:?}: {text:?}");
+        }
+        let pdf = printpdf::lopdf::Document::load_mem(&bytes).unwrap();
+        assert!(
+            pdf.objects
+                .values()
+                .filter_map(|object| object.as_dict().ok())
+                .filter(|dict| dict.has(b"FontFile2"))
+                .count()
+                >= 2
+        );
+    }
+
+    #[test]
+    fn fallback_fonts_roundtrip_across_pages() {
+        let content = "中文 🙂 hello 😀 e\u{301}\n".repeat(120);
+        let bytes = generate("Mixed fonts", &content, false).unwrap();
+        let text = pdf_extract::extract_text_from_mem(&bytes).unwrap();
+        for expected in ["中文", "🙂", "😀", "e\u{301}"] {
+            assert_eq!(text.matches(expected).count(), 120, "{expected}");
+        }
+    }
     #[test]
     #[ignore = "writes a synthetic preview PDF under ignored target for visual acceptance"]
     fn write_manual_layout_preview() {
@@ -458,7 +526,7 @@ mod tests {
             }],
             ..Block::default()
         };
-        assert!(wrap(&block, &face, 174.0)
+        assert!(wrap(&block, &[face], 174.0)
             .unwrap()
             .iter()
             .all(|row| row.width <= 174.0));

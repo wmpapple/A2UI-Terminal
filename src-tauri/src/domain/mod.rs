@@ -1,4 +1,5 @@
 pub mod context_pack;
+pub mod document;
 pub mod export;
 pub mod import;
 pub mod recovery;

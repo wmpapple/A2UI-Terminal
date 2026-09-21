@@ -2,6 +2,34 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../app/i18n/I18nProvider';
 import { ResultContentAdapter } from './ResultContentAdapter';
+import type { SourceEditorPort } from '../../selection/editorAdapter';
+
+it('exposes Result source selection only in editable document mode', () => {
+  const onEditorPort = vi.fn<(port: SourceEditorPort | null) => void>();
+  const props = {
+    type: 'document' as const,
+    format: 'markdown' as const,
+    content: '中文🙂',
+    editable: true,
+    onChange: vi.fn(),
+    onEditorPort,
+  };
+  const { rerender } = render(
+    <I18nProvider>
+      <ResultContentAdapter {...props} viewMode="edit" />
+    </I18nProvider>
+  );
+  const editor = screen.getByRole('textbox', { name: '成果编辑器' }) as HTMLTextAreaElement;
+  editor.setSelectionRange(2, 4);
+  expect(onEditorPort.mock.calls.at(-1)?.[0]?.read()).toEqual({ text: '中文🙂', start: 2, end: 4 });
+  rerender(
+    <I18nProvider>
+      <ResultContentAdapter {...props} viewMode="preview" />
+    </I18nProvider>
+  );
+  expect(onEditorPort).toHaveBeenLastCalledWith(null);
+  expect(props.onChange).not.toHaveBeenCalled();
+});
 
 const renderAdapter = (
   type: 'document' | 'spreadsheet' | 'checklist' | 'form' | 'tool',

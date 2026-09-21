@@ -1,6 +1,8 @@
 use crate::ai::{default_providers, ProviderConfig, ProviderKind, ProviderMessage};
 use crate::error::AppError;
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
+#[cfg(test)]
+mod repository_access_tests;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt::Write as _;
@@ -721,6 +723,34 @@ pub struct Storage {
 }
 
 impl Storage {
+    /// Repository callbacks must only perform bounded SQL. Never call another
+    /// Storage method, parse files or perform network I/O while holding this lock.
+    pub(crate) fn with_read<T>(
+        &self,
+        read: impl FnOnce(&Connection) -> Result<T, AppError>,
+    ) -> Result<T, AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        read(&connection)
+    }
+
+    /// Commit only on success; errors roll back when the transaction is dropped.
+    pub(crate) fn with_transaction<T>(
+        &self,
+        write: impl FnOnce(&rusqlite::Transaction<'_>) -> Result<T, AppError>,
+    ) -> Result<T, AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let result = write(&transaction)?;
+        transaction.commit()?;
+        Ok(result)
+    }
+
     pub fn open(database_path: &Path) -> Result<Self, AppError> {
         if let Some(parent) = database_path.parent() {
             fs::create_dir_all(parent)?;
@@ -1352,18 +1382,16 @@ impl Storage {
     }
 
     pub fn pin_result(&self, result_id: &str, pinned: bool) -> Result<(), AppError> {
-        let connection = self
-            .connection
-            .lock()
-            .map_err(|_| AppError::StateUnavailable)?;
-        if connection.execute(
-            "UPDATE results SET pinned = ?2 WHERE id = ?1",
-            params![result_id, pinned],
-        )? == 0
-        {
-            return Err(AppError::InvalidInput("成果不存在".into()));
-        }
-        Ok(())
+        self.with_transaction(|connection| {
+            if connection.execute(
+                "UPDATE results SET pinned = ?2 WHERE id = ?1",
+                params![result_id, pinned],
+            )? == 0
+            {
+                return Err(AppError::InvalidInput("成果不存在".into()));
+            }
+            Ok(())
+        })
     }
 
     pub fn pin_chat_session(

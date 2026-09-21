@@ -1,6 +1,9 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { Alert, Button, Checkbox, Input, Select, Space, Tag } from 'antd';
 import TextArea from 'antd/es/input/TextArea';
+import type { TextAreaRef } from 'antd/es/input/TextArea';
+import { useLayoutEffect, useRef } from 'react';
+import { textAreaSelection, type SourceEditorPort } from '../../selection/editorAdapter';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
 import { renderSafeMarkdown } from '../../../shared/markdown/renderSafeMarkdown';
@@ -26,6 +29,7 @@ interface Props {
   editable: boolean;
   viewMode: 'preview' | 'edit';
   onChange: (content: string) => void;
+  onEditorPort?: (port: SourceEditorPort | null) => void;
 }
 
 const newId = (prefix: string, size: number) => `${prefix}-${Date.now()}-${size + 1}`;
@@ -40,10 +44,17 @@ function RawEditor({
   content,
   editable,
   onChange,
-}: Pick<Props, 'content' | 'editable' | 'onChange'>) {
+  onEditorPort,
+}: Pick<Props, 'content' | 'editable' | 'onChange' | 'onEditorPort'>) {
   const { t } = useI18n();
+  const editor = useRef<TextAreaRef>(null);
+  useLayoutEffect(() => {
+    onEditorPort?.({ read: () => textAreaSelection(editor.current?.resizableTextArea?.textArea) });
+    return () => onEditorPort?.(null);
+  }, [onEditorPort]);
   return (
     <TextArea
+      ref={editor}
       className={styles.editor}
       aria-label={t('resultEditor')}
       value={content}
@@ -388,10 +399,19 @@ function ToolAdapter(props: Props) {
 
 export function ResultContentAdapter(props: Props) {
   const { t } = useI18n();
-  if (props.type === 'spreadsheet') return <SpreadsheetAdapter {...props} />;
-  if (props.type === 'checklist') return <ChecklistAdapter {...props} />;
-  if (props.type === 'form') return <FormAdapter {...props} />;
-  if (props.type === 'tool') return <ToolAdapter {...props} />;
+  const { onEditorPort, type, viewMode, format } = props;
+  const sourceMode =
+    type === 'document' &&
+    viewMode === 'edit' &&
+    (format === 'markdown' || format === 'plain_text');
+  useLayoutEffect(() => {
+    if (!sourceMode) onEditorPort?.(null);
+  }, [sourceMode, onEditorPort]);
+  if (props.type === 'spreadsheet')
+    return <SpreadsheetAdapter {...props} onEditorPort={undefined} />;
+  if (props.type === 'checklist') return <ChecklistAdapter {...props} onEditorPort={undefined} />;
+  if (props.type === 'form') return <FormAdapter {...props} onEditorPort={undefined} />;
+  if (props.type === 'tool') return <ToolAdapter {...props} onEditorPort={undefined} />;
   if (props.type === 'document' && props.viewMode === 'preview') {
     if (props.format !== 'markdown') {
       return (
@@ -408,5 +428,5 @@ export function ResultContentAdapter(props: Props) {
       />
     );
   }
-  return <RawEditor {...props} />;
+  return <RawEditor {...props} onEditorPort={sourceMode ? onEditorPort : undefined} />;
 }

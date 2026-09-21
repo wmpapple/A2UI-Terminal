@@ -1,0 +1,106 @@
+{
+  "snapshotVersion": 1,
+  "capturedAt": "2026-09-21T07:24:33.625Z",
+  "baselineGitHead": "35023d75a0d87e5e16f1d0de8a554e4eb6b49a69",
+  "deliveryIsUncommitted": true,
+  "stage": "M0 awaiting manual acceptance",
+  "schemaVersion": 18,
+  "commandCount": 94,
+  "sourceChanges": [
+    {
+      "path": "scripts/smoke-desktop.ps1",
+      "sha256": "a310e9f255f5a4c695988ddcc79c2b3e28bc3a1b9dad0684a09771520e2580f5"
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "sha256": "a2ab4993094da9c06ed52cab52dcab7e25868a03ffac1f0c2a1f04f5a6e88a87"
+    },
+    {
+      "path": "src-tauri/src/security/credentials.rs",
+      "sha256": "f1effaa2f6aeb2b9dad623b07447d74e26c59b8c0f1166ff61d453f335a516ce"
+    },
+    {
+      "path": "src-tauri/src/smoke.rs",
+      "sha256": "d0b71027947e6ad3eea13952a635ded169391ffa3c7446ac76f7aa492a0fff13"
+    }
+  ],
+  "baselineFileDeltas": [
+    {
+      "path": "src-tauri/src/lib.rs",
+      "baselineSha256": "3f5d79b4f15895eaee0f01f3a25df644527adae30a9915a7e7f81b1f96ffbfdd",
+      "deliverySha256": "a2ab4993094da9c06ed52cab52dcab7e25868a03ffac1f0c2a1f04f5a6e88a87"
+    }
+  ],
+  "artifact": {
+    "path": "src-tauri/target/debug/a2ui-terminal.exe",
+    "sha256": "9bb68f8a1428d16faf683a3a303d6c9b775095967be0553775fd412a4aaee9f0",
+    "bytes": 68929536,
+    "configuration": "debug/custom-protocol/no-bundle; not signed"
+  },
+  "validationLogs": [
+    {
+      "path": "logs/v2x-m0/beta-evidence.log",
+      "sha256": "dfc94435a933585ad9835fa3737d30e80272ab1fc8ad8bc6ef87ce3d941df616"
+    },
+    {
+      "path": "logs/v2x-m0/desktop-build.log",
+      "sha256": "e12039cd36ab8f698e10551bfab918cdba79f8d2340e27e9b6d0e177d9f9bd38"
+    },
+    {
+      "path": "logs/v2x-m0/desktop-smoke.log",
+      "sha256": "a02767f6feb8e8f538605cd9d78997ba7a6bedaeef72adff7597584c8565167a"
+    },
+    {
+      "path": "logs/v2x-m0/frontend-check.log",
+      "sha256": "9f4877d74652ac442d7f0a01ca7385f10206feb3be8fed345fa0801ac6649a94"
+    },
+    {
+      "path": "logs/v2x-m0/frontend-coverage.log",
+      "sha256": "b15cbc85bbcd22c1587ba4198c30e73b75f9375d7e842c247fa3d006c6afc309"
+    },
+    {
+      "path": "logs/v2x-m0/npm-audit.json",
+      "sha256": "bb8b5788e26ec4e9ec47425feca26d177c5ff299963f662768c7c7c00042052b"
+    },
+    {
+      "path": "logs/v2x-m0/release-audit.log",
+      "sha256": "5bffae523634ca981cb5438307a52e60fbcfec70b374fabeaeb655d34d05ef2e"
+    },
+    {
+      "path": "logs/v2x-m0/rust-clippy-after-isolation.log",
+      "sha256": "46d7d454d9157f25a78c3673a6b19e6c60ff730aae5f8b3335a9dbf696dd5b49"
+    },
+    {
+      "path": "logs/v2x-m0/rust-clippy.log",
+      "sha256": "4f843592d7ff94f11a641616ebeb4bdf0ce4266d092b5e42d6bae0bdee9d2d41"
+    },
+    {
+      "path": "logs/v2x-m0/rust-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "logs/v2x-m0/rust-test-after-isolation.log",
+      "sha256": "c96799151b39bc1f294309968685b50dd277d199b56a7146b2de045dfd6b0e88"
+    },
+    {
+      "path": "logs/v2x-m0/rust-test.log",
+      "sha256": "a250300b72b6198ed8b7ce58193ff510670d375c609abf1e75e80d755f57b85e"
+    },
+    {
+      "path": "logs/v2x-m0/third-party.log",
+      "sha256": "39e32fd72ffff936eec8ed2a727cbaf5178822487552d6a97fb1a3641d2c0009"
+    },
+    {
+      "path": "logs/v2x-m0/web-e2e-last-failed.log",
+      "sha256": "9e3a4cc5a6936138b503a2ca01d0635303ff6e9ebe5d18cd20883047f3858b8e"
+    },
+    {
+      "path": "logs/v2x-m0/web-e2e-rerun.log",
+      "sha256": "e6d8f11d8f03d6a5dc631fbabc09c467ba3eb0ded661a1bac6eaeff76498ed76"
+    },
+    {
+      "path": "logs/v2x-m0/web-e2e.log",
+      "sha256": "42545c0b56307a43b9684fc734a13a851eae1208235103d72891ad7a79b799f9"
+    }
+  ]
+}
