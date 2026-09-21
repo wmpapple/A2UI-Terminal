@@ -1,13 +1,13 @@
 .page {
   flex: 1;
   min-height: 0;
-  padding: 32px clamp(20px, 4vw, 56px);
+  padding: 40px clamp(20px, 4vw, 56px);
   overflow: auto;
   background: var(--canvas);
 }
 
 .content {
-  width: min(1060px, 100%);
+  width: min(1024px, 100%);
   margin: 0 auto;
 }
 
@@ -21,23 +21,27 @@
 .header {
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .header h1 {
   margin: 0;
   color: var(--text-strong);
+  font-size: 30px;
+  letter-spacing: -0.025em;
 }
 
 .header p {
   margin: 8px 0 0;
   color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .grid {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .resultCount {
@@ -49,10 +53,10 @@
 .card {
   justify-content: space-between;
   gap: 18px;
-  padding: 16px 18px;
+  padding: 18px 20px;
   border: 1px solid var(--border);
   background: var(--panel);
-  border-radius: 12px;
+  border-radius: 16px;
   content-visibility: auto;
   contain-intrinsic-size: auto 82px;
 }
@@ -71,8 +75,179 @@
 }
 
 .loadMore {
+  gap: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: 20px;
+}
+
+.card {
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+}
+.card:hover,
+.card:focus-within {
+  transform: translateY(-1px);
+  box-shadow: var(--card-shadow);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+.card > div {
+  min-width: 0;
+}
+.card strong {
+  overflow-wrap: anywhere;
+}
+.card > :global(.ant-btn) {
+  flex: none;
+}
+
+.createButton.createButton {
+  height: 44px;
+  padding-inline: 22px;
+  border-radius: 12px;
+  font-weight: 600;
+  flex: none;
+}
+.cardBody {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.cardText {
+  min-width: 0;
+}
+.fileIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: var(--text-muted);
+  background: var(--surface-subtle);
+  font-size: 21px;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease;
+}
+.status.status {
+  --status-dot-color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding: 1px 7px;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  background: var(--surface-subtle);
+  font-size: 11px;
+}
+.status::before {
+  content: '';
+  flex: 0 0 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-dot-color);
+}
+.status[data-status='generating'] {
+  --status-dot-color: var(--accent);
+}
+.status[data-status='ready'] {
+  --status-dot-color: var(--success, #22a06b);
+}
+.status[data-status='exporting'] {
+  --status-dot-color: #4b839f;
+}
+.status[data-status='archived'] {
+  --status-dot-color: #888174;
+}
+.status[data-status='failed'] {
+  --status-dot-color: var(--ant-color-error, #b42318);
+  color: var(--ant-color-error, #b42318);
+  background: var(--danger-soft);
+}
+.status[data-status='review_pending'] {
+  --status-dot-color: #ba8a31;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+@media (prefers-color-scheme: dark) {
+  .status[data-status='exporting'] {
+    --status-dot-color: #83b3ca;
+  }
+  .status[data-status='archived'] {
+    --status-dot-color: #b0a99c;
+  }
+  .status[data-status='review_pending'] {
+    --status-dot-color: #d8b064;
+  }
+}
+.continueButton.continueButton {
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  padding-inline: 14px;
+  height: 38px;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
+}
+.card:hover .continueButton,
+.card:focus-within .continueButton,
+.card:hover .fileIcon,
+.card:focus-within .fileIcon {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .fileIcon,
+  .continueButton {
+    transition: none;
+  }
+  .card:hover,
+  .card:focus-within {
+    transform: none;
+  }
+}
+@media (max-width: 600px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .card {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+  }
+  .continueButton {
+    margin-left: auto;
+  }
+}
+.cardActions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+  margin-left: auto;
+}
+.pinButton.pinButton {
+  color: var(--text-muted);
+  border-radius: 8px;
+}
+.pinButton.pinButton[aria-pressed='true'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.pinButton.pinButton:not(:disabled):hover {
+  color: var(--accent);
+  background: var(--accent-soft);
 }

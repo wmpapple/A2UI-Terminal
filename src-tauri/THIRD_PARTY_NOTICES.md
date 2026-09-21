@@ -18,6 +18,15 @@ version. The lock files are the authoritative transitive inventory.
 
 ## Direct frontend runtime dependencies
 
+Code editing reuses the following MIT-licensed packages already present through the Markdown editor:
+
+- @codemirror/state 6.6.0 — MIT
+- @codemirror/view 6.41.0 — MIT
+- @codemirror/commands 6.10.3 — MIT
+- @codemirror/language 6.12.3 — MIT
+- @codemirror/language-data 6.5.2 — MIT
+- @lezer/highlight 1.2.3 — MIT
+
 | Package and locked version        | License           |
 | --------------------------------- | ----------------- |
 | @ant-design/icons 6.1.1           | MIT               |

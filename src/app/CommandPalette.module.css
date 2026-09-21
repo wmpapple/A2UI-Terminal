@@ -1,0 +1,18 @@
+.commands {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+}
+.command {
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.command[aria-selected='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.search {
+  max-height: 42vh;
+  overflow: auto;
+}

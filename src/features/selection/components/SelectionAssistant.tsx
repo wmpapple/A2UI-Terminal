@@ -68,7 +68,7 @@ export function SelectionAssistant() {
   if (!available) return null;
 
   const prepare = async (action: SelectionAction) => {
-    if (planning || chatRequestId) return;
+    if (planning || sending || pending || chatRequestId) return;
     const instruction = action === 'custom' ? customInstruction.trim() : '';
     if (action === 'custom' && !instruction) {
       message.info(t('selectionCustomRequired'));
@@ -137,13 +137,15 @@ export function SelectionAssistant() {
 
   return (
     <section className={styles.assistant} aria-label={t('selectionAssistant')}>
-      <Space size={4} wrap>
-        <Tag color="blue">
+      <div className={styles.actions}>
+        <Tag className={styles.selectionBadge}>
           {t('selectionCount').replace('{count}', String(selectedText.length))}
         </Tag>
         {actions.map(([action, label]) => (
           <Button
             key={action}
+            type="text"
+            className={styles.chip}
             size="small"
             disabled={planning || Boolean(chatRequestId)}
             onClick={() => void prepare(action)}
@@ -151,20 +153,35 @@ export function SelectionAssistant() {
             {t(label)}
           </Button>
         ))}
-        <Input
-          size="small"
-          className={styles.customInput}
-          value={customInstruction}
-          maxLength={240}
-          aria-label={t('selectionCustom')}
-          placeholder={t('selectionCustomPlaceholder')}
-          onChange={(event) => setCustomInstruction(event.target.value)}
-          onPressEnter={() => void prepare('custom')}
-        />
-        <Button size="small" loading={planning} onClick={() => void prepare('custom')}>
-          {t('selectionCustom')}
-        </Button>
-      </Space>
+        <div className={styles.customControl}>
+          <Input
+            autoFocus
+            size="small"
+            variant="borderless"
+            className={styles.customInput}
+            value={customInstruction}
+            maxLength={240}
+            aria-label={t('selectionCustom')}
+            placeholder={t('selectionCustomPlaceholder')}
+            onChange={(event) => setCustomInstruction(event.target.value)}
+            disabled={planning || sending || Boolean(chatRequestId)}
+            onPressEnter={(event) => {
+              if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+              event.preventDefault();
+              void prepare('custom');
+            }}
+          />
+          <Button
+            type="text"
+            size="small"
+            disabled={!customInstruction.trim() || sending || Boolean(chatRequestId)}
+            loading={planning}
+            onClick={() => void prepare('custom')}
+          >
+            {t('selectionCustom')}
+          </Button>
+        </div>
+      </div>
       <Modal
         open={Boolean(pending)}
         title={t('selectionConfirmTitle')}

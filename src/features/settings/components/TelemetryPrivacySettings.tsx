@@ -1,5 +1,9 @@
-import { EyeOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
-import { Alert, Button, List, Modal, Spin, Switch, Tag, Typography, message } from 'antd';
+import {
+  ExclamationCircleOutlined,
+  EyeOutlined,
+  SafetyCertificateOutlined,
+} from '@ant-design/icons';
+import { Alert, Button, List, Modal, Spin, Switch, Tag, Tooltip, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { getRuntimeMode } from '../../../shared/platform/runtime';
@@ -138,20 +142,47 @@ export function TelemetryPrivacySettings() {
       </div>
 
       <div className={styles.kpiPanel}>
-        <strong>{t('telemetryCoreKpis')}</strong>
-        <Typography.Text type="secondary">{t('telemetryKpiPurpose')}</Typography.Text>
-        <Typography.Text type="secondary">{t('telemetryOperationRates')}</Typography.Text>
+        <div className={styles.kpiHeading}>
+          <strong>{t('telemetryCoreKpis')}</strong>
+          <Tooltip
+            trigger={['hover', 'focus']}
+            placement="top"
+            color="#1e293b"
+            styles={{
+              root: { maxWidth: 'min(420px, calc(100vw - 32px))' },
+              container: {
+                padding: 16,
+                border: '1px solid #334155',
+                borderRadius: 12,
+                boxShadow: '0 12px 32px #0f172a26',
+                color: '#f1f5f9',
+              },
+            }}
+            title={
+              <ul className={styles.kpiExplanation}>
+                <li>{t('telemetryKpiPurpose')}</li>
+                <li>{t('telemetryRateRule')}</li>
+                <li>{t('telemetrySaveRule')}</li>
+                <li>{t('telemetryReviewRule')}</li>
+              </ul>
+            }
+          >
+            <button type="button" className={styles.kpiHelp} aria-label={t('telemetryKpiHelp')}>
+              <ExclamationCircleOutlined aria-hidden="true" />
+            </button>
+          </Tooltip>
+        </div>
         <div className={styles.kpiGrid}>
           {settings.kpis.map((kpi) => (
             <div key={kpi.key}>
-              <span>{t(KPI_LABELS[kpi.key])}</span>
-              <strong>
+              <span className={styles.kpiLabel}>{t(KPI_LABELS[kpi.key])}</span>
+              <span className={kpi.rateBasisPoints === null ? styles.kpiEmpty : styles.kpiValue}>
                 {kpi.rateBasisPoints === null
                   ? kpi.numerator > 0
                     ? `${t('telemetryRecordedCount')}: ${kpi.numerator} · ${t('telemetryMissingBaseline')}`
                     : t('telemetryNoKpiData')
                   : `${(kpi.rateBasisPoints / 100).toFixed(1)}% (${kpi.numerator}/${kpi.denominator})`}
-              </strong>
+              </span>
             </div>
           ))}
         </div>
@@ -181,9 +212,7 @@ export function TelemetryPrivacySettings() {
               <strong>{t('telemetryNeverCollected')}</strong>
               <div className={styles.fieldList}>
                 {dictionary.neverCollected.map((field) => (
-                  <Tag color="green" key={field}>
-                    {field}
-                  </Tag>
+                  <Tag key={field}>{field}</Tag>
                 ))}
               </div>
             </div>

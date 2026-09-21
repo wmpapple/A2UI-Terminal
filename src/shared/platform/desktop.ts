@@ -1,5 +1,6 @@
 import { Channel, invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getRuntimeMode } from './runtime';
 import type {
   A2uiActionResult,
@@ -373,6 +374,20 @@ export const desktopApi = {
     return listen<ImportDropOutcome>('import-drop-outcome', (event) => handler(event.payload));
   },
 
+  async listenImportDragPosition(
+    handler: (position: { x: number; y: number } | null) => void
+  ): Promise<() => void> {
+    requireDesktop();
+    return getCurrentWebview().onDragDropEvent(({ payload }) => {
+      // Visual feedback only. File paths never leave this adapter; importing
+      // continues through the existing Rust validation and confirmation flow.
+      if (payload.type === 'enter' || payload.type === 'over') {
+        const scale = window.devicePixelRatio || 1;
+        handler({ x: payload.position.x / scale, y: payload.position.y / scale });
+      } else handler(null);
+    });
+  },
+
   async confirmImport(
     batchId: string,
     acceptedItemIds: string[],
@@ -515,6 +530,19 @@ export const desktopApi = {
     return invoke<LocalProviderProbe[]>('probe_local_providers');
   },
 
+  async deleteResult(resultId: string): Promise<void> {
+    await invoke('delete_result', { resultId });
+  },
+  async pinResult(resultId: string, pinned: boolean): Promise<void> {
+    requireDesktop();
+    await invoke('pin_result', { resultId, pinned });
+  },
+  async deleteChatSession(workspaceId: string, sessionId: string): Promise<void> {
+    await invoke('delete_chat_session', { workspaceId, sessionId });
+  },
+  async pinChatSession(workspaceId: string, sessionId: string, pinned: boolean): Promise<void> {
+    await invoke('pin_chat_session', { workspaceId, sessionId, pinned });
+  },
   async listChatSessions(workspaceId: string): Promise<ChatSession[]> {
     requireDesktop();
     return invoke<ChatSession[]>('list_chat_sessions', { workspaceId });

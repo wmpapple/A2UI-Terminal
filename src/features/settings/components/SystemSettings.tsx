@@ -3,6 +3,7 @@ import {
   DeleteOutlined,
   FileProtectOutlined,
   ReloadOutlined,
+  ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Divider, Input, Modal, Progress, Tag, message } from 'antd';
 import { useState, useSyncExternalStore } from 'react';
@@ -44,7 +45,7 @@ export function SystemSettings() {
   };
 
   const clearAll = async () => {
-    if (confirmation !== CLEAR_CONFIRMATION) return;
+    if (confirmation !== CLEAR_CONFIRMATION || clearing) return;
     setClearing(true);
     try {
       await systemController.clearAllLocalData(confirmation);
@@ -70,7 +71,9 @@ export function SystemSettings() {
     <section className={styles.section} aria-label={t('systemSettings')}>
       <div className={styles.heading}>
         <h3>{t('updatesAndPrivacy')}</h3>
-        <Tag color={updateColor}>{t(`update_${update.phase}`)}</Tag>
+        <Tag className={styles.updateStatus} data-tone={updateColor}>
+          {t(`update_${update.phase}`)}
+        </Tag>
       </div>
       {!isDesktop ? (
         <Alert type="info" showIcon title={t('desktopManagementOnly')} />
@@ -113,11 +116,16 @@ export function SystemSettings() {
             </Button>
           </div>
           <Alert type="info" showIcon title={t('diagnosticsPrivacy')} />
-          <div className={styles.dangerZone}>
+          <section className={styles.dangerZone} aria-labelledby="clear-data-zone-title">
+            <div className={styles.dangerHeading}>
+              <ExclamationCircleOutlined aria-hidden="true" />
+              <h4 id="clear-data-zone-title">{t('clearDataDangerTitle')}</h4>
+            </div>
+            <p>{t('clearDataDangerDescription')}</p>
             <Button danger icon={<DeleteOutlined />} onClick={() => setClearOpen(true)}>
               {t('clearAllLocalData')}
             </Button>
-          </div>
+          </section>
         </>
       )}
       <Divider />
@@ -128,28 +136,41 @@ export function SystemSettings() {
         open={clearOpen}
         title={t('clearAllLocalData')}
         okText={t('clearDataConfirmButton')}
+        cancelText={t('cancel')}
+        mask={{ closable: false }}
+        closable={!clearing}
+        keyboard={!clearing}
+        cancelButtonProps={{ disabled: clearing }}
         okButtonProps={{
+          className: styles.dangerButton,
           danger: true,
-          disabled: confirmation !== CLEAR_CONFIRMATION,
+          disabled: confirmation !== CLEAR_CONFIRMATION || clearing,
           loading: clearing,
         }}
         onOk={() => void clearAll()}
         onCancel={() => {
+          if (clearing) return;
           setClearOpen(false);
           setConfirmation('');
         }}
       >
         <Alert
-          type="warning"
+          className={styles.dangerNotice}
+          type="error"
           showIcon
           title={t('clearDataWarning')}
           description={t('projectFilesPreserved')}
         />
-        <p>
+        <p id="clear-data-confirm-instruction">
           {t('typeToConfirm')} <strong className={styles.confirmToken}>{CLEAR_CONFIRMATION}</strong>
         </p>
         <Input
           autoFocus
+          aria-label={t('typeToConfirm')}
+          aria-describedby="clear-data-confirm-instruction"
+          autoComplete="off"
+          spellCheck={false}
+          disabled={clearing}
           value={confirmation}
           onChange={(event) => setConfirmation(event.target.value)}
         />

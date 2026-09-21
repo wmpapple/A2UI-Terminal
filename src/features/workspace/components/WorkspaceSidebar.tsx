@@ -5,6 +5,7 @@ import {
   FolderOpenOutlined,
   PaperClipOutlined,
   SearchOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Dropdown, Input, Popconfirm, Select, Spin, Tag, Tooltip } from 'antd';
 import { useMemo, useState } from 'react';
@@ -22,14 +23,12 @@ interface Props {
 
 export function WorkspaceSidebar({ onActivateWorkspace }: Props) {
   const { t } = useI18n();
-  const {
-    runtimeMode,
-    workspace,
-    recentWorkspaces,
-    workspaceEntries,
-    workspaceLoading,
-    workspaceError,
-  } = useAppStore();
+  const runtimeMode = useAppStore((state) => state.runtimeMode);
+  const workspace = useAppStore((state) => state.workspace);
+  const recentWorkspaces = useAppStore((state) => state.recentWorkspaces);
+  const workspaceEntries = useAppStore((state) => state.workspaceEntries);
+  const workspaceLoading = useAppStore((state) => state.workspaceLoading);
+  const workspaceError = useAppStore((state) => state.workspaceError);
   const activePath = useAppStore((state) => state.activePath);
   const recoveryDraftSummaries = useAppStore((state) => state.recoveryDraftSummaries);
   const openFile = useAppStore((state) => state.openFile);
@@ -56,12 +55,13 @@ export function WorkspaceSidebar({ onActivateWorkspace }: Props) {
           <span className={styles.eyebrow}>{t('recent')}</span>
           <strong> {workspace?.name ?? (isDesktop ? t('noWorkspace') : 'A2UI-Terminal')}</strong>
         </div>
-        <Tag color={isDesktop ? 'green' : 'blue'}>{isDesktop ? t('realWorkspace') : 'Mock'}</Tag>
+        <Tag className={styles.workspaceBadge}>{isDesktop ? t('realWorkspace') : 'Mock'}</Tag>
       </div>
       <div className={styles.workspaceActions}>
         <div className={styles.primaryActions}>
           <Button
             block
+            type="text"
             icon={<FolderOpenOutlined />}
             loading={workspaceLoading}
             onClick={() => void selectWorkspace()}
@@ -70,6 +70,7 @@ export function WorkspaceSidebar({ onActivateWorkspace }: Props) {
           </Button>
           <Button
             block
+            type="text"
             icon={<PaperClipOutlined />}
             loading={workspaceLoading || importLoading}
             onClick={() => void selectImportSources(workspace?.id)}
@@ -101,7 +102,12 @@ export function WorkspaceSidebar({ onActivateWorkspace }: Props) {
               onConfirm={() => void removeCurrentWorkspace()}
             >
               <Tooltip title={t('removeWorkspace')}>
-                <Button danger aria-label={t('removeWorkspace')} icon={<DeleteOutlined />} />
+                <Button
+                  type="text"
+                  className={styles.removeButton}
+                  aria-label={t('removeWorkspace')}
+                  icon={<DeleteOutlined />}
+                />
               </Tooltip>
             </Popconfirm>
           ) : null}
@@ -206,7 +212,10 @@ export function WorkspaceSidebar({ onActivateWorkspace }: Props) {
           ))}
         </div>
       </Spin>
-      <div className={styles.footer}>{isDesktop ? t('controlledAccess') : t('webOnly')}</div>
+      <div className={styles.footer}>
+        <InfoCircleOutlined aria-hidden="true" />
+        <span>{isDesktop ? t('controlledAccess') : t('webOnly')}</span>
+      </div>
     </aside>
   );
 }

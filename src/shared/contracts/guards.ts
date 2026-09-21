@@ -506,6 +506,7 @@ export const isImportDropOutcome = (value: unknown): value is ImportDropOutcome 
 export const isResultSummary = (value: unknown): value is ResultSummary =>
   isObject(value) &&
   isString(value.id) &&
+  (value.pinned === undefined || typeof value.pinned === 'boolean') &&
   isString(value.workspaceId) &&
   isString(value.type) &&
   resultTypes.has(value.type) &&

@@ -77,7 +77,7 @@ describe('HomePage', () => {
     ).toBeInTheDocument();
   });
 
-  it('opens the completed table and structured-result capabilities from Home', () => {
+  it('opens the completed table and structured-result capabilities from Home', async () => {
     render(
       <I18nProvider>
         <HomePage onOpenWorkbench={vi.fn()} onOpenGuide={vi.fn()} />
@@ -85,12 +85,12 @@ describe('HomePage', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /分析表格或数据/ }));
-    let dialog = screen.getByRole('dialog', { name: '新建成果' });
+    let dialog = await screen.findByRole('dialog', { name: '新建成果' });
     expect(within(dialog).getByText('表格（CSV）', { exact: true })).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
 
     fireEvent.click(screen.getByRole('button', { name: /制作表单 \/ 清单 \/ 小工具/ }));
-    dialog = screen.getByRole('dialog', { name: '新建成果' });
+    dialog = await screen.findByRole('dialog', { name: '新建成果' });
     expect(within(dialog).getByText('清单', { exact: true })).toBeInTheDocument();
   });
 

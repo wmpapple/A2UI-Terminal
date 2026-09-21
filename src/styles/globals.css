@@ -1,19 +1,24 @@
 :root {
-  --accent: #635bff;
-  --accent-soft: #eeedff;
-  --border: #e7e8ec;
-  --canvas: #ffffff;
+  color-scheme: light;
+  --accent: #b94b19;
+  --accent-soft: #fff3e9;
+  --cta-background: linear-gradient(135deg, #bf4b16, #a93f13);
+  --cta-text: #fff;
+  --cta-shadow: 0 3px 10px #b94b191a;
+  --border: #e2e8f0;
+  --canvas: #f8fafc;
   --danger-soft: #fff2f0;
   --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-  --panel: #fbfbfc;
+  --panel: #ffffff;
   --success: #22a06b;
   --success-soft: #f0fff7;
-  --surface-hover: #f0f1f4;
-  --surface-subtle: #f6f7f9;
-  --text: #464b55;
-  --text-muted: #5f6672;
-  --text-strong: #17191d;
-  --focus-ring: #4338ca;
+  --surface-hover: #fff6ee;
+  --surface-subtle: #f1f5f9;
+  --text: #475569;
+  --text-muted: #64748b;
+  --text-strong: #0f172a;
+  --card-shadow: 0 10px 25px -5px rgb(15 23 42 / 8%);
+  --focus-ring: #b94b19;
   color: var(--text);
   background: var(--canvas);
   font-family: Inter, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -48,14 +53,48 @@ a:focus-visible,
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --accent: #dba47e;
+    --accent-soft: #362a24;
+    --cta-background: linear-gradient(135deg, #984422, #873d24);
+    --border: #334155;
+    --canvas: #0b0f19;
+    --panel: #1e293b;
+    --surface-hover: #29364c;
+    --surface-subtle: #151e2d;
+    --text: #cbd5e1;
+    --text-muted: #a8b6cb;
+    --text-strong: #f1f5f9;
+    --success: #6ee7b7;
+    --success-soft: #11352d;
+    --danger-soft: #3a202b;
+    --focus-ring: #dba47e;
+    --card-shadow: 0 10px 25px -5px rgb(0 0 0 / 24%);
+  }
+}
+.ant-btn-primary:not(:disabled):active {
+  transform: scale(0.98);
+}
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous) {
+  background: var(--cta-background, linear-gradient(135deg, #bf4b16, #a93f13));
+  color: var(--cta-text, #fff);
+  box-shadow: var(--cta-shadow, 0 3px 10px #b94b191a);
+}
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous):hover {
+  filter: brightness(1.08);
+}
+.ant-tag {
+  border-radius: 999px;
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation: none !important;
+    transition: none !important;
   }
 }
 @media (forced-colors: active) {

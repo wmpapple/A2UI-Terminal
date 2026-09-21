@@ -10,6 +10,10 @@ export const importController = {
   select: (workspaceId?: string) => gateway().selectImportSources(workspaceId),
   inspect: (batchId: string) => gateway().inspectImportBatch(batchId),
   setDropTarget: (input: SetImportDropTargetInput) => gateway().setImportDropTarget(input),
+  listenForDragPosition: (handler: (position: { x: number; y: number } | null) => void) =>
+    isWebMock()
+      ? Promise.resolve(() => undefined)
+      : desktopGateway.listenImportDragPosition(handler),
   listenForDrops: (handler: (outcome: ImportDropOutcome) => void) =>
     gateway().listenImportDropOutcomes((outcome) => {
       if (isImportDropOutcome(outcome)) handler(outcome);

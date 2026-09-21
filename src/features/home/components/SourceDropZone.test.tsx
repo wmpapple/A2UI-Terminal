@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../app/i18n/I18nProvider';
@@ -6,21 +6,24 @@ import { useImportStore } from '../../imports/importStore';
 import { useAppStore } from '../../../stores/useAppStore';
 import { SourceDropZone } from './SourceDropZone';
 
-const { listenForDropsMock, setDropTargetMock } = vi.hoisted(() => ({
+const { listenForDropsMock, setDropTargetMock, listenForDragPositionMock } = vi.hoisted(() => ({
   listenForDropsMock: vi.fn(),
   setDropTargetMock: vi.fn(),
+  listenForDragPositionMock: vi.fn(),
 }));
 
 vi.mock('../../imports/importController', () => ({
   importController: {
     listenForDrops: listenForDropsMock,
     setDropTarget: setDropTargetMock,
+    listenForDragPosition: listenForDragPositionMock,
   },
 }));
 
 describe('SourceDropZone', () => {
   beforeEach(() => {
     listenForDropsMock.mockReset().mockResolvedValue(() => undefined);
+    listenForDragPositionMock.mockReset().mockResolvedValue(() => undefined);
     setDropTargetMock.mockReset().mockResolvedValue(undefined);
     useAppStore.setState({
       workspace: null,
@@ -30,6 +33,39 @@ describe('SourceDropZone', () => {
       workspaceError: null,
     });
     useImportStore.setState({ batch: null, acceptedItemIds: [], loading: false, error: null });
+  });
+
+  it('highlights for native drag positions inside the target and clears on leaving or dropping', async () => {
+    const stop = vi.fn();
+    listenForDragPositionMock.mockResolvedValue(stop);
+    const { unmount } = render(
+      <I18nProvider>
+        <SourceDropZone />
+      </I18nProvider>
+    );
+    const zone = screen.getByTestId('home-source-drop-zone');
+    vi.spyOn(zone, 'getBoundingClientRect').mockReturnValue({
+      left: 10,
+      top: 20,
+      right: 410,
+      bottom: 220,
+      width: 400,
+      height: 200,
+      x: 10,
+      y: 20,
+      toJSON: () => ({}),
+    });
+    await waitFor(() => expect(listenForDragPositionMock).toHaveBeenCalled());
+    const notify = listenForDragPositionMock.mock.calls[0][0];
+    act(() => notify({ x: 100, y: 100 }));
+    expect(zone.className).toContain('dragging');
+    act(() => notify({ x: 500, y: 100 }));
+    expect(zone.className).not.toContain('dragging');
+    act(() => notify({ x: 100, y: 100 }));
+    act(() => notify(null));
+    expect(zone.className).not.toContain('dragging');
+    unmount();
+    expect(stop).toHaveBeenCalledOnce();
   });
 
   it('uses a fresh native target id when StrictMode remounts the effect', async () => {

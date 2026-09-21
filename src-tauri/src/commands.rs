@@ -840,6 +840,43 @@ pub fn list_chat_sessions(
 }
 
 #[tauri::command]
+pub fn delete_chat_session(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    session_id: String,
+) -> Result<(), AppError> {
+    state
+        .storage
+        .delete_chat_session(&workspace_id, &session_id)
+}
+
+#[tauri::command]
+pub fn pin_chat_session(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    session_id: String,
+    pinned: bool,
+) -> Result<(), AppError> {
+    state
+        .storage
+        .pin_chat_session(&workspace_id, &session_id, pinned)
+}
+
+#[tauri::command]
+pub fn delete_result(state: State<'_, AppState>, result_id: String) -> Result<(), AppError> {
+    state.storage.delete_result_entry(&result_id)
+}
+
+#[tauri::command]
+pub fn pin_result(
+    state: State<'_, AppState>,
+    result_id: String,
+    pinned: bool,
+) -> Result<(), AppError> {
+    state.storage.pin_result(&result_id, pinned)
+}
+
+#[tauri::command]
 pub fn create_chat_session(
     state: State<'_, AppState>,
     workspace_id: String,

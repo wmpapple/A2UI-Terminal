@@ -75,6 +75,7 @@ export interface TaskRunResult {
 
 export interface ResultSummary {
   id: string;
+  pinned?: boolean;
   workspaceId: string;
   type: ResultType;
   title: string;
@@ -474,6 +475,7 @@ export interface ChatMessage {
 }
 
 export interface ChatSession {
+  pinned?: boolean;
   id: string;
   title: string;
   messages: ChatMessage[];

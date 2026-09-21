@@ -51,7 +51,11 @@ export function useChatContextFlow() {
   const loadDocumentSources = useImportStore((state) => state.loadSources);
   const contextPacks = useContextPackStore((state) => state.packs);
   const loadContextPacks = useContextPackStore((state) => state.load);
-  const [prompt, setPrompt] = useState('');
+  const draftWorkspaceId = workspace?.id ?? runtimeMode;
+  const draftKey = JSON.stringify([draftWorkspaceId, activeSessionId]);
+  const prompt = useAppStore((state) => state.chatDrafts[draftKey] ?? '');
+  const setChatDraft = useAppStore((state) => state.setChatDraft);
+  const setPrompt = (text: string) => setChatDraft(draftWorkspaceId, activeSessionId, text);
   const [contextOpen, setContextOpen] = useState(false);
   const [contextIntent, setContextIntent] = useState<ContextIntent>('send');
   const [plannedManifest, setPlannedManifest] = useState<ContextManifest | null>(null);
@@ -82,6 +86,8 @@ export function useChatContextFlow() {
     contextReviewFingerprint({ selection, files, activePath, selectedText });
   const manifestKey = (request: string, selection: ContextSelection) =>
     JSON.stringify([
+      draftWorkspaceId,
+      activeSessionId,
       providerKey,
       contextFingerprint(selection),
       contentFingerprint(request.trim()),
@@ -123,6 +129,12 @@ export function useChatContextFlow() {
   };
 
   const sendNow = (request: string, selection: ContextSelection, manifestId: string) => {
+    const current = useAppStore.getState();
+    if (
+      (current.workspace?.id ?? current.runtimeMode) !== draftWorkspaceId ||
+      current.activeSessionId !== activeSessionId
+    )
+      return;
     const rememberedSelection = { ...selection, documentSourceIds: [] };
     setSessionContext(activeSessionId, rememberedSelection);
     setSessionContextReviewKey(

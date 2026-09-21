@@ -1,16 +1,38 @@
-import { FileAddOutlined, RightOutlined } from '@ant-design/icons';
-import { Alert, Button, Empty, Skeleton, Tag } from 'antd';
-import { useEffect, useState } from 'react';
+import {
+  PlusOutlined,
+  PushpinFilled,
+  PushpinOutlined,
+  DeleteOutlined,
+  RightOutlined,
+  FileTextOutlined,
+  TableOutlined,
+  CheckSquareOutlined,
+  FormOutlined,
+  ToolOutlined,
+} from '@ant-design/icons';
+import { Alert, Button, Empty, Skeleton, Tag, Modal } from 'antd';
+import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
-import type { ResultStatus } from '../../../shared/types/domain';
+import type { ResultStatus, ResultType } from '../../../shared/types/domain';
 import { resultAdapterDefinitions } from '../resultAdapters';
 import { useResultStore } from '../resultStore';
-import { CreateTextResultModal } from './CreateTextResultModal';
+import { lazyFeature } from '../../../app/lazyFeature';
 import styles from './ResultsPage.module.css';
 
-const INITIAL_RESULT_COUNT = 40;
-const RESULT_COUNT_STEP = 40;
+const CreateTextResultModal = lazyFeature(async () => {
+  const module = await import('./CreateTextResultModal');
+  return { default: module.CreateTextResultModal };
+});
+
+const PAGE_SIZE = 40;
+const resultIcons = {
+  document: FileTextOutlined,
+  spreadsheet: TableOutlined,
+  checklist: CheckSquareOutlined,
+  form: FormOutlined,
+  tool: ToolOutlined,
+} satisfies Record<ResultType, typeof FileTextOutlined>;
 
 interface Props {
   onOpenResult: (resultId: string) => void;
@@ -33,8 +55,24 @@ export function ResultsPage({ onOpenResult }: Props) {
   const error = useResultStore((state) => state.error);
   const loadResults = useResultStore((state) => state.loadResults);
   const clearError = useResultStore((state) => state.clearError);
+  const deleteResult = useResultStore((state) => state.deleteResult);
+  const pinResult = useResultStore((state) => state.pinResult);
+  const pinningResultIds = useResultStore((state) => state.pinningResultIds);
+  const saving = useResultStore((state) => state.saving);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(INITIAL_RESULT_COUNT);
+  const [page, setPage] = useState(0);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(results.length / PAGE_SIZE) - 1));
+  const start = currentPage * PAGE_SIZE;
+  const end = Math.min(start + PAGE_SIZE, results.length);
+  const dateFormat = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' });
+  const changePage = (next: number) => {
+    setPage(next);
+    heading.current?.scrollIntoView({ block: 'start' });
+    heading.current?.focus({ preventScroll: true });
+  };
 
   useEffect(() => {
     void loadResults();
@@ -50,10 +88,17 @@ export function ResultsPage({ onOpenResult }: Props) {
       <div className={styles.content}>
         <header className={styles.header}>
           <div>
-            <h1 id="results-page-title">{t('resultsPageTitle')}</h1>
+            <h1 ref={heading} tabIndex={-1} id="results-page-title">
+              {t('resultsPageTitle')}
+            </h1>
             <p>{t('resultsWorkbenchDescription')}</p>
           </div>
-          <Button type="primary" icon={<FileAddOutlined />} onClick={() => setCreateOpen(true)}>
+          <Button
+            className={styles.createButton}
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setCreateOpen(true)}
+          >
             {t('createResult')}
           </Button>
         </header>
@@ -68,52 +113,113 @@ export function ResultsPage({ onOpenResult }: Props) {
         ) : null}
         {!error && (!loading || results.length > 0) ? (
           <div className={styles.resultCount} role="status" aria-live="polite">
-            {t('resultsShowingCount')
-              .replace('{visible}', String(Math.min(visibleCount, results.length)))
+            {t('resultRange')
+              .replace('{start}', String(results.length ? start + 1 : 0))
+              .replace('{end}', String(end))
               .replace('{total}', String(results.length))}
           </div>
         ) : null}
         <div className={styles.grid}>
-          {results.slice(0, visibleCount).map((result) => (
-            <article key={result.id} className={styles.card}>
-              <div>
-                <strong>{result.title}</strong>
-                <div className={styles.meta}>
-                  <Tag>{t(resultAdapterDefinitions[result.type].labelKey as MessageKey)}</Tag>
-                  <Tag color={result.status === 'failed' ? 'red' : 'blue'}>
-                    {t(statusLabels[result.status])}
-                  </Tag>
-                  <span>
-                    {new Intl.DateTimeFormat(locale, {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    }).format(new Date(result.updatedAt.replace(' ', 'T') + 'Z'))}
+          {results.slice(start, end).map((result) => {
+            const ResultIcon = resultIcons[result.type];
+            return (
+              <article key={result.id} className={styles.card}>
+                <div className={styles.cardBody}>
+                  <span className={styles.fileIcon} aria-hidden="true">
+                    <ResultIcon />
                   </span>
+                  <div className={styles.cardText}>
+                    <strong>{result.title}</strong>
+                    <div className={styles.meta}>
+                      <span>{t(resultAdapterDefinitions[result.type].labelKey as MessageKey)}</span>
+                      <Tag className={styles.status} data-status={result.status}>
+                        {t(statusLabels[result.status])}
+                      </Tag>
+                      <span>
+                        {dateFormat.format(new Date(result.updatedAt.replace(' ', 'T') + 'Z'))}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <Button icon={<RightOutlined />} onClick={() => onOpenResult(result.id)}>
-                {t('continueResult')}
-              </Button>
-            </article>
-          ))}
+                <div className={styles.cardActions}>
+                  <Button
+                    className={styles.continueButton}
+                    type="text"
+                    icon={<RightOutlined />}
+                    iconPlacement="end"
+                    onClick={() => onOpenResult(result.id)}
+                  >
+                    {t('continueResult')}
+                  </Button>
+                  <Button
+                    className={styles.pinButton}
+                    type="text"
+                    icon={result.pinned ? <PushpinFilled /> : <PushpinOutlined />}
+                    title={t(result.pinned ? 'unpinResult' : 'pinResult')}
+                    aria-label={`${t(result.pinned ? 'unpinResult' : 'pinResult')}: ${result.title}`}
+                    aria-pressed={Boolean(result.pinned)}
+                    loading={pinningResultIds.includes(result.id)}
+                    disabled={loading || saving || deleting || pinningResultIds.includes(result.id)}
+                    onClick={async () => {
+                      if ((await pinResult(result.id, !result.pinned)) && !result.pinned) {
+                        changePage(0);
+                      }
+                    }}
+                  />
+                  <Button
+                    type="text"
+                    icon={<DeleteOutlined />}
+                    title={t('deleteResult')}
+                    aria-label={`${t('deleteResult')}: ${result.title}`}
+                    disabled={saving || deleting || pinningResultIds.includes(result.id)}
+                    onClick={() => setDeleteTarget(result)}
+                  />
+                </div>
+              </article>
+            );
+          })}
         </div>
-        {visibleCount < results.length ? (
+        {results.length > PAGE_SIZE && (
           <div className={styles.loadMore}>
-            <Button
-              onClick={() =>
-                setVisibleCount((current) => Math.min(current + RESULT_COUNT_STEP, results.length))
-              }
-            >
-              {t('showMoreResults')}
+            <Button disabled={currentPage === 0} onClick={() => changePage(currentPage - 1)}>
+              {t('previousResults')}
+            </Button>
+            <Button disabled={end >= results.length} onClick={() => changePage(currentPage + 1)}>
+              {t('nextResults')}
             </Button>
           </div>
-        ) : null}
+        )}
       </div>
-      <CreateTextResultModal
-        open={createOpen}
-        onCancel={() => setCreateOpen(false)}
-        onCreated={created}
-      />
+      <Modal
+        open={Boolean(deleteTarget)}
+        title={t('deleteResult')}
+        okText={t('confirmDelete')}
+        cancelText={t('cancel')}
+        okButtonProps={{ danger: true }}
+        confirmLoading={deleting}
+        closable={!deleting}
+        mask={{ closable: !deleting }}
+        cancelButtonProps={{ disabled: deleting }}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+        onOk={async () => {
+          if (!deleteTarget || deleting) return;
+          setDeleting(true);
+          if (await deleteResult(deleteTarget.id)) setDeleteTarget(null);
+          setDeleting(false);
+        }}
+      >
+        <p>{deleteTarget?.title}</p>
+        <p>{t('deleteResultHint')}</p>
+      </Modal>
+      {createOpen && (
+        <CreateTextResultModal
+          open={createOpen}
+          onCancel={() => setCreateOpen(false)}
+          onCreated={created}
+        />
+      )}
     </main>
   );
 }

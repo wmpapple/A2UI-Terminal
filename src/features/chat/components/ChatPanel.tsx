@@ -1,9 +1,11 @@
-import { PlusOutlined } from '@ant-design/icons';
-import { Alert, Button, message, Select, Tooltip } from 'antd';
+import { Alert, message } from 'antd';
+import { useRef, useState, type RefObject } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { useAppStore } from '../../../stores/useAppStore';
 import { ContextSelector } from '../../context/components/ContextSelector';
 import { useChatContextFlow } from '../useChatContextFlow';
+import { ChatHeader } from './ChatHeader';
+import { ChatHistoryDrawer } from './ChatHistoryDrawer';
 import { ChatComposer } from './ChatComposer';
 import { ChatMessageList } from './ChatMessageList';
 import styles from './ChatPanel.module.css';
@@ -12,8 +14,25 @@ interface ChatPanelProps {
   professionalTools?: boolean;
 }
 
-export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
+export function ChatPanel(props: ChatPanelProps) {
+  const historyButtonRef = useRef<HTMLButtonElement>(null);
+  const workspaceId = useAppStore((state) => state.workspace?.id ?? state.runtimeMode);
+  const sessionId = useAppStore((state) => state.activeSessionId);
+  return (
+    <ChatSessionPanel
+      key={JSON.stringify([workspaceId, sessionId])}
+      historyButtonRef={historyButtonRef}
+      {...props}
+    />
+  );
+}
+
+function ChatSessionPanel({
+  professionalTools = true,
+  historyButtonRef,
+}: ChatPanelProps & { historyButtonRef: RefObject<HTMLButtonElement | null> }) {
   const { t } = useI18n();
+  const [historyOpen, setHistoryOpen] = useState(false);
   const chatError = useAppStore((state) => state.chatError);
   const chatRequestId = useAppStore((state) => state.chatRequestId);
   const pendingDiff = useAppStore((state) => state.pendingDiff);
@@ -24,6 +43,8 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
   const setActiveInspection = useAppStore((state) => state.setActiveInspection);
   const createSession = useAppStore((state) => state.createSession);
   const selectSession = useAppStore((state) => state.selectSession);
+  const deleteSession = useAppStore((state) => state.deleteSession);
+  const pinSession = useAppStore((state) => state.pinSession);
   const stopChat = useAppStore((state) => state.stopChat);
   const addFileToContext = useAppStore((state) => state.addFileToContext);
   const addFile = useAppStore((state) => state.addFile);
@@ -49,47 +70,35 @@ export function ChatPanel({ professionalTools = true }: ChatPanelProps) {
 
   return (
     <aside className={styles.panel} aria-label={t('assistant')}>
-      <header className={styles.header}>
-        <div>
-          <strong>{t('assistant')}</strong>
-          <span>
-            <i className={context.activeProvider?.configured ? styles.online : styles.offline} />
-            {professionalTools
-              ? context.activeProvider
-                ? `${context.activeProvider.id} · ${context.activeProvider.model}`
-                : t('providerNotConfigured')
-              : t(context.activeProvider?.configured ? 'assistantReady' : 'assistantSetupNeeded')}
-          </span>
-        </div>
-        {professionalTools ? (
-          <Tooltip title={t('newSession')}>
-            <Button
-              type="text"
-              aria-label={t('newSession')}
-              icon={<PlusOutlined />}
-              onClick={() => void createSession()}
-            />
-          </Tooltip>
-        ) : (
-          <Button
-            size="small"
-            aria-label={t('newConversation')}
-            icon={<PlusOutlined />}
-            onClick={() => void createSession()}
-          >
-            {t('newConversation')}
-          </Button>
-        )}
-      </header>
-      {professionalTools ? (
-        <Select
-          value={context.activeSessionId || undefined}
-          onChange={selectSession}
-          options={context.sessions.map((session) => ({ value: session.id, label: session.title }))}
-          className={styles.sessionSelect}
-          placeholder={t('newSession')}
-        />
-      ) : null}
+      <ChatHeader
+        historyButtonRef={historyButtonRef}
+        historyOpen={historyOpen}
+        onOpenHistory={() => setHistoryOpen((open) => !open)}
+        configured={Boolean(context.activeProvider?.configured)}
+        busy={Boolean(chatRequestId)}
+        professionalTools={professionalTools}
+        modelLabel={
+          professionalTools && context.activeProvider
+            ? `${context.activeProvider.id} · ${context.activeProvider.model}`
+            : undefined
+        }
+        onNewSession={() => void createSession()}
+      />
+      <ChatHistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        sessions={context.sessions}
+        activeSessionId={context.activeSessionId}
+        onDelete={deleteSession}
+        error={chatError}
+        onPin={pinSession}
+        busy={Boolean(chatRequestId)}
+        onSelect={(id) => {
+          setHistoryOpen(false);
+          selectSession(id);
+          requestAnimationFrame(() => historyButtonRef.current?.focus());
+        }}
+      />
       {chatError && <Alert className={styles.chatError} type="error" showIcon title={chatError} />}
       <ChatMessageList
         messages={context.activeSession?.messages ?? []}

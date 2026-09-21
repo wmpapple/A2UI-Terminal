@@ -102,7 +102,7 @@ test('measures budgets and completes the core result path with keyboard', async 
   await resultsNavigation.focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: '我的成果' })).toBeVisible();
-  await expect(page.getByText('已显示 1 / 共 1 项')).toBeVisible();
+  await expect(page.getByText('第 1–1 项 / 共 1 项')).toBeVisible();
   await expect(page.locator('#main-content')).toBeFocused();
 
   const continueButton = page

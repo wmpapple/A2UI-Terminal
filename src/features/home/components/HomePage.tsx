@@ -1,17 +1,13 @@
 import {
   AppstoreAddOutlined,
-  BarChartOutlined,
   CheckCircleFilled,
-  EditOutlined,
-  FileTextOutlined,
-  FolderOpenOutlined,
-  FormOutlined,
-  MessageOutlined,
   RightOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Card, Empty, Form, Input, Modal, Select, Skeleton, Tag } from 'antd';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Alert, Button, Card, Empty, Form, Input, Modal, Select, Skeleton } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
+import { HomeTaskIcon } from './HomeTaskIcon';
+import { RecentResultsList } from './RecentResultsList';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
 import type { ResultStatus, ResultType } from '../../../shared/types/domain';
@@ -22,9 +18,14 @@ import {
 import { useAppStore } from '../../../stores/useAppStore';
 import { useHomeStore } from '../homeStore';
 import { SourceDropZone } from './SourceDropZone';
-import { CreateTextResultModal } from '../../results/components/CreateTextResultModal';
+import { lazyFeature } from '../../../app/lazyFeature';
 import { AuthorizedSearch } from './AuthorizedSearch';
 import styles from './HomePage.module.css';
+
+const CreateTextResultModal = lazyFeature(async () => {
+  const module = await import('../../results/components/CreateTextResultModal');
+  return { default: module.CreateTextResultModal };
+});
 
 interface Props {
   onOpenWorkbench: (resultId?: string) => void;
@@ -44,49 +45,42 @@ const actions: Array<{
   id: HomeAction;
   title: MessageKey;
   description: MessageKey;
-  icon: ReactNode;
   templateIds: string[];
 }> = [
   {
     id: 'write',
     title: 'homeActionWriteTitle',
     description: 'homeActionWriteDescription',
-    icon: <FileTextOutlined />,
     templateIds: ['weekly_report'],
   },
   {
     id: 'modify',
     title: 'homeActionModifyTitle',
     description: 'homeActionModifyDescription',
-    icon: <EditOutlined />,
     templateIds: ['resume_optimization'],
   },
   {
     id: 'organize',
     title: 'homeActionOrganizeTitle',
     description: 'homeActionOrganizeDescription',
-    icon: <FolderOpenOutlined />,
     templateIds: ['meeting_minutes', 'document_summary'],
   },
   {
     id: 'analyze',
     title: 'homeActionAnalyzeTitle',
     description: 'homeActionAnalyzeDescription',
-    icon: <BarChartOutlined />,
     templateIds: [],
   },
   {
     id: 'build',
     title: 'homeActionBuildTitle',
     description: 'homeActionBuildDescription',
-    icon: <FormOutlined />,
     templateIds: [],
   },
   {
     id: 'free',
     title: 'homeActionFreeTitle',
     description: 'homeActionFreeDescription',
-    icon: <MessageOutlined />,
     templateIds: [],
   },
 ];
@@ -99,6 +93,14 @@ const statusKeys: Record<ResultStatus, MessageKey> = {
   exporting: 'resultStatusExporting',
   failed: 'resultStatusFailed',
   archived: 'resultStatusArchived',
+};
+
+const typeKeys: Record<ResultType, MessageKey> = {
+  document: 'resultTypeDocument',
+  spreadsheet: 'resultTypeSpreadsheet',
+  checklist: 'resultTypeChecklist',
+  form: 'resultTypeForm',
+  tool: 'resultTypeTool',
 };
 
 export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
@@ -191,14 +193,14 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
             <h1 id="home-page-title">{t('homeQuestion')}</h1>
             <p>{t('homeIntroduction')}</p>
           </div>
-          <div>
+          <div className={styles.heroActions}>
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => setCreatePreset({ initialType: 'document' })}
             >
               {t('createResult')}
-            </Button>{' '}
+            </Button>
             <Button onClick={onOpenGuide}>{t('replayOnboarding')}</Button>
           </div>
         </div>
@@ -264,7 +266,9 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
                   onClick={() => openAction(action)}
                 >
                   <span className={styles.actionBody} data-testid="home-action-content">
-                    <span className={styles.actionIcon}>{action.icon}</span>
+                    <span className={styles.actionIcon}>
+                      <HomeTaskIcon kind={action.id} />
+                    </span>
                     <span className={styles.actionText}>
                       <strong>{t(action.title)}</strong>
                       <span>{t(action.description)}</span>
@@ -282,7 +286,6 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
           <section className={styles.section} aria-labelledby="home-sources-title">
             <div className={styles.sectionHeader}>
               <h2 id="home-sources-title">{t('homeSourcesSectionTitle')}</h2>
-              <span>{t('homeSourcesSectionHint')}</span>
             </div>
             <SourceDropZone />
           </section>
@@ -296,29 +299,30 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
             {!loading && recentResults.length === 0 ? (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('noRecentResults')} />
             ) : null}
-            <div className={styles.results}>
+            <RecentResultsList label={t('recentResultsTitle')}>
               {recentResults.map((result) => (
                 <article key={result.id} className={styles.resultItem}>
                   <div className={styles.resultMain}>
                     <span className={styles.resultTitle}>{result.title}</span>
                     <div className={styles.resultMeta}>
-                      <Tag>{t('resultTypeDocument')}</Tag>
-                      <Tag color={result.status === 'failed' ? 'red' : 'blue'}>
+                      <span>{t(typeKeys[result.type])}</span>
+                      <span className={styles.resultStatus} data-status={result.status}>
                         {t(statusKeys[result.status])}
-                      </Tag>
+                      </span>
                       <span>{formatUpdatedAt(result.updatedAt)}</span>
                     </div>
                   </div>
                   <Button
+                    className={styles.resultContinue}
                     size="small"
-                    icon={<RightOutlined />}
+                    icon={<RightOutlined className={styles.continueArrow} />}
                     onClick={() => onOpenWorkbench(result.id)}
                   >
                     {t('continueResult')}
                   </Button>
                 </article>
               ))}
-            </div>
+            </RecentResultsList>
           </section>
         </div>
       </div>
@@ -416,16 +420,18 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
           </div>
         ) : null}
       </Modal>
-      <CreateTextResultModal
-        open={createPreset !== null}
-        initialType={createPreset?.initialType}
-        allowedTypes={createPreset?.allowedTypes}
-        onCancel={() => setCreatePreset(null)}
-        onCreated={(resultId) => {
-          setCreatePreset(null);
-          onOpenWorkbench(resultId);
-        }}
-      />
+      {createPreset !== null && (
+        <CreateTextResultModal
+          open={createPreset !== null}
+          initialType={createPreset?.initialType}
+          allowedTypes={createPreset?.allowedTypes}
+          onCancel={() => setCreatePreset(null)}
+          onCreated={(resultId) => {
+            setCreatePreset(null);
+            onOpenWorkbench(resultId);
+          }}
+        />
+      )}
     </main>
   );
 }

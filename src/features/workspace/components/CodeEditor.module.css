@@ -1,0 +1,45 @@
+.editor {
+  --code-string: #526b48;
+  --code-function: #76523b;
+  height: 100%;
+  min-height: 0;
+}
+.editor :global(.cm-editor) {
+  height: 100%;
+  color: var(--text-strong);
+  background: var(--panel);
+}
+.editor :global(.cm-editor.cm-focused) {
+  outline: none;
+}
+.editor :global(.cm-scroller) {
+  font-family: 'JetBrains Mono', 'Fira Code', Menlo, 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  overflow: auto;
+}
+.editor :global(.cm-content) {
+  padding: 16px 0;
+  caret-color: var(--text-strong);
+}
+.editor :global(.cm-line) {
+  padding: 0 20px 0 12px;
+}
+.editor :global(.cm-gutters) {
+  color: color-mix(in srgb, var(--text-muted) 65%, var(--panel));
+  background: color-mix(in srgb, var(--surface-subtle) 45%, var(--panel));
+  border: none;
+  min-width: 42px;
+}
+.editor :global(.cm-lineNumbers .cm-gutterElement) {
+  padding-inline: 10px;
+}
+.editor :global(.cm-cursor) {
+  border-left-color: var(--text-strong);
+}
+@media (prefers-color-scheme: dark) {
+  .editor {
+    --code-string: #a8bb91;
+    --code-function: #d2b59c;
+  }
+}

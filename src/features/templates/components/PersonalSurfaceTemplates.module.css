@@ -1,12 +1,27 @@
 .page {
-  display: grid;
-  align-content: start;
   flex: 1;
-  gap: 20px;
+  min-width: 0;
   min-height: 0;
-  padding: 36px clamp(24px, 5vw, 72px);
+  padding: 40px clamp(20px, 4vw, 56px);
   overflow: auto;
   background: var(--canvas);
+}
+.content {
+  display: grid;
+  align-content: start;
+  gap: 24px;
+  width: min(1024px, 100%);
+  margin: 0 auto;
+}
+.infoNotice.infoNotice {
+  background: var(--surface-subtle);
+  border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.infoNotice :global(.ant-alert-icon),
+.infoNotice :global(.ant-alert-title) {
+  color: var(--text-muted);
 }
 
 .heading {
@@ -27,6 +42,7 @@
 }
 
 .icon {
+  flex: none;
   display: grid;
   width: 48px;
   height: 48px;
@@ -62,4 +78,62 @@
   gap: 6px;
   color: var(--text-muted);
   font-size: 12px;
+}
+
+.empty {
+  margin: 8px 0 0;
+  padding: 64px 24px;
+  border: 1px dashed color-mix(in srgb, var(--border) 75%, var(--panel));
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface-subtle) 30%, var(--panel));
+}
+.empty :global(.ant-empty-description) {
+  max-width: 480px;
+  margin: 12px auto 24px;
+  line-height: 1.8;
+  color: var(--text-muted);
+}
+.heading h1 {
+  color: var(--text-strong);
+  font-size: 30px;
+  letter-spacing: -0.025em;
+}
+.heading p {
+  margin-top: 6px;
+  line-height: 1.7;
+  font-size: 13px;
+}
+.browseButton.browseButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 24px;
+  box-sizing: border-box;
+  vertical-align: middle;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+.browseButton > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 20px;
+}
+.browseButton.browseButton:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--cta-shadow);
+}
+@media (prefers-reduced-motion: reduce) {
+  .browseButton.browseButton {
+    transition: none;
+  }
+  .browseButton.browseButton:not(:disabled):hover {
+    transform: none;
+  }
 }

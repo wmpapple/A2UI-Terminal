@@ -9,7 +9,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 16;
+const SCHEMA_VERSION: i64 = 18;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -43,6 +43,11 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (14, MIGRATION_V14),
     (15, MIGRATION_V15),
     (16, MIGRATION_V16),
+    (
+        17,
+        include_str!("../../migrations/0017_history_management.sql"),
+    ),
+    (18, include_str!("../../migrations/0018_result_pinning.sql")),
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -230,6 +235,7 @@ pub struct ChatMessageRecord {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatSessionRecord {
+    pub pinned: bool,
     pub id: String,
     pub workspace_id: String,
     pub title: String,
@@ -427,6 +433,7 @@ pub struct ResultRow {
     pub result_type: String,
     pub title: String,
     pub status: String,
+    pub pinned: bool,
     pub storage_kind: String,
     pub storage_ref: String,
     pub current_revision_id: Option<String>,
@@ -635,14 +642,15 @@ fn result_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ResultRow> {
         updated_at: row.get(11)?,
         completed_at: row.get(12)?,
         managed_state_json: row.get(13)?,
+        pinned: row.get(14)?,
     })
 }
 
 fn result_source_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ResultSourceRow> {
     Ok(ResultSourceRow {
         result: result_from_row(row)?,
-        source_kind: row.get(14)?,
-        source_ref: row.get(15)?,
+        source_kind: row.get(15)?,
+        source_ref: row.get(16)?,
     })
 }
 
@@ -1262,8 +1270,8 @@ impl Storage {
             .lock()
             .map_err(|_| AppError::StateUnavailable)?;
         let mut statement = connection.prepare(
-            "SELECT id, workspace_id, title, created_at, updated_at FROM sessions
-             WHERE workspace_id = ?1 ORDER BY updated_at DESC, id",
+            "SELECT id, workspace_id, title, created_at, updated_at, pinned FROM sessions
+             WHERE workspace_id = ?1 ORDER BY pinned DESC, updated_at DESC, id",
         )?;
         let rows = statement.query_map([workspace_id], |row| {
             Ok((
@@ -1272,6 +1280,7 @@ impl Storage {
                 row.get::<_, String>(2)?,
                 row.get::<_, String>(3)?,
                 row.get::<_, String>(4)?,
+                row.get::<_, bool>(5)?,
             ))
         })?;
         let sessions = rows.collect::<Result<Vec<_>, _>>()?;
@@ -1279,16 +1288,19 @@ impl Storage {
         drop(connection);
         sessions
             .into_iter()
-            .map(|(id, workspace_id, title, created_at, updated_at)| {
-                Ok(ChatSessionRecord {
-                    messages: self.messages(&id)?,
-                    id,
-                    workspace_id,
-                    title,
-                    created_at,
-                    updated_at,
-                })
-            })
+            .map(
+                |(id, workspace_id, title, created_at, updated_at, pinned)| {
+                    Ok(ChatSessionRecord {
+                        pinned,
+                        messages: self.messages(&id)?,
+                        id,
+                        workspace_id,
+                        title,
+                        created_at,
+                        updated_at,
+                    })
+                },
+            )
             .collect()
     }
 
@@ -1299,7 +1311,7 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         let row = connection
             .query_row(
-                "SELECT id, workspace_id, title, created_at, updated_at FROM sessions WHERE id = ?1",
+                "SELECT id, workspace_id, title, created_at, updated_at, pinned FROM sessions WHERE id = ?1",
                 [session_id],
                 |row| {
                     Ok((
@@ -1308,22 +1320,100 @@ impl Storage {
                         row.get::<_, String>(2)?,
                         row.get::<_, String>(3)?,
                         row.get::<_, String>(4)?,
+                        row.get::<_, bool>(5)?,
                     ))
                 },
             )
             .optional()?;
         drop(connection);
-        row.map(|(id, workspace_id, title, created_at, updated_at)| {
-            Ok(ChatSessionRecord {
-                messages: self.messages(&id)?,
-                id,
-                workspace_id,
-                title,
-                created_at,
-                updated_at,
-            })
-        })
+        row.map(
+            |(id, workspace_id, title, created_at, updated_at, pinned)| {
+                Ok(ChatSessionRecord {
+                    pinned,
+                    messages: self.messages(&id)?,
+                    id,
+                    workspace_id,
+                    title,
+                    created_at,
+                    updated_at,
+                })
+            },
+        )
         .transpose()
+    }
+
+    pub fn delete_result_entry(&self, result_id: &str) -> Result<(), AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        connection.execute("DELETE FROM results WHERE id = ?1", [result_id])?;
+        Ok(())
+    }
+
+    pub fn pin_result(&self, result_id: &str, pinned: bool) -> Result<(), AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        if connection.execute(
+            "UPDATE results SET pinned = ?2 WHERE id = ?1",
+            params![result_id, pinned],
+        )? == 0
+        {
+            return Err(AppError::InvalidInput("成果不存在".into()));
+        }
+        Ok(())
+    }
+
+    pub fn pin_chat_session(
+        &self,
+        workspace_id: &str,
+        session_id: &str,
+        pinned: bool,
+    ) -> Result<(), AppError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        if connection.execute(
+            "UPDATE sessions SET pinned = ?3 WHERE id = ?2 AND workspace_id = ?1",
+            params![workspace_id, session_id, pinned],
+        )? == 0
+        {
+            return Err(AppError::InvalidInput("对话不存在".into()));
+        }
+        Ok(())
+    }
+
+    pub fn delete_chat_session(
+        &self,
+        workspace_id: &str,
+        session_id: &str,
+    ) -> Result<(), AppError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let streaming: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM messages WHERE session_id = ?1 AND status = 'streaming')",
+            [session_id],
+            |row| row.get(0),
+        )?;
+        if streaming {
+            return Err(AppError::InvalidInput("请等待回复结束后再删除对话".into()));
+        }
+        if tx.execute(
+            "DELETE FROM sessions WHERE id = ?2 AND workspace_id = ?1",
+            params![workspace_id, session_id],
+        )? == 0
+        {
+            return Err(AppError::InvalidInput("对话不存在".into()));
+        }
+        // Cascades clear chat data; saved results retain their independent snapshots.
+        tx.commit()?;
+        Ok(())
     }
 
     pub fn recent_chat_messages(
@@ -2820,11 +2910,11 @@ impl Storage {
                     r.active_session_id,
                     CASE WHEN r.source_kind = 'a2ui_surface' THEN r.source_ref END,
                     r.created_at, r.updated_at,
-                    r.completed_at, r.managed_state_json
+                    r.completed_at, r.managed_state_json, r.pinned
              FROM results r
              WHERE (?1 IS NULL OR r.workspace_id = ?1)
                AND (?2 = 1 OR r.status <> 'archived')
-             ORDER BY r.updated_at DESC, r.id DESC
+             ORDER BY r.pinned DESC, r.updated_at DESC, r.id DESC
              LIMIT 200",
         )?;
         let rows = statement.query_map(params![workspace_id, include_archived], result_from_row)?;
@@ -2843,7 +2933,7 @@ impl Storage {
                         r.active_session_id,
                         CASE WHEN r.source_kind = 'a2ui_surface' THEN r.source_ref END,
                         r.created_at, r.updated_at,
-                        r.completed_at, r.managed_state_json
+                        r.completed_at, r.managed_state_json, r.pinned
                  FROM results r
                  WHERE r.id = ?1",
                 [result_id],
@@ -2863,7 +2953,7 @@ impl Storage {
                         r.storage_kind, r.storage_ref, r.current_revision_id,
                         r.active_session_id,
                         CASE WHEN r.source_kind = 'a2ui_surface' THEN r.source_ref END,
-                        r.created_at, r.updated_at, r.completed_at, r.managed_state_json,
+                        r.created_at, r.updated_at, r.completed_at, r.managed_state_json, r.pinned,
                         r.source_kind, r.source_ref
                  FROM results r WHERE r.id = ?1",
                 [result_id],
@@ -2975,7 +3065,7 @@ impl Storage {
             "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
                     r.storage_kind, r.storage_ref, r.current_revision_id,
                     r.active_session_id, NULL, r.created_at, r.updated_at,
-                    r.completed_at, r.managed_state_json
+                    r.completed_at, r.managed_state_json, r.pinned
              FROM results r WHERE r.id = ?1",
             [input.result_id],
             result_from_row,
@@ -3226,7 +3316,7 @@ impl Storage {
             "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
                     r.storage_kind, r.storage_ref, r.current_revision_id,
                     r.active_session_id, NULL, r.created_at, r.updated_at,
-                    r.completed_at, r.managed_state_json
+                    r.completed_at, r.managed_state_json, r.pinned
              FROM results r
              WHERE r.workspace_id = ?1 AND r.source_kind = 'workspace_file'
                AND r.source_ref = ?2",
@@ -3331,7 +3421,7 @@ impl Storage {
             "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
                     r.storage_kind, r.storage_ref, r.current_revision_id,
                     r.active_session_id, r.source_ref, r.created_at, r.updated_at,
-                    r.completed_at, r.managed_state_json
+                    r.completed_at, r.managed_state_json, r.pinned
              FROM results r
              WHERE r.workspace_id = ?1 AND r.source_kind = 'a2ui_surface'
                AND r.source_ref = ?2",
@@ -3753,7 +3843,7 @@ impl Storage {
                 "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
                         r.storage_kind, r.storage_ref, r.current_revision_id,
                         r.active_session_id, NULL, r.created_at, r.updated_at,
-                        r.completed_at, r.managed_state_json
+                        r.completed_at, r.managed_state_json, r.pinned
                  FROM results r WHERE r.id = ?1",
                 [input.result_id],
                 result_from_row,
@@ -3828,7 +3918,7 @@ impl Storage {
             "SELECT r.id, r.workspace_id, r.result_type, r.title, r.status,
                     r.storage_kind, r.storage_ref, r.current_revision_id,
                     r.active_session_id, NULL, r.created_at, r.updated_at,
-                    r.completed_at, r.managed_state_json
+                    r.completed_at, r.managed_state_json, r.pinned
              FROM results r WHERE r.id = ?1",
             [input.result_id],
             result_from_row,
@@ -4759,11 +4849,11 @@ mod tests {
                 1,
             )
             .unwrap();
+        storage
+            .delete_chat_session(&workspace.id, &session.id)
+            .unwrap();
         {
             let connection = storage.connection.lock().unwrap();
-            connection
-                .execute("DELETE FROM sessions WHERE id = ?1", [&session.id])
-                .unwrap();
             let snapshot: String = connection
                 .query_row(
                     "SELECT managed_state_json FROM results WHERE id = ?1",
@@ -5355,6 +5445,207 @@ mod tests {
         assert_eq!(sessions[0].messages[0].content, "完整用户消息");
         assert_eq!(sessions[0].messages[1].content, "完整助手回复");
         assert_eq!(sessions[0].messages[1].status, "complete");
+    }
+
+    #[test]
+    fn result_pinning_migrates_existing_results_without_changing_content() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        Storage::migrate_to(&mut connection, 17, MIGRATIONS).unwrap();
+        connection.execute(
+            "INSERT INTO workspaces(id, name, root_path) VALUES ('w', 'Workspace', 'C:\\pinning')",
+            [],
+        ).unwrap();
+        connection.execute(
+            "INSERT INTO results(id, workspace_id, result_type, title, storage_kind, storage_ref, source_kind, source_ref, updated_at)
+             VALUES ('legacy', 'w', 'document', 'Existing result', 'workspace_file', 'result://legacy', 'workspace_file', 'legacy.md', '2026-09-19 10:00:00')",
+            [],
+        ).unwrap();
+        Storage::migrate(&mut connection).unwrap();
+        let record: (bool, String, String, String) = connection
+            .query_row(
+                "SELECT pinned, title, source_ref, updated_at FROM results WHERE id = 'legacy'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .unwrap();
+        assert_eq!(
+            record,
+            (
+                false,
+                "Existing result".into(),
+                "legacy.md".into(),
+                "2026-09-19 10:00:00".into()
+            )
+        );
+        assert!(connection
+            .execute("UPDATE results SET pinned = 2 WHERE id = 'legacy'", [])
+            .is_err());
+    }
+
+    #[test]
+    fn result_pinning_persists_and_restores_recency_order_without_changing_timestamps() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("result-pinning.sqlite3");
+        let result_ids = |storage: &Storage| {
+            storage
+                .results(None, false)
+                .unwrap()
+                .into_iter()
+                .map(|row| row.id)
+                .collect::<Vec<_>>()
+        };
+        {
+            let storage = Storage::open(&path).unwrap();
+            storage
+                .upsert_workspace("w", "Workspace", "C:\\pinning")
+                .unwrap();
+            for (id, timestamp) in [
+                ("old", "2026-09-18 10:00:00"),
+                ("middle", "2026-09-19 10:00:00"),
+                ("new", "2026-09-20 10:00:00"),
+            ] {
+                storage
+                    .ensure_file_result(
+                        id,
+                        "w",
+                        &format!("{id}.md"),
+                        id,
+                        "workspace_file",
+                        &format!("result://{id}"),
+                        None,
+                    )
+                    .unwrap();
+                storage
+                    .connection
+                    .lock()
+                    .unwrap()
+                    .execute(
+                        "UPDATE results SET updated_at = ?2 WHERE id = ?1",
+                        params![id, timestamp],
+                    )
+                    .unwrap();
+            }
+            assert_eq!(result_ids(&storage), ["new", "middle", "old"]);
+            assert!(matches!(
+                storage.pin_result("missing", true),
+                Err(AppError::InvalidInput(_))
+            ));
+            storage.pin_result("old", true).unwrap();
+            storage.pin_result("old", true).unwrap();
+            assert_eq!(result_ids(&storage), ["old", "new", "middle"]);
+            storage.pin_result("middle", true).unwrap();
+            assert_eq!(result_ids(&storage), ["middle", "old", "new"]);
+            let repository = crate::repository::result::ResultRepository::new(&storage);
+            assert!(repository.get("old").unwrap().unwrap().summary.pinned);
+            assert!(repository.list(Some("w"), false).unwrap()[0].pinned);
+            assert_eq!(
+                storage.result("old").unwrap().unwrap().updated_at,
+                "2026-09-18 10:00:00"
+            );
+        }
+        {
+            let storage = Storage::open(&path).unwrap();
+            assert_eq!(result_ids(&storage), ["middle", "old", "new"]);
+            assert!(storage.result("old").unwrap().unwrap().pinned);
+            storage.pin_result("old", false).unwrap();
+            assert_eq!(result_ids(&storage), ["middle", "new", "old"]);
+            storage.pin_result("middle", false).unwrap();
+            assert_eq!(result_ids(&storage), ["new", "middle", "old"]);
+            assert_eq!(
+                storage.result("middle").unwrap().unwrap().updated_at,
+                "2026-09-19 10:00:00"
+            );
+        }
+        let storage = Storage::open(&path).unwrap();
+        assert_eq!(result_ids(&storage), ["new", "middle", "old"]);
+        assert!(!storage.result("old").unwrap().unwrap().pinned);
+    }
+
+    #[test]
+    fn result_pinning_survives_file_refresh_and_revision_updates() {
+        let storage = Storage::open_in_memory().unwrap();
+        storage
+            .upsert_workspace("w", "Workspace", "C:\\pinning")
+            .unwrap();
+        storage
+            .ensure_file_result(
+                "r",
+                "w",
+                "file.md",
+                "Original",
+                "workspace_file",
+                "result://r",
+                None,
+            )
+            .unwrap();
+        storage.pin_result("r", true).unwrap();
+        let refreshed = storage
+            .ensure_file_result(
+                "replacement-id",
+                "w",
+                "file.md",
+                "Updated",
+                "workspace_file",
+                "result://replacement",
+                None,
+            )
+            .unwrap();
+        assert_eq!(refreshed.id, "r");
+        assert_eq!(refreshed.title, "Updated");
+        assert!(refreshed.pinned);
+        storage.connection.lock().unwrap().execute(
+            "INSERT INTO document_versions(id, workspace_id, relative_path, content, content_hash, expires_at)
+             VALUES ('revision', 'w', 'file.md', X'61', 'hash', datetime('now', '+1 day'))",
+            [],
+        ).unwrap();
+        let source = storage.result_source("r").unwrap().unwrap();
+        assert!(source.result.pinned);
+        assert_eq!(
+            source.result.current_revision_id.as_deref(),
+            Some("revision")
+        );
+        assert_eq!(source.source_kind, "workspace_file");
+        assert_eq!(source.source_ref, "file.md");
+    }
+
+    #[test]
+    fn history_management_persists_and_scopes_deletions() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("history.sqlite3");
+        {
+            let storage = Storage::open(&path).unwrap();
+            storage
+                .upsert_workspace("w", "Workspace", "C:\\history")
+                .unwrap();
+            storage.create_session("w", "s", "Title").unwrap();
+            storage.pin_chat_session("w", "s", true).unwrap();
+            assert!(storage.pin_chat_session("other", "s", false).is_err());
+            assert!(storage.delete_chat_session("other", "s").is_err());
+        }
+        let storage = Storage::open(&path).unwrap();
+        assert!(storage.sessions("w").unwrap()[0].pinned);
+        storage.connection.lock().unwrap().execute("INSERT INTO messages(id, session_id, role, body, status) VALUES ('m', 's', 'assistant', 'body', 'streaming')", []).unwrap();
+        assert!(storage.delete_chat_session("w", "s").is_err());
+        storage
+            .update_assistant_message("m", "body", "complete", None)
+            .unwrap();
+        storage.delete_chat_session("w", "s").unwrap();
+        assert!(storage.sessions("w").unwrap().is_empty());
+        assert!(storage.messages("s").unwrap().is_empty());
+        assert!(storage.session("s").unwrap().is_none());
+        storage.connection.lock().unwrap().execute(
+            "INSERT INTO results(id, workspace_id, result_type, title, storage_kind, storage_ref, source_kind, source_ref) VALUES ('result-delete', 'w', 'document', 'Title', 'workspace_file', 'result://delete', 'workspace_file', 'keep.md')", []
+        ).unwrap();
+        assert!(storage.result("result-delete").unwrap().is_some());
+        storage.delete_result_entry("result-delete").unwrap();
+        assert!(storage.result("result-delete").unwrap().is_none());
+        assert!(storage.workspace("w").unwrap().is_some());
+        drop(storage);
+        assert!(Storage::open(&path)
+            .unwrap()
+            .sessions("w")
+            .unwrap()
+            .is_empty());
     }
 
     #[test]

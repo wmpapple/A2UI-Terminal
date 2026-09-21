@@ -2,6 +2,10 @@ import type { ChatRequest, ChatStreamEvent, ContextManifestInput } from '../../s
 import { desktopGateway } from '../../shared/platform/gateway';
 
 export const chatController = {
+  deleteSession: (workspaceId: string, sessionId: string) =>
+    desktopGateway.deleteChatSession(workspaceId, sessionId),
+  pinSession: (workspaceId: string, sessionId: string, pinned: boolean) =>
+    desktopGateway.pinChatSession(workspaceId, sessionId, pinned),
   listSessions: (workspaceId: string) => desktopGateway.listChatSessions(workspaceId),
   createSession: (workspaceId: string, sessionId: string, title: string) =>
     desktopGateway.createChatSession(workspaceId, sessionId, title),

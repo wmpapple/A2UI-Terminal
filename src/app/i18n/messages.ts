@@ -2,6 +2,52 @@ import type { Locale } from '../../shared/types/domain';
 
 export const messages = {
   'zh-CN': {
+    historySearch: '查找标题或对话内容',
+    historyNoMatches: '没有找到相关对话',
+    historyPinned: '置顶对话',
+    pinConversation: '置顶对话',
+    unpinConversation: '取消置顶',
+    deleteConversation: '删除对话',
+    deleteConversationHint: '删除此对话及消息，已生成的成果会保留。',
+    deleteResult: '删除成果',
+    pinResult: '置顶成果',
+    unpinResult: '取消置顶',
+    deleteResultHint: '从成果列表删除此成果，原始文件和已导出的副本会保留。',
+    confirmDelete: '确认删除',
+    chatWelcomeTitle: '让灵感，从这里开始',
+    chatWelcomeDescription: '一起梳理资料、润色文档，或解答你的问题。',
+    chatResponding: 'AI 正在回复',
+    suggestSummary: '总结所选资料的重点',
+    suggestImprove: '帮我润色当前文档',
+    suggestExplain: '解释这段内容',
+    chatSendShortcut: 'Enter 或 Ctrl/Cmd+Enter 发送 · Shift+Enter 换行',
+    chatHistory: '对话记录',
+    sessionHistory: '历史对话',
+    historyToday: '今天',
+    historyYesterday: '昨天',
+    historyWeek: '过去 7 天',
+    historyOlder: '更早',
+    historyUndated: '其他对话',
+    historyEmpty: '暂无历史对话',
+    historyMore: '加载更多对话',
+    sessionMessageCount: '条消息',
+    chatInputResizeHint: '拖动顶部边框调整输入框高度，也可用上下方向键；双击恢复默认高度',
+    olderMessages: '查看更早消息',
+    newerMessages: '查看较新消息',
+    backToLatest: '回到最新消息',
+    commandPalette: '搜索与快捷命令',
+    commandPlaceholder: '搜索命令，例如：新建、成果、设置',
+    noCommands: '没有匹配的命令',
+    pageLoading: '正在加载页面…',
+    pageLoadFailed: '页面加载失败，请重试',
+    retryPage: '重新加载此模块',
+    previousResults: '上一页成果',
+    nextResults: '下一页成果',
+    resultRange: '第 {start}–{end} 项 / 共 {total} 项',
+    eyeCareMode: '护眼模式',
+    eyeCareDescription: '',
+    quickControls: '快捷控制',
+    browseTaskTemplates: '浏览内置任务模板',
     pendingDraftTitle: '发现尚未恢复的草稿',
     pendingDraftDescription: '草稿尚未写入磁盘。请选择恢复草稿或保留磁盘版本。',
     recoveryDraftsFound: '发现 {count} 个崩溃恢复草稿',
@@ -27,7 +73,7 @@ export const messages = {
     homePageEmpty: '任务入口将在后续阶段接入',
     homeEyebrow: '从目标到成果',
     homeQuestion: '今天想完成什么？',
-    homeIntroduction: '选择一个目标或添加资料。重要修改仍会先让你查看，成果会保存在本地。',
+    homeIntroduction: '选择一个目标或添加资料。',
     recoveryCenterTitle: '已检查上次未完成的工作',
     recoveryCenterDescription:
       '未保存成果 {drafts} 项，待处理审阅 {reviews} 项，已恢复任务 {tasks} 项，导出恢复记录 {exports} 项。',
@@ -49,7 +95,6 @@ export const messages = {
     homeAnalyzeNotReady: '表格与数据分析将在 S2 的受控导入能力完成后开放；当前不会伪装已读取数据。',
     homeBuildNotReady: '表单、清单和小工具将在可信组件与保存闭环完成后开放。',
     homeSourcesSectionTitle: '添加资料',
-    homeSourcesSectionHint: '只处理你明确选择的内容',
     homeSourceTitle: '拖入资料或从设备选择',
     homeSourceDescription: '拖入的文件会先进入读取范围确认；不会扫描或读取其他文件。',
     homeSourceReady: '已准备 {count} 项资料 · {workspace}',
@@ -97,8 +142,6 @@ export const messages = {
     authorizedSearchPlaceholder: '输入成果标题、正文关键词或资料名称',
     searchAuthorizedContent: '搜索',
     authorizedSearchEmpty: '没有找到匹配内容',
-    authorizedSearchPrivacy:
-      '仅在本机搜索；不包含聊天、提示词、AI 回复、调试信息、敏感路径或未授权文件。',
     searchKindResult: '成果',
     searchKindSource: '已授权资料',
     searchKindPack: '资料包',
@@ -274,7 +317,7 @@ export const messages = {
     settingsPageTitle: '设置',
     settingsPageDescription: '调整界面信息密度、更新和本地数据选项。',
     experienceModeTitle: '使用模式',
-    simpleModeDescription: '默认隐藏项目文件树、会话列表、协议 Inspector 和模型技术参数。',
+    simpleModeDescription: '默认隐藏项目文件树、协议 Inspector 和模型技术参数，保留历史对话入口。',
     professionalModeDescription: '显示项目文件、会话、协议 Inspector 和 Provider 高级参数。',
     openAdvancedProviderSettings: '打开 Provider 高级设置',
     interactiveResult: '交互成果',
@@ -344,6 +387,7 @@ export const messages = {
     contextPackExpandHint: '资料包只保存来源引用；生成发送清单时仍会展开每项资料并逐次确认。',
     contextAuthorizationSettings: '上下文授权与资料包',
     contextPackWorkspaceRequired: '请先打开工作区，再管理已授权资料和资料包。',
+    contextAuthorizationHelp: '查看上下文授权与资料包说明',
     contextPackPrivacyHint:
       '资料包不复制正文或绝对路径。删除资料包不会删除设备原文件；撤销资料授权会同步移除引用和内存索引。',
     contextPackName: '资料包名称',
@@ -477,6 +521,10 @@ export const messages = {
     telemetryNeverCollected: '永不采集的内容',
     telemetryLocalEventCount: '本机事件数',
     telemetryCoreKpis: '核心成果指标',
+    telemetryKpiHelp: '查看核心指标说明',
+    telemetryRateRule: '保存/导出、撤销/恢复的比例 = 成功次数 ÷ 已结束的操作次数；取消不计入。',
+    telemetrySaveRule: '适用于旧成果；修改需保存，撤销需实际恢复版本。',
+    telemetryReviewRule: 'AI 审阅指标仅统计 AI 修改；编辑器内未保存的 Ctrl+Z 不计入恢复。',
     telemetryKpiPurpose: '只衡量成果完成与安全审阅，不使用 DAU、消息数或模型调用量作为核心指标。',
     telemetryNoKpiData: '暂无样本',
     telemetryOperationRates:
@@ -498,6 +546,9 @@ export const messages = {
     enabled: '开启',
     disabled: '关闭',
     clearAllLocalData: '一键清除所有本地数据',
+    clearDataDangerTitle: '危险操作',
+    clearDataDangerDescription:
+      '将永久清除应用内记录、凭据与界面偏好，无法撤销。点击后需输入确认文本。',
     clearDataWarning:
       '此操作将删除会话、消息、草稿、文档版本、A2UI 历史、Provider 设置和系统凭据。',
     projectFilesPreserved:
@@ -628,6 +679,55 @@ export const messages = {
     activity: '活动',
   },
   'en-US': {
+    historySearch: 'Search titles or messages',
+    historyNoMatches: 'No matching conversations',
+    historyPinned: 'Pinned conversations',
+    pinConversation: 'Pin conversation',
+    unpinConversation: 'Unpin conversation',
+    deleteConversation: 'Delete conversation',
+    deleteConversationHint:
+      'Delete this conversation and its messages. Generated results will be kept.',
+    deleteResult: 'Delete result',
+    pinResult: 'Pin result',
+    unpinResult: 'Unpin result',
+    deleteResultHint:
+      'Remove this result from the list. Original files and exported copies will be kept.',
+    confirmDelete: 'Delete',
+    chatWelcomeTitle: 'Make room for your next idea',
+    chatWelcomeDescription: 'Explore your material, refine a document, or ask a question.',
+    chatResponding: 'AI is responding',
+    suggestSummary: 'Summarize the selected material',
+    suggestImprove: 'Improve the current document',
+    suggestExplain: 'Explain this content',
+    chatSendShortcut: 'Enter or Ctrl/Cmd+Enter to send · Shift+Enter for a new line',
+    chatHistory: 'Conversation history',
+    sessionHistory: 'Previous conversations',
+    historyToday: 'Today',
+    historyYesterday: 'Yesterday',
+    historyWeek: 'Previous 7 days',
+    historyOlder: 'Older',
+    historyUndated: 'Other conversations',
+    historyEmpty: 'No conversations yet',
+    historyMore: 'Load more conversations',
+    sessionMessageCount: 'messages',
+    chatInputResizeHint:
+      'Drag the top border or use the up/down arrow keys to resize the input box; double-click to reset',
+    olderMessages: 'Earlier messages',
+    newerMessages: 'Newer messages',
+    backToLatest: 'Back to latest',
+    commandPalette: 'Search and commands',
+    commandPlaceholder: 'Find a command: new, results, settings…',
+    noCommands: 'No matching commands',
+    pageLoading: 'Loading page…',
+    pageLoadFailed: 'Could not load this page. Please retry.',
+    retryPage: 'Reload this module',
+    previousResults: 'Previous results',
+    nextResults: 'Next results',
+    resultRange: '{start}–{end} of {total} results',
+    eyeCareMode: 'Eye comfort',
+    eyeCareDescription: 'Warm colors, only in the workbench',
+    quickControls: 'Quick controls',
+    browseTaskTemplates: 'Explore built-in task templates',
     pendingDraftTitle: 'An unrecovered draft was found',
     pendingDraftDescription:
       'The draft has not been written to disk. Restore it or keep the disk version.',
@@ -656,8 +756,7 @@ export const messages = {
     homePageEmpty: 'Task entry points will be connected in a later phase',
     homeEyebrow: 'From goal to outcome',
     homeQuestion: 'What would you like to finish today?',
-    homeIntroduction:
-      'Choose a goal or add source material. Important changes remain reviewable, and outcomes stay local.',
+    homeIntroduction: 'Choose a goal or add source material.',
     recoveryCenterTitle: 'Previous unfinished work checked',
     recoveryCenterDescription:
       '{drafts} unsaved results, {reviews} active reviews, {tasks} recovered tasks, and {exports} export recovery records.',
@@ -682,7 +781,6 @@ export const messages = {
     homeBuildNotReady:
       'Forms, checklists, and tools open after trusted components and persistence are complete.',
     homeSourcesSectionTitle: 'Add source material',
-    homeSourcesSectionHint: 'Only content you explicitly select is processed',
     homeSourceTitle: 'Drop source material or choose from your device',
     homeSourceDescription:
       'Dropped files first enter reading-scope confirmation. Other files are never scanned or read.',
@@ -736,8 +834,6 @@ export const messages = {
     authorizedSearchPlaceholder: 'Enter a result title, body keyword, or source name',
     searchAuthorizedContent: 'Search',
     authorizedSearchEmpty: 'No matching content found',
-    authorizedSearchPrivacy:
-      'Search stays local and excludes chats, prompts, AI replies, debug data, sensitive paths, and unauthorized files.',
     searchKindResult: 'Result',
     searchKindSource: 'Authorized source',
     searchKindPack: 'Source pack',
@@ -938,7 +1034,7 @@ export const messages = {
     settingsPageDescription: 'Adjust information density, updates, and local data options.',
     experienceModeTitle: 'Experience mode',
     simpleModeDescription:
-      'Hides the project file tree, session history, Protocol Inspector, and model technical parameters by default.',
+      'Hides the project file tree, Protocol Inspector, and model technical parameters while keeping previous conversations accessible.',
     professionalModeDescription:
       'Shows project files, sessions, Protocol Inspector, and advanced Provider parameters.',
     openAdvancedProviderSettings: 'Open advanced Provider settings',
@@ -1015,6 +1111,7 @@ export const messages = {
     contextPackExpandHint:
       'A pack stores references only. Every send manifest still expands and confirms each concrete source.',
     contextAuthorizationSettings: 'Context authorization and packs',
+    contextAuthorizationHelp: 'About context authorization and source packs',
     contextPackWorkspaceRequired:
       'Open a workspace before managing authorized sources and context packs.',
     contextPackPrivacyHint:
@@ -1162,6 +1259,13 @@ export const messages = {
     telemetryNeverCollected: 'Content that is never collected',
     telemetryLocalEventCount: 'Local event count',
     telemetryCoreKpis: 'Core outcome metrics',
+    telemetryKpiHelp: 'About core outcome metrics',
+    telemetryRateRule:
+      'Save/export and undo/restore rates = successful operations ÷ finished operations. Cancellations are excluded.',
+    telemetrySaveRule:
+      'Applies to existing results. Edits must be saved; undo must restore an actual version.',
+    telemetryReviewRule:
+      'AI review metrics count only AI edits. Unsaved Ctrl+Z actions in the editor do not count as restores.',
     telemetryKpiPurpose:
       'Measures result completion and safe review outcomes, never DAU, message count, or model-call volume as core metrics.',
     telemetryNoKpiData: 'No sample yet',
@@ -1184,6 +1288,9 @@ export const messages = {
     enabled: 'On',
     disabled: 'Off',
     clearAllLocalData: 'Clear all local data',
+    clearDataDangerTitle: 'Danger zone',
+    clearDataDangerDescription:
+      'Permanently clear in-app records, credentials, and interface preferences. This cannot be undone. Confirmation text is required.',
     clearDataWarning:
       'This deletes sessions, messages, drafts, document versions, A2UI history, provider settings, and system credentials.',
     projectFilesPreserved:

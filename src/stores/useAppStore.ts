@@ -51,6 +51,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   patchError: null,
   selectedText: '',
   contextBySession: {},
+  chatDrafts: {},
   contextReviewKeyBySession: {},
   providerConfigs: [],
   activeProviderId: 'siliconflow',

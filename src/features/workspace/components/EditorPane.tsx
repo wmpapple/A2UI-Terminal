@@ -18,7 +18,11 @@ import { useImportStore } from '../../imports/importStore';
 import { A2uiWorkbench } from '../../a2ui/inspector/A2uiWorkbench';
 import { DiffReview } from '../../diff/components/DiffReview';
 import { SelectionAssistant } from '../../selection/components/SelectionAssistant';
+import { EmptyIllustration } from '../../../shared/components/EmptyIllustration';
+import { WorkbenchAppearanceControl } from '../../../app/WorkbenchAppearanceControl';
+import { useSystemTheme } from '../../../app/useSystemTheme';
 import styles from './EditorPane.module.css';
+import { CodeEditor } from './CodeEditor';
 
 const MarkdownEditor = lazy(() =>
   import('md-editor-rt').then((module) => ({ default: module.MdEditor }))
@@ -41,24 +45,23 @@ export function EditorPane({
   showSimpleFileActions = false,
   onOpenResult,
 }: EditorPaneProps) {
+  const dark = useSystemTheme();
   const { locale, t } = useI18n();
-  const {
-    runtimeMode,
-    workspace,
-    files,
-    openPaths,
-    activePath,
-    dirtyPaths,
-    saveStatusByPath,
-    workspaceLoading,
-    workspaceError,
-    recoveryDrafts,
-    centerView,
-    lastPatchApplication,
-    lastReviewApplication,
-    patchApplying,
-    patchError,
-  } = useAppStore();
+  const runtimeMode = useAppStore((state) => state.runtimeMode);
+  const workspace = useAppStore((state) => state.workspace);
+  const files = useAppStore((state) => state.files);
+  const openPaths = useAppStore((state) => state.openPaths);
+  const activePath = useAppStore((state) => state.activePath);
+  const dirtyPaths = useAppStore((state) => state.dirtyPaths);
+  const saveStatusByPath = useAppStore((state) => state.saveStatusByPath);
+  const workspaceLoading = useAppStore((state) => state.workspaceLoading);
+  const workspaceError = useAppStore((state) => state.workspaceError);
+  const recoveryDrafts = useAppStore((state) => state.recoveryDrafts);
+  const centerView = useAppStore((state) => state.centerView);
+  const lastPatchApplication = useAppStore((state) => state.lastPatchApplication);
+  const lastReviewApplication = useAppStore((state) => state.lastReviewApplication);
+  const patchApplying = useAppStore((state) => state.patchApplying);
+  const patchError = useAppStore((state) => state.patchError);
   const openFile = useAppStore((state) => state.openFile);
   const selectImportSources = useImportStore((state) => state.select);
   const selectContextFiles = () => selectImportSources(workspace?.id);
@@ -195,6 +198,22 @@ export function EditorPane({
     markdownEditorRef.current?.togglePreview(previewEnabled);
   }, [activePath, previewEnabled]);
 
+  useEffect(() => {
+    if (!previewEnabled) return;
+    const closePreview = (event: KeyboardEvent) => {
+      if (
+        event.key !== 'Escape' ||
+        event.isComposing ||
+        event.defaultPrevented ||
+        document.querySelector('[role="dialog"]')
+      )
+        return;
+      setPreviewByPath((current) => ({ ...current, [activePath]: false }));
+    };
+    window.addEventListener('keydown', closePreview);
+    return () => window.removeEventListener('keydown', closePreview);
+  }, [activePath, previewEnabled]);
+
   const toggleMarkdownPreview = () => {
     if (!activeFile || !isMarkdown) return;
     const nextPreview = !previewEnabled;
@@ -218,6 +237,7 @@ export function EditorPane({
           ]}
         />
         <div className={styles.toolbarActions}>
+          <WorkbenchAppearanceControl />
           {showSimpleFileActions ? (
             <Button
               size="small"
@@ -272,7 +292,11 @@ export function EditorPane({
             </Button>
           ) : null}
           {isExtractedDocument ? <Tag color="purple">{t('readOnlyDocument')}</Tag> : null}
-          {!isExtractedDocument ? <Tag color={saveColor}>{saveLabel}</Tag> : null}
+          {!isExtractedDocument ? (
+            <Tag className={styles.saveStatus} data-tone={saveColor}>
+              {saveLabel}
+            </Tag>
+          ) : null}
         </div>
       </div>
       {showSimpleFileActions && workspaceError ? (
@@ -351,6 +375,7 @@ export function EditorPane({
             }
           >
             <MarkdownEditor
+              theme={dark ? 'dark' : 'light'}
               key={`${workspace?.id ?? 'web-mock'}:${activeFile.sourceId ?? activeFile.path}`}
               ref={bindMarkdownEditor}
               modelValue={activeFile.content}
@@ -381,24 +406,21 @@ export function EditorPane({
             <pre>{activeFile.content}</pre>
           </article>
         ) : activeFile ? (
-          <textarea
-            className={styles.codeEditor}
+          <CodeEditor
+            key={JSON.stringify([workspace?.id, activeFile.sourceId, activeFile.path])}
+            path={activeFile.path}
             value={activeFile.content}
-            disabled={workspaceLoading}
-            spellCheck={false}
-            aria-label={activeFile.path}
-            onMouseUp={(event) => {
-              const target = event.currentTarget;
-              setSelectedText(target.value.slice(target.selectionStart, target.selectionEnd));
-            }}
-            onKeyUp={(event) => {
-              const target = event.currentTarget;
-              setSelectedText(target.value.slice(target.selectionStart, target.selectionEnd));
-            }}
-            onChange={(event) => updateFile(activeFile.path, event.target.value, workspace?.id)}
+            disabled={workspaceLoading || activeFile.editable === false}
+            onSelection={setSelectedText}
+            onChange={(value) => updateFile(activeFile.path, value, workspace?.id)}
           />
         ) : (
-          <Empty description={t('selectFilePrompt')}>
+          <Empty
+            className={styles.empty}
+            image={<EmptyIllustration />}
+            styles={{ image: { height: 140 } }}
+            description={t('selectFilePrompt')}
+          >
             {showSimpleFileActions ? (
               <Button
                 type="primary"

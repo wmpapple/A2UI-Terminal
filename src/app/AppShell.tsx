@@ -2,25 +2,21 @@ import {
   AppstoreOutlined,
   FileDoneOutlined,
   GlobalOutlined,
+  DownOutlined,
+  SearchOutlined,
   HomeOutlined,
   SettingOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, ConfigProvider, Dropdown, message, Tag } from 'antd';
+import { Alert, Button, ConfigProvider, Dropdown, message, Tag, theme } from 'antd';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ChatPanel } from '../features/chat/components/ChatPanel';
+
 import { HomePage } from '../features/home/components/HomePage';
 import { ImportBatchModal } from '../features/imports/components/ImportBatchModal';
 import { useImportStore } from '../features/imports/importStore';
 import { OnboardingDialog } from '../features/home/components/OnboardingDialog';
 import { scheduleAutomaticUpdateCheck } from '../features/settings/appUpdater';
-import { ProviderSettings } from '../features/settings/components/ProviderSettings';
-import { ResultsPage } from '../features/results/components/ResultsPage';
-import { PersonalSurfaceTemplates } from '../features/templates/components/PersonalSurfaceTemplates';
-import { ResultAssistantPanel } from '../features/results/components/ResultAssistantPanel';
-import { ResultWorkbench } from '../features/results/components/ResultWorkbench';
-import { EditorPane } from '../features/workspace/components/EditorPane';
-import { WorkspaceSidebar } from '../features/workspace/components/WorkspaceSidebar';
+
 import { getRuntimeMode } from '../shared/platform/runtime';
 import {
   finishPerformanceMeasurement,
@@ -30,7 +26,7 @@ import type { ResultAppliedReview } from '../shared/types/domain';
 import { useAppStore } from '../stores/useAppStore';
 import { useI18n } from './i18n/useI18n';
 import styles from './AppShell.module.css';
-import { SettingsPage } from './SettingsPage';
+
 import { ShellPage } from './ShellPage';
 import { readOnboardingComplete, writeOnboardingComplete } from './onboardingPreferences';
 import {
@@ -41,9 +37,59 @@ import {
   type AppRoute,
   type ExperienceMode,
 } from './shellPreferences';
+import { useReducedMotion, useSystemTheme } from './useSystemTheme';
 import { WorkspaceLayout } from './WorkspaceLayout';
+import { WorkbenchAppearance } from './WorkbenchAppearance';
+
+import { lazyFeature } from './lazyFeature';
+const CommandPalette = lazyFeature(async () => {
+  const module = await import('./CommandPalette');
+  return { default: module.CommandPalette };
+});
+const CreateTextResultModal = lazyFeature(async () => {
+  const module = await import('../features/results/components/CreateTextResultModal');
+  return { default: module.CreateTextResultModal };
+});
+const ChatPanel = lazyFeature(async () => {
+  const module = await import('../features/chat/components/ChatPanel');
+  return { default: module.ChatPanel };
+});
+const ProviderSettings = lazyFeature(async () => {
+  const module = await import('../features/settings/components/ProviderSettings');
+  return { default: module.ProviderSettings };
+});
+const ResultsPage = lazyFeature(async () => {
+  const module = await import('../features/results/components/ResultsPage');
+  return { default: module.ResultsPage };
+});
+const PersonalSurfaceTemplates = lazyFeature(async () => {
+  const module = await import('../features/templates/components/PersonalSurfaceTemplates');
+  return { default: module.PersonalSurfaceTemplates };
+});
+const ResultAssistantPanel = lazyFeature(async () => {
+  const module = await import('../features/results/components/ResultAssistantPanel');
+  return { default: module.ResultAssistantPanel };
+});
+const ResultWorkbench = lazyFeature(async () => {
+  const module = await import('../features/results/components/ResultWorkbench');
+  return { default: module.ResultWorkbench };
+});
+const EditorPane = lazyFeature(async () => {
+  const module = await import('../features/workspace/components/EditorPane');
+  return { default: module.EditorPane };
+});
+const WorkspaceSidebar = lazyFeature(async () => {
+  const module = await import('../features/workspace/components/WorkspaceSidebar');
+  return { default: module.WorkspaceSidebar };
+});
+const SettingsPage = lazyFeature(async () => {
+  const module = await import('./SettingsPage');
+  return { default: module.SettingsPage };
+});
 
 export function AppShell() {
+  const dark = useSystemTheme();
+  const reducedMotion = useReducedMotion();
   const { locale, setLocale, t } = useI18n();
   const mode = getRuntimeMode();
   const initializeWorkspace = useAppStore((state) => state.initializeWorkspace);
@@ -54,6 +100,8 @@ export function AppShell() {
   const acceptImportedSelection = useAppStore((state) => state.acceptImportedSelection);
   const importError = useImportStore((state) => state.error);
   const clearImportError = useImportStore((state) => state.clearError);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(() => !readOnboardingComplete());
   const [experienceMode, setExperienceMode] = useState(readExperienceMode);
@@ -70,6 +118,23 @@ export function AppShell() {
   }, [initializeProviders, initializeWorkspace]);
 
   useEffect(() => scheduleAutomaticUpdateCheck(), []);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.isComposing ||
+        event.repeat ||
+        event.altKey ||
+        !(event.ctrlKey || event.metaKey) ||
+        event.key.toLowerCase() !== 'k'
+      )
+        return;
+      if (document.querySelector('[role="dialog"]')) return;
+      event.preventDefault();
+      setCommandOpen(true);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   useEffect(() => {
     const syncRoute = () => setRoute(routeFromHash(window.location.hash));
@@ -140,34 +205,43 @@ export function AppShell() {
     ) : route === 'results' ? (
       <ResultsPage onOpenResult={openResult} />
     ) : route === 'workbench' ? (
-      <WorkspaceLayout
-        showLeftPanel={professional}
-        left={<WorkspaceSidebar onActivateWorkspace={() => setActiveResultId(null)} />}
-        center={
-          activeResultId ? (
-            <ResultWorkbench
-              key={activeResultId}
-              resultId={activeResultId}
-              onDuplicated={openResult}
-              onOpenResults={() => openRoute('results')}
-              reviewUndoing={patchApplying}
-              reviewUndoError={patchError}
-              onUndoReview={(review) => void undoCreatedResult(review)}
-            />
-          ) : (
-            <EditorPane
-              showInspector={professional}
-              showSimpleFileActions={!professional}
-              onOpenResult={openResult}
-            />
-          )
-        }
-        right={
-          activeResultId ? <ResultAssistantPanel /> : <ChatPanel professionalTools={professional} />
-        }
-      />
+      <WorkbenchAppearance>
+        <WorkspaceLayout
+          showLeftPanel={professional}
+          left={<WorkspaceSidebar onActivateWorkspace={() => setActiveResultId(null)} />}
+          center={
+            activeResultId ? (
+              <ResultWorkbench
+                key={activeResultId}
+                resultId={activeResultId}
+                onDuplicated={openResult}
+                onOpenResults={() => openRoute('results')}
+                reviewUndoing={patchApplying}
+                reviewUndoError={patchError}
+                onUndoReview={(review) => void undoCreatedResult(review)}
+              />
+            ) : (
+              <EditorPane
+                showInspector={professional}
+                showSimpleFileActions={!professional}
+                onOpenResult={openResult}
+              />
+            )
+          }
+          right={
+            activeResultId ? (
+              <ResultAssistantPanel />
+            ) : (
+              <ChatPanel professionalTools={professional} />
+            )
+          }
+        />
+      </WorkbenchAppearance>
     ) : route === 'templates' ? (
-      <PersonalSurfaceTemplates onOpened={() => openRoute('workbench')} />
+      <PersonalSurfaceTemplates
+        onOpened={() => openRoute('workbench')}
+        onBrowseTasks={() => openRoute('home')}
+      />
     ) : route === 'settings' ? (
       <SettingsPage
         experienceMode={experienceMode}
@@ -187,9 +261,16 @@ export function AppShell() {
   return (
     <ConfigProvider
       theme={{
+        algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
-          colorPrimary: '#635bff',
-          borderRadius: 8,
+          motion: !reducedMotion,
+          colorPrimary: dark ? '#dba47e' : '#b94b19',
+          colorBgLayout: dark ? '#0b0f19' : '#f8fafc',
+          colorBgContainer: dark ? '#1e293b' : '#ffffff',
+          colorText: dark ? '#e2e8f0' : '#0f172a',
+          colorTextSecondary: dark ? '#a8b6cb' : '#64748b',
+          colorTextLightSolid: dark ? '#0b0f19' : '#ffffff',
+          borderRadius: 10,
           fontFamily: 'Inter, "Segoe UI", sans-serif',
         },
       }}
@@ -199,56 +280,85 @@ export function AppShell() {
         <a className={styles.skipLink} href="#main-content">
           {t('skipToMainContent')}
         </a>
-        <header className={styles.titlebar} data-tauri-drag-region>
-          <div className={styles.brand} data-tauri-drag-region>
-            <span className={styles.logo}>A</span>
-            <strong>{t('appName')}</strong>
-            <Tag color="purple">V2.0</Tag>
-          </div>
-          <nav className={styles.navigation} aria-label={t('mainNavigation')}>
-            {navigationItems.map((item) => (
+        <ConfigProvider theme={{ token: { colorPrimary: dark ? '#dba47e' : '#b94b19' } }}>
+          <header className={styles.titlebar} data-tauri-drag-region>
+            <div className={styles.brand} data-tauri-drag-region>
+              <span className={styles.logo}>A</span>
+              <strong>{t('appName')}</strong>
+              <Tag className={styles.versionTag}>V2.0</Tag>
+            </div>
+            <nav className={styles.navigation} aria-label={t('mainNavigation')}>
+              {navigationItems.map((item) => (
+                <Button
+                  key={item.route}
+                  type="text"
+                  aria-label={item.label}
+                  icon={item.icon}
+                  aria-current={route === item.route ? 'page' : undefined}
+                  onClick={() =>
+                    item.route === 'workbench' ? openWorkbench() : openRoute(item.route)
+                  }
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </nav>
+            <div className={styles.titleActions} role="group" aria-label={t('quickControls')}>
               <Button
-                key={item.route}
-                type={route === item.route ? 'primary' : 'text'}
-                icon={item.icon}
-                aria-current={route === item.route ? 'page' : undefined}
-                onClick={() =>
-                  item.route === 'workbench' ? openWorkbench() : openRoute(item.route)
-                }
+                type="text"
+                icon={<SearchOutlined />}
+                aria-label={t('commandPalette')}
+                title={t('commandPalette') + ' (Ctrl/Cmd+K)'}
+                onClick={() => setCommandOpen(true)}
+              />
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  selectedKeys: [experienceMode],
+                  onClick: ({ key }) => changeExperienceMode(key as ExperienceMode),
+                  items: [
+                    { key: 'simple', label: t('simpleMode') },
+                    { key: 'professional', label: t('professionalMode') },
+                  ],
+                }}
               >
-                {item.label}
-              </Button>
-            ))}
-          </nav>
-          <div className={styles.titleActions}>
-            <Tag color={professional ? 'purple' : 'green'}>
-              {t(professional ? 'professionalMode' : 'simpleMode')}
-            </Tag>
-            {professional ? (
-              <Tag color={mode === 'web-mock' ? 'blue' : 'green'}>
-                {mode === 'web-mock' ? t('mockMode') : 'Desktop'}
-              </Tag>
-            ) : null}
-            <Dropdown
-              menu={{
-                selectedKeys: [locale],
-                onClick: ({ key }) => setLocale(key as 'zh-CN' | 'en-US'),
-                items: [
-                  { key: 'zh-CN', label: '简体中文' },
-                  { key: 'en-US', label: 'English' },
-                ],
-              }}
-            >
-              <Button type="text" icon={<GlobalOutlined />}>
-                {locale === 'zh-CN' ? '中文' : 'EN'}
-              </Button>
-            </Dropdown>
-          </div>
-        </header>
+                <Button
+                  type="text"
+                  aria-label={t('experienceModeTitle')}
+                  icon={<DownOutlined />}
+                  iconPlacement="end"
+                >
+                  {t(professional ? 'professionalMode' : 'simpleMode')}
+                </Button>
+              </Dropdown>
+              {professional ? (
+                <Tag color={mode === 'web-mock' ? 'blue' : 'green'}>
+                  {mode === 'web-mock' ? t('mockMode') : 'Desktop'}
+                </Tag>
+              ) : null}
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  selectedKeys: [locale],
+                  onClick: ({ key }) => setLocale(key as 'zh-CN' | 'en-US'),
+                  items: [
+                    { key: 'zh-CN', label: '简体中文' },
+                    { key: 'en-US', label: 'English' },
+                  ],
+                }}
+              >
+                <Button type="text" icon={<GlobalOutlined />}>
+                  {locale === 'zh-CN' ? '中文' : 'EN'}
+                </Button>
+              </Dropdown>
+            </div>
+          </header>
+        </ConfigProvider>
         <div
           ref={mainContentRef}
           id="main-content"
           className={styles.mainContent}
+          data-route={route}
           tabIndex={-1}
           aria-label={t('mainContent')}
         >
@@ -268,11 +378,31 @@ export function AppShell() {
             <ImportBatchModal onConfirmed={acceptImportedSelection} />
           </>
         ) : null}
-        <ProviderSettings
-          open={professional && settingsOpen}
-          includeSystemSettings={false}
-          onClose={() => setSettingsOpen(false)}
-        />
+        {professional && settingsOpen && (
+          <ProviderSettings
+            open={professional && settingsOpen}
+            includeSystemSettings={false}
+            onClose={() => setSettingsOpen(false)}
+          />
+        )}
+        {commandOpen && (
+          <CommandPalette
+            onClose={() => setCommandOpen(false)}
+            onCreate={() => setCreateOpen(true)}
+            onOpenWorkbench={openWorkbench}
+            onNavigate={(next) => (next === 'workbench' ? openWorkbench() : openRoute(next))}
+          />
+        )}
+        {createOpen && (
+          <CreateTextResultModal
+            open
+            onCancel={() => setCreateOpen(false)}
+            onCreated={(id) => {
+              setCreateOpen(false);
+              openResult(id);
+            }}
+          />
+        )}
         <OnboardingDialog
           open={onboardingOpen}
           onFinish={completeOnboarding}

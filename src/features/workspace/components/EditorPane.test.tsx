@@ -1,3 +1,4 @@
+import { EditorView } from '@codemirror/view';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../app/i18n/I18nProvider';
@@ -296,6 +297,10 @@ describe('EditorPane modes', () => {
     fireEvent.click(screen.getByRole('button', { name: '开启预览' }));
     expect(editor).toHaveAttribute('data-preview', 'true');
 
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(editor).toHaveAttribute('data-preview', 'false');
+    fireEvent.click(screen.getByRole('button', { name: '开启预览' }));
+
     fireEvent.click(screen.getByRole('button', { name: 'Switch to English' }));
     expect(editor).toHaveAttribute('data-language', 'en-US');
     expect(screen.getByRole('button', { name: 'Hide preview' })).toBeInTheDocument();
@@ -306,7 +311,7 @@ describe('EditorPane modes', () => {
     expect(screen.queryByRole('button', { name: 'Hide preview' })).not.toBeInTheDocument();
   });
 
-  it('captures textarea selections for the selection assistant context', () => {
+  it('captures code editor selections for the selection assistant context', () => {
     act(() => useAppStore.getState().openFile('src/experiment.ts'));
     render(
       <I18nProvider>
@@ -314,10 +319,12 @@ describe('EditorPane modes', () => {
       </I18nProvider>
     );
     const editor = screen.getByRole('textbox', { name: 'src/experiment.ts' });
-    const value = (editor as HTMLTextAreaElement).value;
+    const view = EditorView.findFromDOM(editor)!;
+    const value = view.state.doc.toString();
     const start = value.indexOf('context-window');
-    (editor as HTMLTextAreaElement).setSelectionRange(start, start + 'context-window'.length);
-    fireEvent.mouseUp(editor);
+    act(() =>
+      view.dispatch({ selection: { anchor: start, head: start + 'context-window'.length } })
+    );
     expect(useAppStore.getState().selectedText).toBe('context-window');
   });
 

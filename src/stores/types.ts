@@ -57,6 +57,8 @@ export interface AppState {
   patchError: string | null;
   selectedText: string;
   contextBySession: Record<string, ContextSelection>;
+  chatDrafts: Record<string, string>;
+  setChatDraft: (workspaceId: string, sessionId: string, text: string) => void;
   contextReviewKeyBySession: Record<string, string>;
   providerConfigs: ProviderConfig[];
   activeProviderId: string;
@@ -97,6 +99,8 @@ export interface AppState {
   markSaved: (path: string) => void;
   clearWorkspaceError: () => void;
   setCenterView: (view: CenterView) => void;
+  deleteSession: (sessionId: string) => Promise<void>;
+  pinSession: (sessionId: string, pinned: boolean) => Promise<void>;
   createSession: () => Promise<void>;
   selectSession: (id: string) => void;
   addMessage: (sessionId: string, message: ChatMessage) => void;

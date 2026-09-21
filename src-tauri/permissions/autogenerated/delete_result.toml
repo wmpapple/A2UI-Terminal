@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-delete-result"
+description = "Enables the delete_result command without any pre-configured scope."
+commands.allow = ["delete_result"]
+
+[[permission]]
+identifier = "deny-delete-result"
+description = "Denies the delete_result command without any pre-configured scope."
+commands.deny = ["delete_result"]

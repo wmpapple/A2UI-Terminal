@@ -1,3 +1,4 @@
+import { WorkbenchAppearanceControl } from '../../../app/WorkbenchAppearanceControl';
 import {
   CopyOutlined,
   DiffOutlined,
@@ -163,6 +164,7 @@ export function ResultWorkbench({
           </Button>
         </div>
         <div className={styles.actions}>
+          <WorkbenchAppearanceControl />
           {activeDocument.editable ? (
             <Segmented
               value={viewMode}

@@ -21,6 +21,7 @@ import type {
 } from '../types/domain';
 
 import { exportExtension, exportFormatsFor } from '../types/exportFormats';
+import { compareResults } from '../types/resultOrder';
 
 const activeExports = new Map<string, { cancelled: boolean; committing: boolean }>();
 const exportTurn = () => new Promise<void>((resolve) => setTimeout(resolve, 40));
@@ -244,10 +245,18 @@ export const webMockHomeGateway = {
     return clone(templates);
   },
 
+  async deleteResult(resultId: string): Promise<void> {
+    deleteWebMockReviewResult(resultId);
+  },
+  async pinResult(resultId: string, pinned: boolean): Promise<void> {
+    const record = requireRecord(resultId);
+    record.detail = { ...record.detail, pinned };
+    results = results.map((item) => (item.id === resultId ? { ...item, pinned } : item));
+  },
   async listResults(workspaceId?: string): Promise<ResultSummary[]> {
     return clone(
       workspaceId ? results.filter((item) => item.workspaceId === workspaceId) : results
-    );
+    ).sort(compareResults);
   },
 
   async searchAuthorizedContent(

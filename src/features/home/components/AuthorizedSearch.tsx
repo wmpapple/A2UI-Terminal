@@ -5,13 +5,14 @@ import {
   RocketOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Empty, Input, Tag, message } from 'antd';
-import { useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { ContextSelection, SearchAuthorizedContentOutput } from '../../../shared/types/domain';
 import { errorDetails } from '../../../stores/support';
 import { useAppStore } from '../../../stores/useAppStore';
 import { homeController } from '../homeController';
 import styles from './HomePage.module.css';
+import { SearchEmptyIllustration } from './SearchEmptyIllustration';
 
 interface Props {
   onOpenWorkbench: (resultId?: string) => void;
@@ -27,8 +28,14 @@ const defaultContext = (): ContextSelection => ({
   contextPackIds: [],
 });
 
-export function AuthorizedSearch({ onOpenWorkbench }: Props) {
+export function AuthorizedSearch(props: Props) {
+  const workspaceId = useAppStore((state) => state.workspace?.id ?? null);
+  return <WorkspaceSearch key={workspaceId ?? 'none'} {...props} />;
+}
+
+function WorkspaceSearch({ onOpenWorkbench }: Props) {
   const { t } = useI18n();
+  const titleId = useId();
   const workspace = useAppStore((state) => state.workspace);
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const contextBySession = useAppStore((state) => state.contextBySession);
@@ -39,33 +46,54 @@ export function AuthorizedSearch({ onOpenWorkbench }: Props) {
   const [loading, setLoading] = useState(false);
   const [repairing, setRepairing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [composing, setComposing] = useState(false);
+  const [refresh, setRefresh] = useState(0);
+  const requestVersion = useRef({ value: 0 });
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const workspaceId = workspace?.id ?? null;
 
-  const runSearch = async (value: string) => {
-    const normalized = value.trim();
-    setQuery(value);
-    if (!normalized) {
-      setResult(null);
+  const runSearch = useCallback(
+    async (value: string) => {
+      clearTimeout(timer.current);
+      const version = ++requestVersion.current.value;
+      const normalized = value.trim();
+      if (!normalized) {
+        setResult(null);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
       setError(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      setResult(await homeController.search(workspace?.id ?? null, normalized));
-    } catch (searchError) {
-      setResult(null);
-      setError(errorDetails(searchError).message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        const next = await homeController.search(workspaceId, normalized);
+        if (version === requestVersion.current.value) setResult(next);
+      } catch (searchError) {
+        if (version !== requestVersion.current.value) return;
+        setResult(null);
+        setError(errorDetails(searchError).message);
+      } finally {
+        if (version === requestVersion.current.value) setLoading(false);
+      }
+    },
+    [workspaceId]
+  );
+
+  useEffect(() => {
+    const version = requestVersion.current;
+    if (query.trim() && !composing) timer.current = setTimeout(() => void runSearch(query), 250);
+    return () => {
+      clearTimeout(timer.current);
+      version.value++;
+    };
+  }, [query, composing, refresh, runSearch]);
 
   const rebuild = async () => {
     setRepairing(true);
     setError(null);
     try {
       await homeController.rebuildSearchIndex();
-      if (query.trim()) await runSearch(query);
+      setRefresh((value) => value + 1);
       void message.success(t('searchIndexRebuilt'));
     } catch (rebuildError) {
       setError(errorDetails(rebuildError).message);
@@ -97,10 +125,10 @@ export function AuthorizedSearch({ onOpenWorkbench }: Props) {
   };
 
   return (
-    <section className={styles.section} aria-labelledby="authorized-search-title">
+    <section className={styles.section} aria-labelledby={titleId}>
       <div className={styles.sectionHeader}>
         <div>
-          <h2 id="authorized-search-title">{t('authorizedSearchTitle')}</h2>
+          <h2 id={titleId}>{t('authorizedSearchTitle')}</h2>
           <p className={styles.sectionDescription}>{t('authorizedSearchDescription')}</p>
         </div>
         <Button
@@ -112,27 +140,57 @@ export function AuthorizedSearch({ onOpenWorkbench }: Props) {
           {t('repairSearchIndex')}
         </Button>
       </div>
-      <Input.Search
-        allowClear
-        enterButton={t('searchAuthorizedContent')}
-        maxLength={200}
-        loading={loading}
-        placeholder={t('authorizedSearchPlaceholder')}
-        value={query}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          if (!event.target.value) {
+      <form
+        className={styles.searchBar}
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!loading && !composing) void runSearch(query);
+        }}
+      >
+        <Input
+          variant="borderless"
+          size="large"
+          prefix={<FileSearchOutlined aria-hidden="true" />}
+          suffix={
+            <span className={styles.searchShortcut} title={t('commandPalette')}>
+              <kbd>Ctrl / ⌘</kbd>
+              <kbd>K</kbd>
+            </span>
+          }
+          allowClear
+          maxLength={200}
+          placeholder={t('authorizedSearchPlaceholder')}
+          value={query}
+          onChange={(event) => {
+            requestVersion.current.value++;
             setResult(null);
             setError(null);
-          }
-        }}
-        onSearch={(value) => void runSearch(value)}
-      />
+            setLoading(false);
+            setQuery(event.target.value);
+            if (!event.target.value) {
+              setResult(null);
+              setError(null);
+            }
+          }}
+          onCompositionStart={() => {
+            clearTimeout(timer.current);
+            requestVersion.current.value++;
+            setComposing(true);
+          }}
+          onCompositionEnd={() => setComposing(false)}
+          onPressEnter={(event) => {
+            if (event.nativeEvent.isComposing || event.keyCode === 229) event.preventDefault();
+          }}
+        />
+        <Button htmlType="submit" type="primary" loading={loading} className={styles.searchSubmit}>
+          {t('searchAuthorizedContent')}
+        </Button>
+      </form>
       {error ? <Alert className={styles.notice} type="error" showIcon title={error} /> : null}
       {result && result.items.length === 0 ? (
         <Empty
           className={styles.searchEmpty}
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          image={<SearchEmptyIllustration />}
           description={t('authorizedSearchEmpty')}
         />
       ) : null}
@@ -182,7 +240,6 @@ export function AuthorizedSearch({ onOpenWorkbench }: Props) {
           ))}
         </div>
       ) : null}
-      <p className={styles.searchPrivacy}>{t('authorizedSearchPrivacy')}</p>
     </section>
   );
 }

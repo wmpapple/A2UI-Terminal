@@ -42,13 +42,46 @@ beforeEach(() => {
     chatError: null,
     pendingDiff: null,
     contextBySession: {},
+    chatDrafts: {},
     contextReviewKeyBySession: {},
     runtimeMode: 'web-mock',
+    workspace: null,
     sendChat: originalSendChat,
   });
 });
 
 describe('ChatPanel patch presentation', () => {
+  it('restores drafts after unmount and isolates the same session ID in different workspaces', () => {
+    useAppStore.setState({
+      workspace: { id: 'draft-a', name: 'A', kind: 'directory', available: true },
+      chatRequestId: null,
+    });
+    const view = () => (
+      <I18nProvider>
+        <ChatPanel />
+      </I18nProvider>
+    );
+    const first = render(view());
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Workspace A draft' } });
+    first.unmount();
+    const second = render(view());
+    expect(screen.getByRole('textbox')).toHaveValue('Workspace A draft');
+    act(() =>
+      useAppStore.setState({
+        workspace: { id: 'draft-b', name: 'B', kind: 'directory', available: true },
+      })
+    );
+    expect(screen.getByRole('textbox')).toHaveValue('');
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Workspace B draft' } });
+    act(() =>
+      useAppStore.setState({
+        workspace: { id: 'draft-a', name: 'A', kind: 'directory', available: true },
+      })
+    );
+    expect(screen.getByRole('textbox')).toHaveValue('Workspace A draft');
+    second.unmount();
+    useAppStore.setState({ workspace: null });
+  });
   it('hides streaming machine protocol behind a human-readable progress state', () => {
     render(
       <I18nProvider>
@@ -390,7 +423,7 @@ describe('ChatPanel patch presentation', () => {
     expect(screen.getByText('<script>MACHINE_ONLY_HTML</script>')).toBeInTheDocument();
   });
 
-  it('hides provider identifiers and session history but keeps new chat available in simple mode', async () => {
+  it('hides provider identifiers but keeps history and new chat available in simple mode', async () => {
     useAppStore.setState({
       providerConfigs: [
         {
@@ -414,10 +447,13 @@ describe('ChatPanel patch presentation', () => {
       </I18nProvider>
     );
 
-    expect(screen.getByText('AI 已就绪')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'AI 正在回复' })).toBeInTheDocument();
     expect(screen.queryByText(/siliconflow/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/private-model-id/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '历史对话' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
     expect(screen.queryByText('新建会话')).not.toBeInTheDocument();
 
     const previousSessionId = useAppStore.getState().activeSessionId;
@@ -425,6 +461,12 @@ describe('ChatPanel patch presentation', () => {
     await waitFor(() => expect(useAppStore.getState().activeSessionId).not.toBe(previousSessionId));
     expect(useAppStore.getState().sessions).toHaveLength(2);
     expect(useAppStore.getState().sessions[1].messages).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: '历史对话' }));
+    const previousTitle = useAppStore
+      .getState()
+      .sessions.find((session) => session.id === previousSessionId)!.title;
+    fireEvent.click(screen.getByTitle(previousTitle));
+    await waitFor(() => expect(useAppStore.getState().activeSessionId).toBe(previousSessionId));
   });
 
   it('opens the send manifest proactively for the first user message only', () => {

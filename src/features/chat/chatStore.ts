@@ -8,11 +8,14 @@ import { chatController } from './chatController';
 type ChatActions = Pick<
   AppState,
   | 'createSession'
+  | 'deleteSession'
+  | 'pinSession'
   | 'selectSession'
   | 'addMessage'
   | 'updateMessage'
   | 'setSelectedText'
   | 'setSessionContext'
+  | 'setChatDraft'
   | 'setSessionContextReviewKey'
   | 'invalidateContextReviewsForProviderChange'
   | 'addFileToContext'
@@ -22,6 +25,89 @@ type ChatActions = Pick<
 >;
 
 export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
+  pinSession: async (sessionId, pinned) => {
+    const workspaceId = get().workspace?.id;
+    try {
+      if (get().runtimeMode === 'desktop') {
+        if (!workspaceId) return;
+        await chatController.pinSession(workspaceId, sessionId, pinned);
+      }
+      if (get().workspace?.id !== workspaceId) return;
+      set((state) => ({
+        chatError: null,
+        sessions: state.sessions.map((session) =>
+          session.id === sessionId ? { ...session, pinned } : session
+        ),
+      }));
+    } catch (error) {
+      set({ chatError: errorDetails(error).message });
+    }
+  },
+  deleteSession: async (sessionId) => {
+    const workspaceId = get().workspace?.id;
+    if (get().chatRequestId) return;
+    try {
+      if (get().runtimeMode === 'desktop') {
+        if (!workspaceId) return;
+        await chatController.deleteSession(workspaceId, sessionId);
+      }
+      if (get().workspace?.id !== workspaceId) return;
+      set((state) => {
+        const sessions = state.sessions.filter((session) => session.id !== sessionId);
+        const messageIds = new Set(
+          state.sessions
+            .find((session) => session.id === sessionId)
+            ?.messages.map((message) => message.id)
+        );
+        const a2uiSurfaces = state.a2uiSurfaces.filter(
+          (surface) => surface.sessionId !== sessionId
+        );
+        const a2uiInspections = state.a2uiInspections.filter(
+          (inspection) => !messageIds.has(inspection.messageId)
+        );
+        const contextBySession = { ...state.contextBySession };
+        const contextReviewKeyBySession = { ...state.contextReviewKeyBySession };
+        const chatDrafts = { ...state.chatDrafts };
+        delete contextBySession[sessionId];
+        delete contextReviewKeyBySession[sessionId];
+        delete chatDrafts[JSON.stringify([workspaceId ?? state.runtimeMode, sessionId])];
+        return {
+          sessions,
+          chatError: null,
+          a2uiSurfaces,
+          a2uiInspections,
+          activeSurfaceId: a2uiSurfaces.some(
+            (surface) => surface.surfaceId === state.activeSurfaceId
+          )
+            ? state.activeSurfaceId
+            : '',
+          activeInspectionId: a2uiInspections.some(
+            (inspection) => inspection.id === state.activeInspectionId
+          )
+            ? state.activeInspectionId
+            : '',
+          contextBySession,
+          contextReviewKeyBySession,
+          chatDrafts,
+          activeSessionId:
+            state.activeSessionId === sessionId
+              ? (sessions.find((session) => session.pinned)?.id ?? sessions[0]?.id ?? '')
+              : state.activeSessionId,
+        };
+      });
+      if (!get().sessions.length) await get().createSession();
+    } catch (error) {
+      set({ chatError: errorDetails(error).message });
+    }
+  },
+  setChatDraft: (workspaceId, sessionId, text) =>
+    set((state) => {
+      const key = JSON.stringify([workspaceId, sessionId]);
+      const chatDrafts = { ...state.chatDrafts };
+      if (text) chatDrafts[key] = text;
+      else delete chatDrafts[key];
+      return { chatDrafts };
+    }),
   createSession: async () => {
     const id = crypto.randomUUID();
     const workspace = get().workspace;

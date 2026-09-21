@@ -50,6 +50,20 @@ describe('SelectionAssistant', () => {
     expect(screen.queryByLabelText('选区助手')).not.toBeInTheDocument();
   });
 
+  it('ignores Enter during composition and opens review after normal Enter', async () => {
+    render(
+      <I18nProvider>
+        <SelectionAssistant />
+      </I18nProvider>
+    );
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: '改成主动语态' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13, isComposing: true });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
   it('confirms a modifying action and marks its review source as selection', async () => {
     const sendChat = vi.fn().mockResolvedValue(undefined);
     useAppStore.setState({ sendChat });

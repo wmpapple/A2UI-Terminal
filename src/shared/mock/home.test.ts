@@ -4,6 +4,40 @@ import { resetWebMockHomeGateway, webMockHomeGateway } from './home';
 describe('Web Mock home gateway', () => {
   beforeEach(() => resetWebMockHomeGateway());
 
+  it('keeps pin metadata across reads and saves and restores recency order when unpinned', async () => {
+    const [older] = await webMockHomeGateway.listResults();
+    const recent = await webMockHomeGateway.createTextResult({
+      title: 'Recent result',
+      fileName: 'recent.md',
+      format: 'markdown',
+    });
+    const original = await webMockHomeGateway.readResultDocument(older.id);
+    await webMockHomeGateway.pinResult(older.id, true);
+    expect((await webMockHomeGateway.listResults()).map((item) => item.id)).toEqual([
+      older.id,
+      recent.result.id,
+    ]);
+    expect(await webMockHomeGateway.readResultDocument(older.id)).toEqual({
+      ...original,
+      result: { ...original.result, pinned: true },
+    });
+    await webMockHomeGateway.pinResult(older.id, false);
+    expect((await webMockHomeGateway.listResults()).map((item) => item.id)).toEqual([
+      recent.result.id,
+      older.id,
+    ]);
+    await webMockHomeGateway.pinResult(older.id, true);
+    const saved = await webMockHomeGateway.saveResultDocument(
+      older.id,
+      'Edited content',
+      original.contentHash
+    );
+    expect(saved.result.pinned).toBe(true);
+    await expect(webMockHomeGateway.pinResult('missing', true)).rejects.toThrow();
+    resetWebMockHomeGateway();
+    expect((await webMockHomeGateway.listResults())[0].pinned).toBeFalsy();
+  });
+
   it('cancels an in-flight export, preserves history and allows a fresh retry', async () => {
     const created = await webMockHomeGateway.createTextResult({
       title: 'test',

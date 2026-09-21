@@ -62,6 +62,8 @@ pub struct ResultSummary {
     pub result_type: ResultType,
     pub title: String,
     pub status: ResultStatus,
+    #[serde(default)]
+    pub pinned: bool,
     pub storage_kind: ResultStorageKind,
     pub current_revision_id: Option<String>,
     pub a2ui_surface_id: Option<String>,

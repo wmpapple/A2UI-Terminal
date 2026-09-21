@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-pin-result"
+description = "Enables the pin_result command without any pre-configured scope."
+commands.allow = ["pin_result"]
+
+[[permission]]
+identifier = "deny-pin-result"
+description = "Denies the pin_result command without any pre-configured scope."
+commands.deny = ["pin_result"]

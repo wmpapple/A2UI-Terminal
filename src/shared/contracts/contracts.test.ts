@@ -79,6 +79,26 @@ describe('shared Rust/TypeScript contract fixtures', () => {
     invokeMock.mockReset();
     listenMock.mockReset();
   });
+  it('accepts legacy results and boolean pin metadata and sends the pin command', async () => {
+    expect(isResultSummary(result.summary)).toBe(true);
+    expect(isResultSummary({ ...result.summary, pinned: true })).toBe(true);
+    expect(isResultSummary({ ...result.summary, pinned: false })).toBe(true);
+    expect(isResultSummary({ ...result.summary, pinned: 'true' })).toBe(false);
+    const original = window.__TAURI_INTERNALS__;
+    Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: {} });
+    try {
+      await desktopApi.pinResult(result.summary.id, true);
+      expect(invokeMock).toHaveBeenCalledWith('pin_result', {
+        resultId: result.summary.id,
+        pinned: true,
+      });
+    } finally {
+      Object.defineProperty(window, '__TAURI_INTERNALS__', {
+        configurable: true,
+        value: original,
+      });
+    }
+  });
   it('keeps export input opaque and sends a typed progress Channel', async () => {
     expect(isExportResultInput(exportFixture.input)).toBe(true);
     expect(isExportResultOutput(exportFixture.output)).toBe(true);

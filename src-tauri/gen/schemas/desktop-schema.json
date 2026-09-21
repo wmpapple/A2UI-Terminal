@@ -279,6 +279,12 @@
           "markdownDescription": "Enables the delete_a2ui_template command without any pre-configured scope."
         },
         {
+          "description": "Enables the delete_chat_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-chat-session",
+          "markdownDescription": "Enables the delete_chat_session command without any pre-configured scope."
+        },
+        {
           "description": "Enables the delete_context_pack command without any pre-configured scope.",
           "type": "string",
           "const": "allow-delete-context-pack",
@@ -289,6 +295,12 @@
           "type": "string",
           "const": "allow-delete-provider-secret",
           "markdownDescription": "Enables the delete_provider_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_result command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-result",
+          "markdownDescription": "Enables the delete_result command without any pre-configured scope."
         },
         {
           "description": "Enables the discard_result_draft command without any pre-configured scope.",
@@ -487,6 +499,18 @@
           "type": "string",
           "const": "allow-open-a2ui-template",
           "markdownDescription": "Enables the open_a2ui_template command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the pin_chat_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-pin-chat-session",
+          "markdownDescription": "Enables the pin_chat_session command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the pin_result command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-pin-result",
+          "markdownDescription": "Enables the pin_result command without any pre-configured scope."
         },
         {
           "description": "Enables the plan_context command without any pre-configured scope.",
@@ -819,6 +843,12 @@
           "markdownDescription": "Denies the delete_a2ui_template command without any pre-configured scope."
         },
         {
+          "description": "Denies the delete_chat_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-chat-session",
+          "markdownDescription": "Denies the delete_chat_session command without any pre-configured scope."
+        },
+        {
           "description": "Denies the delete_context_pack command without any pre-configured scope.",
           "type": "string",
           "const": "deny-delete-context-pack",
@@ -829,6 +859,12 @@
           "type": "string",
           "const": "deny-delete-provider-secret",
           "markdownDescription": "Denies the delete_provider_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_result command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-result",
+          "markdownDescription": "Denies the delete_result command without any pre-configured scope."
         },
         {
           "description": "Denies the discard_result_draft command without any pre-configured scope.",
@@ -1027,6 +1063,18 @@
           "type": "string",
           "const": "deny-open-a2ui-template",
           "markdownDescription": "Denies the open_a2ui_template command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the pin_chat_session command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-pin-chat-session",
+          "markdownDescription": "Denies the pin_chat_session command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the pin_result command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-pin-result",
+          "markdownDescription": "Denies the pin_result command without any pre-configured scope."
         },
         {
           "description": "Denies the plan_context command without any pre-configured scope.",

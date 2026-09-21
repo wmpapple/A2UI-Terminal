@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../app/i18n/I18nProvider';
 import { SystemSettings } from './SystemSettings';
@@ -117,5 +117,42 @@ describe('SystemSettings', () => {
       target: { value: 'DELETE_ALL_LOCAL_DATA' },
     });
     expect(confirm).toBeEnabled();
+  });
+
+  it('resets confirmation after cancel and prevents repeat submission while clearing', async () => {
+    let complete!: (value: { cleared: boolean }) => void;
+    clearAllLocalDataMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        })
+    );
+    render(
+      <I18nProvider>
+        <SystemSettings />
+      </I18nProvider>
+    );
+    const open = () =>
+      fireEvent.click(screen.getByRole('button', { name: /一键清除所有本地数据/ }));
+    open();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'DELETE_ALL_LOCAL_DATA' } });
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /取\s*消/ }));
+    expect(clearAllLocalDataMock).not.toHaveBeenCalled();
+    open();
+    expect(screen.getByRole('textbox')).toHaveValue('');
+    expect(screen.getByRole('button', { name: '永久清除' })).toBeDisabled();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'DELETE_ALL_LOCAL_DATA' } });
+    const confirm = screen.getByRole('button', { name: '永久清除' });
+    fireEvent.click(confirm);
+    expect(confirm).toBeDisabled();
+    expect(screen.getByRole('textbox')).toBeDisabled();
+    expect(
+      within(screen.getByRole('dialog')).getByRole('button', { name: /取\s*消/ })
+    ).toBeDisabled();
+    fireEvent.click(confirm);
+    expect(clearAllLocalDataMock).toHaveBeenCalledOnce();
+    await act(async () => {
+      complete({ cleared: true });
+    });
   });
 });

@@ -10,6 +10,8 @@ import type {
 const gateway = () => (isWebMock() ? webMockHomeGateway : desktopGateway);
 
 export const resultController = {
+  delete: (resultId: string) => gateway().deleteResult(resultId),
+  pin: (resultId: string, pinned: boolean) => gateway().pinResult(resultId, pinned),
   list: () => gateway().listResults(),
   create: (input: CreateTextResultInput) => gateway().createTextResult(input),
   open: (resultId: string) => gateway().readResultDocument(resultId),

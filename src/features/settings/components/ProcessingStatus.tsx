@@ -39,7 +39,7 @@ export function ProcessingStatus() {
           {t(local ? 'localProcessing' : 'cloudProcessing')}
         </Tag>
         {options?.localProviderAvailable ? (
-          <Tag color="green">
+          <Tag>
             {t('localProvidersFound').replace('{count}', String(options.availableLocalProviders))}
           </Tag>
         ) : null}

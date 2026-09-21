@@ -1,5 +1,5 @@
-import { DeleteOutlined, FolderAddOutlined } from '@ant-design/icons';
-import { Alert, Button, Input, Popconfirm, Select, Tag, message } from 'antd';
+import { DeleteOutlined, ExclamationCircleOutlined, FolderAddOutlined } from '@ant-design/icons';
+import { Alert, Button, Input, Popconfirm, Select, Tag, Tooltip, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { useAppStore } from '../../../stores/useAppStore';
@@ -37,7 +37,14 @@ export function ContextPackSettings() {
   }, [loadPacks, loadSources, workspace?.id]);
 
   if (!workspace) {
-    return <Alert type="info" showIcon title={t('contextPackWorkspaceRequired')} />;
+    return (
+      <Alert
+        className={styles.authorizationNotice}
+        type="info"
+        showIcon
+        title={t('contextPackWorkspaceRequired')}
+      />
+    );
   }
 
   const create = async () => {
@@ -55,10 +62,36 @@ export function ContextPackSettings() {
       data-testid="context-pack-settings"
     >
       <div className={styles.heading}>
-        <h3>{t('contextAuthorizationSettings')}</h3>
+        <div className={styles.kpiHeading}>
+          <h3>{t('contextAuthorizationSettings')}</h3>
+          <Tooltip
+            trigger={['hover', 'focus']}
+            placement="top"
+            color="#1e293b"
+            styles={{
+              root: { maxWidth: 'min(420px, calc(100vw - 32px))' },
+              container: {
+                padding: 16,
+                border: '1px solid #334155',
+                borderRadius: 12,
+                boxShadow: '0 12px 32px #0f172a26',
+                color: '#f1f5f9',
+                lineHeight: 1.8,
+              },
+            }}
+            title={t('contextPackPrivacyHint')}
+          >
+            <button
+              type="button"
+              className={styles.kpiHelp}
+              aria-label={t('contextAuthorizationHelp')}
+            >
+              <ExclamationCircleOutlined aria-hidden="true" />
+            </button>
+          </Tooltip>
+        </div>
         <Tag>{workspace.name}</Tag>
       </div>
-      <Alert type="info" showIcon title={t('contextPackPrivacyHint')} />
       {packError || sourceError ? (
         <Alert type="error" showIcon title={packError ?? sourceError ?? ''} />
       ) : null}

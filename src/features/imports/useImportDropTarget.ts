@@ -2,7 +2,10 @@ import { useEffect, useRef, type RefObject } from 'react';
 import { importController } from './importController';
 import { useImportStore } from './importStore';
 
-export function useImportDropTarget(workspaceId?: string): RefObject<HTMLDivElement | null> {
+export function useImportDropTarget(
+  workspaceId?: string,
+  onDragChange?: (active: boolean) => void
+): RefObject<HTMLDivElement | null> {
   const elementRef = useRef<HTMLDivElement>(null);
   const receiveDrop = useImportStore((state) => state.receiveDrop);
   const reportError = useImportStore((state) => state.reportError);
@@ -11,8 +14,31 @@ export function useImportDropTarget(workspaceId?: string): RefObject<HTMLDivElem
     const targetId = crypto.randomUUID();
     let disposed = false;
     let unlisten: (() => void) | undefined;
+    let unlistenDrag: (() => void) | undefined;
     const element = elementRef.current;
     if (!element) return;
+
+    void importController
+      .listenForDragPosition((position) => {
+        if (disposed) return;
+        const bounds = element.getBoundingClientRect();
+        onDragChange?.(
+          Boolean(
+            position &&
+            bounds.width > 0 &&
+            bounds.height > 0 &&
+            position.x >= bounds.left &&
+            position.x < bounds.right &&
+            position.y >= bounds.top &&
+            position.y < bounds.bottom
+          )
+        );
+      })
+      .then((stopListening) => {
+        if (disposed) stopListening();
+        else unlistenDrag = stopListening;
+      })
+      .catch(reportError);
 
     const publishBounds = () => {
       const bounds = element.getBoundingClientRect();
@@ -52,6 +78,7 @@ export function useImportDropTarget(workspaceId?: string): RefObject<HTMLDivElem
     return () => {
       disposed = true;
       unlisten?.();
+      unlistenDrag?.();
       observer?.disconnect();
       window.removeEventListener('resize', publishBounds);
       window.removeEventListener('scroll', publishBounds, true);
@@ -64,7 +91,7 @@ export function useImportDropTarget(workspaceId?: string): RefObject<HTMLDivElem
         })
         .catch(() => undefined);
     };
-  }, [receiveDrop, reportError, workspaceId]);
+  }, [receiveDrop, reportError, workspaceId, onDragChange]);
 
   return elementRef;
 }

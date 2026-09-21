@@ -1,3 +1,4 @@
+import { EmptyIllustration } from '../../../shared/components/EmptyIllustration';
 import {
   CheckCircleOutlined,
   CopyOutlined,
@@ -84,7 +85,11 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
   if (!surface && !inspection) {
     return (
       <div className={styles.empty}>
-        <Empty description={t('noA2uiSurface')} />
+        <Empty
+          image={<EmptyIllustration />}
+          styles={{ image: { height: 140 } }}
+          description={t('noA2uiSurface')}
+        />
       </div>
     );
   }

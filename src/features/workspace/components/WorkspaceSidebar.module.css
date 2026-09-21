@@ -6,7 +6,7 @@
   gap: 12px;
   min-width: 0;
   padding: 16px 12px;
-  background: var(--panel);
+  background: color-mix(in srgb, var(--surface-subtle) 60%, var(--panel));
   border-right: 1px solid var(--border);
   overflow: hidden;
 }
@@ -127,10 +127,34 @@
   font-weight: 600;
 }
 .footer {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
   padding: 10px;
   color: var(--text-muted);
-  background: var(--surface-subtle);
+  background: color-mix(in srgb, var(--text-muted) 5%, var(--panel));
   border-radius: 8px;
   font-size: 11px;
   line-height: 1.5;
+}
+.footer > :global(.anticon) {
+  flex: none;
+  margin-top: 2px;
+}
+.workspaceBadge {
+  margin: 0;
+  color: var(--text-muted);
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+.primaryActions :global(.ant-btn):not(:disabled):hover {
+  color: var(--text-strong);
+  background: var(--surface-subtle);
+}
+.removeButton:global(.ant-btn) {
+  color: var(--text-muted);
+}
+.removeButton:global(.ant-btn):not(:disabled):hover {
+  color: var(--accent);
+  background: var(--accent-soft);
 }

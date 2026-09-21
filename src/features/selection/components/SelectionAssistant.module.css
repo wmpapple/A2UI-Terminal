@@ -1,9 +1,51 @@
 .assistant {
-  padding: 8px 12px;
+  padding: 12px 16px;
   background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
 }
-
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.selectionBadge:global(.ant-tag) {
+  margin: 0;
+  border: none;
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+}
+.chip:global(.ant-btn) {
+  height: 30px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-subtle) 65%, var(--panel));
+  color: var(--text);
+  padding-inline: 12px;
+}
+.chip:global(.ant-btn):not(:disabled):hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.customControl {
+  display: flex;
+  align-items: center;
+  flex: 1 1 280px;
+  min-width: 0;
+  max-width: 380px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  box-shadow: inset 0 1px 3px #00000006;
+}
+.customControl:focus-within {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.customControl :global(.ant-btn) {
+  flex: none;
+}
 .customInput {
-  width: min(260px, 42vw);
+  flex: 1;
+  min-width: 0;
+  width: auto;
 }

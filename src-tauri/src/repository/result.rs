@@ -97,6 +97,7 @@ fn summary_from_row(row: ResultRow) -> Result<ResultSummary, AppError> {
         result_type: parse_result_type(&row.result_type)?,
         title: row.title,
         status: parse_result_status(&row.status)?,
+        pinned: row.pinned,
         storage_kind: parse_storage_kind(&row.storage_kind)?,
         current_revision_id: row.current_revision_id,
         a2ui_surface_id: row.a2ui_surface_id,

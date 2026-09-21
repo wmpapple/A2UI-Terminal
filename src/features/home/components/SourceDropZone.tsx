@@ -28,7 +28,7 @@ export function SourceDropZone() {
   const authorizedSourceCount = useImportStore((state) => state.sources.length);
   const loadSources = useImportStore((state) => state.loadSources);
   const clearWorkspaceError = useAppStore((state) => state.clearWorkspaceError);
-  const dropZoneRef = useImportDropTarget(workspace?.id);
+  const dropZoneRef = useImportDropTarget(workspace?.id, setDragging);
   const sourceCount = Math.max(workspaceSourceCount, authorizedSourceCount);
 
   useEffect(() => {
@@ -52,7 +52,9 @@ export function SourceDropZone() {
           setDragging(true);
         }}
         onDragOver={(event) => event.preventDefault()}
-        onDragLeave={() => setDragging(false)}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false);
+        }}
         onDrop={handleDrop}
         data-testid="home-source-drop-zone"
       >

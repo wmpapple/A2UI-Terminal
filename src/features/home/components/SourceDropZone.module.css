@@ -2,21 +2,22 @@
   display: grid;
   min-height: 150px;
   padding: 24px;
-  border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--border));
-  background: color-mix(in srgb, var(--accent-soft) 55%, var(--panel));
+  border: 2px dashed color-mix(in srgb, var(--accent) 20%, var(--border));
+  background: color-mix(in srgb, var(--accent) 2%, var(--panel));
   border-radius: 16px;
   text-align: center;
   place-items: center;
   transition:
     border-color 120ms ease,
     background 120ms ease,
+    box-shadow 120ms ease,
     transform 120ms ease;
 }
 
 .dragging {
   border-color: var(--accent);
-  background: var(--accent-soft);
-  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--accent) 15%, var(--panel));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .content {
@@ -29,6 +30,21 @@
 .icon {
   color: var(--accent);
   font-size: 28px;
+  transition: transform 180ms ease;
+}
+
+.dragging .icon {
+  transform: translateY(-2px) scale(1.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropZone,
+  .icon {
+    transition: none;
+  }
+  .dragging .icon {
+    transform: none;
+  }
 }
 
 .title {
@@ -45,7 +61,7 @@
 }
 
 .sourceSummary {
-  color: var(--accent);
+  color: var(--text-muted);
   font-weight: 600;
 }
 

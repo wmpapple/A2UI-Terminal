@@ -5,13 +5,15 @@ import { useI18n } from '../../../app/i18n/useI18n';
 import type { A2uiTemplate } from '../../../shared/types/domain';
 import { useAppStore } from '../../../stores/useAppStore';
 import { a2uiController } from '../../a2ui/a2uiController';
+import { EmptyIllustration } from '../../../shared/components/EmptyIllustration';
 import styles from './PersonalSurfaceTemplates.module.css';
 
 interface Props {
   onOpened: () => void;
+  onBrowseTasks?: () => void;
 }
 
-export function PersonalSurfaceTemplates({ onOpened }: Props) {
+export function PersonalSurfaceTemplates({ onOpened, onBrowseTasks }: Props) {
   const { t } = useI18n();
   const workspace = useAppStore((state) => state.workspace);
   const runtimeMode = useAppStore((state) => state.runtimeMode);
@@ -57,124 +59,140 @@ export function PersonalSurfaceTemplates({ onOpened }: Props) {
 
   return (
     <main className={styles.page} aria-labelledby="templates-page-title">
-      <header className={styles.heading}>
-        <div className={styles.icon}>
-          <SafetyCertificateOutlined />
-        </div>
-        <div>
-          <h1 id="templates-page-title">{t('templatesPageTitle')}</h1>
-          <p>{t('personalTemplatesDescription')}</p>
-        </div>
-      </header>
-      <Alert type="info" showIcon title={t('personalTemplatesSafety')} />
-      {error ? <Alert type="error" showIcon title={error} /> : null}
-      {loading ? (
-        <Spin />
-      ) : templates.length ? (
-        <div className={styles.grid}>
-          {templates.map((template) => (
-            <Card
-              key={template.id}
-              title={template.name}
-              extra={
-                <Tag color={template.valid ? 'green' : 'red'}>
-                  {t(template.valid ? 'templateValid' : 'templateInvalid')}
-                </Tag>
-              }
-              actions={[
-                <Button
-                  key="open"
-                  type="link"
-                  icon={<PlayCircleOutlined />}
-                  disabled={!template.valid}
-                  onClick={() => {
-                    void openTemplate(template.id).then((opened) => {
-                      if (opened) onOpened();
-                    });
-                  }}
-                >
-                  {t('openTemplate')}
-                </Button>,
-                <Popconfirm
-                  key="delete"
-                  title={t('deleteTemplateTitle')}
-                  description={t('deleteTemplateDescription')}
-                  okText={t('deletePermanently')}
-                  cancelText={t('cancel')}
-                  okButtonProps={{ danger: true }}
-                  onConfirm={async () => {
-                    if (!workspace) return;
-                    try {
-                      const deleted = await a2uiController.deleteTemplate(
-                        workspace.id,
-                        template.id
-                      );
-                      if (deleted)
-                        setResult((current) =>
-                          current?.workspaceId === workspace.id
-                            ? {
-                                ...current,
-                                templates: current.templates.filter(
-                                  (item) => item.id !== template.id
-                                ),
-                              }
-                            : current
-                        );
-                    } catch (reason: unknown) {
-                      setResult((current) => ({
-                        workspaceId: workspace.id,
-                        templates: current?.workspaceId === workspace.id ? current.templates : [],
-                        error:
-                          typeof reason === 'object' && reason && 'message' in reason
-                            ? String((reason as { message: unknown }).message)
-                            : t('templateDeleteFailed'),
-                      }));
-                    }
-                  }}
-                >
-                  <Button type="link" danger icon={<DeleteOutlined />}>
-                    {t('deletePermanently')}
-                  </Button>
-                </Popconfirm>,
-              ]}
-            >
-              <p className={styles.meta}>A2UI {template.protocolVersion}</p>
-              <p className={styles.catalog}>{template.catalogId}</p>
-              {template.valid ? (
-                <div className={styles.permissions}>
-                  <strong>{t('templatePermissions')}</strong>
-                  {template.permissions.length ? (
-                    template.permissions.map((permission) => (
-                      <div key={permission.actionType}>
-                        <Tag>{permission.actionType}</Tag>
-                        <span>{permission.description}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <span>{t('templateNoActions')}</span>
-                  )}
-                </div>
-              ) : (
-                <Alert
-                  type="warning"
-                  showIcon
-                  title={template.invalidReason ?? t('templateInvalid')}
-                />
-              )}
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Empty
-          description={t(
-            runtimeMode === 'web-mock'
-              ? 'templateDesktopOnly'
-              : workspace
-                ? 'templatesPageEmpty'
-                : 'templateWorkspaceRequired'
-          )}
+      <div className={styles.content}>
+        <header className={styles.heading}>
+          <div className={styles.icon}>
+            <SafetyCertificateOutlined />
+          </div>
+          <div>
+            <h1 id="templates-page-title">{t('templatesPageTitle')}</h1>
+            <p>{t('personalTemplatesDescription')}</p>
+          </div>
+        </header>
+        <Alert
+          className={styles.infoNotice}
+          type="info"
+          showIcon
+          title={t('personalTemplatesSafety')}
         />
-      )}
+        {error ? <Alert type="error" showIcon title={error} /> : null}
+        {loading ? (
+          <Spin />
+        ) : templates.length ? (
+          <div className={styles.grid}>
+            {templates.map((template) => (
+              <Card
+                key={template.id}
+                title={template.name}
+                extra={
+                  <Tag color={template.valid ? 'green' : 'red'}>
+                    {t(template.valid ? 'templateValid' : 'templateInvalid')}
+                  </Tag>
+                }
+                actions={[
+                  <Button
+                    key="open"
+                    type="link"
+                    icon={<PlayCircleOutlined />}
+                    disabled={!template.valid}
+                    onClick={() => {
+                      void openTemplate(template.id).then((opened) => {
+                        if (opened) onOpened();
+                      });
+                    }}
+                  >
+                    {t('openTemplate')}
+                  </Button>,
+                  <Popconfirm
+                    key="delete"
+                    title={t('deleteTemplateTitle')}
+                    description={t('deleteTemplateDescription')}
+                    okText={t('deletePermanently')}
+                    cancelText={t('cancel')}
+                    okButtonProps={{ danger: true }}
+                    onConfirm={async () => {
+                      if (!workspace) return;
+                      try {
+                        const deleted = await a2uiController.deleteTemplate(
+                          workspace.id,
+                          template.id
+                        );
+                        if (deleted)
+                          setResult((current) =>
+                            current?.workspaceId === workspace.id
+                              ? {
+                                  ...current,
+                                  templates: current.templates.filter(
+                                    (item) => item.id !== template.id
+                                  ),
+                                }
+                              : current
+                          );
+                      } catch (reason: unknown) {
+                        setResult((current) => ({
+                          workspaceId: workspace.id,
+                          templates: current?.workspaceId === workspace.id ? current.templates : [],
+                          error:
+                            typeof reason === 'object' && reason && 'message' in reason
+                              ? String((reason as { message: unknown }).message)
+                              : t('templateDeleteFailed'),
+                        }));
+                      }
+                    }}
+                  >
+                    <Button type="link" danger icon={<DeleteOutlined />}>
+                      {t('deletePermanently')}
+                    </Button>
+                  </Popconfirm>,
+                ]}
+              >
+                <p className={styles.meta}>A2UI {template.protocolVersion}</p>
+                <p className={styles.catalog}>{template.catalogId}</p>
+                {template.valid ? (
+                  <div className={styles.permissions}>
+                    <strong>{t('templatePermissions')}</strong>
+                    {template.permissions.length ? (
+                      template.permissions.map((permission) => (
+                        <div key={permission.actionType}>
+                          <Tag>{permission.actionType}</Tag>
+                          <span>{permission.description}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <span>{t('templateNoActions')}</span>
+                    )}
+                  </div>
+                ) : (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    title={template.invalidReason ?? t('templateInvalid')}
+                  />
+                )}
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Empty
+            className={styles.empty}
+            image={<EmptyIllustration />}
+            styles={{ image: { height: 140 } }}
+            description={t(
+              runtimeMode === 'web-mock'
+                ? 'templateDesktopOnly'
+                : workspace
+                  ? 'templatesPageEmpty'
+                  : 'templateWorkspaceRequired'
+            )}
+          >
+            {onBrowseTasks ? (
+              <Button className={styles.browseButton} type="primary" onClick={onBrowseTasks}>
+                {t('browseTaskTemplates')}
+              </Button>
+            ) : null}
+          </Empty>
+        )}
+      </div>
     </main>
   );
 }

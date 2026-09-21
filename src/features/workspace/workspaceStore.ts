@@ -496,6 +496,11 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
           versionHistoryLoading: false,
           versionHistoryError: null,
           sessions: [],
+          chatDrafts: Object.fromEntries(
+            Object.entries(get().chatDrafts).filter(
+              ([key]) => !key.startsWith(`[${JSON.stringify(workspace.id)},`)
+            )
+          ),
           activeSessionId: '',
           contextBySession: {},
           contextReviewKeyBySession: {},

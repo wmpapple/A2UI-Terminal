@@ -9,6 +9,7 @@ import type {
 } from '../../shared/types/domain';
 import { errorDetails } from '../../stores/support';
 import { resultController } from './resultController';
+import { compareResults } from '../../shared/types/resultOrder';
 
 interface ResultState {
   results: ResultSummary[];
@@ -19,8 +20,11 @@ interface ResultState {
   preview: ResultRevision | null;
   loading: boolean;
   saving: boolean;
+  pinningResultIds: string[];
   error: string | null;
   loadResults: () => Promise<void>;
+  deleteResult: (resultId: string) => Promise<boolean>;
+  pinResult: (resultId: string, pinned: boolean) => Promise<boolean>;
   createTextResult: (input: CreateTextResultInput) => Promise<ResultDocument | null>;
   openResult: (resultId: string) => Promise<void>;
   updateDraft: (content: string) => void;
@@ -46,13 +50,69 @@ export const resultInitialState = {
   preview: null,
   loading: false,
   saving: false,
+  pinningResultIds: [] as string[],
   error: null,
 };
 
-const refreshList = async () => resultController.list();
+const refreshList = async () => (await resultController.list()).sort(compareResults);
 
 export const useResultStore = create<ResultState>((set, get) => ({
   ...resultInitialState,
+
+  pinResult: async (resultId, pinned) => {
+    const state = get();
+    if (state.loading || state.saving || state.pinningResultIds.includes(resultId)) return false;
+    set({ pinningResultIds: [...state.pinningResultIds, resultId] });
+    try {
+      await resultController.pin(resultId, pinned);
+      set((current) => ({
+        results: current.results
+          .map((result) => (result.id === resultId ? { ...result, pinned } : result))
+          .sort(compareResults),
+        ...(current.activeDocument?.result.id === resultId
+          ? {
+              activeDocument: {
+                ...current.activeDocument,
+                result: { ...current.activeDocument.result, pinned },
+              },
+            }
+          : {}),
+        error: null,
+      }));
+      return true;
+    } catch (error) {
+      set({ error: errorDetails(error).message });
+      return false;
+    } finally {
+      set((current) => ({
+        pinningResultIds: current.pinningResultIds.filter((id) => id !== resultId),
+      }));
+    }
+  },
+
+  deleteResult: async (resultId) => {
+    if (get().saving || get().pinningResultIds.includes(resultId)) return false;
+    try {
+      await resultController.delete(resultId);
+      set((state) => ({
+        results: state.results.filter((result) => result.id !== resultId),
+        ...(state.activeDocument?.result.id === resultId
+          ? {
+              activeDocument: null,
+              draftContent: '',
+              revisions: [],
+              preview: null,
+              saveStatus: 'saved' as const,
+            }
+          : {}),
+        error: null,
+      }));
+      return true;
+    } catch (error) {
+      set({ error: errorDetails(error).message });
+      return false;
+    }
+  },
 
   loadResults: async () => {
     set({ loading: true, error: null });
