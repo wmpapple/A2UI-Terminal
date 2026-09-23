@@ -225,6 +225,12 @@
           "markdownDescription": "Enables the confirm_import command without any pre-configured scope."
         },
         {
+          "description": "Enables the confirm_personal_knowledge_import command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-confirm-personal-knowledge-import",
+          "markdownDescription": "Enables the confirm_personal_knowledge_import command without any pre-configured scope."
+        },
+        {
           "description": "Enables the create_chat_session command without any pre-configured scope.",
           "type": "string",
           "const": "allow-create-chat-session",
@@ -291,6 +297,12 @@
           "markdownDescription": "Enables the delete_context_pack command without any pre-configured scope."
         },
         {
+          "description": "Enables the delete_personal_knowledge command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-personal-knowledge",
+          "markdownDescription": "Enables the delete_personal_knowledge command without any pre-configured scope."
+        },
+        {
           "description": "Enables the delete_provider_secret command without any pre-configured scope.",
           "type": "string",
           "const": "allow-delete-provider-secret",
@@ -327,6 +339,12 @@
           "markdownDescription": "Enables the duplicate_result command without any pre-configured scope."
         },
         {
+          "description": "Enables the edit_personal_knowledge command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-edit-personal-knowledge",
+          "markdownDescription": "Enables the edit_personal_knowledge command without any pre-configured scope."
+        },
+        {
           "description": "Enables the execute_a2ui_action command without any pre-configured scope.",
           "type": "string",
           "const": "allow-execute-a2ui-action",
@@ -361,6 +379,12 @@
           "type": "string",
           "const": "allow-get-bootstrap-status",
           "markdownDescription": "Enables the get_bootstrap_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_personal_knowledge command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-personal-knowledge",
+          "markdownDescription": "Enables the get_personal_knowledge command without any pre-configured scope."
         },
         {
           "description": "Enables the get_processing_options command without any pre-configured scope.",
@@ -451,6 +475,12 @@
           "type": "string",
           "const": "allow-list-document-versions",
           "markdownDescription": "Enables the list_document_versions command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_personal_knowledge command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-personal-knowledge",
+          "markdownDescription": "Enables the list_personal_knowledge command without any pre-configured scope."
         },
         {
           "description": "Enables the list_provider_configs command without any pre-configured scope.",
@@ -789,6 +819,12 @@
           "markdownDescription": "Denies the confirm_import command without any pre-configured scope."
         },
         {
+          "description": "Denies the confirm_personal_knowledge_import command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-confirm-personal-knowledge-import",
+          "markdownDescription": "Denies the confirm_personal_knowledge_import command without any pre-configured scope."
+        },
+        {
           "description": "Denies the create_chat_session command without any pre-configured scope.",
           "type": "string",
           "const": "deny-create-chat-session",
@@ -855,6 +891,12 @@
           "markdownDescription": "Denies the delete_context_pack command without any pre-configured scope."
         },
         {
+          "description": "Denies the delete_personal_knowledge command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-personal-knowledge",
+          "markdownDescription": "Denies the delete_personal_knowledge command without any pre-configured scope."
+        },
+        {
           "description": "Denies the delete_provider_secret command without any pre-configured scope.",
           "type": "string",
           "const": "deny-delete-provider-secret",
@@ -891,6 +933,12 @@
           "markdownDescription": "Denies the duplicate_result command without any pre-configured scope."
         },
         {
+          "description": "Denies the edit_personal_knowledge command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-edit-personal-knowledge",
+          "markdownDescription": "Denies the edit_personal_knowledge command without any pre-configured scope."
+        },
+        {
           "description": "Denies the execute_a2ui_action command without any pre-configured scope.",
           "type": "string",
           "const": "deny-execute-a2ui-action",
@@ -925,6 +973,12 @@
           "type": "string",
           "const": "deny-get-bootstrap-status",
           "markdownDescription": "Denies the get_bootstrap_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_personal_knowledge command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-personal-knowledge",
+          "markdownDescription": "Denies the get_personal_knowledge command without any pre-configured scope."
         },
         {
           "description": "Denies the get_processing_options command without any pre-configured scope.",
@@ -1015,6 +1069,12 @@
           "type": "string",
           "const": "deny-list-document-versions",
           "markdownDescription": "Denies the list_document_versions command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_personal_knowledge command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-personal-knowledge",
+          "markdownDescription": "Denies the list_personal_knowledge command without any pre-configured scope."
         },
         {
           "description": "Denies the list_provider_configs command without any pre-configured scope.",

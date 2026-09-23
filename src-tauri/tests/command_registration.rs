@@ -46,7 +46,12 @@ const TASK_COMMANDS: [&str; 5] = [
     "get_task",
     "start_task",
 ];
-const IMPORT_COMMANDS: [&str; 7] = [
+const IMPORT_COMMANDS: [&str; 12] = [
+    "list_personal_knowledge",
+    "get_personal_knowledge",
+    "edit_personal_knowledge",
+    "delete_personal_knowledge",
+    "confirm_personal_knowledge_import",
     "select_import_sources",
     "inspect_import_batch",
     "set_import_drop_target",

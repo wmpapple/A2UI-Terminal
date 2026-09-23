@@ -2,6 +2,9 @@ import type { Locale } from '../../shared/types/domain';
 
 export const messages = {
   'zh-CN': {
+    knowledgeNavigation: '资料库',
+    manageLibraryPacks: '前往资料库管理资料与资料包',
+    openKnowledgeSource: '预览资料',
     historySearch: '查找标题或对话内容',
     historyNoMatches: '没有找到相关对话',
     historyPinned: '置顶对话',
@@ -138,7 +141,7 @@ export const messages = {
     recentResultsNotChats: '不按聊天会话组织',
     noRecentResults: '完成本地结构草稿后，成果会显示在这里',
     authorizedSearchTitle: '搜索本地内容',
-    authorizedSearchDescription: '查找成果正文、当前工作区已授权资料和资料包名称。',
+    authorizedSearchDescription: '查找成果正文、个人资料库、当前工作区已授权资料和资料包名称。',
     authorizedSearchPlaceholder: '输入成果标题、正文关键词或资料名称',
     searchAuthorizedContent: '搜索',
     authorizedSearchEmpty: '没有找到匹配内容',
@@ -386,11 +389,12 @@ export const messages = {
     saveContextSelection: '保存上下文',
     contextTitle: '发送前确认上下文',
     oneTimeAuthorizedSources: '仅本次使用的已授权资料',
-    oneTimeSourceHint: '直接勾选的资料只用于本次发送；如需在工作区记住，请在设置中建立资料包。',
+    oneTimeSourceHint: '直接勾选的资料只用于本次发送；如需在工作区记住，请在资料库中建立资料包。',
     workspaceContextPacks: '工作区资料包',
     contextPackExpandHint: '资料包只保存来源引用；生成发送清单时仍会展开每项资料并逐次确认。',
-    contextAuthorizationSettings: '上下文授权与资料包',
-    contextPackWorkspaceRequired: '请先打开工作区，再管理已授权资料和资料包。',
+    contextAuthorizationSettings: '资料包与工作区资料',
+    contextPackWorkspaceRequired:
+      '请先在工作台打开或创建工作区，再建立资料包。个人资料可在“全部资料”中独立管理。',
     contextAuthorizationHelp: '查看上下文授权与资料包说明',
     contextPackPrivacyHint:
       '资料包不复制正文或绝对路径。删除资料包不会删除设备原文件；撤销资料授权会同步移除引用和内存索引。',
@@ -554,7 +558,7 @@ export const messages = {
     clearDataDangerDescription:
       '将永久清除应用内记录、凭据与界面偏好，无法撤销。点击后需输入确认文本。',
     clearDataWarning:
-      '此操作将删除会话、消息、草稿、文档版本、A2UI 历史、Provider 设置和系统凭据。',
+      '此操作将删除个人资料库的管理副本与提取内容、会话、消息、草稿、文档版本、A2UI 历史、Provider 设置和系统凭据。',
     projectFilesPreserved:
       '真实项目文件、“我的成果”托管文件和已导出文件不会被删除；应用内记录、凭据与界面偏好会被永久清除。此操作不可撤销。',
     typeToConfirm: '请输入确认文本：',
@@ -683,6 +687,9 @@ export const messages = {
     activity: '活动',
   },
   'en-US': {
+    knowledgeNavigation: 'Library',
+    manageLibraryPacks: 'Manage sources and packs in Library',
+    openKnowledgeSource: 'Preview source',
     historySearch: 'Search titles or messages',
     historyNoMatches: 'No matching conversations',
     historyPinned: 'Pinned conversations',
@@ -834,7 +841,7 @@ export const messages = {
     noRecentResults: 'Completed local scaffolds will appear here',
     authorizedSearchTitle: 'Search local content',
     authorizedSearchDescription:
-      'Find result bodies, authorized sources in the current workspace, and source-pack names.',
+      'Find result bodies, your personal library, authorized workspace sources, and source-pack names.',
     authorizedSearchPlaceholder: 'Enter a result title, body keyword, or source name',
     searchAuthorizedContent: 'Search',
     authorizedSearchEmpty: 'No matching content found',
@@ -1116,7 +1123,7 @@ export const messages = {
     contextTitle: 'Review context before sending',
     oneTimeAuthorizedSources: 'Authorized sources for this request only',
     oneTimeSourceHint:
-      'Directly selected sources are used only for this request. Create a context pack in Settings to remember references in the workspace.',
+      'Directly selected sources are used only for this request. Create a context pack in Library to remember references in the workspace.',
     workspaceContextPacks: 'Workspace context packs',
     contextPackExpandHint:
       'A pack stores references only. Every send manifest still expands and confirms each concrete source.',
@@ -1302,7 +1309,7 @@ export const messages = {
     clearDataDangerDescription:
       'Permanently clear in-app records, credentials, and interface preferences. This cannot be undone. Confirmation text is required.',
     clearDataWarning:
-      'This deletes sessions, messages, drafts, document versions, A2UI history, provider settings, and system credentials.',
+      'This deletes managed personal library copies and extracted content, sessions, messages, drafts, document versions, A2UI history, provider settings, and system credentials.',
     projectFilesPreserved:
       'Project files, managed files in My Results, and exported files are preserved. In-app records, credentials, and interface preferences are permanently cleared. This action cannot be undone.',
     typeToConfirm: 'Enter the confirmation text:',

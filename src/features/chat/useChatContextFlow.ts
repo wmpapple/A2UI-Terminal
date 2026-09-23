@@ -1,3 +1,4 @@
+import { knowledgeController } from '../knowledge/knowledgeController';
 import { message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../app/i18n/useI18n';
@@ -135,7 +136,7 @@ export function useChatContextFlow() {
       current.activeSessionId !== activeSessionId
     )
       return;
-    const rememberedSelection = { ...selection, documentSourceIds: [] };
+    const rememberedSelection = { ...selection, documentSourceIds: [], personalKnowledgeIds: [] };
     setSessionContext(activeSessionId, rememberedSelection);
     setSessionContextReviewKey(
       activeSessionId,
@@ -161,9 +162,35 @@ export function useChatContextFlow() {
       activePath,
       selectedText,
     });
-    return runtimeMode === 'web-mock'
-      ? createWebMockManifest(input, processingLocation, contextPacks)
-      : chatController.planContext(input);
+    if (runtimeMode === 'web-mock') {
+      for (const packId of input.contextPackIds) {
+        const pack = contextPacks.find((p) => p.id === packId && p.workspaceId === workspaceId);
+        if (!pack) throw new Error('Pack unavailable');
+        for (const item of pack.items) {
+          if (
+            !item.personalKnowledge ||
+            input.candidates.some((c) => c.selected && c.sourceId === item.sourceId)
+          )
+            continue;
+          input.candidates.push({
+            kind: 'personal_knowledge',
+            label: item.label,
+            selected: true,
+            sourceId: item.sourceId,
+          });
+        }
+      }
+      for (const candidate of input.candidates) {
+        if (candidate.kind !== 'personal_knowledge' || !candidate.selected || !candidate.sourceId)
+          continue;
+        const document = await knowledgeController.get(candidate.sourceId);
+        candidate.label = document.source.title;
+        candidate.content = document.parsed.blocks.map((b) => b.text).join('\n');
+        candidate.baseHash = document.source.rawHash;
+      }
+      return createWebMockManifest(input, processingLocation, contextPacks);
+    }
+    return chatController.planContext(input);
   };
 
   const sendWithReviewedContext = async (request: string) => {
@@ -205,7 +232,10 @@ export function useChatContextFlow() {
       return;
     }
     if (!contextReviewed) {
-      if ((effectiveContext.contextPackIds?.length ?? 0) > 0) {
+      if (
+        (effectiveContext.contextPackIds?.length ?? 0) > 0 ||
+        (effectiveContext.personalKnowledgeIds?.length ?? 0) > 0
+      ) {
         setContextIntent('send');
         invalidateManifest();
         setContextOpen(true);
@@ -255,7 +285,9 @@ export function useChatContextFlow() {
     setSessionContext(activeSessionId, normalized);
     setSessionContextReviewKey(
       activeSessionId,
-      contextIntent === 'review' && (normalized.contextPackIds?.length ?? 0) > 0
+      contextIntent === 'review' &&
+        ((normalized.contextPackIds?.length ?? 0) > 0 ||
+          (normalized.personalKnowledgeIds?.length ?? 0) > 0)
         ? PENDING_CONTEXT_PACK_REVIEW
         : JSON.stringify([providerKey, fingerprint])
     );

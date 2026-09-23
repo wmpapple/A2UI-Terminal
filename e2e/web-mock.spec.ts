@@ -543,6 +543,7 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   await oneTimeReview.getByRole('button', { name: 'Close' }).click();
 
   await navigation.getByRole('button', { name: /设置$/ }).click();
+  await page.getByRole('button', { name: '前往资料库管理资料与资料包' }).click();
   const manager = page.getByTestId('context-pack-settings');
   await expect(manager).toBeVisible();
   await manager.getByTestId('context-pack-name').fill('季度数据');
@@ -573,6 +574,7 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   await expect(page.getByText('继续总结季度数据', { exact: true })).toBeVisible();
 
   await navigation.getByRole('button', { name: /设置$/ }).click();
+  await page.getByRole('button', { name: '前往资料库管理资料与资料包' }).click();
   const rememberedPack = page.getByTestId('context-pack-item').filter({ hasText: '季度数据' });
   await rememberedPack.getByTestId('delete-context-pack').click();
   await page.getByRole('button', { name: '删除资料包' }).last().click();

@@ -29,6 +29,7 @@ pub enum SearchItemKind {
     Result,
     DocumentSource,
     ContextPack,
+    PersonalKnowledge,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -208,6 +209,41 @@ fn collect_documents(
         });
     }
 
+    let mut after = None;
+    loop {
+        let page = crate::repository::knowledge::list(
+            storage,
+            crate::domain::knowledge::ListKnowledgeInput {
+                after,
+                limit: Some(100),
+                query: None,
+            },
+        )?;
+        for source in page.items {
+            if source.status != "ready" {
+                continue;
+            }
+            let document = crate::repository::knowledge::get(storage, &source.id)?;
+            let content = format!(
+                "{}\n{}\n{}",
+                source.title,
+                source.tags.join(" "),
+                document.parsed.text()
+            );
+            documents.push(SearchDocument {
+                id: source.id,
+                kind: SearchItemKind::PersonalKnowledge,
+                title: source.title,
+                content_hash: sha256(content.as_bytes()),
+                content,
+                updated_at: Some(source.updated_at),
+            });
+        }
+        after = page.next_cursor;
+        if after.is_none() {
+            break;
+        }
+    }
     if let Some(workspace_id) = workspace_id {
         for row in storage.workspace_files(workspace_id)? {
             if excluded_path(Path::new(&row.absolute_path))
@@ -318,6 +354,7 @@ fn kind_key(kind: SearchItemKind) -> &'static str {
         SearchItemKind::Result => "result",
         SearchItemKind::DocumentSource => "source",
         SearchItemKind::ContextPack => "pack",
+        SearchItemKind::PersonalKnowledge => "knowledge",
     }
 }
 

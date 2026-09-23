@@ -101,6 +101,7 @@ pub enum ContextSourceKind {
     CurrentFile,
     ProjectFile,
     AttachedDocument,
+    PersonalKnowledge,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

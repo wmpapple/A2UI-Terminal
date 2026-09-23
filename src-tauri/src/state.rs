@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 pub struct AppState {
+    pub knowledge_guard: Mutex<()>,
     pub storage: Storage,
     pub managed_results_dir: PathBuf,
     pub selected_files: Mutex<HashMap<String, PathBuf>>,
@@ -26,6 +27,7 @@ pub struct AppState {
 impl AppState {
     pub fn new(storage: Storage, managed_results_dir: PathBuf) -> Self {
         Self {
+            knowledge_guard: Mutex::new(()),
             storage,
             managed_results_dir,
             selected_files: Mutex::new(HashMap::new()),

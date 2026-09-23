@@ -1,3 +1,10 @@
+import type {
+  KnowledgePage,
+  KnowledgeSource,
+  KnowledgeDocument,
+  ListKnowledgeInput,
+  EditKnowledgeInput,
+} from '../types/knowledge';
 import { Channel, invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
@@ -91,6 +98,32 @@ const requireDesktop = (): void => {
 };
 
 export const desktopApi = {
+  async listPersonalKnowledge(input: ListKnowledgeInput): Promise<KnowledgePage> {
+    requireDesktop();
+    return invoke('list_personal_knowledge', { input });
+  },
+  async getPersonalKnowledge(id: string): Promise<KnowledgeDocument> {
+    requireDesktop();
+    return invoke('get_personal_knowledge', { id });
+  },
+  async editPersonalKnowledge(input: EditKnowledgeInput): Promise<KnowledgeSource> {
+    requireDesktop();
+    return invoke('edit_personal_knowledge', { input });
+  },
+  async deletePersonalKnowledge(id: string): Promise<void> {
+    requireDesktop();
+    return invoke('delete_personal_knowledge', { id });
+  },
+  async confirmPersonalKnowledgeImport(
+    batchId: string,
+    acceptedItemIds: string[],
+    confirmed: boolean
+  ): Promise<KnowledgeSource[]> {
+    requireDesktop();
+    return invoke('confirm_personal_knowledge_import', {
+      input: { batchId, acceptedItemIds, confirmed },
+    });
+  },
   async getBootstrapStatus(): Promise<BootstrapStatus> {
     requireDesktop();
     return invoke<BootstrapStatus>('get_bootstrap_status');

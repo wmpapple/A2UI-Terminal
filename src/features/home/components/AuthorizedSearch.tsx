@@ -102,22 +102,30 @@ function WorkspaceSearch({ onOpenWorkbench }: Props) {
     }
   };
 
-  const startWithContext = (kind: 'document_source' | 'context_pack', id: string) => {
+  const startWithContext = (
+    kind: 'document_source' | 'context_pack' | 'personal_knowledge',
+    id: string
+  ) => {
     if (!workspace || !activeSessionId) {
       setError(t('searchTaskNeedsWorkspace'));
       return;
     }
     const current = contextBySession[activeSessionId] ?? defaultContext();
     const next =
-      kind === 'document_source'
+      kind === 'personal_knowledge'
         ? {
             ...current,
-            documentSourceIds: [...new Set([...(current.documentSourceIds ?? []), id])],
+            personalKnowledgeIds: [...new Set([...(current.personalKnowledgeIds ?? []), id])],
           }
-        : {
-            ...current,
-            contextPackIds: [...new Set([...(current.contextPackIds ?? []), id])],
-          };
+        : kind === 'document_source'
+          ? {
+              ...current,
+              documentSourceIds: [...new Set([...(current.documentSourceIds ?? []), id])],
+            }
+          : {
+              ...current,
+              contextPackIds: [...new Set([...(current.contextPackIds ?? []), id])],
+            };
     setSessionContext(activeSessionId, next);
     setSessionContextReviewKey(activeSessionId, 'search-selection-needs-review');
     void message.success(t('searchContextPrepared'));
@@ -206,14 +214,26 @@ function WorkspaceSearch({ onOpenWorkbench }: Props) {
                     {t(
                       item.kind === 'result'
                         ? 'searchKindResult'
-                        : item.kind === 'document_source'
-                          ? 'searchKindSource'
-                          : 'searchKindPack'
+                        : item.kind === 'personal_knowledge'
+                          ? 'knowledgeNavigation'
+                          : item.kind === 'document_source'
+                            ? 'searchKindSource'
+                            : 'searchKindPack'
                     )}
                   </Tag>
                 </div>
                 <p>{item.snippet}</p>
               </div>
+              {item.kind === 'personal_knowledge' && (
+                <Button
+                  size="small"
+                  onClick={() => {
+                    window.location.hash = `#/knowledge?id=${encodeURIComponent(item.id)}`;
+                  }}
+                >
+                  {t('openKnowledgeSource')}
+                </Button>
+              )}
               {item.kind === 'result' ? (
                 <Button
                   size="small"
@@ -226,12 +246,9 @@ function WorkspaceSearch({ onOpenWorkbench }: Props) {
                 <Button
                   size="small"
                   icon={<RocketOutlined />}
-                  onClick={() =>
-                    startWithContext(
-                      item.kind === 'document_source' ? 'document_source' : 'context_pack',
-                      item.id
-                    )
-                  }
+                  onClick={() => {
+                    if (item.kind !== 'result') startWithContext(item.kind, item.id);
+                  }}
                 >
                   {t('startTaskWithSearchItem')}
                 </Button>

@@ -1,10 +1,12 @@
+import type { ImportDropOutcome } from '../../shared/types/domain';
 import { useEffect, useRef, type RefObject } from 'react';
 import { importController } from './importController';
 import { useImportStore } from './importStore';
 
 export function useImportDropTarget(
   workspaceId?: string,
-  onDragChange?: (active: boolean) => void
+  onDragChange?: (active: boolean) => void,
+  onOutcome?: (outcome: ImportDropOutcome) => void
 ): RefObject<HTMLDivElement | null> {
   const elementRef = useRef<HTMLDivElement>(null);
   const receiveDrop = useImportStore((state) => state.receiveDrop);
@@ -60,7 +62,7 @@ export function useImportDropTarget(
 
     void importController
       .listenForDrops((outcome) => {
-        if (!disposed && outcome.targetId === targetId) receiveDrop(outcome);
+        if (!disposed && outcome.targetId === targetId) (onOutcome ?? receiveDrop)(outcome);
       })
       .then((stopListening) => {
         if (disposed) stopListening();
@@ -91,7 +93,7 @@ export function useImportDropTarget(
         })
         .catch(() => undefined);
     };
-  }, [receiveDrop, reportError, workspaceId, onDragChange]);
+  }, [receiveDrop, reportError, workspaceId, onDragChange, onOutcome]);
 
   return elementRef;
 }

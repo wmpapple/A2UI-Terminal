@@ -18,7 +18,6 @@ import {
 } from '../appUpdater';
 import styles from './SystemSettings.module.css';
 import { systemController } from '../systemController';
-import { ContextPackSettings } from '../../contextPacks/components/ContextPackSettings';
 import { TelemetryPrivacySettings } from './TelemetryPrivacySettings';
 
 const CLEAR_CONFIRMATION = 'DELETE_ALL_LOCAL_DATA';
@@ -131,7 +130,13 @@ export function SystemSettings() {
       <Divider />
       <TelemetryPrivacySettings />
       <Divider />
-      <ContextPackSettings />
+      <Button
+        onClick={() => {
+          window.location.hash = '/knowledge?tab=packs';
+        }}
+      >
+        {t('manageLibraryPacks')}
+      </Button>
       <Modal
         open={clearOpen}
         title={t('clearAllLocalData')}

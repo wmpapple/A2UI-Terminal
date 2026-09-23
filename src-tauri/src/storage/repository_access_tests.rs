@@ -26,7 +26,7 @@ fn repository_transactions_commit_or_roll_back_as_one_unit_and_release_lock() {
         .unwrap();
     assert_eq!(values, vec![1]);
     // A callback's error must neither poison nor retain the connection lock.
-    assert_eq!(storage.schema_version().unwrap(), 18);
+    assert_eq!(storage.schema_version().unwrap(), super::SCHEMA_VERSION);
 }
 
 #[test]

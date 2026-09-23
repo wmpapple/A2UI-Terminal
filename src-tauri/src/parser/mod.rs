@@ -120,6 +120,31 @@ pub fn parse_bytes(path: &Path, bytes: &[u8]) -> Result<ParsedDocument, AppError
         return Err(AppError::FileTooLarge);
     }
     let format = extension(path);
+    if matches!(format.as_str(), "docx" | "xlsx") {
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bytes))
+            .map_err(|_| AppError::InvalidInput("Invalid Office package".into()))?;
+        if archive.len() > 2_000 {
+            return Err(AppError::FileTooLarge);
+        }
+        let mut total = 0_u64;
+        for index in 0..archive.len() {
+            let entry = archive
+                .by_index(index)
+                .map_err(|_| AppError::InvalidInput("Invalid Office entry".into()))?;
+            total = total
+                .checked_add(entry.size())
+                .ok_or(AppError::FileTooLarge)?;
+            if entry.enclosed_name().is_none()
+                || entry.size() > 25 * 1024 * 1024
+                || total > 100 * 1024 * 1024
+                || entry.size() > entry.compressed_size().max(1).saturating_mul(100)
+            {
+                return Err(AppError::InvalidInput(
+                    "Office package exceeds safe limits".into(),
+                ));
+            }
+        }
+    }
     let extracted = is_supported_document_path(path);
     let table = matches!(format.as_str(), "csv" | "xlsx");
     let content = if table {

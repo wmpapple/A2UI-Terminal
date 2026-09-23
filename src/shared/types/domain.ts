@@ -342,6 +342,7 @@ export interface RevokeDocumentSourceResult {
 }
 
 export interface ContextPackItem {
+  personalKnowledge?: boolean;
   sourceId: string;
   label: string;
 }
@@ -366,7 +367,7 @@ export interface DeleteContextPackOutput {
   originalFilesDeleted: false;
 }
 
-export type SearchItemKind = 'result' | 'document_source' | 'context_pack';
+export type SearchItemKind = 'result' | 'document_source' | 'context_pack' | 'personal_knowledge';
 
 export interface SearchAuthorizedContentInput {
   workspaceId: string | null;
@@ -525,7 +526,8 @@ export interface LocalProviderProbe {
   failureCode: string | null;
 }
 
-export type ContextSourceKind = 'selection' | 'current_file' | 'project_file' | 'attached_document';
+export type ContextSourceKind =
+  'selection' | 'current_file' | 'project_file' | 'attached_document' | 'personal_knowledge';
 
 export interface ContextSource {
   kind: ContextSourceKind;
@@ -647,6 +649,7 @@ export interface ContextSelection {
   projectFiles: string[];
   documentSourceIds?: string[];
   contextPackIds?: string[];
+  personalKnowledgeIds?: string[];
 }
 
 export type PatchOperation = 'replace' | 'insert_before' | 'insert_after' | 'delete';

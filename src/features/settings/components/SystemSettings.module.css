@@ -253,7 +253,7 @@
 
 .packComposer {
   display: grid;
-  grid-template-columns: minmax(140px, 0.7fr) minmax(220px, 1.3fr) auto;
+  grid-template-columns: minmax(140px, 0.7fr) minmax(220px, 1.3fr);
   gap: 8px;
 }
 

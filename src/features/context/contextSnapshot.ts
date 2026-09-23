@@ -63,6 +63,7 @@ export const contextReviewFingerprint = ({
     projectFiles: [...normalized.projectFiles].sort(),
     documentSourceIds: [...(normalized.documentSourceIds ?? [])].sort(),
     contextPackIds: [...(normalized.contextPackIds ?? [])].sort(),
+    personalKnowledgeIds: [...(normalized.personalKnowledgeIds ?? [])].sort(),
     activePath: normalized.currentFile || normalized.selection ? activePath : '',
     selectedText: normalized.selection ? contentFingerprint(selectedText) : '',
     fileVersions,

@@ -6,10 +6,18 @@ import { useAppStore } from '../../../stores/useAppStore';
 import { useImportStore } from '../../imports/importStore';
 import { useContextPackStore } from '../contextPackStore';
 import styles from '../../settings/components/SystemSettings.module.css';
+import { KnowledgePicker } from '../../knowledge/KnowledgePicker';
 
 export function ContextPackSettings() {
-  const { t } = useI18n();
+  const workspaceId = useAppStore((state) => state.workspace?.id);
+  return <WorkspacePacks key={workspaceId ?? 'none'} />;
+}
+
+function WorkspacePacks() {
+  const { t, locale } = useI18n();
+  const zh = locale === 'zh-CN';
   const workspace = useAppStore((state) => state.workspace);
+  const selectWorkspace = useAppStore((state) => state.selectWorkspace);
   const forgetAuthorizedSource = useAppStore((state) => state.forgetAuthorizedSource);
   const forgetContextPack = useAppStore((state) => state.forgetContextPack);
   const sources = useImportStore((state) => state.sources).filter(
@@ -29,6 +37,7 @@ export function ContextPackSettings() {
   const deletePack = useContextPackStore((state) => state.deletePack);
   const [name, setName] = useState('');
   const [sourceIds, setSourceIds] = useState<string[]>([]);
+  const [knowledgeIds, setKnowledgeIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!workspace?.id) return;
@@ -43,15 +52,21 @@ export function ContextPackSettings() {
         type="info"
         showIcon
         title={t('contextPackWorkspaceRequired')}
+        action={
+          <Button onClick={() => void selectWorkspace()}>
+            {zh ? '选择工作区' : 'Choose workspace'}
+          </Button>
+        }
       />
     );
   }
 
   const create = async () => {
-    const created = await createPack(workspace.id, name, sourceIds);
+    const created = await createPack(workspace.id, name, [...sourceIds, ...knowledgeIds]);
     if (!created) return;
     setName('');
     setSourceIds([]);
+    setKnowledgeIds([]);
     message.success(t('contextPackCreated'));
   };
 
@@ -108,30 +123,52 @@ export function ContextPackSettings() {
           data-testid="context-pack-sources"
           mode="multiple"
           value={sourceIds}
-          maxCount={20}
+          maxCount={20 - knowledgeIds.length}
           placeholder={t('contextPackSourcesPlaceholder')}
           aria-label={t('contextPackSources')}
           options={sources.map((source) => ({ value: source.id, label: source.name }))}
           onChange={setSourceIds}
         />
-        <Button
-          data-testid="create-context-pack"
-          type="primary"
-          icon={<FolderAddOutlined />}
-          loading={loading}
-          disabled={!name.trim() || sourceIds.length === 0}
-          onClick={() => void create()}
-        >
-          {t('createContextPack')}
-        </Button>
       </div>
+      <KnowledgePicker
+        value={knowledgeIds}
+        onChange={setKnowledgeIds}
+        purpose="pack"
+        maxCount={20 - sourceIds.length}
+      />
+      <p>
+        {zh
+          ? '可混合选择个人资料与当前工作区资料，合计最多 20 项。资料包保存在上方标明的工作区；选择后仍需确认发送清单。'
+          : 'Combine up to 20 library and workspace sources. Packs belong to the workspace shown above; sending still requires confirmation.'}
+      </p>
+      <Button
+        data-testid="create-context-pack"
+        type="primary"
+        icon={<FolderAddOutlined />}
+        loading={loading}
+        disabled={
+          !name.trim() ||
+          sourceIds.length + knowledgeIds.length === 0 ||
+          sourceIds.length + knowledgeIds.length > 20
+        }
+        onClick={() => void create()}
+      >
+        {t('createContextPack')}
+      </Button>
       <div className={styles.managedList}>
         {packs.length === 0 ? <span>{t('noContextPacks')}</span> : null}
         {packs.map((pack) => (
           <article key={pack.id} className={styles.managedItem} data-testid="context-pack-item">
             <div>
               <strong>{pack.name}</strong>
-              <span>{pack.items.map((item) => item.label).join(' · ')}</span>
+              <span>
+                {pack.items
+                  .map(
+                    (item) =>
+                      `${item.label} (${item.personalKnowledge ? (zh ? '个人资料' : 'Library') : zh ? '工作区' : 'Workspace'})`
+                  )
+                  .join(' · ')}
+              </span>
             </div>
             <Tag>{t('contextPackItemCount').replace('{count}', String(pack.items.length))}</Tag>
             <Popconfirm

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-personal-knowledge"
+description = "Enables the list_personal_knowledge command without any pre-configured scope."
+commands.allow = ["list_personal_knowledge"]
+
+[[permission]]
+identifier = "deny-list-personal-knowledge"
+description = "Denies the list_personal_knowledge command without any pre-configured scope."
+commands.deny = ["list_personal_knowledge"]

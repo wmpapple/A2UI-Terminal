@@ -6,7 +6,7 @@ import { useI18n } from './i18n/useI18n';
 import styles from './ShellPage.module.css';
 
 interface Props {
-  route: Exclude<AppRoute, 'workbench' | 'settings'>;
+  route: Exclude<AppRoute, 'workbench' | 'settings' | 'knowledge'>;
   onOpenWorkbench: () => void;
 }
 

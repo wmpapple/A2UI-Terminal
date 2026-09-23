@@ -2,7 +2,8 @@
 
 > 日期：2026-09-21（Asia/Shanghai）  
 > 代码基准：`35023d75a0d87e5e16f1d0de8a554e4eb6b49a69`；开始分析时工作树干净。  
-> 状态：M0 人工验收通过，F0 待人工验收；M1 及后续阶段待开始。用户要求每阶段完成后先人工验收，通过前不得进入下一阶段。  
+> 状态：M0、F0 产品验收通过；M1-A 已完成工程检查，待用户产品验收。原生工具异常继续由代理跟踪，见 [M1A_EXECUTION.md](M1A_EXECUTION.md)。M1-B 及后续阶段待开始，每阶段完成后仍先等待用户产品验收和继续授权。
+>
 > 输入：用户提供的 PRD、Engineering Implementation Plan、Product Engineering Roadmap，以及仓库现有 64 份 docs 文档、实现与测试。材料目录见 [V2X_REVIEW_INVENTORY.md](V2X_REVIEW_INVENTORY.md)。
 
 ## 1. 建议采用的路线
@@ -133,7 +134,7 @@ M0 不替换编辑器、不大规模重写 Storage/Review、不新增业务表�
 
 ## 6. F0：只做新功能必需的复用接口
 
-状态：待人工验收；M0 已人工通过。F0-01/02/03 代码及验证记录已交付，见 [F0_EXECUTION.md](F0_EXECUTION.md) 和 [F0_MANUAL_ACCEPTANCE.md](F0_MANUAL_ACCEPTANCE.md)。E2E 页面崩溃仍有开放项；等待用户检验，不开始 M1-A。
+状态：用户已确认 F0 产品验收通过并授权 M1-A。F0-01/02/03 代码及历史验证见 [F0_EXECUTION.md](F0_EXECUTION.md)；原生工具异常继续由代理跟踪，最新验证见 [M1A_EXECUTION.md](M1A_EXECUTION.md)。
 
 **F0-01 共用解析。** 从现有代码提取 `ParsedDocument { format, parserVersion, rawHash, extractedHash, blocks, warnings }`。Block 保存文本及可用 locator，尚不能可靠定位时使用明确的 `unavailable`。Workspace 导入和 Knowledge 导入复用同一检查/解析实现。先用现有 fixture 保证文字、限制、错误行为不变，再加入结构信息；不复制 PDF/DOCX/XLSX 解析器。
 
@@ -147,7 +148,9 @@ M0 不替换编辑器、不大规模重写 Storage/Review、不新增业务表�
 
 ## 7. M1-A：个人资料库
 
-状态：待开始；依赖 F0。预计 10–15 人日。
+状态：已实现并完成工程检查，待用户产品验收。范围、限制、验收版本及验证条件见 [M1A_EXECUTION.md](M1A_EXECUTION.md)。本轮不进入 M1-B。
+
+本阶段按用户验收反馈追加资料库与资料包整合：统一入口下提供“全部资料 / 资料包”，包可混合引用个人资料及当前工作区资料，保留所属工作区与发送前确认。schema 20；整合版工程验证完成，仍待产品验收。
 
 ### 7.1 数据与存储
 

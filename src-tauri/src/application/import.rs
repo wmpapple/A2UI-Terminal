@@ -28,6 +28,7 @@ const MAX_COMPRESSION_RATIO: u64 = 100;
 pub struct PendingImportSource {
     pub item_id: String,
     pub path: PathBuf,
+    pub content_hash: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -115,6 +116,14 @@ pub fn inspect_paths(
             .ok_or_else(|| AppError::InvalidInput("导入批次大小溢出".into()))?;
         sources.push(PendingImportSource {
             item_id: item_id.clone(),
+            content_hash: if item.status == ImportItemStatus::Ready {
+                Some(crate::parser::hash(&crate::parser::read_bounded(
+                    &canonical,
+                    MAX_DOCUMENT_BYTES,
+                )?))
+            } else {
+                None
+            },
             path: canonical,
         });
         items.push(item);

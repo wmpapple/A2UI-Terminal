@@ -280,7 +280,10 @@ export const isContextManifest = (value: unknown): value is ContextManifest =>
   isNullableString(value.confirmedAt);
 
 const isContextPackItem = (value: unknown): boolean =>
-  isObject(value) && isString(value.sourceId) && isString(value.label);
+  isObject(value) &&
+  isString(value.sourceId) &&
+  isString(value.label) &&
+  (value.personalKnowledge === undefined || typeof value.personalKnowledge === 'boolean');
 
 export const isContextPack = (value: unknown): value is ContextPack =>
   isObject(value) &&
@@ -293,7 +296,12 @@ export const isContextPack = (value: unknown): value is ContextPack =>
   isString(value.createdAt) &&
   isString(value.updatedAt);
 
-const searchItemKinds = new Set(['result', 'document_source', 'context_pack']);
+const searchItemKinds = new Set([
+  'result',
+  'document_source',
+  'context_pack',
+  'personal_knowledge',
+]);
 
 const isSearchAuthorizedContentItem = (value: unknown): boolean =>
   isObject(value) &&

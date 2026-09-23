@@ -49,6 +49,8 @@ pub fn run() {
                 application::result::prepare_managed_results_dir(&app_data_dir)?;
             let storage = Storage::open(&app_data_dir.join("a2ui-terminal.sqlite3"))?;
             storage.cleanup_expired_versions()?;
+            let knowledge_root = application::knowledge::root(&managed_results_dir)?;
+            application::knowledge::reconcile(&storage, &knowledge_root)?;
             application::recovery::reconcile_startup(&storage, &managed_results_dir)?;
             app.manage(AppState::new(storage, managed_results_dir));
             smoke::write_ready()?;
@@ -154,6 +156,11 @@ pub fn run() {
             commands::select_context_files,
             commands::select_import_sources,
             commands::inspect_import_batch,
+            commands::list_personal_knowledge,
+            commands::get_personal_knowledge,
+            commands::edit_personal_knowledge,
+            commands::delete_personal_knowledge,
+            commands::confirm_personal_knowledge_import,
             commands::set_import_drop_target,
             commands::confirm_import,
             commands::list_document_sources,

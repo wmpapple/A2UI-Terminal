@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-edit-personal-knowledge"
+description = "Enables the edit_personal_knowledge command without any pre-configured scope."
+commands.allow = ["edit_personal_knowledge"]
+
+[[permission]]
+identifier = "deny-edit-personal-knowledge"
+description = "Denies the edit_personal_knowledge command without any pre-configured scope."
+commands.deny = ["edit_personal_knowledge"]

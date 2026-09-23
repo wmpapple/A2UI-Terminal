@@ -11,7 +11,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 18;
+const SCHEMA_VERSION: i64 = 20;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -50,6 +50,14 @@ const MIGRATIONS: &[(i64, &str)] = &[
         include_str!("../../migrations/0017_history_management.sql"),
     ),
     (18, include_str!("../../migrations/0018_result_pinning.sql")),
+    (
+        19,
+        include_str!("../../migrations/0019_personal_knowledge.sql"),
+    ),
+    (
+        20,
+        include_str!("../../migrations/0020_knowledge_pack_references.sql"),
+    ),
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -94,6 +102,7 @@ pub struct ContextPackRow {
 
 #[derive(Debug, Clone)]
 pub struct ContextPackItemRow {
+    pub personal_knowledge: bool,
     pub source_id: String,
     pub label: String,
 }
@@ -591,6 +600,7 @@ pub struct ExportJobRow {
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticCounts {
+    pub personal_knowledge: u64,
     pub workspaces: u64,
     pub workspace_files: u64,
     pub sessions: u64,
@@ -789,13 +799,15 @@ impl Storage {
         };
 
         Ok(DiagnosticCounts {
+            personal_knowledge: count("personal_knowledge")?,
             workspaces: count("workspaces")?,
             workspace_files: count("workspace_files")?,
             sessions: count("sessions")?,
             messages: count("messages")?,
             context_snapshots: count("context_snapshots")?,
             context_packs: count("context_packs")?,
-            context_pack_items: count("context_pack_items")?,
+            context_pack_items: count("context_pack_items")?
+                + count("context_pack_knowledge_items")?,
             workspace_drafts: count("workspace_drafts")?,
             document_versions: count("document_versions")?,
             patch_operations: count("patch_operations")?,
@@ -1809,7 +1821,7 @@ impl Storage {
                    AND NOT EXISTS (
                      SELECT 1 FROM context_pack_items
                      WHERE context_pack_items.pack_id = context_packs.id
-                   )",
+                   ) AND NOT EXISTS (SELECT 1 FROM context_pack_knowledge_items WHERE pack_id = context_packs.id)",
                 [workspace_id],
             )?;
             transaction.execute(
@@ -1836,7 +1848,7 @@ impl Storage {
         let authorized_count = source_ids.iter().try_fold(0usize, |count, source_id| {
             let found = transaction
                 .query_row(
-                    "SELECT 1 FROM workspace_files WHERE workspace_id = ?1 AND source_id = ?2",
+                    "SELECT 1 FROM workspace_files WHERE workspace_id = ?1 AND source_id = ?2 UNION ALL SELECT 1 FROM personal_knowledge WHERE id = ?2 AND status = 'ready' LIMIT 1",
                     params![workspace_id, source_id],
                     |_| Ok(true),
                 )
@@ -1856,7 +1868,11 @@ impl Storage {
         for (position, source_id) in source_ids.iter().enumerate() {
             transaction.execute(
                 "INSERT INTO context_pack_items(pack_id, source_id, position)
-                 VALUES (?1, ?2, ?3)",
+                 SELECT ?1, ?2, ?3 WHERE EXISTS (SELECT 1 FROM workspace_files WHERE source_id = ?2 AND workspace_id = ?4)",
+                params![pack_id, source_id, position as i64, workspace_id],
+            )?;
+            transaction.execute(
+                "INSERT INTO context_pack_knowledge_items(pack_id,source_id,position) SELECT ?1,?2,?3 WHERE EXISTS (SELECT 1 FROM personal_knowledge WHERE id=?2 AND status='ready') AND NOT EXISTS (SELECT 1 FROM context_pack_items WHERE pack_id=?1 AND source_id=?2)",
                 params![pack_id, source_id, position as i64],
             )?;
         }
@@ -1903,14 +1919,17 @@ impl Storage {
             .lock()
             .map_err(|_| AppError::StateUnavailable)?;
         let mut statement = connection.prepare(
-            "SELECT item.source_id, file.virtual_path
+            "SELECT item.source_id, file.virtual_path, 0 AS personal_knowledge, item.position AS position
              FROM context_pack_items item
              JOIN workspace_files file ON file.source_id = item.source_id
              WHERE item.pack_id = ?1
-             ORDER BY item.position",
+             UNION ALL
+             SELECT item.source_id, source.title, 1, item.position FROM context_pack_knowledge_items item JOIN personal_knowledge source ON source.id = item.source_id WHERE item.pack_id = ?1 AND source.status = 'ready'
+             ORDER BY position",
         )?;
         let rows = statement.query_map([pack_id], |row| {
             Ok(ContextPackItemRow {
+                personal_knowledge: row.get(2)?,
                 source_id: row.get(0)?,
                 label: row.get(1)?,
             })
@@ -4107,7 +4126,8 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         let transaction = connection.transaction()?;
         transaction.execute_batch(
-            "DELETE FROM product_events;
+            "DELETE FROM personal_knowledge;
+             DELETE FROM product_events;
              DELETE FROM telemetry_settings;
              INSERT INTO telemetry_settings(singleton) VALUES (1);
              DELETE FROM export_jobs;

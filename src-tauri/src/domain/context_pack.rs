@@ -3,8 +3,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ContextPackItem {
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub personal_knowledge: bool,
     pub source_id: String,
     pub label: String,
+}
+
+fn is_false(value: &bool) -> bool {
+    !value
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

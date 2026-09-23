@@ -19,6 +19,7 @@ pub fn list(storage: &Storage, workspace_id: &str) -> Result<Vec<ContextPack>, A
                 .context_pack_items(&row.id)?
                 .into_iter()
                 .map(|item| ContextPackItem {
+                    personal_knowledge: item.personal_knowledge,
                     source_id: item.source_id,
                     label: item.label,
                 })
@@ -57,7 +58,7 @@ pub fn create(storage: &Storage, input: CreateContextPackInput) -> Result<Contex
         let authorized = storage
             .workspace_file_by_source(source_id)?
             .is_some_and(|row| row.workspace_id == input.workspace_id);
-        if !authorized {
+        if !authorized && crate::repository::knowledge::get(storage, source_id).is_err() {
             return Err(AppError::InvalidInput(
                 "资料来源不存在或未获当前工作区授权".into(),
             ));
@@ -112,6 +113,7 @@ pub fn expand_manifest_input(
     let mut seen_sources = input
         .candidates
         .iter()
+        .filter(|candidate| candidate.selected)
         .filter_map(|candidate| candidate.source_id.clone())
         .collect::<HashSet<_>>();
     for pack_id in &input.context_pack_ids {
@@ -133,7 +135,11 @@ pub fn expand_manifest_input(
                 continue;
             }
             input.candidates.push(crate::ai::ContextCandidate {
-                kind: crate::ai::ContextSourceKind::AttachedDocument,
+                kind: if item.personal_knowledge {
+                    crate::ai::ContextSourceKind::PersonalKnowledge
+                } else {
+                    crate::ai::ContextSourceKind::AttachedDocument
+                },
                 label: item.label,
                 selected: true,
                 source_id: Some(item.source_id),

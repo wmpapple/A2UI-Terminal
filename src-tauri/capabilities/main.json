@@ -102,6 +102,11 @@
     "allow-get-task",
     "allow-start-task",
     "updater:default",
-    "process:allow-restart"
+    "process:allow-restart",
+    "allow-list-personal-knowledge",
+    "allow-get-personal-knowledge",
+    "allow-edit-personal-knowledge",
+    "allow-delete-personal-knowledge",
+    "allow-confirm-personal-knowledge-import"
   ]
 }

@@ -46,7 +46,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::ipc::Channel;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
 
@@ -222,6 +222,12 @@ pub fn clear_all_local_data(
     for provider_id in provider_ids {
         SecretStore::delete(&provider_id)?;
     }
+    let _knowledge_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    let knowledge_root = crate::application::knowledge::root(&state.managed_results_dir)?;
+    crate::application::knowledge::clear(&state.storage, &knowledge_root)?;
     state.storage.clear_all()?;
     state
         .selected_files
@@ -640,6 +646,97 @@ pub fn set_import_drop_target(
 }
 
 #[tauri::command]
+pub fn list_personal_knowledge(
+    state: State<'_, AppState>,
+    input: crate::domain::knowledge::ListKnowledgeInput,
+) -> Result<crate::domain::knowledge::KnowledgePage, AppError> {
+    crate::application::knowledge::list(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn get_personal_knowledge(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<crate::domain::knowledge::KnowledgeDocument, AppError> {
+    crate::application::knowledge::get(&state.storage, &id)
+}
+
+#[tauri::command]
+pub fn edit_personal_knowledge(
+    state: State<'_, AppState>,
+    input: crate::domain::knowledge::EditKnowledgeInput,
+) -> Result<crate::domain::knowledge::KnowledgeSource, AppError> {
+    let _guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    state
+        .pending_context_manifests
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    crate::application::knowledge::edit(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn delete_personal_knowledge(state: State<'_, AppState>, id: String) -> Result<(), AppError> {
+    let _guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    for cancellation in state
+        .active_requests
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .values()
+    {
+        cancellation.store(true, Ordering::Release);
+    }
+    state
+        .pending_context_manifests
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    state
+        .context_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    state
+        .search_index
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    let root = crate::application::knowledge::root(&state.managed_results_dir)?;
+    crate::application::knowledge::delete(&state.storage, &root, &id)
+}
+
+#[tauri::command]
+pub async fn confirm_personal_knowledge_import(
+    app: AppHandle,
+    input: ConfirmImportInput,
+) -> Result<Vec<crate::domain::knowledge::KnowledgeSource>, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let _guard = state
+            .knowledge_guard
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let mut pending = state
+            .pending_imports
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        let batch = pending
+            .remove(&input.batch_id)
+            .ok_or_else(|| AppError::InvalidInput("Import batch expired".into()))?;
+        let root = crate::application::knowledge::root(&state.managed_results_dir)?;
+        crate::application::knowledge::confirm(&state.storage, &root, &batch, input)
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
+}
+
+#[tauri::command]
 pub fn confirm_import(
     state: State<'_, AppState>,
     input: ConfirmImportInput,
@@ -891,6 +988,10 @@ pub fn plan_context(
     state: State<'_, AppState>,
     input: ContextManifestInput,
 ) -> Result<ContextManifest, AppError> {
+    let _knowledge_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     let mut index = state
         .context_index
         .lock()
@@ -984,23 +1085,29 @@ pub async fn stream_chat(
 ) -> Result<ChatStreamResult, AppError> {
     let started = Instant::now();
     let request_id = request.request_id.clone();
+    let cancellation = Arc::new(AtomicBool::new(false));
     let manifest = {
+        let _knowledge_guard = state
+            .knowledge_guard
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
         let mut manifests = state
             .pending_context_manifests
             .lock()
             .map_err(|_| AppError::StateUnavailable)?;
-        crate::ai::consume_context_manifest(&state.storage, &mut manifests, &request)?
+        let manifest =
+            crate::ai::consume_context_manifest(&state.storage, &mut manifests, &request)?;
+        state
+            .active_requests
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?
+            .insert(request_id.clone(), cancellation.clone());
+        manifest
     };
     let processing_location = match manifest.view.processing_location {
         crate::ai::ProcessingLocation::Local => telemetry::ProcessingLocation::Local,
         crate::ai::ProcessingLocation::Cloud => telemetry::ProcessingLocation::Cloud,
     };
-    let cancellation = Arc::new(AtomicBool::new(false));
-    state
-        .active_requests
-        .lock()
-        .map_err(|_| AppError::StateUnavailable)?
-        .insert(request_id.clone(), cancellation.clone());
 
     let result = chat::stream(&state.storage, request, manifest, cancellation, |event| {
         on_event
@@ -1784,6 +1891,7 @@ mod tests {
             "1.0.0".into(),
             6,
             DiagnosticCounts {
+                personal_knowledge: 0,
                 workspaces: 1,
                 workspace_files: 1,
                 sessions: 2,

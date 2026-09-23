@@ -1,3 +1,4 @@
+import { knowledgeController } from '../../features/knowledge/knowledgeController';
 import type {
   ImportBatch,
   ImportConfirmation,
@@ -299,6 +300,23 @@ export const webMockImportGateway = {
   },
 
   async listContextPacks(workspaceId: string): Promise<ContextPack[]> {
+    for (const pack of contextPacks) {
+      const refreshed = [];
+      for (const item of pack.items) {
+        if (!item.personalKnowledge) {
+          refreshed.push(item);
+          continue;
+        }
+        try {
+          const doc = await knowledgeController.get(item.sourceId);
+          refreshed.push({ ...item, label: doc.source.title });
+        } catch {
+          /* Deleted sources lose their references. */
+        }
+      }
+      pack.items = refreshed;
+    }
+    contextPacks = contextPacks.filter((pack) => pack.items.length > 0);
     return clone(contextPacks.filter((pack) => pack.workspaceId === workspaceId));
   },
 
@@ -318,10 +336,15 @@ export const webMockImportGateway = {
     if (contextPacks.filter((pack) => pack.workspaceId === input.workspaceId).length >= 50) {
       throw new Error('每个工作区最多保存 50 个资料包');
     }
-    const sources = input.sourceIds.map((sourceId) =>
-      authorizedSources.find(
-        (source) => source.workspaceId === input.workspaceId && source.id === sourceId
-      )
+    const sources = await Promise.all(
+      input.sourceIds.map(async (sourceId) => {
+        const source = authorizedSources.find(
+          (source) => source.workspaceId === input.workspaceId && source.id === sourceId
+        );
+        if (source) return { id: source.id, name: source.name, personalKnowledge: false };
+        const doc = await knowledgeController.get(sourceId);
+        return { id: doc.source.id, name: doc.source.title, personalKnowledge: true };
+      })
     );
     if (sources.some((source) => !source)) {
       throw new Error('资料来源不存在或未获当前工作区授权');
@@ -340,7 +363,11 @@ export const webMockImportGateway = {
       id: `web-mock-context-pack-${++contextPackSequence}`,
       workspaceId: input.workspaceId,
       name,
-      items: sources.map((source) => ({ sourceId: source!.id, label: source!.name })),
+      items: sources.map((source) => ({
+        sourceId: source!.id,
+        label: source!.name,
+        personalKnowledge: source!.personalKnowledge,
+      })),
       createdAt: timestamp,
       updatedAt: timestamp,
     };

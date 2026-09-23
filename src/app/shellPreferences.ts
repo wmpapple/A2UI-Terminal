@@ -1,8 +1,15 @@
 export type ExperienceMode = 'simple' | 'professional';
-export type AppRoute = 'home' | 'results' | 'templates' | 'workbench' | 'settings';
+export type AppRoute = 'home' | 'results' | 'templates' | 'knowledge' | 'workbench' | 'settings';
 
 const MODE_STORAGE_KEY = 'a2ui.experience-mode.v1';
-const ROUTES = new Set<AppRoute>(['home', 'results', 'templates', 'workbench', 'settings']);
+const ROUTES = new Set<AppRoute>([
+  'home',
+  'results',
+  'templates',
+  'knowledge',
+  'workbench',
+  'settings',
+]);
 
 export function readExperienceMode(
   storage: Pick<Storage, 'getItem'> = localStorage

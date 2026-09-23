@@ -73,7 +73,17 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
     },
 
     selectWorkspace: async () => {
-      if (get().runtimeMode === 'web-mock') return;
+      if (get().runtimeMode === 'web-mock') {
+        set({
+          workspace: {
+            id: 'web-mock-workspace',
+            name: 'Web Mock',
+            available: true,
+            kind: 'standalone',
+          },
+        });
+        return;
+      }
       const transition = beginWorkspaceTransition();
       const sourceWorkspaceId = get().workspace?.id;
       await Promise.all(

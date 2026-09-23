@@ -88,6 +88,14 @@ export const buildContextManifestInput = ({
       baseHash: source.contentHash,
     });
   }
+  for (const id of selection.personalKnowledgeIds ?? []) {
+    candidates.push({
+      kind: 'personal_knowledge',
+      label: 'Personal library',
+      selected: true,
+      sourceId: id,
+    });
+  }
   return {
     workspaceId,
     sessionId,
@@ -118,7 +126,7 @@ export const createWebMockManifest = (
       if (knownSourceIds.has(item.sourceId)) continue;
       knownSourceIds.add(item.sourceId);
       selectedCandidates.push({
-        kind: 'attached_document',
+        kind: item.personalKnowledge ? 'personal_knowledge' : 'attached_document',
         label: item.label,
         selected: true,
         sourceId: item.sourceId,

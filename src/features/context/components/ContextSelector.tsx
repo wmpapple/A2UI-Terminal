@@ -15,6 +15,7 @@ import {
   normalizeContextSelection,
 } from '../contextSnapshot';
 import styles from './ContextSelector.module.css';
+import { KnowledgePicker } from '../../knowledge/KnowledgePicker';
 
 interface Props {
   open: boolean;
@@ -169,6 +170,12 @@ export function ContextSelector({
         />
         {error && <Alert type="error" showIcon title={error} />}
         <div className={styles.options}>
+          {open && (
+            <KnowledgePicker
+              value={selection.personalKnowledgeIds ?? []}
+              onChange={(ids) => updateSelection({ ...selection, personalKnowledgeIds: ids })}
+            />
+          )}
           <Checkbox
             disabled={selectedText.length === 0}
             checked={selection.selection}

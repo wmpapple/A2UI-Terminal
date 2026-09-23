@@ -42,6 +42,10 @@ import { WorkspaceLayout } from './WorkspaceLayout';
 import { WorkbenchAppearance } from './WorkbenchAppearance';
 
 import { lazyFeature } from './lazyFeature';
+const KnowledgePage = lazyFeature(async () => {
+  const module = await import('../features/knowledge/KnowledgePage');
+  return { default: module.KnowledgePage };
+});
 const CommandPalette = lazyFeature(async () => {
   const module = await import('./CommandPalette');
   return { default: module.CommandPalette };
@@ -193,6 +197,7 @@ export function AppShell() {
     icon: ReactNode;
   }> = [
     { route: 'home', label: t('homeNavigation'), icon: <HomeOutlined /> },
+    { route: 'knowledge', label: t('knowledgeNavigation'), icon: <AppstoreOutlined /> },
     { route: 'results', label: t('resultsNavigation'), icon: <FileDoneOutlined /> },
     { route: 'templates', label: t('templatesNavigation'), icon: <AppstoreOutlined /> },
     { route: 'workbench', label: t('workbenchNavigation'), icon: <ToolOutlined /> },
@@ -202,6 +207,8 @@ export function AppShell() {
   const content =
     route === 'home' ? (
       <HomePage onOpenWorkbench={openWorkbench} onOpenGuide={() => setOnboardingOpen(true)} />
+    ) : route === 'knowledge' ? (
+      <KnowledgePage />
     ) : route === 'results' ? (
       <ResultsPage onOpenResult={openResult} />
     ) : route === 'workbench' ? (

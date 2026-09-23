@@ -26,11 +26,13 @@ export function CommandPalette({ onClose, onNavigate, onCreate, onOpenWorkbench 
   };
   const commands = [
     { id: 'create', label: t('createResult'), action: onCreate },
-    ...(['home', 'results', 'templates', 'workbench', 'settings'] as const).map((route) => ({
-      id: route,
-      label: t(route === 'settings' ? 'settings' : `${route}Navigation`),
-      action: () => onNavigate(route),
-    })),
+    ...(['home', 'results', 'templates', 'knowledge', 'workbench', 'settings'] as const).map(
+      (route) => ({
+        id: route,
+        label: t(route === 'settings' ? 'settings' : `${route}Navigation`),
+        action: () => onNavigate(route),
+      })
+    ),
   ].filter((command) =>
     command.label.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
   );

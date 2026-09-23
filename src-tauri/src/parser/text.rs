@@ -28,11 +28,17 @@ fn extract_docx_text(bytes: &[u8]) -> Result<String, AppError> {
     let cursor = std::io::Cursor::new(bytes);
     let mut archive = zip::ZipArchive::new(cursor)
         .map_err(|error| AppError::InvalidInput(format!("Invalid DOCX package: {error}")))?;
-    let mut document = archive.by_name("word/document.xml").map_err(|_| {
+    let document = archive.by_name("word/document.xml").map_err(|_| {
         AppError::InvalidInput("DOCX package does not contain word/document.xml".into())
     })?;
     let mut xml = String::new();
-    document.read_to_string(&mut xml).map_err(AppError::Io)?;
+    document
+        .take(25 * 1024 * 1024 + 1)
+        .read_to_string(&mut xml)
+        .map_err(AppError::Io)?;
+    if xml.len() > 25 * 1024 * 1024 {
+        return Err(AppError::FileTooLarge);
+    }
     let mut reader = quick_xml::Reader::from_str(&xml);
     let mut output = String::new();
     loop {

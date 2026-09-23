@@ -104,7 +104,7 @@ pub struct PendingContextManifest {
     prompt_hash: String,
     expires_at_epoch: u64,
     sources: Vec<ContextSource>,
-    source_bindings: Vec<(String, String)>,
+    source_bindings: Vec<(String, String, String)>,
     history: Vec<ProviderMessage>,
 }
 
@@ -185,6 +185,21 @@ pub fn plan_context_manifest(
             continue;
         }
         selected_source_count += 1;
+        if candidate.kind == ContextSourceKind::PersonalKnowledge {
+            let document = crate::repository::knowledge::get(storage, source_id)?;
+            let content = document.parsed.text();
+            resolved_sources.push(ResolvedTextSource {
+                kind: ContextSourceKind::PersonalKnowledge,
+                manifest_kind: "personal_knowledge".into(),
+                label: document.source.title,
+                source_id: Some(source_id.to_string()),
+                content_hash: document.source.raw_hash.clone(),
+                size_bytes: content.len() as u64,
+                content,
+                base_hash: Some(document.source.raw_hash),
+            });
+            continue;
+        }
         let row = storage
             .workspace_file_by_source(source_id)?
             .filter(|row| row.workspace_id == input.workspace_id)
@@ -327,7 +342,13 @@ pub fn plan_context_manifest(
     let source_bindings = source_plan
         .included_sources
         .iter()
-        .filter_map(|source| Some((source.source_ref.clone()?, source.content_hash.clone()?)))
+        .filter_map(|source| {
+            Some((
+                source.kind.clone(),
+                source.source_ref.clone()?,
+                source.content_hash.clone()?,
+            ))
+        })
         .collect::<Vec<_>>();
     let view = ContextManifest {
         id: Uuid::new_v4().to_string(),
@@ -432,7 +453,16 @@ pub fn consume_context_manifest(
             "Provider 配置已变化，请重新确认处理位置和上下文".into(),
         ));
     }
-    for (source_id, expected_hash) in &manifest.source_bindings {
+    for (kind, source_id, expected_hash) in &manifest.source_bindings {
+        if kind == "personal_knowledge" {
+            let document = crate::repository::knowledge::get(storage, source_id)?;
+            if document.source.raw_hash != *expected_hash {
+                return Err(AppError::InvalidInput(
+                    "Knowledge changed; confirm context again".into(),
+                ));
+            }
+            continue;
+        }
         let row = storage
             .workspace_file_by_source(source_id)?
             .filter(|row| row.workspace_id == request.workspace_id)
@@ -579,6 +609,7 @@ fn kind_name(kind: ContextSourceKind) -> &'static str {
         ContextSourceKind::CurrentFile => "current_file",
         ContextSourceKind::ProjectFile => "project_file",
         ContextSourceKind::AttachedDocument => "attached_document",
+        ContextSourceKind::PersonalKnowledge => "personal_knowledge",
     }
 }
 
