@@ -6,6 +6,9 @@
   "platforms": ["windows"],
   "permissions": [
     "allow-get-bootstrap-status",
+    "allow-get-writing-profiles",
+    "allow-save-writing-profile",
+    "allow-delete-writing-profile",
     "allow-set-provider-secret",
     "allow-provider-secret-status",
     "allow-delete-provider-secret",

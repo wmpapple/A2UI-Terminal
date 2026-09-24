@@ -66,6 +66,17 @@ describe('ContextSelector', () => {
             strategy: 'retrieval',
             indexMode: 'memory_lexical',
             status: 'awaiting_confirmation',
+            writingProfile: {
+              hash: 'profile-hash',
+              composerVersion: 'm2.1',
+              enabled: true,
+              layers: [{ id: 'global', scope: 'global', version: 2, rules: '使用短句' }],
+              terminology: [],
+              forbiddenWords: [],
+              exampleKnowledgeIds: [],
+              instructionText: 'Global Profile:\n- Rules: 使用短句',
+              estimatedTokens: 12,
+            },
             includedSources: [
               {
                 kind: 'current_file',
@@ -113,6 +124,12 @@ describe('ContextSelector', () => {
     expect(screen.getByText(/本机内存检索选中 1 个分块/)).toBeInTheDocument();
     expect(screen.getAllByText(/notes\.md/)).toHaveLength(2);
     expect(screen.getByText('chunk-0001 [0–10]')).toBeInTheDocument();
+    expect(screen.getByText('全局偏好')).toBeInTheDocument();
+    expect(screen.queryByText(/全局偏好 v2/)).not.toBeInTheDocument();
+    expect(screen.getByText('查看本次有效规则')).toBeInTheDocument();
+    expect(screen.getByText(/全局偏好：/)).toBeInTheDocument();
+    expect(screen.getByText(/写作规则：使用短句/)).toBeInTheDocument();
+    expect(screen.queryByText(/Global Profile:|Rules:/)).not.toBeInTheDocument();
     expect(
       screen.getByText(/photo\.png: 当前 Provider 合同不支持可信视觉输入/)
     ).toBeInTheDocument();

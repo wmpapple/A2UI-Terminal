@@ -1,6 +1,9 @@
 fn main() {
     let app_manifest = tauri_build::AppManifest::new().commands(&[
         "get_bootstrap_status",
+        "get_writing_profiles",
+        "save_writing_profile",
+        "delete_writing_profile",
         "set_provider_secret",
         "provider_secret_status",
         "delete_provider_secret",

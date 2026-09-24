@@ -3,11 +3,16 @@ pub use super::planner::{
     ContextChunkRange, ContextIndexMode, ContextManifestSource, ContextSourceMode, ContextStrategy,
 };
 use super::retrieval::ContextIndex;
-use super::{ChatRequest, ContextSource, ContextSourceKind, ProviderConfig, ProviderMessage};
+use super::{
+    build_writing_profile_snapshot, ChatRequest, ContextSource, ContextSourceKind, ProviderConfig,
+    ProviderMessage, WritingProfileSnapshot,
+};
 use crate::document_source::{self, DocumentSourceKind};
+use crate::domain::writing_profile::WritingProfileScope;
 use crate::error::AppError;
 use crate::repository::chat::ChatRepository;
 use crate::repository::provider::ProviderRepository;
+use crate::repository::writing_profile::WritingProfileRepository;
 use crate::security::is_sensitive_path;
 use crate::storage::Storage;
 use serde::{Deserialize, Serialize};
@@ -84,6 +89,7 @@ pub struct ContextManifest {
     pub strategy: ContextStrategy,
     pub index_mode: ContextIndexMode,
     pub status: ContextManifestStatus,
+    pub writing_profile: WritingProfileSnapshot,
     pub included_sources: Vec<ContextManifestSource>,
     pub excluded_sources: Vec<ContextManifestSource>,
     pub character_count: usize,
@@ -134,6 +140,7 @@ pub fn plan_context_manifest(
     if session.workspace_id != input.workspace_id {
         return Err(AppError::InvalidInput("会话不属于当前工作区".into()));
     }
+    let writing_profile = current_writing_profile(storage, &input.workspace_id)?;
 
     index.retain_workspace(&input.workspace_id);
     let processing_location = processing_location(&provider);
@@ -268,6 +275,7 @@ pub fn plan_context_manifest(
         0
     };
     let prompt_tokens = estimate_tokens(&input.prompt);
+    let profile_tokens = writing_profile.estimated_tokens;
     let history_tokens = if input.include_recent_messages {
         estimate_tokens(&history_serialized)
     } else {
@@ -275,8 +283,16 @@ pub fn plan_context_manifest(
     };
     let source_token_budget = CONTEXT_TOKEN_BUDGET
         .saturating_sub(prompt_tokens)
+        .saturating_sub(profile_tokens)
         .saturating_sub(history_tokens)
         .saturating_sub(CONTEXT_WRAPPER_RESERVE_TOKENS);
+    if prompt_tokens + profile_tokens + history_tokens + CONTEXT_WRAPPER_RESERVE_TOKENS
+        >= CONTEXT_TOKEN_BUDGET
+    {
+        return Err(AppError::InvalidInput(
+            "写作要求、偏好与最近对话超过本次 32000 token 输入预算，请缩短后重试".into(),
+        ));
+    }
     let mut source_plan = plan_text_sources(
         index,
         &input.workspace_id,
@@ -287,6 +303,7 @@ pub fn plan_context_manifest(
     excluded_sources.append(&mut source_plan.excluded_sources);
     let mut character_count = source_plan.character_count;
     let mut sensitive_warning = looks_sensitive(&input.prompt)
+        || looks_sensitive(&writing_profile.instruction_text)
         || source_plan
             .sources
             .iter()
@@ -363,6 +380,7 @@ pub fn plan_context_manifest(
             ContextIndexMode::MemoryLexical
         },
         status: ContextManifestStatus::AwaitingConfirmation,
+        writing_profile,
         included_sources: source_plan.included_sources,
         excluded_sources,
         character_count,
@@ -372,6 +390,7 @@ pub fn plan_context_manifest(
             .map(|source| estimate_tokens(&source.content))
             .sum::<usize>()
             + prompt_tokens
+            + profile_tokens
             + history_tokens
             + CONTEXT_WRAPPER_RESERVE_TOKENS,
         token_budget: CONTEXT_TOKEN_BUDGET,
@@ -453,6 +472,12 @@ pub fn consume_context_manifest(
             "Provider 配置已变化，请重新确认处理位置和上下文".into(),
         ));
     }
+    let current_profile = current_writing_profile(storage, &request.workspace_id)?;
+    if manifest.view.writing_profile.hash != current_profile.hash {
+        return Err(AppError::InvalidInput(
+            "写作偏好已变化，请重新规划并确认发送范围".into(),
+        ));
+    }
     for (kind, source_id, expected_hash) in &manifest.source_bindings {
         if kind == "personal_knowledge" {
             let document = crate::repository::knowledge::get(storage, source_id)?;
@@ -479,6 +504,19 @@ pub fn consume_context_manifest(
         sources: manifest.sources,
         history: manifest.history,
     })
+}
+
+fn current_writing_profile(
+    storage: &Storage,
+    workspace_id: &str,
+) -> Result<WritingProfileSnapshot, AppError> {
+    let repository = WritingProfileRepository::new(storage);
+    let global = repository.find(WritingProfileScope::Global, None)?;
+    let workspace = repository.find(WritingProfileScope::Workspace, Some(workspace_id))?;
+    Ok(build_writing_profile_snapshot(
+        global.as_ref(),
+        workspace.as_ref(),
+    ))
 }
 
 pub fn build_context_prompt(prompt: &str, sources: &[ContextSource]) -> String {
@@ -694,6 +732,7 @@ mod tests {
         ContextIndex, ContextManifestInput,
     };
     use crate::ai::{ChatRequest, ContextSource, ContextSourceKind, ProviderConfig, ProviderKind};
+    use crate::domain::writing_profile::{SaveWritingProfileInput, WritingProfileScope};
     use crate::storage::Storage;
     use std::collections::HashMap;
     use std::fs;
@@ -916,5 +955,74 @@ mod tests {
             }
         )
         .is_err());
+    }
+
+    #[test]
+    fn profile_change_invalidates_a_confirmed_manifest() {
+        let storage = Storage::open_in_memory().unwrap();
+        let workspace_id = "workspace-profile-change";
+        let session_id = uuid::Uuid::new_v4().to_string();
+        storage
+            .create_standalone_workspace(workspace_id, "Profile")
+            .unwrap();
+        storage
+            .create_session(workspace_id, &session_id, "Profile")
+            .unwrap();
+        let prompt = "写一段摘要";
+        let mut index = ContextIndex::default();
+        let pending = plan_context_manifest(
+            &storage,
+            &mut index,
+            ContextManifestInput {
+                workspace_id: workspace_id.into(),
+                session_id: session_id.clone(),
+                provider_id: "openai".into(),
+                prompt: prompt.into(),
+                candidates: Vec::new(),
+                include_recent_messages: false,
+                recent_message_count: 0,
+                context_pack_ids: Vec::new(),
+            },
+        )
+        .unwrap();
+        let manifest_id = pending.view.id.clone();
+        let mut manifests = HashMap::from([(manifest_id.clone(), pending)]);
+        confirm_context_manifest(
+            &mut manifests,
+            ConfirmContextManifestInput {
+                manifest_id: manifest_id.clone(),
+                sensitive_cloud_confirmed: false,
+            },
+        )
+        .unwrap();
+        crate::application::writing_profile::save(
+            &storage,
+            SaveWritingProfileInput {
+                scope: WritingProfileScope::Global,
+                workspace_id: None,
+                enabled: true,
+                rules: "使用短句".into(),
+                terminology: Vec::new(),
+                forbidden_words: Vec::new(),
+                example_knowledge_ids: Vec::new(),
+            },
+        )
+        .unwrap();
+        let request = ChatRequest {
+            request_id: uuid::Uuid::new_v4().to_string(),
+            user_message_id: uuid::Uuid::new_v4().to_string(),
+            assistant_message_id: uuid::Uuid::new_v4().to_string(),
+            workspace_id: workspace_id.into(),
+            session_id,
+            provider_id: "openai".into(),
+            prompt: prompt.into(),
+            context_manifest_id: manifest_id,
+            review_source: None,
+            explanation_only: false,
+        };
+        assert!(consume_context_manifest(&storage, &mut manifests, &request)
+            .unwrap_err()
+            .to_string()
+            .contains("写作偏好已变化"));
     }
 }

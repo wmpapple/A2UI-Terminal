@@ -19,6 +19,7 @@ import searchFixture from '../../../contracts/v2/search.json';
 import providerProcessingFixture from '../../../contracts/v2/provider-processing.json';
 import telemetryFixture from '../../../contracts/v2/telemetry.json';
 import recoveryFixture from '../../../contracts/v2/recovery.json';
+import writingProfileFixture from '../../../contracts/v2/writing-profile.json';
 import {
   isExportResultInput,
   isExportResultOutput,
@@ -57,6 +58,7 @@ import {
   isTelemetryDictionary,
   isTelemetrySettings,
   isRecoveryStatus,
+  isWritingProfileBundle,
 } from './guards';
 import { desktopApi } from '../platform/desktop';
 
@@ -160,10 +162,42 @@ describe('shared Rust/TypeScript contract fixtures', () => {
     expect(isTelemetrySettings(telemetryFixture.settings)).toBe(true);
     expect(isTelemetryDictionary(telemetryFixture.dictionary)).toBe(true);
     expect(isRecoveryStatus(recoveryFixture)).toBe(true);
+    expect(isWritingProfileBundle(writingProfileFixture)).toBe(true);
     expect(JSON.stringify(recoveryFixture)).not.toContain('targetPath');
     expect(JSON.stringify(recoveryFixture)).not.toContain('absolutePath');
     expect(isReviewRequest(review.request)).toBe(true);
     expect(isReviewApplication(review.application)).toBe(true);
+  });
+
+  it('keeps writing profile IPC scoped to profile fields and opaque identifiers', async () => {
+    const original = window.__TAURI_INTERNALS__;
+    Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: {} });
+    try {
+      invokeMock.mockResolvedValue(writingProfileFixture);
+      await expect(desktopApi.getWritingProfiles('workspace')).resolves.toEqual(
+        writingProfileFixture
+      );
+      expect(invokeMock).toHaveBeenLastCalledWith('get_writing_profiles', {
+        workspaceId: 'workspace',
+      });
+      const input = {
+        scope: 'workspace' as const,
+        workspaceId: 'workspace',
+        enabled: true,
+        rules: '面向开发者。',
+        terminology: [{ term: 'AI', preferred: 'AI 助手' }],
+        forbiddenWords: ['赋能'],
+        exampleKnowledgeIds: ['knowledge-example'],
+      };
+      await desktopApi.saveWritingProfile(input);
+      expect(invokeMock).toHaveBeenLastCalledWith('save_writing_profile', { input });
+      await desktopApi.deleteWritingProfile('workspace', 'workspace');
+      expect(invokeMock).toHaveBeenLastCalledWith('delete_writing_profile', {
+        input: { scope: 'workspace', workspaceId: 'workspace' },
+      });
+    } finally {
+      Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: original });
+    }
   });
 
   it('uses read-only local processing commands without sending endpoint input', async () => {

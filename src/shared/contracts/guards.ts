@@ -41,6 +41,8 @@ import type {
   TelemetryDictionary,
   TelemetrySettings,
   WorkspaceDocument,
+  WritingProfile,
+  WritingProfileBundle,
 } from '../types/domain';
 
 export interface AppErrorContract {
@@ -251,6 +253,55 @@ const isContextManifestSource = (value: unknown): boolean =>
   value.selectedRanges.every(isContextChunkRange) &&
   isNullableString(value.exclusionReason);
 
+export const isWritingProfileSnapshot = (value: unknown): boolean =>
+  isObject(value) &&
+  isString(value.hash) &&
+  isString(value.composerVersion) &&
+  isBoolean(value.enabled) &&
+  Array.isArray(value.layers) &&
+  value.layers.every(
+    (layer) =>
+      isObject(layer) &&
+      isString(layer.id) &&
+      ['global', 'workspace'].includes(String(layer.scope)) &&
+      isNumber(layer.version) &&
+      isString(layer.rules)
+  ) &&
+  Array.isArray(value.terminology) &&
+  value.terminology.every(
+    (rule) => isObject(rule) && isString(rule.term) && isString(rule.preferred)
+  ) &&
+  Array.isArray(value.forbiddenWords) &&
+  value.forbiddenWords.every(isString) &&
+  Array.isArray(value.exampleKnowledgeIds) &&
+  value.exampleKnowledgeIds.every(isString) &&
+  isString(value.instructionText) &&
+  isNumber(value.estimatedTokens);
+
+export const isWritingProfile = (value: unknown): value is WritingProfile =>
+  isObject(value) &&
+  isString(value.id) &&
+  ['global', 'workspace'].includes(String(value.scope)) &&
+  isNullableString(value.workspaceId) &&
+  isBoolean(value.enabled) &&
+  isNumber(value.version) &&
+  isString(value.rules) &&
+  Array.isArray(value.terminology) &&
+  value.terminology.every(
+    (rule) => isObject(rule) && isString(rule.term) && isString(rule.preferred)
+  ) &&
+  Array.isArray(value.forbiddenWords) &&
+  value.forbiddenWords.every(isString) &&
+  Array.isArray(value.exampleKnowledgeIds) &&
+  value.exampleKnowledgeIds.every(isString) &&
+  isString(value.updatedAt);
+
+export const isWritingProfileBundle = (value: unknown): value is WritingProfileBundle =>
+  isObject(value) &&
+  isWritingProfile(value.global) &&
+  (value.workspace === null || isWritingProfile(value.workspace)) &&
+  isWritingProfileSnapshot(value.effective);
+
 export const isContextManifest = (value: unknown): value is ContextManifest =>
   isObject(value) &&
   isString(value.id) &&
@@ -265,6 +316,7 @@ export const isContextManifest = (value: unknown): value is ContextManifest =>
   ['none', 'memory_lexical'].includes(value.indexMode) &&
   isString(value.status) &&
   contextManifestStatuses.has(value.status) &&
+  isWritingProfileSnapshot(value.writingProfile) &&
   Array.isArray(value.includedSources) &&
   value.includedSources.every(isContextManifestSource) &&
   Array.isArray(value.excludedSources) &&

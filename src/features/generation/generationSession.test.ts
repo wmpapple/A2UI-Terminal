@@ -10,13 +10,18 @@ import {
   writeGenerationSession,
 } from './generationSession';
 
-const plan = (prompt: string, contentHash = 'a'.repeat(64)): GenerationPlan => ({
+const plan = (
+  prompt: string,
+  contentHash = 'a'.repeat(64),
+  profileHash = 'profile-disabled-contract'
+): GenerationPlan => ({
   id: crypto.randomUUID(),
   requestId: crypto.randomUUID(),
   targetTitle: '成果',
   prompt,
   manifest: {
     ...fixture,
+    writingProfile: { ...fixture.writingProfile, hash: profileHash },
     includedSources: fixture.includedSources.map((source) => ({ ...source, contentHash })),
     requiresSensitiveConfirmation: false,
   } as ContextManifest,
@@ -33,6 +38,13 @@ describe('generation session approval', () => {
       approvedSensitiveConfirmation('result:1', plan('继续总结', 'b'.repeat(64)), 'provider-v1')
     ).toBeNull();
     expect(approvedSensitiveConfirmation('result:1', plan('继续总结'), 'provider-v2')).toBeNull();
+    expect(
+      approvedSensitiveConfirmation(
+        'result:1',
+        plan('继续总结', 'a'.repeat(64), 'changed-profile'),
+        'provider-v1'
+      )
+    ).toBeNull();
   });
 
   it('keeps an isolated in-memory draft for navigation remounts', () => {

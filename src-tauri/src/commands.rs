@@ -14,7 +14,7 @@ pub use crate::application::provider::{
 use crate::application::{
     adapters, chat, context, context_pack, export as export_service, import as import_service,
     provider, review, revision, search as search_service, telemetry,
-    workspace as workspace_service,
+    workspace as workspace_service, writing_profile,
 };
 use crate::document_source::{DocumentSource, DocumentSourceContent};
 use crate::domain::context_pack::{ContextPack, CreateContextPackInput, DeleteContextPackOutput};
@@ -29,6 +29,7 @@ use crate::domain::review::{
 use crate::domain::task::{
     AnswerTaskInput, CreateTaskInput, TaskDetail, TaskRunResult, TaskTemplate,
 };
+use crate::domain::writing_profile::{DeleteWritingProfileInput, SaveWritingProfileInput};
 use crate::error::AppError;
 use crate::patch::{DocumentPatch, PatchApplication, PatchReview};
 use crate::security::SecretStore;
@@ -161,6 +162,42 @@ pub fn get_bootstrap_status(state: State<'_, AppState>) -> Result<BootstrapStatu
         schema_version: state.storage.schema_version()?,
         credential_store: "windows-credential-manager",
     })
+}
+
+#[tauri::command]
+pub fn get_writing_profiles(
+    state: State<'_, AppState>,
+    workspace_id: Option<String>,
+) -> Result<writing_profile::WritingProfileBundle, AppError> {
+    writing_profile::get(&state.storage, workspace_id.as_deref())
+}
+
+#[tauri::command]
+pub fn save_writing_profile(
+    state: State<'_, AppState>,
+    input: SaveWritingProfileInput,
+) -> Result<writing_profile::WritingProfileBundle, AppError> {
+    let _guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    let output = writing_profile::save(&state.storage, input)?;
+    invalidate_pending_context(state.inner())?;
+    Ok(output)
+}
+
+#[tauri::command]
+pub fn delete_writing_profile(
+    state: State<'_, AppState>,
+    input: DeleteWritingProfileInput,
+) -> Result<writing_profile::WritingProfileBundle, AppError> {
+    let _guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    let output = writing_profile::delete(&state.storage, input)?;
+    invalidate_pending_context(state.inner())?;
+    Ok(output)
 }
 
 #[tauri::command]

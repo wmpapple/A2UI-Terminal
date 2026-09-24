@@ -17,5 +17,6 @@ pub mod search;
 pub mod task;
 pub mod telemetry;
 pub mod workspace;
+pub mod writing_profile;
 
 pub mod knowledge;

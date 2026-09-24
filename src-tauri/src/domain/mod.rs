@@ -6,5 +6,6 @@ pub mod recovery;
 pub mod result;
 pub mod review;
 pub mod task;
+pub mod writing_profile;
 
 pub mod knowledge;

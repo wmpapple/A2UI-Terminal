@@ -1,0 +1,40 @@
+{
+  "global": {
+    "id": "global",
+    "scope": "global",
+    "workspaceId": null,
+    "enabled": true,
+    "version": 2,
+    "rules": "先给结论，使用短句。",
+    "terminology": [{ "term": "AI", "preferred": "人工智能" }],
+    "forbiddenWords": ["赋能"],
+    "exampleKnowledgeIds": ["knowledge-example"],
+    "updatedAt": "2026-09-24T00:00:00.000Z"
+  },
+  "workspace": {
+    "id": "workspace:workspace",
+    "scope": "workspace",
+    "workspaceId": "workspace",
+    "enabled": true,
+    "version": 1,
+    "rules": "面向开发者。",
+    "terminology": [{ "term": "AI", "preferred": "AI 助手" }],
+    "forbiddenWords": [],
+    "exampleKnowledgeIds": [],
+    "updatedAt": "2026-09-24T00:00:00.000Z"
+  },
+  "effective": {
+    "hash": "0123456789abcdef",
+    "composerVersion": "m2.1",
+    "enabled": true,
+    "layers": [
+      { "id": "global", "scope": "global", "version": 2, "rules": "先给结论，使用短句。" },
+      { "id": "workspace:workspace", "scope": "workspace", "version": 1, "rules": "面向开发者。" }
+    ],
+    "terminology": [{ "term": "AI", "preferred": "AI 助手" }],
+    "forbiddenWords": ["赋能"],
+    "exampleKnowledgeIds": ["knowledge-example"],
+    "instructionText": "Global Profile v2: 先给结论，使用短句。\nWorkspace Profile v1: 面向开发者。",
+    "estimatedTokens": 32
+  }
+}

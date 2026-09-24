@@ -315,6 +315,12 @@
           "markdownDescription": "Enables the delete_result command without any pre-configured scope."
         },
         {
+          "description": "Enables the delete_writing_profile command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-writing-profile",
+          "markdownDescription": "Enables the delete_writing_profile command without any pre-configured scope."
+        },
+        {
           "description": "Enables the discard_result_draft command without any pre-configured scope.",
           "type": "string",
           "const": "allow-discard-result-draft",
@@ -421,6 +427,12 @@
           "type": "string",
           "const": "allow-get-telemetry-settings",
           "markdownDescription": "Enables the get_telemetry_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_writing_profiles command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-writing-profiles",
+          "markdownDescription": "Enables the get_writing_profiles command without any pre-configured scope."
         },
         {
           "description": "Enables the inspect_import_batch command without any pre-configured scope.",
@@ -687,6 +699,12 @@
           "markdownDescription": "Enables the save_workspace_file command without any pre-configured scope."
         },
         {
+          "description": "Enables the save_writing_profile command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-writing-profile",
+          "markdownDescription": "Enables the save_writing_profile command without any pre-configured scope."
+        },
+        {
           "description": "Enables the search_authorized_content command without any pre-configured scope.",
           "type": "string",
           "const": "allow-search-authorized-content",
@@ -921,6 +939,12 @@
           "markdownDescription": "Denies the delete_result command without any pre-configured scope."
         },
         {
+          "description": "Denies the delete_writing_profile command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-writing-profile",
+          "markdownDescription": "Denies the delete_writing_profile command without any pre-configured scope."
+        },
+        {
           "description": "Denies the discard_result_draft command without any pre-configured scope.",
           "type": "string",
           "const": "deny-discard-result-draft",
@@ -1027,6 +1051,12 @@
           "type": "string",
           "const": "deny-get-telemetry-settings",
           "markdownDescription": "Denies the get_telemetry_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_writing_profiles command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-writing-profiles",
+          "markdownDescription": "Denies the get_writing_profiles command without any pre-configured scope."
         },
         {
           "description": "Denies the inspect_import_batch command without any pre-configured scope.",
@@ -1291,6 +1321,12 @@
           "type": "string",
           "const": "deny-save-workspace-file",
           "markdownDescription": "Denies the save_workspace_file command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_writing_profile command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-writing-profile",
+          "markdownDescription": "Denies the save_writing_profile command without any pre-configured scope."
         },
         {
           "description": "Denies the search_authorized_content command without any pre-configured scope.",

@@ -70,6 +70,13 @@ export const messages = {
     resultsNavigation: '成果',
     templatesNavigation: '模板',
     workbenchNavigation: '工作台',
+    writingProfileSnapshot: '写作偏好快照',
+    globalWritingProfile: '全局偏好',
+    workspaceWritingProfile: '工作区偏好',
+    writingProfileDisabled: '本次未启用写作偏好',
+    writingProfileHash: '快照 {hash}',
+    viewEffectiveWritingRules: '查看本次有效规则',
+    profileExamplesRequireContext: '范文仅保存引用；未在本次上下文中选择的正文不会发送。',
     openWorkspaceFileTitle: '打开工作区文件？',
     openWorkspaceFileDescription:
       '将从当前成果切换到工作区文件“{name}”。当前成果已保存，可稍后从成果页继续处理。',
@@ -395,6 +402,7 @@ export const messages = {
     contextChangePrompt: '发送范围或 Provider 已变化，请点击“修改发送清单”检查并保存后再发送。',
     sensitiveContextChangePrompt:
       '本次清单包含可能的敏感信息，请点击“修改发送清单”检查并明确确认后再发送。',
+    writingProfileChangedPrompt: '写作偏好已变化，请检查本次有效规则并重新确认发送清单。',
     saveContextSelection: '保存上下文',
     contextTitle: '发送前确认上下文',
     oneTimeAuthorizedSources: '仅本次使用的已授权资料',
@@ -769,6 +777,14 @@ export const messages = {
     resultsNavigation: 'Results',
     templatesNavigation: 'Templates',
     workbenchNavigation: 'Workbench',
+    writingProfileSnapshot: 'Writing profile snapshot',
+    globalWritingProfile: 'Global profile',
+    workspaceWritingProfile: 'Workspace profile',
+    writingProfileDisabled: 'No writing profile for this request',
+    writingProfileHash: 'Snapshot {hash}',
+    viewEffectiveWritingRules: 'View effective writing rules',
+    profileExamplesRequireContext:
+      'Examples are references only; content not selected for this request is not sent.',
     openWorkspaceFileTitle: 'Open workspace file?',
     openWorkspaceFileDescription:
       'This switches from the current result to “{name}”. The result is saved and can be reopened later.',
@@ -1136,6 +1152,8 @@ export const messages = {
       'The send scope or provider changed. Select “Edit send list” to review and save it before sending.',
     sensitiveContextChangePrompt:
       'This send list may contain sensitive information. Select “Edit send list” to review and explicitly confirm it before sending.',
+    writingProfileChangedPrompt:
+      'The writing profile changed. Review the effective rules and confirm the send list again.',
     saveContextSelection: 'Save context',
     contextTitle: 'Review context before sending',
     oneTimeAuthorizedSources: 'Authorized sources for this request only',

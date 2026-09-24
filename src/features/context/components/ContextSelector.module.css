@@ -54,3 +54,15 @@
   color: var(--text-strong);
   white-space: normal;
 }
+.profileDetails {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.profileDetails pre {
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-strong);
+  font: inherit;
+}

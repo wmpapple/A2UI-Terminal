@@ -2,6 +2,7 @@ import { Button, Divider, Tag } from 'antd';
 import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { ContextManifest } from '../../../shared/types/domain';
+import { formatWritingProfileForDisplay } from '../../../shared/writingProfile';
 import styles from './ContextSelector.module.css';
 export function ContextManifestSummary({
   manifest,
@@ -14,7 +15,7 @@ export function ContextManifestSummary({
   indexClearing?: boolean;
   compact?: boolean;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   return (
     <div className={styles.manifest}>
       {!compact && <Divider>{t('trustedManifest')}</Divider>}
@@ -38,6 +39,32 @@ export function ContextManifestSummary({
               : t('contextFullDescription')
           }
         />
+      )}
+      <strong>{t('writingProfileSnapshot')}</strong>
+      <div className={styles.manifestList}>
+        {manifest.writingProfile.enabled ? (
+          manifest.writingProfile.layers.map((layer) => (
+            <Tag color="blue" key={layer.id}>
+              {layer.scope === 'global' ? t('globalWritingProfile') : t('workspaceWritingProfile')}
+            </Tag>
+          ))
+        ) : (
+          <Tag>{t('writingProfileDisabled')}</Tag>
+        )}
+        <Tag>{manifest.writingProfile.composerVersion}</Tag>
+        <Tag title={manifest.writingProfile.hash}>
+          {t('writingProfileHash').replace('{hash}', manifest.writingProfile.hash.slice(0, 12))}
+        </Tag>
+        <Tag>{manifest.writingProfile.estimatedTokens.toLocaleString()} tokens</Tag>
+      </div>
+      {!compact && manifest.writingProfile.enabled && (
+        <details className={styles.profileDetails}>
+          <summary>{t('viewEffectiveWritingRules')}</summary>
+          <pre>{formatWritingProfileForDisplay(manifest.writingProfile, locale)}</pre>
+          {manifest.writingProfile.exampleKnowledgeIds.length > 0 && (
+            <p>{t('profileExamplesRequireContext')}</p>
+          )}
+        </details>
       )}
       <strong>{t('includedSources')}</strong>
       <div className={styles.manifestList}>

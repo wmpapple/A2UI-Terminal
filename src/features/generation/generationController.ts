@@ -14,6 +14,7 @@ import {
   getWebMockGenerationTask,
   completeWebMockGenerationTask,
 } from '../../shared/mock/home';
+import { writingProfileController } from '../settings/writingProfileController';
 
 const plans = new Map<
   string,
@@ -70,6 +71,7 @@ export const generationController = {
         content: doc.parsed.blocks.map((b) => b.text).join('\n'),
       });
     }
+    const writingProfile = (await writingProfileController.get(workspaceId)).effective;
     const manifest = createWebMockManifest(
       {
         workspaceId,
@@ -82,7 +84,8 @@ export const generationController = {
         contextPackIds: input.contextPackIds,
       },
       'cloud',
-      packs
+      packs,
+      writingProfile
     );
     const plan = {
       id: manifest.id,

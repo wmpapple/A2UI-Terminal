@@ -80,6 +80,11 @@ const TELEMETRY_COMMANDS: [&str; 3] = [
     "set_telemetry_settings",
     "export_event_dictionary",
 ];
+const WRITING_PROFILE_COMMANDS: [&str; 3] = [
+    "get_writing_profiles",
+    "save_writing_profile",
+    "delete_writing_profile",
+];
 const REVIEW_COMMANDS: [&str; 8] = [
     "create_review_request",
     "get_review",
@@ -183,6 +188,14 @@ fn native_commands_are_registered_and_allowed_for_the_main_window() {
     }
 
     for command in TELEMETRY_COMMANDS {
+        assert!(build_script.contains(&format!("\"{command}\"")));
+        assert!(runtime.contains(&format!("commands::{command},")));
+        assert!(permissions
+            .iter()
+            .any(|permission| permission == &format!("allow-{}", command.replace('_', "-"))));
+    }
+
+    for command in WRITING_PROFILE_COMMANDS {
         assert!(build_script.contains(&format!("\"{command}\"")));
         assert!(runtime.contains(&format!("commands::{command},")));
         assert!(permissions

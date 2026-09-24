@@ -7,6 +7,17 @@
   "strategy": "full",
   "indexMode": "none",
   "status": "awaiting_confirmation",
+  "writingProfile": {
+    "hash": "profile-disabled-contract",
+    "composerVersion": "m2.1",
+    "enabled": false,
+    "layers": [],
+    "terminology": [],
+    "forbiddenWords": [],
+    "exampleKnowledgeIds": [],
+    "instructionText": "",
+    "estimatedTokens": 0
+  },
   "includedSources": [
     {
       "kind": "attached_document",

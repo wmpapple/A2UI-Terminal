@@ -77,6 +77,7 @@ const scopeFingerprint = (plan: GenerationPlan, providerSignature: string) => {
     strategy: plan.manifest.strategy,
     indexMode: plan.manifest.indexMode,
     requiresSensitiveConfirmation: plan.manifest.requiresSensitiveConfirmation,
+    writingProfileHash: plan.manifest.writingProfile.hash,
     sources,
   });
 };

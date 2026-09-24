@@ -114,3 +114,7 @@ GenerationPanel 定向单元测试、类型检查及生成流程浏览器测试 
 上述首次交付副本随后被用户确认启动后白屏。代理在真实桌面窗口中复现：进程保持响应但 WebView 内容为空；同一机器、同一用户数据下启动上一版副本可正常渲染，因此排除用户数据库和 WebView 环境故障。新增的成果状态依赖原本被放入应用启动资源图，现改为仅在用户从成果切换工作区文件时按需加载，恢复原有启动边界，同时保留切换确认、未保存草稿保留及错误阻断行为。
 
 修正版完成类型检查、WorkspaceSidebar 测试 7/7、切换确认浏览器流程 1/1 和隔离桌面启动冒烟。除进程级冒烟外，还实际启动交付副本、枚举其 1296×839 可见主窗口并截图检查，首页、导航、资料和最近成果均正常渲染，证据为 `logs/m1b-workspace-file-confirm-white-screen-fix-review/startup-window.png`。当前验收副本为 `logs/m1b-workspace-file-confirm-white-screen-fix-review/a2ui-terminal.exe`，SHA-256：`c4d5aa7ef60027039fe0741ab517c2af1d2577ff22b11549c5c8bae76ad0cef6`。旧 `m1b-workspace-file-confirm-review` 副本作废；当前仍处于 M1-B 人工验收门，不进入下一阶段。
+
+## 用户验收通过
+
+2026-09-24，用户明确确认 **M1-B 人工验收通过并授权下一阶段**。M1-B 阶段门关闭，随后开始 M2；该授权不包含 M3。M2 实施与验收见 [M2_EXECUTION.md](M2_EXECUTION.md) 和 [M2_MANUAL_ACCEPTANCE.md](M2_MANUAL_ACCEPTANCE.md)。

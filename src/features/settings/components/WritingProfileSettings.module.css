@@ -1,0 +1,60 @@
+.section {
+  display: grid;
+  gap: 16px;
+}
+
+.scopeHeader,
+.termRow,
+.actions,
+.previewHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scopeHeader,
+.previewHeader {
+  justify-content: space-between;
+}
+
+.termList {
+  display: grid;
+  gap: 8px;
+}
+
+.termRow > :global(.ant-input) {
+  min-width: 0;
+}
+
+.preview {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-subtle);
+}
+
+.preview pre {
+  max-height: 220px;
+  margin: 10px 0 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.muted {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .termRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

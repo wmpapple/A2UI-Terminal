@@ -18,6 +18,7 @@ import {
 import { useImportStore } from '../imports/importStore';
 import { useContextPackStore } from '../contextPacks/contextPackStore';
 import { chatController } from './chatController';
+import { writingProfileController } from '../settings/writingProfileController';
 
 const defaultContext: ContextSelection = {
   selection: false,
@@ -103,12 +104,21 @@ export function useChatContextFlow() {
   const visibleManifest = plannedManifestKey === currentManifestKey ? plannedManifest : null;
   const visibleManifestError = plannedManifestKey === currentManifestKey ? manifestError : null;
   const reviewedContextKey = contextReviewKeyBySession[activeSessionId];
+  const reviewedContextParts = (() => {
+    try {
+      const parsed = JSON.parse(reviewedContextKey ?? 'null');
+      return Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  })();
   const sessionHasSentMessage =
     activeSession?.messages.some((chatMessage) => chatMessage.role === 'user') ?? false;
   const hasReviewedContext = Boolean(reviewedContextKey) || sessionHasSentMessage;
   const contextReviewed = hasReviewedContext
     ? reviewedContextKey
-      ? reviewedContextKey === currentContextReviewKey
+      ? reviewedContextParts?.[0] === providerKey &&
+        reviewedContextParts?.[1] === currentContextFingerprint
       : true
     : false;
 
@@ -129,7 +139,12 @@ export function useChatContextFlow() {
     invalidateManifest();
   };
 
-  const sendNow = (request: string, selection: ContextSelection, manifestId: string) => {
+  const sendNow = (
+    request: string,
+    selection: ContextSelection,
+    manifestId: string,
+    profileHash: string
+  ) => {
     const current = useAppStore.getState();
     if (
       (current.workspace?.id ?? current.runtimeMode) !== draftWorkspaceId ||
@@ -140,7 +155,7 @@ export function useChatContextFlow() {
     setSessionContext(activeSessionId, rememberedSelection);
     setSessionContextReviewKey(
       activeSessionId,
-      JSON.stringify([providerKey, contextFingerprint(rememberedSelection)])
+      JSON.stringify([providerKey, contextFingerprint(rememberedSelection), profileHash])
     );
     setPrompt('');
     invalidateManifest();
@@ -188,7 +203,8 @@ export function useChatContextFlow() {
         candidate.content = document.parsed.blocks.map((b) => b.text).join('\n');
         candidate.baseHash = document.source.rawHash;
       }
-      return createWebMockManifest(input, processingLocation, contextPacks);
+      const profile = (await writingProfileController.get(input.workspaceId)).effective;
+      return createWebMockManifest(input, processingLocation, contextPacks, profile);
     }
     return chatController.planContext(input);
   };
@@ -207,10 +223,21 @@ export function useChatContextFlow() {
         message.info(t('sensitiveContextChangePrompt'));
         return;
       }
+      if (
+        typeof reviewedContextParts?.[2] === 'string' &&
+        reviewedContextParts[2] !== manifest.writingProfile.hash
+      ) {
+        setPlannedManifest(manifest);
+        setPlannedManifestKey(requestManifestKey);
+        setContextIntent('send');
+        setContextOpen(true);
+        message.info(t('writingProfileChangedPrompt'));
+        return;
+      }
       if (runtimeMode === 'desktop') {
         await chatController.confirmContext(manifest.id, false);
       }
-      sendNow(request, normalized, manifest.id);
+      sendNow(request, normalized, manifest.id, manifest.writingProfile.hash);
     } catch (error) {
       const details = errorDetails(error);
       setManifestError(details.message);
@@ -282,6 +309,9 @@ export function useChatContextFlow() {
   ) => {
     const normalized = normalizeContextSelection(selection, selectedText);
     const fingerprint = contextFingerprint(normalized);
+    const plannedProfileHash =
+      plannedManifest?.id === manifestId ? plannedManifest.writingProfile.hash : undefined;
+    const approvedProfileHash = plannedProfileHash ?? reviewedContextParts?.[2];
     setSessionContext(activeSessionId, normalized);
     setSessionContextReviewKey(
       activeSessionId,
@@ -289,7 +319,11 @@ export function useChatContextFlow() {
         ((normalized.contextPackIds?.length ?? 0) > 0 ||
           (normalized.personalKnowledgeIds?.length ?? 0) > 0)
         ? PENDING_CONTEXT_PACK_REVIEW
-        : JSON.stringify([providerKey, fingerprint])
+        : JSON.stringify(
+            approvedProfileHash
+              ? [providerKey, fingerprint, approvedProfileHash]
+              : [providerKey, fingerprint]
+          )
     );
     if (contextIntent === 'review' || !manifestId) {
       setContextOpen(false);
@@ -297,6 +331,10 @@ export function useChatContextFlow() {
     }
     const request = prompt.trim();
     if (!request) return;
+    if (!plannedProfileHash) {
+      setManifestError(t('writingProfileChangedPrompt'));
+      return;
+    }
     setManifestLoading(true);
     setManifestError(null);
     try {
@@ -304,7 +342,7 @@ export function useChatContextFlow() {
         await chatController.confirmContext(manifestId, sensitiveConfirmed);
       }
       setContextOpen(false);
-      sendNow(request, normalized, manifestId);
+      sendNow(request, normalized, manifestId, plannedProfileHash);
     } catch (error) {
       setManifestError(errorDetails(error).message);
     } finally {

@@ -13,6 +13,17 @@ const plannerFields = {
   indexMode: 'none' as const,
   tokenBudget: 32000,
   retrievedChunkCount: 0,
+  writingProfile: {
+    hash: 'disabled',
+    composerVersion: 'm2.1',
+    enabled: false,
+    layers: [],
+    terminology: [],
+    forbiddenWords: [],
+    exampleKnowledgeIds: [],
+    instructionText: '',
+    estimatedTokens: 0,
+  },
 };
 
 beforeEach(() => {
@@ -681,6 +692,104 @@ describe('ChatPanel patch presentation', () => {
     fireEvent.click(screen.getByRole('button', { name: /修改发送清单$/ }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '确认并发送' })).toBeDisabled();
+  });
+
+  it('requires a fresh send-list confirmation after the writing profile changes', async () => {
+    const sendChat = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(chatController, 'confirmContext').mockImplementation(async (id) => ({
+      id,
+      workspaceId: 'workspace',
+      sessionId: 'session',
+      providerId: 'cloud',
+      processingLocation: 'cloud',
+      ...plannerFields,
+      status: 'confirmed',
+      includedSources: [],
+      excludedSources: [],
+      characterCount: 0,
+      estimatedTokens: 10,
+      sensitiveWarning: false,
+      requiresSensitiveConfirmation: false,
+      createdAt: '1',
+      expiresAt: '2',
+      confirmedAt: '1',
+    }));
+    vi.spyOn(chatController, 'planContext')
+      .mockResolvedValueOnce({
+        id: 'profile-v1-manifest',
+        workspaceId: 'workspace',
+        sessionId: 'session',
+        providerId: 'cloud',
+        processingLocation: 'cloud',
+        ...plannerFields,
+        writingProfile: { ...plannerFields.writingProfile, hash: 'profile-v1' },
+        status: 'awaiting_confirmation',
+        includedSources: [],
+        excludedSources: [],
+        characterCount: 0,
+        estimatedTokens: 10,
+        sensitiveWarning: false,
+        requiresSensitiveConfirmation: false,
+        createdAt: '1',
+        expiresAt: '2',
+        confirmedAt: null,
+      })
+      .mockResolvedValueOnce({
+        id: 'profile-v2-manifest',
+        workspaceId: 'workspace',
+        sessionId: 'session',
+        providerId: 'cloud',
+        processingLocation: 'cloud',
+        ...plannerFields,
+        writingProfile: { ...plannerFields.writingProfile, hash: 'profile-v2' },
+        status: 'awaiting_confirmation',
+        includedSources: [],
+        excludedSources: [],
+        characterCount: 0,
+        estimatedTokens: 10,
+        sensitiveWarning: false,
+        requiresSensitiveConfirmation: false,
+        createdAt: '1',
+        expiresAt: '2',
+        confirmedAt: null,
+      });
+    useAppStore.setState({
+      runtimeMode: 'desktop',
+      sessions: [
+        {
+          id: 'session',
+          title: 'Existing chat',
+          messages: [{ id: 'user-1', role: 'user', content: 'First request', status: 'complete' }],
+        },
+      ],
+      activeProviderId: 'cloud',
+      chatRequestId: null,
+      sendChat,
+    });
+
+    render(
+      <I18nProvider>
+        <ChatPanel />
+      </I18nProvider>
+    );
+    const input = screen.getByPlaceholderText('描述你希望对当前文件做出的修改…');
+    fireEvent.change(input, { target: { value: 'First profile request' } });
+    fireEvent.click(screen.getByRole('button', { name: /发送$/ }));
+    await waitFor(() =>
+      expect(sendChat).toHaveBeenCalledWith('First profile request', 'profile-v1-manifest')
+    );
+    sendChat.mockClear();
+
+    fireEvent.change(input, { target: { value: 'Changed profile request' } });
+    fireEvent.click(screen.getByRole('button', { name: /发送$/ }));
+
+    expect(await screen.findByText(/写作偏好已变化/)).toBeVisible();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(sendChat).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '确认并发送' }));
+    await waitFor(() =>
+      expect(sendChat).toHaveBeenCalledWith('Changed profile request', 'profile-v2-manifest')
+    );
   });
 
   it('discards a background manifest when the prompt changes before confirmation', async () => {

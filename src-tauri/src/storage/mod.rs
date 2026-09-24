@@ -11,7 +11,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 21;
+const SCHEMA_VERSION: i64 = 22;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -61,6 +61,10 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (
         21,
         include_str!("../../migrations/0021_generation_task_reviews.sql"),
+    ),
+    (
+        22,
+        include_str!("../../migrations/0022_writing_profiles.sql"),
     ),
 ];
 
@@ -4151,6 +4155,8 @@ impl Storage {
         let transaction = connection.transaction()?;
         transaction.execute_batch(
             "DELETE FROM personal_knowledge;
+             DELETE FROM writing_profile_examples;
+             DELETE FROM writing_profiles;
              DELETE FROM product_events;
              DELETE FROM telemetry_settings;
              INSERT INTO telemetry_settings(singleton) VALUES (1);
@@ -4179,7 +4185,9 @@ impl Storage {
              DELETE FROM task_templates WHERE builtin = 0;
              DELETE FROM credential_refs;
              DELETE FROM provider_settings;
-             DELETE FROM app_settings;",
+             DELETE FROM app_settings;
+             INSERT INTO writing_profiles(id, scope, workspace_id, enabled, version)
+             VALUES ('global', 'global', NULL, 0, 1);",
         )?;
         transaction.commit()?;
         Ok(())

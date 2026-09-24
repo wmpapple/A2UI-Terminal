@@ -18,6 +18,7 @@
     "audit:third-party": "node scripts/audit-third-party.mjs",
     "audit:beta-evidence": "node scripts/verify-beta-acceptance.mjs",
     "audit:release": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-release.ps1",
+    "eval:style:validate": "node evals/style/validate.mjs",
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

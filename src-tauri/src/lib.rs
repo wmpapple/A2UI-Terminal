@@ -135,6 +135,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_bootstrap_status,
+            commands::get_writing_profiles,
+            commands::save_writing_profile,
+            commands::delete_writing_profile,
             commands::set_provider_secret,
             commands::provider_secret_status,
             commands::delete_provider_secret,

@@ -72,6 +72,9 @@ import type {
   TelemetryDictionary,
   TelemetrySettings,
   RecoveryStatus,
+  WritingProfileBundle,
+  SaveWritingProfileInput,
+  WritingProfileScope,
 } from '../types/domain';
 
 export interface BootstrapStatus {
@@ -99,6 +102,28 @@ const requireDesktop = (): void => {
 };
 
 export const desktopApi = {
+  async getWritingProfiles(workspaceId?: string): Promise<WritingProfileBundle> {
+    requireDesktop();
+    return invoke<WritingProfileBundle>('get_writing_profiles', {
+      workspaceId: workspaceId ?? null,
+    });
+  },
+
+  async saveWritingProfile(input: SaveWritingProfileInput): Promise<WritingProfileBundle> {
+    requireDesktop();
+    return invoke<WritingProfileBundle>('save_writing_profile', { input });
+  },
+
+  async deleteWritingProfile(
+    scope: WritingProfileScope,
+    workspaceId?: string
+  ): Promise<WritingProfileBundle> {
+    requireDesktop();
+    return invoke<WritingProfileBundle>('delete_writing_profile', {
+      input: { scope, workspaceId: workspaceId ?? null },
+    });
+  },
+
   async listPersonalKnowledge(input: ListKnowledgeInput): Promise<KnowledgePage> {
     requireDesktop();
     return invoke('list_personal_knowledge', { input });

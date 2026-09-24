@@ -182,14 +182,21 @@ where
     let api_key = super::provider::request_key(&config)?;
     start_request()?;
 
+    let composed = ai::compose_prompt(
+        &semantic_patch_system_prompt(&request.workspace_id),
+        &manifest.view.writing_profile,
+        None,
+        &request.prompt,
+        &manifest.sources,
+    );
     let mut messages = vec![ProviderMessage {
         role: "system".into(),
-        content: semantic_patch_system_prompt(&request.workspace_id),
+        content: composed.system,
     }];
     messages.extend(manifest.history);
     messages.push(ProviderMessage {
         role: "user".into(),
-        content: ai::build_context_prompt(&request.prompt, &manifest.sources),
+        content: composed.user,
     });
 
     let mut partial = String::new();

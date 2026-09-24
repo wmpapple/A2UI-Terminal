@@ -14,7 +14,7 @@ export function KnowledgePicker({
 }: {
   value: string[];
   onChange: (ids: string[]) => void;
-  purpose?: 'send' | 'pack';
+  purpose?: 'send' | 'pack' | 'profile';
   maxCount?: number;
   disabled?: boolean;
 }) {
@@ -55,13 +55,17 @@ export function KnowledgePicker({
   return (
     <div>
       <p>
-        {purpose === 'pack'
+        {purpose === 'profile'
           ? zh
-            ? '从个人资料中选择（可搜索）'
-            : 'Choose library sources (search available)'
-          : zh
-            ? '个人资料（仅本次选择，发送前确认）'
-            : 'Personal library (select for this request, confirm before sending)'}
+            ? '从个人资料中选择范文（仅保存引用）'
+            : 'Choose style examples (references only)'
+          : purpose === 'pack'
+            ? zh
+              ? '从个人资料中选择（可搜索）'
+              : 'Choose library sources (search available)'
+            : zh
+              ? '个人资料（仅本次选择，发送前确认）'
+              : 'Personal library (select for this request, confirm before sending)'}
       </p>
       <Select
         disabled={disabled}

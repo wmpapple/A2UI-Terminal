@@ -1,6 +1,7 @@
 mod client;
 mod context;
 mod planner;
+mod prompt;
 mod retrieval;
 
 pub use client::{stream_chat, test_connection, StreamChunk};
@@ -10,6 +11,10 @@ pub use context::{
     ContextChunkRange, ContextIndexMode, ContextManifest, ContextManifestInput,
     ContextManifestSource, ContextManifestStatus, ContextSourceMode, ContextStrategy,
     PendingContextManifest, ProcessingLocation,
+};
+pub use prompt::{
+    build_writing_profile_snapshot, compose as compose_prompt, ComposedPrompt,
+    WritingProfileLayerSnapshot, WritingProfileSnapshot, PROMPT_COMPOSER_VERSION,
 };
 pub(crate) use retrieval::rank_chunks;
 pub use retrieval::ContextIndex;

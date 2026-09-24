@@ -1,0 +1,51 @@
+{
+  "capturedAt": "2026-09-24T15:53:00+08:00",
+  "stage": "M2",
+  "status": "engineering_verified_awaiting_product_acceptance",
+  "baseCommit": "2be46c0",
+  "nextStageAuthorized": false,
+  "schemaVersion": 22,
+  "commandCount": 104,
+  "promptComposerVersion": "m2.1",
+  "verification": {
+    "frontend": { "files": 66, "passed": 292 },
+    "rust": { "passed": 265, "ignored": 1 },
+    "styleFixtures": { "cases": 40, "providerCalled": false },
+    "e2e": {
+      "scenarios": 32,
+      "allHavePassingEvidence": true,
+      "singleRun": "31/32; one native chrome-headless-shell crash before assertion",
+      "diagnostic": "Windows Application Error 1000, exception 0xc0000005; affected scenarios passed in isolated runs"
+    },
+    "format": "passed",
+    "lint": "passed_with_existing_CodeEditor_hook_warning",
+    "typecheck": "passed",
+    "frontendBuild": "passed",
+    "desktopBuild": "passed",
+    "isolatedDesktopStartup": "passed",
+    "visibleDesktopWindow": "passed",
+    "realProviderEvalRun": false,
+    "signedRelease": false
+  },
+  "artifact": {
+    "path": "logs/m2-writing-profile-review/a2ui-terminal.exe",
+    "sha256": "c4f53edd5951c64a779ebe77f7cb514dfd2edc4c6964227e15807b6b777ffa1a",
+    "bytes": 71869440,
+    "startupScreenshot": "logs/m2-writing-profile-review/startup-window.png"
+  },
+  "evidence": [
+    "logs/m2-rust-tests.log",
+    "logs/m2-frontend-tests.log",
+    "logs/m2-format-check.log",
+    "logs/m2-lint.log",
+    "logs/m2-typecheck.log",
+    "logs/m2-eval-validate.log",
+    "logs/m2-e2e.log",
+    "logs/m2-e2e-serial.log",
+    "logs/m2-e2e-isolated.log",
+    "logs/m2-playwright-crash-events.log",
+    "logs/m2-frontend-build.log",
+    "logs/m2-desktop-build.log",
+    "logs/m2-desktop-smoke.log"
+  ]
+}

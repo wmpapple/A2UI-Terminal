@@ -554,6 +554,61 @@ export type ContextManifestStatus = 'awaiting_confirmation' | 'confirmed';
 export type ContextStrategy = 'full' | 'retrieval' | 'hybrid';
 export type ContextSourceMode = 'full' | 'retrieved' | 'excluded';
 
+export type WritingProfileScope = 'global' | 'workspace';
+
+export interface TerminologyRule {
+  term: string;
+  preferred: string;
+}
+
+export interface WritingProfile {
+  id: string;
+  scope: WritingProfileScope;
+  workspaceId: string | null;
+  enabled: boolean;
+  version: number;
+  rules: string;
+  terminology: TerminologyRule[];
+  forbiddenWords: string[];
+  exampleKnowledgeIds: string[];
+  updatedAt: string;
+}
+
+export interface WritingProfileLayerSnapshot {
+  id: string;
+  scope: WritingProfileScope;
+  version: number;
+  rules: string;
+}
+
+export interface WritingProfileSnapshot {
+  hash: string;
+  composerVersion: string;
+  enabled: boolean;
+  layers: WritingProfileLayerSnapshot[];
+  terminology: TerminologyRule[];
+  forbiddenWords: string[];
+  exampleKnowledgeIds: string[];
+  instructionText: string;
+  estimatedTokens: number;
+}
+
+export interface WritingProfileBundle {
+  global: WritingProfile;
+  workspace: WritingProfile | null;
+  effective: WritingProfileSnapshot;
+}
+
+export interface SaveWritingProfileInput {
+  scope: WritingProfileScope;
+  workspaceId: string | null;
+  enabled: boolean;
+  rules: string;
+  terminology: TerminologyRule[];
+  forbiddenWords: string[];
+  exampleKnowledgeIds: string[];
+}
+
 export interface ContextCandidate {
   kind: ContextSourceKind;
   label: string;
@@ -599,6 +654,7 @@ export interface ContextManifest {
   strategy: ContextStrategy;
   indexMode: 'none' | 'memory_lexical';
   status: ContextManifestStatus;
+  writingProfile: WritingProfileSnapshot;
   includedSources: ContextManifestSource[];
   excludedSources: ContextManifestSource[];
   characterCount: number;

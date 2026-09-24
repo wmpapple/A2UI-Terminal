@@ -8,6 +8,7 @@ import type {
   DocumentSource,
   ProcessingLocation,
   ProviderConfig,
+  WritingProfileSnapshot,
   WorkspaceFile,
 } from '../../shared/types/domain';
 import { estimateContextTokens } from './tokenEstimate';
@@ -111,7 +112,8 @@ export const buildContextManifestInput = ({
 export const createWebMockManifest = (
   input: ContextManifestInput,
   processingLocation: ProcessingLocation,
-  contextPacks: ContextPack[] = []
+  contextPacks: ContextPack[] = [],
+  writingProfile?: WritingProfileSnapshot
 ): ContextManifest => {
   const selectedCandidates = input.candidates.filter((candidate) => candidate.selected);
   const knownSourceIds = new Set(
@@ -202,6 +204,17 @@ export const createWebMockManifest = (
     strategy,
     indexMode: strategy === 'full' ? 'none' : 'memory_lexical',
     status: 'awaiting_confirmation',
+    writingProfile: writingProfile ?? {
+      hash: 'web-mock-profile-disabled',
+      composerVersion: 'm2.1',
+      enabled: false,
+      layers: [],
+      terminology: [],
+      forbiddenWords: [],
+      exampleKnowledgeIds: [],
+      instructionText: '',
+      estimatedTokens: 0,
+    },
     includedSources,
     excludedSources,
     characterCount: includedSources.reduce((sum, source) => sum + source.characterCount, 0),

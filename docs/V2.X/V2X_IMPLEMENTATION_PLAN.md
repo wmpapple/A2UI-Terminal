@@ -2,7 +2,7 @@
 
 > 日期：2026-09-21（Asia/Shanghai）  
 > 代码基准：`35023d75a0d87e5e16f1d0de8a554e4eb6b49a69`；开始分析时工作树干净。  
-> 状态（2026-09-23）：M0、F0、M1-A 产品验收通过；用户已授权 M1-B，接入策略选定 BYOK + 本地模型，暂不提供内置服务。M1-B 实施及工程证据见 [M1B_EXECUTION.md](M1B_EXECUTION.md)。每阶段完成后仍先等待用户产品验收和继续授权，M2 尚未启动。
+> 状态（2026-09-24）：M0、F0、M1-A、M1-B 产品验收通过；用户已授权 M2。M2 写作偏好、统一 Prompt Composer 与首批固定 Eval 已完成工程验证，当前等待产品功能验收。实施证据见 [M2_EXECUTION.md](M2_EXECUTION.md)。未收到明确授权前不进入 M3。
 >
 > 输入：用户提供的 PRD、Engineering Implementation Plan、Product Engineering Roadmap，以及仓库现有 64 份 docs 文档、实现与测试。材料目录见 [V2X_REVIEW_INVENTORY.md](V2X_REVIEW_INVENTORY.md)。
 
@@ -236,7 +236,7 @@ KnowledgeImportJob（若需持久崩溃恢复）
 
 ## 9. M2：Writing Profile 与 Prompt Composer
 
-状态：待开始；依赖 M1-A/M1-B 共用生成边界。预计 5–8 人日。
+状态：工程验证完成，待人工验收；依赖 M1-A/M1-B 共用生成边界。预计 5–8 人日。
 
 | ID   | 工作                                                                      | 验收                                                                    |
 | ---- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------- |

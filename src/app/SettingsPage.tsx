@@ -3,6 +3,8 @@ import { SettingOutlined, ToolOutlined } from '@ant-design/icons';
 import { Button, Card, ConfigProvider, Segmented } from 'antd';
 import { SystemSettings } from '../features/settings/components/SystemSettings';
 import { ProcessingStatus } from '../features/settings/components/ProcessingStatus';
+import { WritingProfileSettings } from '../features/settings/components/WritingProfileSettings';
+import { useAppStore } from '../stores/useAppStore';
 import type { ExperienceMode } from './shellPreferences';
 import { useI18n } from './i18n/useI18n';
 import styles from './SettingsPage.module.css';
@@ -19,8 +21,9 @@ export function SettingsPage({
   onExperienceModeChange,
   onOpenProviderSettings,
 }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const professional = experienceMode === 'professional';
+  const workspace = useAppStore((state) => state.workspace);
   const dark = useSystemTheme();
   const noticeBackground = dark ? '#302821' : '#fff8f2';
   const noticeBorder = dark ? '#514033' : '#f0dfd1';
@@ -78,6 +81,13 @@ export function SettingsPage({
           </Card>
           <Card title={t('processingStatusTitle')}>
             <ProcessingStatus />
+          </Card>
+          <Card title={locale === 'zh-CN' ? '写作方式' : 'Writing profile'}>
+            <WritingProfileSettings
+              key={workspace?.id ?? 'global'}
+              workspaceId={workspace?.id}
+              workspaceName={workspace?.name}
+            />
           </Card>
           <Card>
             <SystemSettings />

@@ -1,5 +1,7 @@
 # M1-B 产品功能验收
 
+状态：**用户已于 2026-09-24 确认验收通过并授权 M2**。以下保留当时的验收范围与步骤。
+
 本轮只验收 M1-B。工程测试、数据库迁移、类型检查和桌面构建由代理完成；无需用户执行命令。
 
 当前验收程序为 [成果切换工作区文件确认与白屏修正版](../../logs/m1b-workspace-file-confirm-white-screen-fix-review/a2ui-terminal.exe)。该程序是免安装 debug 验证版，可直接启动；已实际启动并检查主窗口正常渲染。请勿再使用 `m1b-workspace-file-confirm-review` 中会白屏的旧副本。
