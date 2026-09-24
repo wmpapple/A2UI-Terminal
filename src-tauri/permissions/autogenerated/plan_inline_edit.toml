@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-plan-inline-edit"
+description = "Enables the plan_inline_edit command without any pre-configured scope."
+commands.allow = ["plan_inline_edit"]
+
+[[permission]]
+identifier = "deny-plan-inline-edit"
+description = "Denies the plan_inline_edit command without any pre-configured scope."
+commands.deny = ["plan_inline_edit"]

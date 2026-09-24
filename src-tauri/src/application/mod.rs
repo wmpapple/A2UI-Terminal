@@ -8,6 +8,7 @@ mod export_pdf;
 pub mod export_target;
 pub mod generation;
 pub mod import;
+pub mod inline_edit;
 pub mod provider;
 pub mod recovery;
 pub mod result;

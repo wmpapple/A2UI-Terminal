@@ -831,6 +831,12 @@ export interface ReviewApplication {
   result: ResultDocument | null;
 }
 
+export interface InlineEditPlan {
+  id: string;
+  requestId: string;
+  manifest: ContextManifest;
+}
+
 export type A2uiComponentName =
   | 'Row'
   | 'Column'

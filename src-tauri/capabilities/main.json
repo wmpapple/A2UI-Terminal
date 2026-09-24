@@ -63,6 +63,8 @@
     "allow-confirm-context-manifest",
     "allow-stream-chat",
     "allow-plan-generation",
+    "allow-plan-inline-edit",
+    "allow-start-inline-edit",
     "allow-start-generation",
     "allow-stop-chat",
     "allow-validate-document-patch",

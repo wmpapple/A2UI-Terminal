@@ -1,0 +1,55 @@
+{
+  "capturedAt": "2026-09-24T17:28:00+08:00",
+  "stage": "M3",
+  "status": "engineering_verified_awaiting_product_acceptance",
+  "nextStageAuthorized": false,
+  "scope": "inline_ai_and_risk_adaptive_review",
+  "verification": {
+    "frontend": {
+      "files": 66,
+      "passed": 292
+    },
+    "rust": {
+      "passed": 268,
+      "ignored": 1
+    },
+    "m3Coverage": {
+      "statements": "93.93%",
+      "branches": "75.64%",
+      "functions": "90%",
+      "lines": "97.61%"
+    },
+    "styleFixtures": {
+      "cases": 40,
+      "passed": true
+    },
+    "inlineE2e": "passed",
+    "fullE2e": {
+      "singleRun": "29/32",
+      "isolatedReruns": "2/2 passed",
+      "remainingDiagnostic": "Known Windows chrome-headless-shell native crash before assertion in the simple/pro mode scenario; inherited from M2 and unrelated to M3 inline editing"
+    },
+    "format": "passed",
+    "lint": "passed",
+    "typecheck": "passed",
+    "clippyDenyWarnings": "passed",
+    "frontendBuild": "passed",
+    "desktopBuild": "passed",
+    "isolatedDesktopStartup": "passed",
+    "thirdPartyAudit": "passed",
+    "betaEvidenceAudit": "passed",
+    "realProviderEvalRun": false,
+    "signedRelease": false
+  },
+  "artifact": {
+    "path": "logs/m3-inline-ai-review/a2ui-terminal.exe",
+    "sha256": "C3693ED2F20BDFD92242CA0C1DCD292DB270294031C5FACA0AC2723F6D8B2FFB",
+    "bytes": 72129024
+  },
+  "evidence": [
+    "logs/m3-inline-ai-review/frontend-check.log",
+    "logs/m3-inline-ai-review/rust-tests.log",
+    "logs/m3-inline-ai-review/clippy.log",
+    "logs/m3-inline-ai-review/e2e-inline.log"
+  ]
+}

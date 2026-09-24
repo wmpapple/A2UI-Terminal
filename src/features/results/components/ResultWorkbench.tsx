@@ -17,11 +17,14 @@ import { resultController } from '../resultController';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
 import type { FileSaveStatus, ResultAppliedReview } from '../../../shared/types/domain';
+import type { DocumentSnapshot } from '../../../shared/types/document';
 import { finishPerformanceMeasurement } from '../../../shared/performance/performanceBudget';
 import { resultAdapterDefinitions } from '../resultAdapters';
 import { useResultStore } from '../resultStore';
 import { ExportResultModal } from './ExportResultModal';
 import { ResultContentAdapter } from './ResultContentAdapter';
+import { SelectionAssistant } from '../../selection/components/SelectionAssistant';
+import type { SourceEditorPort } from '../../selection/editorAdapter';
 import styles from './ResultWorkbench.module.css';
 
 interface Props {
@@ -100,6 +103,8 @@ export function ResultWorkbench({
   );
   const [viewMode, setViewMode] = useState<'preview' | 'edit'>('preview');
   const [exportOpen, setExportOpen] = useState(false);
+  const [editorPort, setEditorPort] = useState<SourceEditorPort | null>(null);
+  const [selectedText, setSelectedText] = useState('');
 
   useEffect(() => {
     if (useResultStore.getState().activeDocument?.result.id === resultId) {
@@ -185,6 +190,18 @@ export function ResultWorkbench({
     );
   const appliedReview = activeDocument.appliedReview;
   const adapter = resultAdapterDefinitions[activeDocument.result.type];
+  const inlineSnapshot: DocumentSnapshot = {
+    target: { kind: 'result', resultId: activeDocument.result.id },
+    revisionId: activeDocument.result.currentRevisionId,
+    contentHash: activeDocument.contentHash,
+    format: activeDocument.format,
+    text: activeDocument.content,
+    editable: activeDocument.editable && viewMode === 'edit',
+    hasUnsavedDraft:
+      saveStatus !== 'saved' ||
+      draftContent !== activeDocument.content ||
+      Boolean(activeDocument.recoveryDraft),
+  };
 
   return (
     <section
@@ -292,6 +309,18 @@ export function ResultWorkbench({
           }
         />
       </Modal>
+      {viewMode === 'edit' && activeDocument.editable ? (
+        <SelectionAssistant
+          editorPort={editorPort}
+          snapshot={inlineSnapshot}
+          selectedText={selectedText}
+          targetLabel={activeDocument.result.title}
+          onApplied={async () => {
+            setSelectedText('');
+            await openResult(activeDocument.result.id);
+          }}
+        />
+      ) : null}
       <ResultContentAdapter
         type={activeDocument.result.type}
         format={activeDocument.format}
@@ -299,6 +328,8 @@ export function ResultWorkbench({
         editable={activeDocument.editable}
         viewMode={viewMode}
         onChange={updateDraft}
+        onSelection={setSelectedText}
+        onEditorPort={setEditorPort}
       />
 
       {exportOpen ? (

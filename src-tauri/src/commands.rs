@@ -2093,3 +2093,25 @@ pub async fn start_generation(
     })
     .await
 }
+
+#[tauri::command]
+pub fn plan_inline_edit(
+    state: State<'_, AppState>,
+    input: crate::application::inline_edit::PlanInlineEditInput,
+) -> Result<crate::application::inline_edit::InlineEditPlan, AppError> {
+    crate::application::inline_edit::plan(state.inner(), input)
+}
+
+#[tauri::command]
+pub async fn start_inline_edit(
+    state: State<'_, AppState>,
+    plan_id: String,
+    on_event: Channel<ChatStreamEvent>,
+) -> Result<crate::application::inline_edit::InlineEditProposal, AppError> {
+    crate::application::inline_edit::start(state.inner(), &plan_id, |event| {
+        on_event
+            .send(event)
+            .map_err(|_| AppError::StreamReceiverClosed)
+    })
+    .await
+}

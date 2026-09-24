@@ -1,223 +1,338 @@
 import { Button, Checkbox, Input, message, Modal, Space, Tag } from 'antd';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
-import type { ContextManifest } from '../../../shared/types/domain';
+import type {
+  DocumentSnapshot,
+  InlineEditAction,
+  SelectionSnapshot,
+} from '../../../shared/types/document';
+import type {
+  InlineEditPlan,
+  ReviewApplication,
+  ReviewRequest,
+} from '../../../shared/types/domain';
 import { errorDetails } from '../../../stores/support';
 import { useAppStore } from '../../../stores/useAppStore';
-import { chatController } from '../../chat/chatController';
-import {
-  buildContextManifestInput,
-  createWebMockManifest,
-  processingLocationForProvider,
-} from '../../context/contextManifest';
-import { useImportStore } from '../../imports/importStore';
-import {
-  isExplanationAction,
-  type SelectionAction,
-  selectionActionPrompt,
-} from '../selectionActions';
+import { createEditorAdapter, type SourceEditorPort } from '../editorAdapter';
+import { inlineEditController } from '../inlineEditController';
 import styles from './SelectionAssistant.module.css';
 
-interface PendingAction {
-  action: SelectionAction;
-  prompt: string;
-  manifest: ContextManifest;
+interface Props {
+  editorPort: SourceEditorPort | null;
+  snapshot: DocumentSnapshot | null;
+  selectedText: string;
+  targetLabel?: string;
+  onApplied: (application: ReviewApplication) => void | Promise<void>;
 }
 
-export function SelectionAssistant() {
+interface Proposal {
+  review: ReviewRequest;
+  selection: SelectionSnapshot;
+  replacement: string;
+  action: InlineEditAction;
+  customInstruction: string;
+  providerId: string;
+}
+
+interface PendingSensitive {
+  plan: InlineEditPlan;
+  selection: SelectionSnapshot;
+  action: InlineEditAction;
+  customInstruction: string;
+}
+
+const actions: Array<[InlineEditAction, string]> = [
+  ['polish', '润色'],
+  ['shorten', '缩短'],
+  ['expand', '扩写'],
+  ['professional', '专业'],
+  ['natural', '自然'],
+  ['grammar', '语法'],
+  ['translate', '翻译'],
+];
+
+const sameSelection = (a: SelectionSnapshot, b: SelectionSnapshot) =>
+  JSON.stringify(a) === JSON.stringify(b);
+
+export function SelectionAssistant({
+  editorPort,
+  snapshot,
+  selectedText,
+  targetLabel,
+  onApplied,
+}: Props) {
   const { t } = useI18n();
   const runtimeMode = useAppStore((state) => state.runtimeMode);
-  const workspace = useAppStore((state) => state.workspace);
-  const files = useAppStore((state) => state.files);
-  const activePath = useAppStore((state) => state.activePath);
-  const selectedText = useAppStore((state) => state.selectedText);
-  const sessions = useAppStore((state) => state.sessions);
-  const activeSessionId = useAppStore((state) => state.activeSessionId);
   const activeProviderId = useAppStore((state) => state.activeProviderId);
-  const providers = useAppStore((state) => state.providerConfigs);
-  const chatRequestId = useAppStore((state) => state.chatRequestId);
-  const sendChat = useAppStore((state) => state.sendChat);
-  const documentSources = useImportStore((state) => state.sources);
   const [customInstruction, setCustomInstruction] = useState('');
-  const [planning, setPlanning] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [pendingSensitive, setPendingSensitive] = useState<PendingSensitive | null>(null);
   const [sensitiveConfirmed, setSensitiveConfirmed] = useState(false);
-  const [pending, setPending] = useState<PendingAction | null>(null);
-  const activeProvider = providers.find((provider) => provider.id === activeProviderId);
-  const activeFile = files.find((file) => file.path === activePath);
-  const processingLocation = processingLocationForProvider(activeProvider);
-  const available = Boolean(
-    selectedText.trim() &&
-    activeFile &&
-    activeFile.editable !== false &&
-    (runtimeMode === 'web-mock' || workspace) &&
-    sessions.some((session) => session.id === activeSessionId)
-  );
-  const actions = useMemo(
+  const [working, setWorking] = useState(false);
+  const epoch = useRef(0);
+  const targetKey = JSON.stringify(snapshot?.target ?? null);
+
+  const adapter = useMemo(
     () =>
-      [
-        ['polish', 'selectionPolish'],
-        ['shorten', 'selectionShorten'],
-        ['professional', 'selectionProfessional'],
-        ['explain', 'selectionExplain'],
-        ['extract', 'selectionExtract'],
-      ] as const,
-    []
+      editorPort
+        ? createEditorAdapter({
+            snapshot: () => snapshot,
+            source: editorPort,
+            showProposal: () => undefined,
+            receiveAuthoritativeSnapshot: () => undefined,
+          })
+        : null,
+    [editorPort, snapshot]
   );
 
-  if (!available) return null;
+  useEffect(() => {
+    epoch.current += 1;
+    return () => {
+      epoch.current += 1;
+    };
+  }, [snapshot?.contentHash, targetKey, activeProviderId]);
 
-  const prepare = async (action: SelectionAction) => {
-    if (planning || sending || pending || chatRequestId) return;
-    const instruction = action === 'custom' ? customInstruction.trim() : '';
-    if (action === 'custom' && !instruction) {
-      message.info(t('selectionCustomRequired'));
-      return;
-    }
-    const prompt = selectionActionPrompt(action, instruction);
-    const workspaceId = workspace?.id ?? 'web-mock-workspace';
-    const sessionId = activeSessionId;
-    const input = buildContextManifestInput({
-      workspaceId,
-      sessionId,
-      providerId: activeProviderId,
-      prompt,
-      selection: {
-        selection: true,
-        currentFile: false,
-        recentMessages: false,
-        recentMessageCount: 0,
-        projectFiles: [],
-      },
-      files,
-      documentSources: documentSources.filter((source) => source.workspaceId === workspaceId),
-      activePath,
-      selectedText,
-    });
-    setPlanning(true);
+  const currentProposal =
+    proposal &&
+    proposal.providerId === activeProviderId &&
+    proposal.selection.contentHash === snapshot?.contentHash &&
+    JSON.stringify(proposal.selection.target) === targetKey
+      ? proposal
+      : null;
+  const currentPending =
+    pendingSensitive &&
+    pendingSensitive.plan.manifest.providerId === activeProviderId &&
+    pendingSensitive.selection.contentHash === snapshot?.contentHash &&
+    JSON.stringify(pendingSensitive.selection.target) === targetKey
+      ? pendingSensitive
+      : null;
+
+  if (!editorPort || !snapshot || !selectedText.trim()) return null;
+
+  const start = async (
+    plan: InlineEditPlan,
+    selection: SelectionSnapshot,
+    action: InlineEditAction,
+    instruction: string
+  ) => {
+    const operation = ++epoch.current;
+    setWorking(true);
     try {
-      const manifest =
-        runtimeMode === 'web-mock'
-          ? createWebMockManifest(input, processingLocation)
-          : await chatController.planContext(input);
-      setSensitiveConfirmed(false);
-      setPending({ action, prompt, manifest });
+      const result = await inlineEditController.start(plan.id, () => undefined);
+      if (operation !== epoch.current || !sameSelection(selection, result.selection)) {
+        await inlineEditController.discard(result.review);
+        return;
+      }
+      const current = await adapter?.readSelection();
+      if (!current || !sameSelection(current, selection)) {
+        await inlineEditController.discard(result.review);
+        message.warning('选区或文档已变化，请重新选择后再试。');
+        return;
+      }
+      setProposal({
+        ...result,
+        action,
+        customInstruction: instruction,
+        providerId: activeProviderId,
+      });
+      setPendingSensitive(null);
     } catch (error) {
-      message.error(errorDetails(error).message);
+      if (operation === epoch.current) message.error(errorDetails(error).message);
     } finally {
-      setPlanning(false);
+      if (operation === epoch.current) setWorking(false);
     }
   };
 
-  const confirm = async () => {
-    if (!pending || sending) return;
-    if (pending.manifest.requiresSensitiveConfirmation && !sensitiveConfirmed) return;
-    setSending(true);
+  const generate = async (
+    action: InlineEditAction,
+    instruction = customInstruction.trim(),
+    replacingProposal = false
+  ) => {
+    if (working || (!replacingProposal && currentProposal) || !adapter) return;
+    if (action === 'custom' && !instruction) {
+      message.info('请先填写修改要求。');
+      return;
+    }
+    const selection = await adapter.readSelection();
+    if (!selection) {
+      message.warning('请先保存文档并重新选择一段连续文字。');
+      return;
+    }
+    setWorking(true);
     try {
-      if (runtimeMode === 'desktop') {
-        await chatController.confirmContext(
-          pending.manifest.id,
-          pending.manifest.requiresSensitiveConfirmation && sensitiveConfirmed
-        );
+      const plan = await inlineEditController.plan({
+        selection,
+        providerId: activeProviderId,
+        action,
+        customInstruction: action === 'custom' ? instruction : null,
+        selectedText: selectedText,
+        documentText: snapshot.text,
+        targetLabel,
+      });
+      if (plan.manifest.requiresSensitiveConfirmation) {
+        setPendingSensitive({ plan, selection, action, customInstruction: instruction });
+        setSensitiveConfirmed(false);
+        return;
       }
-      await sendChat(
-        pending.prompt,
-        pending.manifest.id,
-        'selection',
-        isExplanationAction(pending.action)
-      );
-      setPending(null);
-      setCustomInstruction('');
+      await inlineEditController.confirm(plan.id, false);
+      setWorking(false);
+      await start(plan, selection, action, instruction);
+      if (action === 'custom') setCustomInstruction('');
     } catch (error) {
       message.error(errorDetails(error).message);
     } finally {
-      setSending(false);
+      setWorking(false);
     }
+  };
+
+  const accept = async () => {
+    if (!currentProposal || working || !adapter) return;
+    const current = await adapter.readSelection();
+    if (!current || !sameSelection(current, currentProposal.selection)) {
+      message.warning('选区或文档已变化，这条建议已失效。');
+      setProposal(null);
+      return;
+    }
+    setWorking(true);
+    try {
+      const application = await inlineEditController.accept(currentProposal.review);
+      await onApplied(application);
+      setProposal(null);
+    } catch (error) {
+      message.error(errorDetails(error).message);
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const dismiss = async () => {
+    const current = currentProposal;
+    epoch.current += 1;
+    setProposal(null);
+    if (current && runtimeMode === 'desktop') {
+      try {
+        await inlineEditController.discard(current.review);
+      } catch {
+        // A stale review is harmless; no write occurred.
+      }
+    }
+  };
+
+  const regenerate = async () => {
+    if (!currentProposal) return;
+    const { action, customInstruction: instruction } = currentProposal;
+    await dismiss();
+    await generate(action, instruction, true);
   };
 
   return (
     <section className={styles.assistant} aria-label={t('selectionAssistant')}>
       <div className={styles.actions}>
-        <Tag className={styles.selectionBadge}>
-          {t('selectionCount').replace('{count}', String(selectedText.length))}
-        </Tag>
+        <Tag className={styles.selectionBadge}>{selectedText.length} 个字符</Tag>
         {actions.map(([action, label]) => (
           <Button
             key={action}
             type="text"
             className={styles.chip}
             size="small"
-            disabled={planning || Boolean(chatRequestId)}
-            onClick={() => void prepare(action)}
+            disabled={working || Boolean(currentProposal)}
+            onClick={() => void generate(action, '')}
           >
-            {t(label)}
+            {label}
           </Button>
         ))}
         <div className={styles.customControl}>
           <Input
-            autoFocus
             size="small"
             variant="borderless"
             className={styles.customInput}
             value={customInstruction}
-            maxLength={240}
-            aria-label={t('selectionCustom')}
-            placeholder={t('selectionCustomPlaceholder')}
+            maxLength={500}
+            aria-label="自定义选区修改"
+            placeholder="例如：改成更适合客户阅读的表达"
             onChange={(event) => setCustomInstruction(event.target.value)}
-            disabled={planning || sending || Boolean(chatRequestId)}
+            disabled={working || Boolean(currentProposal)}
             onPressEnter={(event) => {
               if (event.nativeEvent.isComposing || event.keyCode === 229) return;
               event.preventDefault();
-              void prepare('custom');
+              void generate('custom');
             }}
           />
           <Button
             type="text"
             size="small"
-            disabled={!customInstruction.trim() || sending || Boolean(chatRequestId)}
-            loading={planning}
-            onClick={() => void prepare('custom')}
+            disabled={!customInstruction.trim() || working || Boolean(currentProposal)}
+            loading={working}
+            onClick={() => void generate('custom')}
           >
-            {t('selectionCustom')}
+            修改
           </Button>
         </div>
       </div>
+
+      {currentProposal ? (
+        <article className={styles.proposal} aria-label="AI 行内修改建议">
+          <div className={styles.proposalGrid}>
+            <div>
+              <strong>原文</strong>
+              <pre>{currentProposal.review.blocks[0]?.before}</pre>
+            </div>
+            <div>
+              <strong>AI 建议</strong>
+              <pre>{currentProposal.replacement}</pre>
+            </div>
+          </div>
+          <Space wrap>
+            <Button type="primary" loading={working} onClick={() => void accept()}>
+              接受
+            </Button>
+            <Button disabled={working} onClick={() => void regenerate()}>
+              重新生成
+            </Button>
+            <Button disabled={working} onClick={() => void dismiss()}>
+              关闭
+            </Button>
+            <Tag color="green">低风险 · 仅当前选区</Tag>
+          </Space>
+        </article>
+      ) : null}
+
       <Modal
-        open={Boolean(pending)}
-        title={t('selectionConfirmTitle')}
-        okText={
-          isExplanationAction(pending?.action ?? 'polish')
-            ? t('selectionGetExplanation')
-            : t('selectionCreateReview')
-        }
-        cancelText={t('cancel')}
-        confirmLoading={sending}
-        okButtonProps={{
-          disabled: Boolean(pending?.manifest.requiresSensitiveConfirmation && !sensitiveConfirmed),
+        open={Boolean(currentPending)}
+        title="确认发送敏感内容"
+        okText="确认并生成"
+        cancelText="取消"
+        confirmLoading={working}
+        okButtonProps={{ disabled: !sensitiveConfirmed }}
+        onCancel={() => {
+          epoch.current += 1;
+          setPendingSensitive(null);
         }}
-        onCancel={() => setPending(null)}
-        onOk={() => void confirm()}
+        onOk={async () => {
+          if (!currentPending || !sensitiveConfirmed) return;
+          setWorking(true);
+          try {
+            await inlineEditController.confirm(currentPending.plan.id, true);
+            setWorking(false);
+            await start(
+              currentPending.plan,
+              currentPending.selection,
+              currentPending.action,
+              currentPending.customInstruction
+            );
+          } catch (error) {
+            message.error(errorDetails(error).message);
+            setWorking(false);
+          }
+        }}
       >
-        <p>
-          {t(
-            isExplanationAction(pending?.action ?? 'polish')
-              ? 'selectionExplainNotice'
-              : 'selectionReviewNotice'
-          )}
-        </p>
-        <Space wrap>
-          <Tag>{activePath}</Tag>
-          <Tag>{t(processingLocation === 'local' ? 'localProcessing' : 'cloudProcessing')}</Tag>
-          <Tag>{t('selectionCount').replace('{count}', String(selectedText.length))}</Tag>
-        </Space>
-        {pending?.manifest.requiresSensitiveConfirmation ? (
-          <Checkbox
-            checked={sensitiveConfirmed}
-            onChange={(event) => setSensitiveConfirmed(event.target.checked)}
-          >
-            {t('sensitiveConfirm')}
-          </Checkbox>
-        ) : null}
+        <p>所选文字将发送到当前云端模型。只有当前选区会被发送。</p>
+        <Checkbox
+          checked={sensitiveConfirmed}
+          onChange={(event) => setSensitiveConfirmed(event.target.checked)}
+        >
+          我确认发送当前选区
+        </Checkbox>
       </Modal>
     </section>
   );

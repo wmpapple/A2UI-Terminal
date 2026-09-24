@@ -7,6 +7,7 @@ import type {
 } from '../types/knowledge';
 import { Channel, invoke } from '@tauri-apps/api/core';
 import type { PlanGenerationInput, GenerationPlan, GenerationOutput } from '../types/generation';
+import type { InlineEditAction, SelectionSnapshot } from '../types/document';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getRuntimeMode } from './runtime';
@@ -75,6 +76,7 @@ import type {
   WritingProfileBundle,
   SaveWritingProfileInput,
   WritingProfileScope,
+  InlineEditPlan,
 } from '../types/domain';
 
 export interface BootstrapStatus {
@@ -643,6 +645,26 @@ export const desktopApi = {
     const channel = new Channel<ChatStreamEvent>();
     channel.onmessage = onEvent;
     return invoke('start_generation', { generationId, onEvent: channel });
+  },
+
+  async planInlineEdit(input: {
+    selection: SelectionSnapshot;
+    providerId: string;
+    action: InlineEditAction;
+    customInstruction?: string | null;
+  }): Promise<InlineEditPlan> {
+    requireDesktop();
+    return invoke<InlineEditPlan>('plan_inline_edit', { input });
+  },
+
+  async startInlineEdit(
+    planId: string,
+    onEvent: (event: ChatStreamEvent) => void
+  ): Promise<{ review: ReviewRequest; selection: SelectionSnapshot; replacement: string }> {
+    requireDesktop();
+    const channel = new Channel<ChatStreamEvent>();
+    channel.onmessage = onEvent;
+    return invoke('start_inline_edit', { planId, onEvent: channel });
   },
 
   async clearContextIndex(workspaceId: string): Promise<{ clearedDocuments: number }> {

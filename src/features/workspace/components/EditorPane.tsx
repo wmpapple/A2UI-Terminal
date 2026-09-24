@@ -14,6 +14,7 @@ import type { ExposeParam } from 'md-editor-rt';
 import 'md-editor-rt/lib/style.css';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { CenterView } from '../../../shared/types/domain';
+import type { DocumentSnapshot } from '../../../shared/types/document';
 import { useAppStore } from '../../../stores/useAppStore';
 import { useImportStore } from '../../imports/importStore';
 import { A2uiWorkbench } from '../../a2ui/inspector/A2uiWorkbench';
@@ -24,7 +25,11 @@ import { WorkbenchAppearanceControl } from '../../../app/WorkbenchAppearanceCont
 import { useSystemTheme } from '../../../app/useSystemTheme';
 import styles from './EditorPane.module.css';
 import { CodeEditor } from './CodeEditor';
-import { codeMirrorSelection, type SourceEditorPort } from '../../selection/editorAdapter';
+import {
+  codeMirrorSelection,
+  textHash,
+  type SourceEditorPort,
+} from '../../selection/editorAdapter';
 
 const MarkdownEditor = lazy(() =>
   import('md-editor-rt').then((module) => ({ default: module.MdEditor }))
@@ -79,9 +84,12 @@ export function EditorPane({
   const discardRecoveryDraft = useAppStore((state) => state.discardRecoveryDraft);
   const setCenterView = useAppStore((state) => state.setCenterView);
   const setSelectedText = useAppStore((state) => state.setSelectedText);
+  const selectedText = useAppStore((state) => state.selectedText);
   const undoLastPatch = useAppStore((state) => state.undoLastPatch);
   const [previewByPath, setPreviewByPath] = useState<Record<string, boolean>>({});
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const [inlineEditorPort, setInlineEditorPort] = useState<SourceEditorPort | null>(null);
+  const [webContentHash, setWebContentHash] = useState('');
   const editorRegionRef = useRef<HTMLDivElement>(null);
   const markdownEditorRef = useRef<ExposeParam | null>(null);
   const autosaveTimersRef = useRef(
@@ -95,6 +103,17 @@ export function EditorPane({
   const activeSaveStatus = activeFile ? (saveStatusByPath[activeFile.path] ?? 'saved') : 'saved';
   const recoveryDraft = activeFile ? recoveryDrafts[activeFile.path] : undefined;
   const isExtractedDocument = activeFile?.extracted === true;
+
+  useEffect(() => {
+    if (runtimeMode !== 'web-mock' || !activeFile) return;
+    let current = true;
+    void textHash(activeFile.content).then((hash) => {
+      if (current) setWebContentHash(hash);
+    });
+    return () => {
+      current = false;
+    };
+  }, [activeFile, runtimeMode]);
 
   const saveLabel =
     activeSaveStatus === 'saving'
@@ -122,20 +141,96 @@ export function EditorPane({
     markdownEditorRef.current = editor;
   }, []);
 
+  const publishEditorPort = useCallback(
+    (port: SourceEditorPort | null) => {
+      setInlineEditorPort(port);
+      onEditorPort?.(port);
+    },
+    [onEditorPort]
+  );
+
   useEffect(() => {
     if (!isMarkdown) {
-      if (!activeFile || isExtractedDocument) onEditorPort?.(null);
+      // The editor lifecycle publishes an imperative selection port.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (!activeFile || isExtractedDocument) publishEditorPort(null);
       return;
     }
-    onEditorPort?.({
+    publishEditorPort({
       read: () => {
         // Do not map selections in the rendered preview back to Markdown source.
         if (previewEnabled || workspaceLoading || activeFile?.editable === false) return null;
         return codeMirrorSelection(markdownEditorRef.current?.getEditorView());
       },
     });
-    return () => onEditorPort?.(null);
-  }, [activeFile, isMarkdown, isExtractedDocument, previewEnabled, workspaceLoading, onEditorPort]);
+    return () => publishEditorPort(null);
+  }, [
+    activeFile,
+    isMarkdown,
+    isExtractedDocument,
+    previewEnabled,
+    workspaceLoading,
+    publishEditorPort,
+  ]);
+
+  const inlineSnapshot: DocumentSnapshot | null =
+    activeFile &&
+    (workspace || runtimeMode === 'web-mock') &&
+    (activeFile.contentHash || webContentHash)
+      ? {
+          target: {
+            kind: 'workspace_file',
+            workspaceId: workspace?.id ?? 'web-mock-workspace',
+            sourceId: activeFile.sourceId ?? '00000000-0000-0000-0000-000000000001',
+          },
+          revisionId: null,
+          contentHash: activeFile.contentHash ?? webContentHash,
+          format: activeFile.language,
+          text: activeFile.content,
+          editable: activeFile.editable !== false && !activeFile.extracted,
+          hasUnsavedDraft: activeSaveStatus !== 'saved' || Boolean(recoveryDraft),
+        }
+      : null;
+
+  const receiveInlineApplication = useCallback(
+    (application: import('../../../shared/types/domain').ReviewApplication) => {
+      useAppStore.setState((state) => {
+        const beforeByPath = Object.fromEntries(
+          application.files.map((applied) => [
+            applied.path,
+            state.files.find((file) => file.path === applied.path)?.content ?? '',
+          ])
+        );
+        return {
+          files: state.files.map((file) => {
+            const applied = application.files.find((item) => item.path === file.path);
+            return applied
+              ? { ...file, content: applied.content, contentHash: applied.contentHash }
+              : file;
+          }),
+          dirtyPaths: state.dirtyPaths.filter(
+            (path) => !application.files.some((file) => file.path === path)
+          ),
+          saveStatusByPath: Object.fromEntries([
+            ...Object.entries(state.saveStatusByPath),
+            ...application.files.map((file) => [file.path, 'saved' as const]),
+          ]),
+          lastPatchApplication: application.operationId
+            ? {
+                operationId: application.operationId,
+                summary: '选区内 AI 修改',
+                undoOf: null,
+                files: application.files,
+              }
+            : null,
+          lastReviewApplication: application,
+          patchBeforeByPath: beforeByPath,
+          selectedText: '',
+        };
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     const timers = autosaveTimersRef.current;
@@ -356,7 +451,13 @@ export function EditorPane({
         ))}
       </div>
       {centerView === 'editor' && activeFile?.editable !== false && !previewEnabled ? (
-        <SelectionAssistant />
+        <SelectionAssistant
+          editorPort={inlineEditorPort}
+          snapshot={inlineSnapshot}
+          selectedText={selectedText}
+          targetLabel={activeFile?.path ?? ''}
+          onApplied={receiveInlineApplication}
+        />
       ) : null}
       {activeFile && recoveryDraft ? (
         <Alert
@@ -431,7 +532,7 @@ export function EditorPane({
             value={activeFile.content}
             disabled={workspaceLoading || activeFile.editable === false}
             onSelection={setSelectedText}
-            onEditorPort={onEditorPort}
+            onEditorPort={publishEditorPort}
             onChange={(value) => updateFile(activeFile.path, value, workspace?.id)}
           />
         ) : (

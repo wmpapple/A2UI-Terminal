@@ -235,7 +235,7 @@ test('keeps file changes behind review before applying the Web Mock patch', asyn
   await expect(page.getByRole('button', { name: /撤销上次 AI 修改/ })).toBeVisible();
 });
 
-test('routes selection edits through review and keeps explanations read-only', async ({ page }) => {
+test('routes selection edits through review with inline accept and undo', async ({ page }) => {
   await openProfessionalWorkbench(page);
   await page.getByText('src/experiment.ts', { exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'src/experiment.ts' });
@@ -245,18 +245,19 @@ test('routes selection edits through review and keeps explanations read-only', a
   const assistant = page.getByRole('region', { name: '选区助手' });
   await expect(assistant).toBeVisible();
   await assistant.getByRole('button', { name: /润\s*色/ }).click();
-  const confirmation = page.getByRole('dialog', { name: '确认使用当前选区' });
-  await expect(confirmation.getByText(/接受前不会写入编辑器或文件/)).toBeVisible();
-  await confirmation.getByRole('button', { name: '生成审阅方案' }).click();
-  await expect(page.getByRole('region', { name: '审阅中心' })).toBeVisible();
-  await page.getByRole('button', { name: '全部拒绝' }).click();
+  const proposal = page.getByRole('article', { name: 'AI 行内修改建议' });
+  await expect(proposal).toBeVisible();
+  await expect(proposal.getByText('context-window', { exact: true })).toBeVisible();
+  await expect(editor).toHaveText(original ?? '');
+  await proposal.getByRole('button', { name: /关\s*闭/ }).click();
+  await expect(proposal).toHaveCount(0);
   await expect(editor).toHaveText(original ?? '');
 
   await selectEditorText(editor, 'context-window');
-  await assistant.getByRole('button', { name: /解\s*释/ }).click();
-  await confirmation.getByRole('button', { name: '生成解释' }).click();
-  await expect(page.getByText('这是对当前选区的只读解释。编辑器和文件均未修改。')).toBeVisible();
-  await expect(page.getByRole('region', { name: '审阅中心' })).toHaveCount(0);
+  await assistant.getByRole('button', { name: /润\s*色/ }).click();
+  await proposal.getByRole('button', { name: /接\s*受/ }).click();
+  await expect(editor).toContainText('context-window（已润色）');
+  await page.getByRole('button', { name: /撤销上次 AI 修改/ }).click();
   await expect(editor).toHaveText(original ?? '');
 });
 

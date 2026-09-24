@@ -567,6 +567,12 @@
           "markdownDescription": "Enables the plan_generation command without any pre-configured scope."
         },
         {
+          "description": "Enables the plan_inline_edit command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-plan-inline-edit",
+          "markdownDescription": "Enables the plan_inline_edit command without any pre-configured scope."
+        },
+        {
           "description": "Enables the probe_local_providers command without any pre-configured scope.",
           "type": "string",
           "const": "allow-probe-local-providers",
@@ -757,6 +763,12 @@
           "type": "string",
           "const": "allow-start-generation",
           "markdownDescription": "Enables the start_generation command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the start_inline_edit command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-start-inline-edit",
+          "markdownDescription": "Enables the start_inline_edit command without any pre-configured scope."
         },
         {
           "description": "Enables the start_task command without any pre-configured scope.",
@@ -1191,6 +1203,12 @@
           "markdownDescription": "Denies the plan_generation command without any pre-configured scope."
         },
         {
+          "description": "Denies the plan_inline_edit command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-plan-inline-edit",
+          "markdownDescription": "Denies the plan_inline_edit command without any pre-configured scope."
+        },
+        {
           "description": "Denies the probe_local_providers command without any pre-configured scope.",
           "type": "string",
           "const": "deny-probe-local-providers",
@@ -1381,6 +1399,12 @@
           "type": "string",
           "const": "deny-start-generation",
           "markdownDescription": "Denies the start_generation command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the start_inline_edit command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-start-inline-edit",
+          "markdownDescription": "Denies the start_inline_edit command without any pre-configured scope."
         },
         {
           "description": "Denies the start_task command without any pre-configured scope.",

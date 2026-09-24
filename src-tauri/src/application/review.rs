@@ -38,6 +38,12 @@ enum StoredReviewPayload {
         base_hash: String,
         content: String,
     },
+    InlineWorkspace {
+        path: String,
+        base_hash: String,
+        before: String,
+        content: String,
+    },
 }
 
 pub fn create(
@@ -302,6 +308,35 @@ pub fn apply(
                 .collect(),
             result: None,
         }),
+        StoredReviewPayload::InlineWorkspace {
+            path,
+            base_hash,
+            content,
+            ..
+        } => patch::apply_trusted_full_replace_for_review(
+            storage,
+            &input.workspace_id,
+            &path,
+            &base_hash,
+            &content,
+            &current.summary,
+            &input.review_id,
+        )
+        .map(|application| ReviewApplication {
+            review_id: input.review_id.clone(),
+            status: ReviewStatus::Applied,
+            operation_id: Some(application.operation_id),
+            files: application
+                .files
+                .into_iter()
+                .map(|file| ReviewAppliedFile {
+                    path: file.path,
+                    content: file.content,
+                    content_hash: file.content_hash,
+                })
+                .collect(),
+            result: None,
+        }),
     };
     match result {
         Err(AppError::FileConflict) => {
@@ -372,6 +407,7 @@ pub fn resolve_conflict(
                     (proposal.file_name, proposal.content)
                 }
                 StoredReviewPayload::ReplaceResult { path, content, .. } => (path, content),
+                StoredReviewPayload::InlineWorkspace { path, content, .. } => (path, content),
                 StoredReviewPayload::ManagedResult {
                     file_name, content, ..
                 } => (file_name, content),
@@ -551,6 +587,110 @@ pub(crate) fn create_result_replacement(
             after_content: content,
             reason: "按已确认的写作要求生成；请审阅全文后决定",
             risk: "high",
+            suggested_file_name: None,
+        }],
+    )?;
+    get(storage, &id)
+}
+
+pub(crate) fn create_inline_replacement(
+    storage: &Storage,
+    _managed_results_dir: &Path,
+    snapshot: &crate::domain::document::DocumentSnapshot,
+    selection: &crate::domain::document::SelectionSnapshot,
+    replacement: &str,
+    action: crate::application::inline_edit::InlineEditAction,
+) -> Result<ReviewRequest, AppError> {
+    super::result::validate_content(replacement)?;
+    let range = super::document::utf16_range(&snapshot.text, selection.start, selection.end)?;
+    let before_selection = &snapshot.text[range.clone()];
+    if replacement == before_selection {
+        return Err(AppError::InvalidInput("AI 返回内容与所选文字相同".into()));
+    }
+    let mut content =
+        String::with_capacity(snapshot.text.len() - before_selection.len() + replacement.len());
+    content.push_str(&snapshot.text[..range.start]);
+    content.push_str(replacement);
+    content.push_str(&snapshot.text[range.end..]);
+    super::result::validate_content(&content)?;
+
+    let (workspace_id, result_id, target_label, base_revision_id, payload) = match &snapshot.target
+    {
+        crate::domain::document::DocumentTarget::WorkspaceFile {
+            workspace_id,
+            source_id,
+        } => {
+            let path =
+                crate::repository::document::workspace_target(storage, workspace_id, source_id)?;
+            (
+                workspace_id.clone(),
+                None,
+                path.clone(),
+                None,
+                StoredReviewPayload::InlineWorkspace {
+                    path,
+                    base_hash: snapshot.content_hash.clone(),
+                    before: snapshot.text.clone(),
+                    content: content.clone(),
+                },
+            )
+        }
+        crate::domain::document::DocumentTarget::Result { result_id } => {
+            let source = storage
+                .result_source(result_id)?
+                .ok_or(AppError::StateUnavailable)?;
+            let payload = match source.source_kind.as_str() {
+                "managed_local" => StoredReviewPayload::ManagedResult {
+                    result_id: source.result.id.clone(),
+                    file_name: source.source_ref.clone(),
+                    before: snapshot.text.clone(),
+                    base_hash: snapshot.content_hash.clone(),
+                    content: content.clone(),
+                },
+                "workspace_file" => StoredReviewPayload::InlineWorkspace {
+                    path: source.source_ref.clone(),
+                    base_hash: snapshot.content_hash.clone(),
+                    before: snapshot.text.clone(),
+                    content: content.clone(),
+                },
+                _ => return Err(AppError::InvalidInput("当前成果不支持行内修改".into())),
+            };
+            (
+                source.result.workspace_id,
+                Some(source.result.id),
+                source.result.title,
+                snapshot.revision_id.clone(),
+                payload,
+            )
+        }
+    };
+    let id = Uuid::new_v4().to_string();
+    let block_id = Uuid::new_v4().to_string();
+    let payload_json = serde_json::to_string(&payload).map_err(|_| AppError::StateUnavailable)?;
+    let reason = format!("选区内 AI 修改：{action:?}");
+    storage.create_review_request(
+        NewReviewRequestRow {
+            task_id: None,
+            id: &id,
+            workspace_id: &workspace_id,
+            result_id: result_id.as_deref(),
+            source: "selection",
+            operation_kind: "replace_result",
+            summary: "选区内 AI 修改",
+            risk: "low",
+            base_revision_id: base_revision_id.as_deref(),
+            base_hash: Some(&snapshot.content_hash),
+            payload_json: &payload_json,
+        },
+        &[NewReviewBlockRow {
+            id: &block_id,
+            kind: "replace_result",
+            target_label: &target_label,
+            operation: Some("replace_selection"),
+            before_content: before_selection,
+            after_content: replacement,
+            reason: &reason,
+            risk: "low",
             suggested_file_name: None,
         }],
     )?;
@@ -1028,6 +1168,197 @@ mod tests {
             undo(&storage, managed.path(), input).unwrap().status,
             ReviewStatus::Undone
         );
+    }
+
+    #[test]
+    fn inline_edit_replaces_exact_utf16_range_and_reuses_review_undo() {
+        let (workspace, managed, storage, workspace_id) = setup();
+        let source_id = Uuid::new_v4().to_string();
+        let path = workspace.path().join("notes.md");
+        let before = "重复 😀 文字；重复 😀 文字";
+        fs::write(&path, before).unwrap();
+        storage
+            .attach_workspace_file(
+                &workspace_id,
+                &source_id,
+                path.to_str().unwrap(),
+                "notes.md",
+            )
+            .unwrap();
+        let snapshot = crate::domain::document::DocumentSnapshot {
+            target: crate::domain::document::DocumentTarget::WorkspaceFile {
+                workspace_id: workspace_id.clone(),
+                source_id,
+            },
+            revision_id: None,
+            content_hash: crate::parser::hash(before.as_bytes()),
+            format: "markdown".into(),
+            text: before.into(),
+            editable: true,
+            has_unsaved_draft: false,
+        };
+        // The second occurrence starts at UTF-16 unit 9; the emoji occupies two units.
+        let selection = crate::domain::document::SelectionSnapshot {
+            target: snapshot.target.clone(),
+            revision_id: None,
+            content_hash: snapshot.content_hash.clone(),
+            start: 9,
+            end: 17,
+            offset_unit: crate::parser::OffsetUnit::Utf16,
+            selected_text_hash: crate::parser::hash("重复 😀 文字".as_bytes()),
+        };
+        let review = create_inline_replacement(
+            &storage,
+            managed.path(),
+            &snapshot,
+            &selection,
+            "第二处",
+            crate::application::inline_edit::InlineEditAction::Polish,
+        )
+        .unwrap();
+        assert_eq!(review.risk, ReviewRisk::Low);
+        assert_eq!(review.blocks[0].before, "重复 😀 文字");
+        assert_eq!(review.blocks[0].after, "第二处");
+        decide_all(&storage, &review, true, None);
+        let input = ApplyReviewInput {
+            review_id: review.id,
+            workspace_id,
+        };
+        let applied = apply(&storage, managed.path(), input.clone()).unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "重复 😀 文字；第二处");
+        assert_eq!(
+            apply(&storage, managed.path(), input.clone()).unwrap(),
+            applied
+        );
+        undo(&storage, managed.path(), input).unwrap();
+        assert_eq!(fs::read_to_string(path).unwrap(), before);
+    }
+
+    #[test]
+    fn inline_edit_discard_has_no_write_and_stale_apply_conflicts() {
+        let (workspace, managed, storage, workspace_id) = setup();
+        let source_id = Uuid::new_v4().to_string();
+        let path = workspace.path().join("notes.md");
+        fs::write(&path, "原文内容").unwrap();
+        storage
+            .attach_workspace_file(
+                &workspace_id,
+                &source_id,
+                path.to_str().unwrap(),
+                "notes.md",
+            )
+            .unwrap();
+        let snapshot = crate::application::document::snapshot(
+            &storage,
+            managed.path(),
+            &crate::domain::document::DocumentTarget::WorkspaceFile {
+                workspace_id: workspace_id.clone(),
+                source_id,
+            },
+        )
+        .unwrap();
+        let selection = crate::domain::document::SelectionSnapshot {
+            target: snapshot.target.clone(),
+            revision_id: None,
+            content_hash: snapshot.content_hash.clone(),
+            start: 0,
+            end: 4,
+            offset_unit: crate::parser::OffsetUnit::Utf16,
+            selected_text_hash: crate::parser::hash("原文内容".as_bytes()),
+        };
+        let discarded = create_inline_replacement(
+            &storage,
+            managed.path(),
+            &snapshot,
+            &selection,
+            "建议内容",
+            crate::application::inline_edit::InlineEditAction::Polish,
+        )
+        .unwrap();
+        discard(&storage, &workspace_id, &discarded.id).unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "原文内容");
+
+        let review = create_inline_replacement(
+            &storage,
+            managed.path(),
+            &snapshot,
+            &selection,
+            "另一建议",
+            crate::application::inline_edit::InlineEditAction::Natural,
+        )
+        .unwrap();
+        decide_all(&storage, &review, true, None);
+        fs::write(&path, "用户的新内容").unwrap();
+        assert!(matches!(
+            apply(
+                &storage,
+                managed.path(),
+                ApplyReviewInput {
+                    review_id: review.id,
+                    workspace_id,
+                },
+            ),
+            Err(AppError::FileConflict)
+        ));
+        assert_eq!(fs::read_to_string(path).unwrap(), "用户的新内容");
+    }
+
+    #[test]
+    fn inline_edit_managed_result_creates_one_revision_and_undoes() {
+        let (_workspace, managed, storage, _workspace_id) = setup();
+        let created = crate::application::result::create_text(
+            &storage,
+            managed.path(),
+            crate::domain::result::CreateTextResultInput {
+                title: "项目记录".into(),
+                file_name: "项目记录.md".into(),
+                result_type: crate::domain::result::ResultType::Document,
+                format: crate::domain::result::TextResultFormat::Markdown,
+            },
+        )
+        .unwrap();
+        let target = crate::domain::document::DocumentTarget::Result {
+            result_id: created.result.summary.id.clone(),
+        };
+        let snapshot =
+            crate::application::document::snapshot(&storage, managed.path(), &target).unwrap();
+        let selection = crate::domain::document::SelectionSnapshot {
+            target,
+            revision_id: snapshot.revision_id.clone(),
+            content_hash: snapshot.content_hash.clone(),
+            start: 2,
+            end: 6,
+            offset_unit: crate::parser::OffsetUnit::Utf16,
+            selected_text_hash: crate::parser::hash("项目记录".as_bytes()),
+        };
+        let review = create_inline_replacement(
+            &storage,
+            managed.path(),
+            &snapshot,
+            &selection,
+            "项目纪要",
+            crate::application::inline_edit::InlineEditAction::Professional,
+        )
+        .unwrap();
+        decide_all(&storage, &review, true, None);
+        let input = ApplyReviewInput {
+            review_id: review.id,
+            workspace_id: review.workspace_id,
+        };
+        let applied = apply(&storage, managed.path(), input.clone()).unwrap();
+        assert_eq!(applied.result.unwrap().content, "# 项目纪要\n\n");
+        assert_eq!(
+            crate::application::result::list_revisions(
+                &storage,
+                managed.path(),
+                &created.result.summary.id,
+            )
+            .unwrap()
+            .len(),
+            2
+        );
+        let undone = undo(&storage, managed.path(), input).unwrap();
+        assert_eq!(undone.result.unwrap().content, created.content);
     }
 
     #[test]

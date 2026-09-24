@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "M3 Inline Edit Contract",
+  "type": "object",
+  "required": ["selection", "providerId", "action"],
+  "additionalProperties": false,
+  "properties": {
+    "selection": {
+      "type": "object",
+      "required": [
+        "target",
+        "revisionId",
+        "contentHash",
+        "start",
+        "end",
+        "offsetUnit",
+        "selectedTextHash"
+      ],
+      "properties": {
+        "target": { "type": "object" },
+        "revisionId": { "type": ["string", "null"] },
+        "contentHash": { "type": "string", "minLength": 64, "maxLength": 64 },
+        "start": { "type": "integer", "minimum": 0 },
+        "end": { "type": "integer", "minimum": 1 },
+        "offsetUnit": { "const": "utf16" },
+        "selectedTextHash": { "type": "string", "minLength": 64, "maxLength": 64 }
+      }
+    },
+    "providerId": { "type": "string", "minLength": 1 },
+    "action": {
+      "enum": [
+        "polish",
+        "shorten",
+        "expand",
+        "professional",
+        "natural",
+        "grammar",
+        "translate",
+        "custom"
+      ]
+    },
+    "customInstruction": { "type": ["string", "null"], "maxLength": 500 }
+  },
+  "x-trust-boundary": {
+    "modelOutput": ["replacementText"],
+    "trustedFields": ["target", "revisionId", "contentHash", "start", "end", "risk"],
+    "risk": "low",
+    "writeRequires": ["reviewDecision", "baseHashMatch"]
+  }
+}

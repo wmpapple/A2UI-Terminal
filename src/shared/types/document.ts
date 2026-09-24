@@ -22,6 +22,9 @@ export interface SelectionSnapshot {
   selectedTextHash: string;
 }
 
+export type InlineEditAction =
+  'polish' | 'shorten' | 'expand' | 'professional' | 'natural' | 'grammar' | 'translate' | 'custom';
+
 export interface ParsedDocument {
   format: string;
   parserVersion: string;

@@ -2,7 +2,7 @@
 
 > 日期：2026-09-21（Asia/Shanghai）  
 > 代码基准：`35023d75a0d87e5e16f1d0de8a554e4eb6b49a69`；开始分析时工作树干净。  
-> 状态（2026-09-24）：M0、F0、M1-A、M1-B 产品验收通过；用户已授权 M2。M2 写作偏好、统一 Prompt Composer 与首批固定 Eval 已完成工程验证，当前等待产品功能验收。实施证据见 [M2_EXECUTION.md](M2_EXECUTION.md)。未收到明确授权前不进入 M3。
+> 状态（2026-09-24）：M0、F0、M1-A、M1-B、M2 产品验收通过；用户已授权 M3。M3 Inline AI 与风险自适应审阅已完成工程实施，当前等待产品功能验收。实施证据见 [M3_EXECUTION.md](M3_EXECUTION.md)。未收到明确授权前不进入 M4。
 >
 > 输入：用户提供的 PRD、Engineering Implementation Plan、Product Engineering Roadmap，以及仓库现有 64 份 docs 文档、实现与测试。材料目录见 [V2X_REVIEW_INVENTORY.md](V2X_REVIEW_INVENTORY.md)。
 
@@ -254,7 +254,7 @@ Profile 不是隐形资料通道：范文只保存 Knowledge 引用，正文需�
 
 ## 10. M3：Inline AI 与风险自适应审阅
 
-状态：待开始；依赖 F0 文档目标、M2 Composer。预计 8–12 人日。
+状态：工程实施完成，待人工验收；依赖 F0 文档目标、M2 Composer。未收到明确授权前不进入 M4。
 
 ### 10.1 一套写入内核，两种审阅展示
 

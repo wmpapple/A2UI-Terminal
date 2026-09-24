@@ -30,6 +30,7 @@ interface Props {
   editable: boolean;
   viewMode: 'preview' | 'edit';
   onChange: (content: string) => void;
+  onSelection?: (content: string) => void;
   onEditorPort?: (port: SourceEditorPort | null) => void;
 }
 
@@ -46,7 +47,8 @@ function RawEditor({
   editable,
   onChange,
   onEditorPort,
-}: Pick<Props, 'content' | 'editable' | 'onChange' | 'onEditorPort'>) {
+  onSelection,
+}: Pick<Props, 'content' | 'editable' | 'onChange' | 'onEditorPort' | 'onSelection'>) {
   const { t } = useI18n();
   const editor = useRef<TextAreaRef>(null);
   useLayoutEffect(() => {
@@ -61,6 +63,10 @@ function RawEditor({
       value={content}
       disabled={!editable}
       onChange={(event) => onChange(event.target.value)}
+      onSelect={(event) => {
+        const target = event.currentTarget;
+        onSelection?.(target.value.slice(target.selectionStart, target.selectionEnd));
+      }}
       autoSize={false}
     />
   );

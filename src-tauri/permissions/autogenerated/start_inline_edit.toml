@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-start-inline-edit"
+description = "Enables the start_inline_edit command without any pre-configured scope."
+commands.allow = ["start_inline_edit"]
+
+[[permission]]
+identifier = "deny-start-inline-edit"
+description = "Denies the start_inline_edit command without any pre-configured scope."
+commands.deny = ["start_inline_edit"]

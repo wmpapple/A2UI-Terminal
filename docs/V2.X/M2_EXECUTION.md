@@ -28,4 +28,4 @@
 
 ## 当前阶段门
 
-当前状态：**工程验证完成，待 M2 产品功能验收**。验收步骤见 [M2_MANUAL_ACCEPTANCE.md](M2_MANUAL_ACCEPTANCE.md)，证据摘要见 [M2_DELIVERY_SNAPSHOT.json](M2_DELIVERY_SNAPSHOT.json)。用户明确确认并授权前不进入 M3。
+当前状态：**M2 产品功能验收已于 2026-09-24 通过**。用户已明确授权进入 M3；后续实施和验收记录见 [M3_EXECUTION.md](M3_EXECUTION.md)。

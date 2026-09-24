@@ -352,6 +352,72 @@ pub fn apply_full_replace_for_review(
     ))
 }
 
+/// Applies a full document assembled by trusted selection code. Unlike the
+/// first-write helper above, this accepts non-empty input documents; callers
+/// must never populate `path` or `base_hash` from model output.
+pub(crate) fn apply_trusted_full_replace_for_review(
+    storage: &Storage,
+    workspace_id: &str,
+    path: &str,
+    base_hash: &str,
+    content: &str,
+    summary: &str,
+    review_id: &str,
+) -> Result<PatchApplication, AppError> {
+    if content.is_empty() || content.len() > MAX_RESULT_BYTES {
+        return Err(AppError::InvalidInput(
+            "行内修改结果为空或超过 2 MiB".into(),
+        ));
+    }
+    let document = read_patch_document(storage, workspace_id, path)?;
+    if !document.editable || document.extracted {
+        return Err(AppError::InvalidInput("目标不是可编辑文本文件".into()));
+    }
+    if document.content_hash != base_hash {
+        return Err(AppError::FileConflict);
+    }
+    let file = PlannedFile {
+        path: path.to_string(),
+        before: document.content,
+        before_hash: document.content_hash,
+        after: content.to_string(),
+        after_hash: sha256(content.as_bytes()),
+    };
+    let operation_id = Uuid::new_v4().to_string();
+    write_all_or_rollback(storage, workspace_id, std::slice::from_ref(&file))?;
+    let patch_json = serde_json::to_string(&serde_json::json!({
+        "version": "1.0",
+        "type": "trusted_inline_replace",
+        "workspaceId": workspace_id,
+        "path": path,
+        "baseHash": base_hash,
+        "summary": summary,
+    }))
+    .map_err(|_| AppError::StateUnavailable)?;
+    let snapshots = snapshots_for(&operation_id, workspace_id, std::slice::from_ref(&file));
+    if let Err(error) = storage.record_patch_operation(
+        &operation_id,
+        workspace_id,
+        None,
+        None,
+        summary,
+        &patch_json,
+        None,
+        &snapshots,
+        Some(review_id),
+        None,
+    ) {
+        rollback_files(storage, workspace_id, std::slice::from_ref(&file));
+        return Err(error);
+    }
+    Ok(application(
+        &operation_id,
+        summary,
+        None,
+        std::slice::from_ref(&file),
+    ))
+}
+
 pub fn undo_patch(
     storage: &Storage,
     workspace_id: &str,

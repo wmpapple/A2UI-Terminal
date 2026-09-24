@@ -62,6 +62,8 @@ fn main() {
         "stream_chat",
         "plan_generation",
         "start_generation",
+        "plan_inline_edit",
+        "start_inline_edit",
         "stop_chat",
         "validate_document_patch",
         "apply_document_patch",

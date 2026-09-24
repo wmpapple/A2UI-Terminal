@@ -30,16 +30,17 @@ export function CodeEditor(props: Props) {
   const view = useRef<EditorView | null>(null);
   const latest = useRef(props);
   const editable = useRef(new Compartment());
+  const onEditorPort = props.onEditorPort;
   useLayoutEffect(() => {
     latest.current = props;
   });
 
   useLayoutEffect(() => {
-    props.onEditorPort?.({
+    onEditorPort?.({
       read: () => (latest.current.disabled ? null : codeMirrorSelection(view.current ?? undefined)),
     });
-    return () => props.onEditorPort?.(null);
-  }, [props.onEditorPort]);
+    return () => onEditorPort?.(null);
+  }, [onEditorPort]);
 
   useLayoutEffect(() => {
     if (!host.current) return;
