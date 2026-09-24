@@ -690,6 +690,17 @@ export function resetWebMockHomeGateway(): void {
   resultDrafts.clear();
 }
 
+export function getWebMockGenerationTask(id: string): TaskDetail {
+  const task = tasks.get(id);
+  if (!task) throw new Error('任务不存在');
+  return clone(task);
+}
+export function completeWebMockGenerationTask(id: string, resultId: string): void {
+  const task = tasks.get(id);
+  if (!task) throw new Error('任务不存在');
+  tasks.set(id, { ...task, status: 'completed', resultId });
+}
+
 export async function createWebMockReviewResult(input: {
   title: string;
   fileName: string;

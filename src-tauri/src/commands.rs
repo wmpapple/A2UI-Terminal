@@ -135,6 +135,11 @@ fn invalidate_pending_context(state: &AppState) -> Result<(), AppError> {
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .clear();
+    state
+        .pending_generations
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
     Ok(())
 }
 
@@ -186,7 +191,13 @@ pub fn set_provider_secret(
     provider_id: String,
     secret: String,
 ) -> Result<SecretStatus, AppError> {
-    provider::set_secret(&state.storage, &provider_id, secret)
+    let _guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    let result = provider::set_secret(&state.storage, &provider_id, secret)?;
+    invalidate_pending_context(&state)?;
+    Ok(result)
 }
 
 #[tauri::command]
@@ -199,7 +210,13 @@ pub fn delete_provider_secret(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<SecretStatus, AppError> {
-    provider::delete_secret(&state.storage, &provider_id)
+    let _guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    let result = provider::delete_secret(&state.storage, &provider_id)?;
+    invalidate_pending_context(&state)?;
+    Ok(result)
 }
 
 #[tauri::command]
@@ -242,6 +259,11 @@ pub fn clear_all_local_data(
         .clear();
     state
         .pending_context_manifests
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    state
+        .pending_generations
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .clear();
@@ -450,6 +472,10 @@ pub fn save_workspace_file(
     content: String,
     base_hash: String,
 ) -> Result<SaveOutcome, AppError> {
+    let _generation_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     workspace_service::save_file(
         &state.storage,
         &workspace_id,
@@ -675,6 +701,11 @@ pub fn edit_personal_knowledge(
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .clear();
+    state
+        .pending_generations
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
     crate::application::knowledge::edit(&state.storage, input)
 }
 
@@ -694,6 +725,11 @@ pub fn delete_personal_knowledge(state: State<'_, AppState>, id: String) -> Resu
     }
     state
         .pending_context_manifests
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    state
+        .pending_generations
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .clear();
@@ -843,6 +879,10 @@ pub fn save_context_file(
     content: String,
     base_hash: String,
 ) -> Result<SaveOutcome, AppError> {
+    let _generation_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     workspace_service::save_authorized_file(&state.storage, &source_id, &content, &base_hash)
 }
 
@@ -873,6 +913,10 @@ pub fn restore_document_version(
     version_id: String,
     base_hash: String,
 ) -> Result<SaveOutcome, AppError> {
+    let _generation_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     revision::restore(
         &state.storage,
         &workspace_id,
@@ -895,7 +939,13 @@ pub fn save_provider_config(
     config: ProviderConfig,
     secret: Option<String>,
 ) -> Result<ProviderConfigView, AppError> {
-    provider::save_config(&state.storage, config, secret)
+    let _guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    let result = provider::save_config(&state.storage, config, secret)?;
+    invalidate_pending_context(&state)?;
+    Ok(result)
 }
 
 #[tauri::command]
@@ -903,7 +953,12 @@ pub fn set_active_provider(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<(), AppError> {
-    provider::set_active(&state.storage, &provider_id)
+    let _guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
+    provider::set_active(&state.storage, &provider_id)?;
+    invalidate_pending_context(&state)
 }
 
 #[tauri::command]
@@ -961,6 +1016,10 @@ pub fn pin_chat_session(
 
 #[tauri::command]
 pub fn delete_result(state: State<'_, AppState>, result_id: String) -> Result<(), AppError> {
+    let _generation_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     state.storage.delete_result_entry(&result_id)
 }
 
@@ -1157,6 +1216,10 @@ pub fn apply_document_patch(
     state: State<'_, AppState>,
     request: ApplyPatchRequest,
 ) -> Result<PatchApplication, AppError> {
+    let _generation_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     let applied = adapters::apply_patch(
         &state.storage,
         &request.workspace_id,
@@ -1176,6 +1239,10 @@ pub fn undo_document_patch(
     workspace_id: String,
     operation_id: String,
 ) -> Result<PatchApplication, AppError> {
+    let _generation_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     let undone = telemetry::observe(
         &state.storage,
         telemetry::PerformanceOperation::DocumentRestore,
@@ -1243,6 +1310,10 @@ pub fn apply_review(
     state: State<'_, AppState>,
     input: ApplyReviewInput,
 ) -> Result<ReviewApplication, AppError> {
+    let _generation_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     let applied = review::apply(&state.storage, &state.managed_results_dir, input)?;
     let _ = telemetry::record(&state.storage, telemetry::ProductEvent::AcceptedPatch);
     telemetry::mark_first_core_loop(&state.storage, telemetry::CoreLoopTrigger::ReviewApply);
@@ -1270,6 +1341,10 @@ pub fn resolve_review_conflict(
     state: State<'_, AppState>,
     input: ResolveReviewConflictInput,
 ) -> Result<ReviewApplication, AppError> {
+    let _generation_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     review::resolve_conflict(&state.storage, &state.managed_results_dir, input)
 }
 
@@ -1278,6 +1353,10 @@ pub fn undo_review(
     state: State<'_, AppState>,
     input: ApplyReviewInput,
 ) -> Result<ReviewApplication, AppError> {
+    let _generation_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     let undone = telemetry::observe(
         &state.storage,
         telemetry::PerformanceOperation::DocumentRestore,
@@ -1497,6 +1576,10 @@ pub fn save_result_document(
     state: State<'_, AppState>,
     input: crate::domain::result::SaveResultDocumentInput,
 ) -> Result<crate::domain::result::ResultDocument, AppError> {
+    let _generation_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     let started = Instant::now();
     let result = crate::application::result::save_document(
         &state.storage,
@@ -1528,6 +1611,10 @@ pub fn save_result_draft(
     state: State<'_, AppState>,
     input: crate::domain::result::SaveResultDraftInput,
 ) -> Result<crate::domain::result::ResultRecoveryDraft, AppError> {
+    let _generation_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     crate::application::result::save_draft(&state.storage, &state.managed_results_dir, input)
 }
 
@@ -1577,6 +1664,10 @@ pub fn restore_result_revision(
     state: State<'_, AppState>,
     input: crate::domain::result::RestoreResultRevisionInput,
 ) -> Result<crate::domain::result::ResultDocument, AppError> {
+    let _generation_guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     telemetry::observe(
         &state.storage,
         telemetry::PerformanceOperation::DocumentRestore,
@@ -1863,6 +1954,10 @@ pub fn answer_task_questions(
     state: State<'_, AppState>,
     input: AnswerTaskInput,
 ) -> Result<TaskDetail, AppError> {
+    let _guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     crate::application::task::answer(&state.storage, input)
 }
 
@@ -1873,6 +1968,10 @@ pub fn get_task(state: State<'_, AppState>, task_id: String) -> Result<TaskDetai
 
 #[tauri::command]
 pub fn start_task(state: State<'_, AppState>, task_id: String) -> Result<TaskRunResult, AppError> {
+    let _guard = state
+        .knowledge_guard
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     let result =
         crate::application::task::start(&state.storage, &state.managed_results_dir, &task_id)?;
     let _ = telemetry::record(&state.storage, telemetry::ProductEvent::TaskCompleted);
@@ -1934,4 +2033,26 @@ mod tests {
         assert_eq!(json["privacy"]["providerSecretsIncluded"], false);
         assert_eq!(json["privacy"]["diagnosticLogsIncluded"], false);
     }
+}
+
+#[tauri::command]
+pub fn plan_generation(
+    state: State<'_, AppState>,
+    input: crate::application::generation::PlanGenerationInput,
+) -> Result<crate::application::generation::GenerationPlan, AppError> {
+    crate::application::generation::plan(state.inner(), input)
+}
+
+#[tauri::command]
+pub async fn start_generation(
+    state: State<'_, AppState>,
+    generation_id: String,
+    on_event: Channel<ChatStreamEvent>,
+) -> Result<crate::application::generation::GenerationOutput, AppError> {
+    crate::application::generation::start(state.inner(), &generation_id, |event| {
+        on_event
+            .send(event)
+            .map_err(|_| AppError::StreamReceiverClosed)
+    })
+    .await
 }

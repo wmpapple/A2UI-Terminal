@@ -1,4 +1,6 @@
-import { Alert, Button, Checkbox, Divider, Modal, Progress, Select, Tag } from 'antd';
+import { ContextManifestSummary } from './ContextManifestSummary';
+import { InfoNotice } from '../../../shared/components/InfoNotice';
+import { Alert, Checkbox, Divider, Modal, Progress, Select, Tag } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type {
@@ -162,7 +164,7 @@ export function ContextSelector({
       width={660}
     >
       <div className={styles.body}>
-        <Alert
+        <InfoNotice
           type={processingLocation === 'cloud' ? 'warning' : 'info'}
           showIcon
           title={t(processingLocation === 'cloud' ? 'cloudProcessing' : 'localProcessing')}
@@ -228,7 +230,7 @@ export function ContextSelector({
         {documentSources.length > 0 && (
           <>
             <Divider>{t('oneTimeAuthorizedSources')}</Divider>
-            <Alert type="info" showIcon title={t('oneTimeSourceHint')} />
+            <InfoNotice type="info" showIcon title={t('oneTimeSourceHint')} />
             <Checkbox.Group
               value={selection.documentSourceIds ?? []}
               onChange={(sourceIds) =>
@@ -256,7 +258,7 @@ export function ContextSelector({
         {contextPacks.length > 0 && (
           <>
             <Divider>{t('workspaceContextPacks')}</Divider>
-            <Alert type="info" showIcon title={t('contextPackExpandHint')} />
+            <InfoNotice type="info" showIcon title={t('contextPackExpandHint')} />
             <Checkbox.Group
               value={selection.contextPackIds ?? []}
               onChange={(packIds) =>
@@ -313,74 +315,11 @@ export function ContextSelector({
           />
         )}
         {manifest && (
-          <div className={styles.manifest}>
-            <Divider>{t('trustedManifest')}</Divider>
-            <Alert
-              type="info"
-              showIcon
-              title={t(
-                manifest.strategy === 'full'
-                  ? 'contextStrategyFull'
-                  : manifest.strategy === 'retrieval'
-                    ? 'contextStrategyRetrieval'
-                    : 'contextStrategyHybrid'
-              )}
-              description={
-                manifest.indexMode === 'memory_lexical'
-                  ? t('contextMemoryIndexDescription').replace(
-                      '{count}',
-                      String(manifest.retrievedChunkCount)
-                    )
-                  : t('contextFullDescription')
-              }
-            />
-            <strong>{t('includedSources')}</strong>
-            <div className={styles.manifestList}>
-              {manifest.includedSources.length === 0 ? (
-                <Tag>{t('noFileContext')}</Tag>
-              ) : (
-                manifest.includedSources.map((source) => (
-                  <Tag color="green" key={`${source.kind}:${source.label}`}>
-                    {source.label} · {source.characterCount.toLocaleString()} chars
-                    {source.mode === 'retrieved'
-                      ? ` · ${source.selectedRanges.length} ${t('contextChunks')}`
-                      : ''}
-                  </Tag>
-                ))
-              )}
-            </div>
-            {manifest.includedSources
-              .filter((source) => source.mode === 'retrieved')
-              .map((source) => (
-                <div
-                  className={styles.manifestRanges}
-                  key={`ranges:${source.kind}:${source.label}`}
-                >
-                  <span>{t('contextSelectedRanges').replace('{source}', source.label)}</span>
-                  <code>
-                    {source.selectedRanges
-                      .map(
-                        (range) =>
-                          `${range.chunkId} [${range.startCharacter.toLocaleString()}–${range.endCharacter.toLocaleString()}]`
-                      )
-                      .join(' · ')}
-                  </code>
-                </div>
-              ))}
-            <strong>{t('excludedSources')}</strong>
-            <div className={styles.manifestExcluded}>
-              {manifest.excludedSources.map((source) => (
-                <span key={`${source.kind}:${source.label}`}>
-                  {source.label}: {source.exclusionReason}
-                </span>
-              ))}
-            </div>
-            {onClearIndex && (
-              <Button size="small" loading={indexClearing} onClick={onClearIndex}>
-                {t('clearContextIndex')}
-              </Button>
-            )}
-          </div>
+          <ContextManifestSummary
+            manifest={manifest}
+            onClearIndex={onClearIndex}
+            indexClearing={indexClearing}
+          />
         )}
         {manifest && requiresSensitiveConfirmation && (
           <Checkbox

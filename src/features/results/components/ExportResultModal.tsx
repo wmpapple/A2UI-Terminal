@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { Alert, Button, Modal, Progress, Select } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
@@ -151,7 +152,7 @@ export function ExportResultModal({
     >
       <p>{t('exportRevisionBound')}</p>
       <p>{t('exportFormatLimit')}</p>
-      {isWebMock() ? <Alert type="info" showIcon title={t('exportMockNotice')} /> : null}
+      {isWebMock() ? <InfoNotice type="info" showIcon title={t('exportMockNotice')} /> : null}
       <Select
         aria-label={t('exportFormatLabel')}
         value={format}

@@ -25,6 +25,25 @@ const mergeWorkspaceSources = (
   return [...merged.values()];
 };
 
+const sourceRevisions = new Map<string, number>();
+
+const sourceRevision = (workspaceId: string) => sourceRevisions.get(workspaceId) ?? 0;
+
+const advanceSourceRevision = (workspaceId: string) => {
+  const revision = sourceRevision(workspaceId) + 1;
+  sourceRevisions.set(workspaceId, revision);
+  return revision;
+};
+
+const replaceWorkspaceSources = (
+  existing: DocumentSource[],
+  incoming: DocumentSource[],
+  workspaceId: string
+) => [
+  ...existing.filter((source) => source.workspaceId !== workspaceId),
+  ...incoming.filter((source) => source.workspaceId === workspaceId),
+];
+
 interface ImportState {
   batch: ImportBatch | null;
   acceptedItemIds: string[];
@@ -45,6 +64,7 @@ interface ImportState {
   loadSources: (workspaceId: string) => Promise<void>;
   previewSource: (sourceId: string) => Promise<void>;
   revokeSource: (workspaceId: string, sourceId: string) => Promise<boolean>;
+  forgetSource: (workspaceId: string, sourceId: string) => void;
   closeSourcePreview: () => void;
 }
 
@@ -169,10 +189,15 @@ export const useImportStore = create<ImportState>((set, get) => ({
   clearError: () => set({ error: null }),
 
   loadSources: async (workspaceId) => {
+    const revision = sourceRevision(workspaceId);
     try {
       const sources = await importController.listSources(workspaceId);
-      set({ sources });
+      if (sourceRevision(workspaceId) !== revision) return;
+      set((state) => ({
+        sources: replaceWorkspaceSources(state.sources, sources, workspaceId),
+      }));
     } catch (error) {
+      if (sourceRevision(workspaceId) !== revision) return;
       set({ error: errorDetails(error).message });
     }
   },
@@ -196,26 +221,49 @@ export const useImportStore = create<ImportState>((set, get) => ({
     set({ revokingSourceId: sourceId, error: null });
     try {
       await importController.revokeSource(workspaceId, sourceId);
-      useContextPackStore.getState().forgetSource(workspaceId, sourceId);
-      set((state) => ({
-        sources: state.sources.filter(
-          (source) => source.workspaceId !== workspaceId || source.id !== sourceId
-        ),
-        sourceContent: state.sourceContent?.source.id === sourceId ? null : state.sourceContent,
-      }));
+      get().forgetSource(workspaceId, sourceId);
+      const revision = sourceRevision(workspaceId);
       try {
         const sources = await importController.listSources(workspaceId);
-        set({ sources });
+        if (sourceRevision(workspaceId) === revision) {
+          set((state) => ({
+            sources: replaceWorkspaceSources(state.sources, sources, workspaceId),
+          }));
+        }
       } catch (error) {
         set({ error: `授权已取消，但完整列表刷新失败：${errorDetails(error).message}` });
       }
       return true;
     } catch (error) {
-      set({ error: errorDetails(error).message });
+      const revokeError = errorDetails(error).message;
+      try {
+        const sources = await importController.listSources(workspaceId);
+        if (!sources.some((source) => source.id === sourceId)) {
+          get().forgetSource(workspaceId, sourceId);
+          set((state) => ({
+            sources: replaceWorkspaceSources(state.sources, sources, workspaceId),
+          }));
+          return true;
+        }
+      } catch {
+        // Keep the original revoke error when the current authorization state cannot be verified.
+      }
+      set({ error: revokeError });
       return false;
     } finally {
       set({ revokingSourceId: null });
     }
+  },
+
+  forgetSource: (workspaceId, sourceId) => {
+    advanceSourceRevision(workspaceId);
+    useContextPackStore.getState().forgetSource(workspaceId, sourceId);
+    set((state) => ({
+      sources: state.sources.filter(
+        (source) => source.workspaceId !== workspaceId || source.id !== sourceId
+      ),
+      sourceContent: state.sourceContent?.source.id === sourceId ? null : state.sourceContent,
+    }));
   },
 
   closeSourcePreview: () => set({ sourceContent: null }),

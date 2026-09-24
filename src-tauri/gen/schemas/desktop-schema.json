@@ -549,6 +549,12 @@
           "markdownDescription": "Enables the plan_context command without any pre-configured scope."
         },
         {
+          "description": "Enables the plan_generation command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-plan-generation",
+          "markdownDescription": "Enables the plan_generation command without any pre-configured scope."
+        },
+        {
           "description": "Enables the probe_local_providers command without any pre-configured scope.",
           "type": "string",
           "const": "allow-probe-local-providers",
@@ -727,6 +733,12 @@
           "type": "string",
           "const": "allow-set-telemetry-settings",
           "markdownDescription": "Enables the set_telemetry_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the start_generation command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-start-generation",
+          "markdownDescription": "Enables the start_generation command without any pre-configured scope."
         },
         {
           "description": "Enables the start_task command without any pre-configured scope.",
@@ -1143,6 +1155,12 @@
           "markdownDescription": "Denies the plan_context command without any pre-configured scope."
         },
         {
+          "description": "Denies the plan_generation command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-plan-generation",
+          "markdownDescription": "Denies the plan_generation command without any pre-configured scope."
+        },
+        {
           "description": "Denies the probe_local_providers command without any pre-configured scope.",
           "type": "string",
           "const": "deny-probe-local-providers",
@@ -1321,6 +1339,12 @@
           "type": "string",
           "const": "deny-set-telemetry-settings",
           "markdownDescription": "Denies the set_telemetry_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the start_generation command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-start-generation",
+          "markdownDescription": "Denies the start_generation command without any pre-configured scope."
         },
         {
           "description": "Denies the start_task command without any pre-configured scope.",

@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../shared/components/InfoNotice';
 import { Alert, Button, Checkbox, Empty, Input, Modal, Select, Space, Spin, Tabs, Tag } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../app/i18n/useI18n';
@@ -151,7 +152,7 @@ function KnowledgeSources() {
       ref={dropRef}
       aria-label={zh ? '个人资料库' : 'Personal library'}
     >
-      <Alert
+      <InfoNotice
         type="info"
         showIcon
         title={zh ? '本地保存，可跨工作区复用' : 'Saved locally, available across workspaces'}

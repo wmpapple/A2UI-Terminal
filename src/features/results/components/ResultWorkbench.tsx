@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { WorkbenchAppearanceControl } from '../../../app/WorkbenchAppearanceControl';
 import {
   CopyOutlined,
@@ -101,6 +102,10 @@ export function ResultWorkbench({
   const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
+    if (useResultStore.getState().activeDocument?.result.id === resultId) {
+      window.requestAnimationFrame(() => finishPerformanceMeasurement('resultOpen'));
+      return;
+    }
     let cancelled = false;
     void openResult(resultId).then(() => {
       if (cancelled || useResultStore.getState().activeDocument?.result.id !== resultId) return;
@@ -277,7 +282,7 @@ export function ResultWorkbench({
           </Button>,
         ]}
       >
-        <Alert
+        <InfoNotice
           type={activeDocument.recoveryDraft?.conflicted ? 'warning' : 'info'}
           showIcon
           title={

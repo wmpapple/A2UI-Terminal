@@ -35,7 +35,7 @@ const finishOnboarding = async (page: Page) => {
 
 const openOrganizeTask = async (page: Page, template: '会议纪要' | '文档总结') => {
   await page.getByRole('button', { name: /整理一组资料/ }).click();
-  const dialog = page.getByRole('dialog', { name: '创建本地成果草稿' });
+  const dialog = page.getByRole('dialog', { name: '创建任务成果' });
   await dialog.getByRole('button', { name: new RegExp(template) }).click();
   return dialog;
 };
@@ -132,17 +132,17 @@ test('four P0 templates and the completed table and structured-result entries ar
   await resetBrowserPreferences(page, true);
 
   await page.getByRole('button', { name: /写一份文档/ }).click();
-  let task = page.getByRole('dialog', { name: '创建本地成果草稿' });
+  let task = page.getByRole('dialog', { name: '创建任务成果' });
   await expect(task.getByRole('button', { name: /周报/ })).toBeVisible();
   await task.getByRole('button', { name: 'Close' }).click();
 
   await page.getByRole('button', { name: /修改已有文件/ }).click();
-  task = page.getByRole('dialog', { name: '创建本地成果草稿' });
+  task = page.getByRole('dialog', { name: '创建任务成果' });
   await expect(task.getByRole('button', { name: /简历优化/ })).toBeVisible();
   await task.getByRole('button', { name: 'Close' }).click();
 
   await page.getByRole('button', { name: /整理一组资料/ }).click();
-  task = page.getByRole('dialog', { name: '创建本地成果草稿' });
+  task = page.getByRole('dialog', { name: '创建任务成果' });
   await expect(task.getByRole('button', { name: /会议纪要/ })).toBeVisible();
   await expect(task.getByRole('button', { name: /文档总结/ })).toBeVisible();
   await task.getByRole('button', { name: 'Close' }).click();

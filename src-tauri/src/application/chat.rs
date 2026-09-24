@@ -7,7 +7,7 @@ use crate::error::AppError;
 use crate::patch::{self, PatchReview};
 use crate::repository::chat::{ChatRepository, StartChatRequest};
 use crate::repository::provider::ProviderRepository;
-use crate::security::{validate_provider_id, SecretStore};
+use crate::security::validate_provider_id;
 use crate::storage::{ChatSessionRecord, Storage};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -179,12 +179,7 @@ where
             has_sensitive_warning: manifest.view.sensitive_warning,
         })
     };
-    if !SecretStore::exists(&provider_id)? {
-        return Err(AppError::InvalidInput(
-            "当前 Provider 尚未配置 API Key".into(),
-        ));
-    }
-    let api_key = SecretStore::get(&provider_id)?;
+    let api_key = super::provider::request_key(&config)?;
     start_request()?;
 
     let mut messages = vec![ProviderMessage {
@@ -199,7 +194,7 @@ where
 
     let mut partial = String::new();
     let mut last_persist = Instant::now();
-    let stream_result = ai::stream_chat(
+    let stream_result = super::generation::stream_provider(
         &config,
         &api_key,
         &messages,
@@ -249,7 +244,7 @@ where
                     role: "user".into(),
                     content: "Your previous review proposal was invalid or truncated. Regenerate it once as compact JSON only. For document_patch use at most 3 changes, exact non-empty anchors up to 500 characters, and content up to 1500 characters. For create_file or replace_empty_file include the full candidate content. Do not include hashes or absolute paths.".into(),
                 });
-                match ai::stream_chat(
+                match super::generation::stream_provider(
                     &config,
                     &api_key,
                     &retry_messages,
@@ -346,7 +341,13 @@ where
                 // streaming budget. Keep the original validation failure on timeout.
                 match tokio::time::timeout(
                     std::time::Duration::from_secs(90),
-                    ai::stream_chat(&config, &api_key, &retry_messages, cancellation, |_| Ok(())),
+                    super::generation::stream_provider(
+                        &config,
+                        &api_key,
+                        &retry_messages,
+                        cancellation,
+                        |_| Ok(()),
+                    ),
                 )
                 .await
                 .unwrap_or_else(|_| {

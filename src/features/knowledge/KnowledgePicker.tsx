@@ -10,11 +10,13 @@ export function KnowledgePicker({
   onChange,
   purpose = 'send',
   maxCount = 20,
+  disabled = false,
 }: {
   value: string[];
   onChange: (ids: string[]) => void;
   purpose?: 'send' | 'pack';
   maxCount?: number;
+  disabled?: boolean;
 }) {
   const { locale } = useI18n();
   const zh = locale === 'zh-CN';
@@ -62,6 +64,7 @@ export function KnowledgePicker({
             : 'Personal library (select for this request, confirm before sending)'}
       </p>
       <Select
+        disabled={disabled}
         mode="multiple"
         maxCount={maxCount}
         style={{ width: '100%' }}
@@ -76,7 +79,7 @@ export function KnowledgePicker({
       />
       {cursor !== null && (
         <Button
-          disabled={busy}
+          disabled={busy || disabled}
           onClick={() => {
             const ticket = version.current.value;
             setBusy(true);

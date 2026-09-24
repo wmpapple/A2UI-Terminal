@@ -98,8 +98,8 @@ test('completes the first-run guide and creates a local Result scaffold from Hom
   await expect(page.getByText('A2UI 调研纪要')).toBeVisible();
   await page.getByRole('button', { name: /整理一组资料/ }).click();
 
-  const taskDialog = page.getByRole('dialog', { name: '创建本地成果草稿' });
-  await expect(taskDialog.getByText(/尚未调用 AI 生成正文/)).toBeVisible();
+  const taskDialog = page.getByRole('dialog', { name: '创建任务成果' });
+  await expect(taskDialog.getByText(/AI 生成需要确认发送范围并审阅后写入/)).toBeVisible();
   await taskDialog.getByRole('button', { name: /会议纪要/ }).click();
   await taskDialog.getByLabel('请提供会议主题').fill('产品例会');
   await taskDialog.getByRole('button', { name: '创建结构草稿' }).click();
@@ -312,7 +312,14 @@ test('creates, saves, versions, copies, and reopens a text Result without chat',
 
   await expect(page).toHaveURL(/#\/workbench$/);
   await expect(page.getByRole('heading', { name: 'S1.5 验收记录' })).toBeVisible();
-  await expect(page.getByText(/当前成果不会自动发送/)).toBeVisible();
+  await page.getByRole('button', { name: '上下文', exact: true }).click();
+  await expect(
+    page.getByRole('checkbox', { name: '本次发送当前成果的已保存正文' })
+  ).not.toBeChecked();
+  await page
+    .getByRole('dialog', { name: '本次发送范围' })
+    .getByRole('button', { name: /^关\s*闭$/ })
+    .click();
   await page.getByText('编辑', { exact: true }).click();
   const editor = page.getByRole('textbox', { name: '成果编辑器' });
   await editor.fill('# S1.5 验收记录\n\n成果正文已保存。');

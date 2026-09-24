@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { DeleteOutlined, ExperimentOutlined, SaveOutlined } from '@ant-design/icons';
 import {
   Alert,
@@ -36,7 +37,7 @@ const providerNames: Record<string, string> = {
 };
 
 export function ProviderSettings({ open, onClose, includeSystemSettings = true }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const configs = useAppStore((state) => state.providerConfigs);
   const activeProviderId = useAppStore((state) => state.activeProviderId);
   const loading = useAppStore((state) => state.providerLoading);
@@ -53,6 +54,14 @@ export function ProviderSettings({ open, onClose, includeSystemSettings = true }
   const selected = configs.find((config) => config.id === selectedId) ?? configs[0];
   const [draft, setDraft] = useState<ProviderConfig | null>(selected ?? null);
   const [secret, setSecret] = useState('');
+  const localEndpoint = (() => {
+    try {
+      const url = new URL(draft?.endpoint ?? '');
+      return ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+    } catch {
+      return false;
+    }
+  })();
 
   const update = <K extends keyof ProviderConfig>(key: K, value: ProviderConfig[K]) =>
     setDraft((current) => {
@@ -111,7 +120,7 @@ export function ProviderSettings({ open, onClose, includeSystemSettings = true }
     >
       <>
         {getRuntimeMode() === 'web-mock' ? (
-          <Alert type="info" showIcon title={t('providerDesktopOnly')} />
+          <InfoNotice type="info" showIcon title={t('providerDesktopOnly')} />
         ) : !draft ? (
           <Alert type="warning" showIcon title={t('providerUnavailable')} />
         ) : (
@@ -132,7 +141,11 @@ export function ProviderSettings({ open, onClose, includeSystemSettings = true }
                 }))}
                 className={styles.providerSelect}
               />
-              {draft.configured ? (
+              {localEndpoint ? (
+                <Tag color="blue">
+                  {locale === 'zh-CN' ? '本地模型 · Key 可选' : 'Local model · optional key'}
+                </Tag>
+              ) : draft.configured ? (
                 <Tag color="green">{t('keyConfigured')}</Tag>
               ) : (
                 <Tag color="orange">{t('keyMissing')}</Tag>
@@ -170,17 +183,32 @@ export function ProviderSettings({ open, onClose, includeSystemSettings = true }
                   />
                 </Form.Item>
               </div>
-              <Form.Item label="API Key" extra={t('keyStorageHint')}>
+              <Form.Item
+                label="API Key"
+                extra={
+                  localEndpoint
+                    ? locale === 'zh-CN'
+                      ? '本地服务不要求鉴权时可留空；需要鉴权时填写服务配置的 Key。'
+                      : 'Leave blank if your local service does not require authentication; otherwise enter its configured key.'
+                    : t('keyStorageHint')
+                }
+              >
                 <Input.Password
                   value={secret}
                   autoComplete="new-password"
                   placeholder={
-                    draft.configured ? t('keyKeepPlaceholder') : t('keyInputPlaceholder')
+                    localEndpoint
+                      ? locale === 'zh-CN'
+                        ? '可选，留空保留已有 Key'
+                        : 'Optional; blank keeps an existing key'
+                      : draft.configured
+                        ? t('keyKeepPlaceholder')
+                        : t('keyInputPlaceholder')
                   }
                   onChange={(event) => setSecret(event.target.value)}
                 />
               </Form.Item>
-              <Alert type="info" showIcon title={t('providerTimeoutPolicy')} />
+              <InfoNotice type="info" showIcon title={t('providerTimeoutPolicy')} />
             </Form>
             <Space wrap>
               <Button

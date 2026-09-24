@@ -191,6 +191,8 @@ pub fn run() {
             commands::rebuild_authorized_search_index,
             commands::confirm_context_manifest,
             commands::stream_chat,
+            commands::plan_generation,
+            commands::start_generation,
             commands::stop_chat,
             commands::validate_document_patch,
             commands::apply_document_patch,

@@ -90,7 +90,7 @@ test('measures budgets and completes the core result path with keyboard', async 
   const writeAction = page.getByRole('button', { name: /写一份文档/ });
   await writeAction.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('dialog', { name: '创建本地成果草稿' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: '创建任务成果' })).toBeVisible();
   const requestFeedback = await measurement(page, 'requestFeedback');
   const closeTask = page.getByRole('button', { name: 'Close' });
   await closeTask.focus();

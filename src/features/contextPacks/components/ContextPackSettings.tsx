@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { DeleteOutlined, ExclamationCircleOutlined, FolderAddOutlined } from '@ant-design/icons';
 import { Alert, Button, Input, Popconfirm, Select, Tag, Tooltip, message } from 'antd';
 import { useEffect, useState } from 'react';
@@ -47,7 +48,7 @@ function WorkspacePacks() {
 
   if (!workspace) {
     return (
-      <Alert
+      <InfoNotice
         className={styles.authorizationNotice}
         type="info"
         showIcon

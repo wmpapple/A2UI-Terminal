@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import {
   CloudDownloadOutlined,
   DeleteOutlined,
@@ -75,7 +76,7 @@ export function SystemSettings() {
         </Tag>
       </div>
       {!isDesktop ? (
-        <Alert type="info" showIcon title={t('desktopManagementOnly')} />
+        <InfoNotice type="info" showIcon title={t('desktopManagementOnly')} />
       ) : (
         <>
           {update.error ? <Alert type="warning" showIcon title={update.error} /> : null}
@@ -114,7 +115,7 @@ export function SystemSettings() {
               {t('exportDiagnostics')}
             </Button>
           </div>
-          <Alert type="info" showIcon title={t('diagnosticsPrivacy')} />
+          <InfoNotice type="info" showIcon title={t('diagnosticsPrivacy')} />
           <section className={styles.dangerZone} aria-labelledby="clear-data-zone-title">
             <div className={styles.dangerHeading}>
               <ExclamationCircleOutlined aria-hidden="true" />

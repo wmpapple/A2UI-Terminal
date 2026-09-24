@@ -84,7 +84,7 @@ describe('WorkspaceSidebar', () => {
     expect(screen.getByText(/不会读取或写入本地文件/)).toBeInTheDocument();
   });
 
-  it('returns to the workspace editor when a source file is selected', () => {
+  it('returns to the workspace editor when a source file is selected', async () => {
     const onActivateWorkspace = vi.fn();
     render(
       <I18nProvider>
@@ -93,6 +93,31 @@ describe('WorkspaceSidebar', () => {
     );
 
     fireEvent.click(screen.getByRole('treeitem', { name: /README\.md/i }));
+    await waitFor(() => expect(onActivateWorkspace).toHaveBeenCalledOnce());
+  });
+
+  it('waits for approval before leaving a result to open a workspace file', async () => {
+    const openFile = vi.fn().mockResolvedValue(undefined);
+    const onActivateWorkspace = vi.fn();
+    const onBeforeOpenFile = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    useAppStore.setState({ openFile });
+    render(
+      <I18nProvider>
+        <WorkspaceSidebar
+          onActivateWorkspace={onActivateWorkspace}
+          onBeforeOpenFile={onBeforeOpenFile}
+        />
+      </I18nProvider>
+    );
+
+    const file = screen.getByRole('treeitem', { name: /README\.md/i });
+    fireEvent.click(file);
+    await waitFor(() => expect(onBeforeOpenFile).toHaveBeenCalledWith('README.md', 'README.md'));
+    expect(onActivateWorkspace).not.toHaveBeenCalled();
+    expect(openFile).not.toHaveBeenCalled();
+
+    fireEvent.click(file);
+    await waitFor(() => expect(openFile).toHaveBeenCalledWith('README.md'));
     expect(onActivateWorkspace).toHaveBeenCalledOnce();
   });
 

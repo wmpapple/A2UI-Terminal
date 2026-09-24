@@ -10,6 +10,7 @@ import type { AppGet, AppSet, AppState } from '../../stores/types';
 import { a2uiController } from '../a2ui/a2uiController';
 import { chatController } from '../chat/chatController';
 import { reviewController } from '../diff/reviewController';
+import { useImportStore } from '../imports/importStore';
 import { workspaceController } from './workspaceController';
 
 type WorkspaceActions = Pick<
@@ -535,7 +536,9 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
       }
     },
 
-    forgetAuthorizedSource: (sourceId) =>
+    forgetAuthorizedSource: (sourceId) => {
+      const workspaceId = get().workspace?.id;
+      if (workspaceId) useImportStore.getState().forgetSource(workspaceId, sourceId);
       set((state) => {
         const removedPaths = new Set([
           ...state.files.filter((file) => file.sourceId === sourceId).map((file) => file.path),
@@ -588,7 +591,8 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
           versionHistoryLoading: clearingHistory ? false : state.versionHistoryLoading,
           versionHistoryError: clearingHistory ? null : state.versionHistoryError,
         };
-      }),
+      });
+    },
 
     forgetContextPack: (packId) =>
       set((state) => ({

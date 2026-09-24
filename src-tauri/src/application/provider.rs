@@ -11,6 +11,19 @@ use std::time::{Duration, Instant};
 use zeroize::Zeroizing;
 
 const LOCAL_PROBE_CONNECT_TIMEOUT: Duration = Duration::from_millis(350);
+
+pub(crate) fn request_key(config: &ProviderConfig) -> Result<Zeroizing<String>, AppError> {
+    let key = SecretStore::get_optional(&config.id)?;
+    match key {
+        Some(key) => Ok(key),
+        None if normalized_loopback_endpoint(&config.endpoint).is_some() => {
+            Ok(Zeroizing::new(String::new()))
+        }
+        None => Err(AppError::InvalidInput(
+            "当前云端 Provider 尚未配置 API Key，请在设置中保存后重试".into(),
+        )),
+    }
+}
 const LOCAL_PROBE_TOTAL_TIMEOUT: Duration = Duration::from_millis(1_500);
 const MAX_LOCAL_PROBE_BODY_BYTES: usize = 256 * 1024;
 const MAX_DISCOVERED_MODELS: usize = 100;
@@ -141,7 +154,8 @@ pub fn list_configs(storage: &Storage) -> Result<Vec<ProviderConfigView>, AppErr
         .into_iter()
         .map(|config| {
             Ok(ProviderConfigView {
-                configured: SecretStore::exists(&config.id)?,
+                configured: normalized_loopback_endpoint(&config.endpoint).is_some()
+                    || SecretStore::exists(&config.id)?,
                 active: config.id == active_id,
                 config,
             })
@@ -188,7 +202,8 @@ pub fn save_config(
         }
     }
     Ok(ProviderConfigView {
-        configured: SecretStore::exists(&config.id)?,
+        configured: normalized_loopback_endpoint(&config.endpoint).is_some()
+            || SecretStore::exists(&config.id)?,
         active: repository.active_id()? == config.id,
         config,
     })
@@ -207,10 +222,7 @@ pub async fn test_connection(
     let config = ProviderRepository::new(storage)
         .find(&provider_id)?
         .ok_or_else(|| AppError::InvalidInput("Provider 不存在".into()))?;
-    if !SecretStore::exists(&provider_id)? {
-        return Err(AppError::InvalidInput("请先保存 API Key".into()));
-    }
-    let api_key = SecretStore::get(&provider_id)?;
+    let api_key = request_key(&config)?;
     let latency_ms = ai::test_connection(&config, &api_key).await?;
     Ok(ProviderConnectionResult {
         provider_id,
@@ -244,9 +256,7 @@ pub async fn get_processing_options(storage: &Storage) -> Result<ProcessingOptio
         ProcessingLocationView::Cloud
     };
     let availability = match processing_location {
-        ProcessingLocationView::Local if active_local_available && active.configured => {
-            ProcessingAvailability::Ready
-        }
+        ProcessingLocationView::Local if active_local_available => ProcessingAvailability::Ready,
         ProcessingLocationView::Local if active_local_available => {
             ProcessingAvailability::SetupRequired
         }
@@ -393,7 +403,7 @@ fn parse_model_ids(bytes: &[u8]) -> Result<Vec<String>, &'static str> {
     Ok(models.into_iter().collect())
 }
 
-fn normalized_loopback_endpoint(value: &str) -> Option<String> {
+pub(crate) fn normalized_loopback_endpoint(value: &str) -> Option<String> {
     let mut url = Url::parse(value.trim()).ok()?;
     if !matches!(url.scheme(), "http" | "https")
         || !url.username().is_empty()

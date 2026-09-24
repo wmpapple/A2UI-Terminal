@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { Alert, Button, Checkbox, Input, Select, Space, Tag } from 'antd';
 import TextArea from 'antd/es/input/TextArea';
@@ -308,7 +309,7 @@ function ToolAdapter(props: Props) {
     if (!props.editable) {
       return (
         <div className={styles.toolSnapshot}>
-          <Alert type="info" showIcon title={t('a2uiToolAutoSaved')} />
+          <InfoNotice type="info" showIcon title={t('a2uiToolAutoSaved')} />
           <pre>{props.content}</pre>
         </div>
       );
@@ -318,7 +319,7 @@ function ToolAdapter(props: Props) {
   const update = (next: ToolSetting[]) => props.onChange(serializeTool(next));
   return (
     <div className={styles.structuredEditor} aria-label={t('resultToolEditor')}>
-      {!props.editable ? <Alert type="info" showIcon title={t('a2uiToolAutoSaved')} /> : null}
+      {!props.editable ? <InfoNotice type="info" showIcon title={t('a2uiToolAutoSaved')} /> : null}
       {settings.map((setting, index) => (
         <div className={styles.toolSetting} key={setting.key}>
           {props.viewMode === 'edit' && props.editable ? (

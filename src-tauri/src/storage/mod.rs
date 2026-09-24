@@ -11,7 +11,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 20;
+const SCHEMA_VERSION: i64 = 21;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -57,6 +57,10 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (
         20,
         include_str!("../../migrations/0020_knowledge_pack_references.sql"),
+    ),
+    (
+        21,
+        include_str!("../../migrations/0021_generation_task_reviews.sql"),
     ),
 ];
 
@@ -335,6 +339,7 @@ pub struct ReviewBlockRow {
 }
 
 pub struct NewReviewRequestRow<'a> {
+    pub task_id: Option<&'a str>,
     pub id: &'a str,
     pub workspace_id: &'a str,
     pub result_id: Option<&'a str>,
@@ -2257,8 +2262,8 @@ impl Storage {
         transaction.execute(
             "INSERT INTO review_requests
                 (id, workspace_id, result_id, source, operation_kind, summary, risk,
-                 base_revision_id, base_hash, payload_json)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                 base_revision_id, base_hash, payload_json, task_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
                 input.id,
                 input.workspace_id,
@@ -2270,6 +2275,7 @@ impl Storage {
                 input.base_revision_id,
                 input.base_hash,
                 input.payload_json,
+                input.task_id,
             ],
         )?;
         for (position, block) in blocks.iter().enumerate() {
@@ -3062,6 +3068,11 @@ impl Storage {
             .lock()
             .map_err(|_| AppError::StateUnavailable)?;
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let task: Option<(String, String)> = transaction.query_row("SELECT t.id,t.workspace_id FROM tasks t JOIN review_requests r ON r.task_id=t.id WHERE r.id=?1", [input.review_id], |row| Ok((row.get(0)?,row.get(1)?))).optional()?;
+        let target_workspace = task
+            .as_ref()
+            .map(|t| t.1.as_str())
+            .unwrap_or(input.workspace_id);
         transaction.execute(
             "INSERT INTO document_versions
                 (id, workspace_id, relative_path, content, content_hash, expires_at,
@@ -3070,7 +3081,7 @@ impl Storage {
                      'snapshot', 'initial', '创建成果')",
             params![
                 input.revision_id,
-                input.workspace_id,
+                target_workspace,
                 input.source_ref,
                 input.content.as_bytes(),
                 input.content_hash,
@@ -3080,18 +3091,19 @@ impl Storage {
             "INSERT INTO results
                 (id, workspace_id, result_type, title, status, storage_kind,
                  storage_ref, source_kind, source_ref, current_revision_id,
-                 managed_state_json)
+                 managed_state_json, task_id)
              VALUES (?1, ?2, ?3, ?4, 'draft', 'managed_local',
-                     ?5, 'managed_local', ?6, ?7, ?8)",
+                     ?5, 'managed_local', ?6, ?7, ?8, ?9)",
             params![
                 input.result_id,
-                input.workspace_id,
+                target_workspace,
                 input.result_type,
                 input.title,
                 input.storage_ref,
                 input.source_ref,
                 input.revision_id,
                 input.managed_state_json,
+                task.as_ref().map(|t| t.0.as_str()),
             ],
         )?;
         if let Some(review_id) = input.review_id {
@@ -3240,11 +3252,12 @@ impl Storage {
         after_hash: &str,
         source: &str,
         summary: &str,
+        review_link: Option<(&str, bool)>,
     ) -> Result<Option<String>, AppError> {
         if before_hash == after_hash {
             return Ok(None);
         }
-        if !matches!(source, "autosave" | "restore") {
+        if !matches!(source, "autosave" | "restore" | "patch") {
             return Err(AppError::InvalidInput("成果版本来源无效".into()));
         }
         let mut connection = self
@@ -3319,6 +3332,17 @@ impl Storage {
              )",
             params![workspace_id, source_ref],
         )?;
+        if let Some((review_id, undo)) = review_link {
+            let changed = transaction.execute(
+                "UPDATE review_requests SET status=?3, output_result_id=?2, applied_at=CURRENT_TIMESTAMP, error_code=NULL WHERE id=?1 AND result_id=?2 AND ((?4=0 AND status IN ('accepted','partially_accepted')) OR (?4=1 AND status='applied'))",
+                params![review_id, result_id, if undo { "undone" } else { "applied" }, undo],
+            )?;
+            if changed != 1 {
+                return Err(AppError::InvalidInput(
+                    "Review is no longer applicable".into(),
+                ));
+            }
+        }
         transaction.commit()?;
         Ok(Some(revision_id))
     }

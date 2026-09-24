@@ -136,7 +136,7 @@ fn application_services_do_not_depend_on_tauri() {
 }
 
 #[test]
-fn task_orchestrator_does_not_bypass_the_unresolved_model_boundary() {
+fn offline_task_scaffold_remains_independent_of_model_generation() {
     let task = include_str!("../src/application/task.rs");
 
     assert!(!task.contains("crate::ai"));

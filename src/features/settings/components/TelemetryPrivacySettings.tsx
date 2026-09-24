@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import {
   ExclamationCircleOutlined,
   EyeOutlined,
@@ -72,7 +73,7 @@ export function TelemetryPrivacySettings() {
   };
 
   if (!desktop) {
-    return <Alert type="info" showIcon title={t('telemetryDesktopOnly')} />;
+    return <InfoNotice type="info" showIcon title={t('telemetryDesktopOnly')} />;
   }
 
   if (loading || !settings) return <Spin size="small" />;
@@ -97,7 +98,7 @@ export function TelemetryPrivacySettings() {
       </div>
 
       {invite ? (
-        <Alert
+        <InfoNotice
           type="info"
           showIcon
           title={t('telemetryInvitationTitle')}
@@ -199,7 +200,7 @@ export function TelemetryPrivacySettings() {
           <Spin size="small" />
         ) : (
           <div className={styles.eventDictionary}>
-            <Alert type="info" showIcon title={t('telemetryNoUpload')} />
+            <InfoNotice type="info" showIcon title={t('telemetryNoUpload')} />
             <div>
               <strong>{t('telemetryCommonFields')}</strong>
               <div className={styles.fieldList}>

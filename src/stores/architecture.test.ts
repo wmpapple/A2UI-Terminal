@@ -64,8 +64,8 @@ describe('front-end application boundaries', () => {
     expect(sources['../features/settings/components/ProviderSettings.tsx']).toContain(
       '<Form.Item label="Endpoint" required>'
     );
-    expect(sources['../features/settings/components/ProviderSettings.tsx']).toContain(
-      '<Form.Item label="API Key"'
+    expect(sources['../features/settings/components/ProviderSettings.tsx']).toMatch(
+      /<Form\.Item\s+label="API Key"/
     );
     expect(preferences).not.toContain('useAppStore');
     expect(preferences).not.toContain('platform/gateway');
@@ -102,7 +102,9 @@ describe('front-end application boundaries', () => {
     expect(resultController).toContain('shared/platform/gateway');
     expect(resultWorkbench).toContain('useResultStore');
     expect(resultWorkbench).not.toContain('desktopApi');
-    expect(resultAssistant).toContain('resultAssistantContextNotice');
+    expect(resultAssistant).toContain('GenerationPanel');
+    expect(resultAssistant).toContain('workspaceId={document.result.workspaceId}');
+    expect(resultAssistant).not.toContain('desktopGateway');
   });
 
   it('keeps the S2.1 ImportBatch trust boundary behind a controller and explicit confirmation', () => {

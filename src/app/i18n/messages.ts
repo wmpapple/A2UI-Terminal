@@ -3,6 +3,7 @@ import type { Locale } from '../../shared/types/domain';
 export const messages = {
   'zh-CN': {
     knowledgeNavigation: '资料库',
+    prepareAiWriting: '使用 AI 生成正文',
     manageLibraryPacks: '前往资料库管理资料与资料包',
     openKnowledgeSource: '预览资料',
     historySearch: '查找标题或对话内容',
@@ -69,6 +70,13 @@ export const messages = {
     resultsNavigation: '成果',
     templatesNavigation: '模板',
     workbenchNavigation: '工作台',
+    openWorkspaceFileTitle: '打开工作区文件？',
+    openWorkspaceFileDescription:
+      '将从当前成果切换到工作区文件“{name}”。当前成果已保存，可稍后从成果页继续处理。',
+    openWorkspaceFileUnsavedDescription:
+      '将从当前成果切换到工作区文件“{name}”。当前成果有未保存修改，继续前会先保留恢复草稿。',
+    openWorkspaceFileConfirm: '切换并打开',
+    stayWithResult: '留在当前成果',
     simpleMode: '简单模式',
     professionalMode: '专业模式',
     homePageTitle: '从成果开始',
@@ -268,8 +276,9 @@ export const messages = {
     resultSaveStatus_error: '保存失败',
     replayOnboarding: '查看新手引导',
     retryHomeLoad: '重新加载',
-    localTaskTitle: '创建本地成果草稿',
-    localScaffoldDisclosure: '当前只创建本地结构草稿，尚未调用 AI 生成正文。',
+    localTaskTitle: '创建任务成果',
+    localScaffoldDisclosure:
+      '可创建离线结构草稿，或选择 AI 生成正文；AI 生成需要确认发送范围并审阅后写入。',
     taskNeedsSources: '请先选择至少一项资料，系统只会使用你明确授权的内容。',
     chooseTemplate: '选择任务模板',
     requiredAnswer: '请完成这一项',
@@ -688,6 +697,7 @@ export const messages = {
   },
   'en-US': {
     knowledgeNavigation: 'Library',
+    prepareAiWriting: 'Generate with AI',
     manageLibraryPacks: 'Manage sources and packs in Library',
     openKnowledgeSource: 'Preview source',
     historySearch: 'Search titles or messages',
@@ -759,6 +769,13 @@ export const messages = {
     resultsNavigation: 'Results',
     templatesNavigation: 'Templates',
     workbenchNavigation: 'Workbench',
+    openWorkspaceFileTitle: 'Open workspace file?',
+    openWorkspaceFileDescription:
+      'This switches from the current result to “{name}”. The result is saved and can be reopened later.',
+    openWorkspaceFileUnsavedDescription:
+      'This switches from the current result to “{name}”. Unsaved changes will be stored as a recovery draft first.',
+    openWorkspaceFileConfirm: 'Switch and open',
+    stayWithResult: 'Stay with result',
     simpleMode: 'Simple mode',
     professionalMode: 'Professional mode',
     homePageTitle: 'Start with an outcome',
@@ -983,9 +1000,9 @@ export const messages = {
     resultSaveStatus_error: 'Save failed',
     replayOnboarding: 'View getting started',
     retryHomeLoad: 'Reload',
-    localTaskTitle: 'Create a local outcome scaffold',
+    localTaskTitle: 'Create a task result',
     localScaffoldDisclosure:
-      'This currently creates only a local structure scaffold. AI has not generated the body.',
+      'Create an offline structure scaffold, or generate the body with AI. AI generation requires confirming the sending scope and reviewing before saving.',
     taskNeedsSources:
       'Choose at least one source item first. Only explicitly authorized content will be used.',
     chooseTemplate: 'Choose a task template',

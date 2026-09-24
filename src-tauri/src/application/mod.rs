@@ -6,6 +6,7 @@ pub mod document;
 pub mod export;
 mod export_pdf;
 pub mod export_target;
+pub mod generation;
 pub mod import;
 pub mod provider;
 pub mod recovery;

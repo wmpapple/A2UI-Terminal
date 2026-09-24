@@ -423,7 +423,7 @@ describe('ChatPanel patch presentation', () => {
     expect(screen.getByText('<script>MACHINE_ONLY_HTML</script>')).toBeInTheDocument();
   });
 
-  it('hides provider identifiers but keeps history and new chat available in simple mode', async () => {
+  it('exposes the shared model picker while keeping history and new chat available in simple mode', async () => {
     useAppStore.setState({
       providerConfigs: [
         {
@@ -448,8 +448,8 @@ describe('ChatPanel patch presentation', () => {
     );
 
     expect(screen.getByRole('status', { name: 'AI 正在回复' })).toBeInTheDocument();
-    expect(screen.queryByText(/siliconflow/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/private-model-id/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'AI 模型' })).toBeDisabled();
+    expect(screen.getByText('siliconflow · private-model-id')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '历史对话' })).toHaveAttribute(
       'aria-expanded',
       'false'

@@ -19,9 +19,10 @@ const iconFor = (path: string) =>
 
 interface Props {
   onActivateWorkspace?: () => void;
+  onBeforeOpenFile?: (path: string, name: string) => boolean | Promise<boolean>;
 }
 
-export function WorkspaceSidebar({ onActivateWorkspace }: Props) {
+export function WorkspaceSidebar({ onActivateWorkspace, onBeforeOpenFile }: Props) {
   const { t } = useI18n();
   const runtimeMode = useAppStore((state) => state.runtimeMode);
   const workspace = useAppStore((state) => state.workspace);
@@ -47,6 +48,11 @@ export function WorkspaceSidebar({ onActivateWorkspace }: Props) {
     [workspaceEntries, query]
   );
   const isDesktop = runtimeMode === 'desktop';
+  const activateWorkspaceFile = async (path: string, name: string) => {
+    if (onBeforeOpenFile && !(await onBeforeOpenFile(path, name))) return;
+    onActivateWorkspace?.();
+    await openFile(path);
+  };
 
   return (
     <aside className={styles.sidebar} aria-label={t('files')}>
@@ -135,10 +141,9 @@ export function WorkspaceSidebar({ onActivateWorkspace }: Props) {
                     type="link"
                     size="small"
                     disabled={!draft.available}
-                    onClick={() => {
-                      onActivateWorkspace?.();
-                      void openFile(draft.relativePath);
-                    }}
+                    onClick={() =>
+                      void activateWorkspaceFile(draft.relativePath, draft.relativePath)
+                    }
                   >
                     {draft.relativePath}
                   </Button>
@@ -196,10 +201,7 @@ export function WorkspaceSidebar({ onActivateWorkspace }: Props) {
                   aria-disabled={!file.readable}
                   disabled={!file.readable}
                   className={`${styles.file} ${activePath === file.path ? styles.active : ''}`}
-                  onClick={() => {
-                    onActivateWorkspace?.();
-                    void openFile(file.path);
-                  }}
+                  onClick={() => void activateWorkspaceFile(file.path, file.name)}
                 >
                   {iconFor(file.path)}
                   <span>{file.sourceId ? file.name : file.path}</span>

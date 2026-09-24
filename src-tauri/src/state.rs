@@ -9,6 +9,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 pub struct AppState {
+    pub pending_generations:
+        Mutex<HashMap<String, crate::application::generation::PreparedGeneration>>,
     pub knowledge_guard: Mutex<()>,
     pub storage: Storage,
     pub managed_results_dir: PathBuf,
@@ -27,6 +29,7 @@ pub struct AppState {
 impl AppState {
     pub fn new(storage: Storage, managed_results_dir: PathBuf) -> Self {
         Self {
+            pending_generations: Mutex::new(HashMap::new()),
             knowledge_guard: Mutex::new(()),
             storage,
             managed_results_dir,

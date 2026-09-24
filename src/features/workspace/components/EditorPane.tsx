@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import {
   CloseOutlined,
   EyeInvisibleOutlined,
@@ -420,7 +421,7 @@ export function EditorPane({
           </Suspense>
         ) : activeFile && isExtractedDocument ? (
           <article className={styles.documentPreview} aria-label={activeFile.path}>
-            <Alert type="info" showIcon title={t('documentContextHint')} />
+            <InfoNotice type="info" showIcon title={t('documentContextHint')} />
             <pre>{activeFile.content}</pre>
           </article>
         ) : activeFile ? (

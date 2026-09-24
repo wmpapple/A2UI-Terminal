@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import {
   DeleteOutlined,
   EyeOutlined,
@@ -117,7 +118,7 @@ export function DocumentSourcePanel({ onSourceRemoved }: DocumentSourcePanelProp
         destroyOnHidden
         onCancel={closePreview}
       >
-        {content ? <Alert type="info" showIcon title={content.notice} /> : <Spin />}
+        {content ? <InfoNotice type="info" showIcon title={content.notice} /> : <Spin />}
         {content?.source.kind === 'image' ? (
           content.imageDataUrl ? (
             <img

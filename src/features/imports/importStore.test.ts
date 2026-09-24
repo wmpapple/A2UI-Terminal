@@ -228,6 +228,7 @@ describe('importStore', () => {
     vi.spyOn(importController, 'revokeSource').mockRejectedValue(
       new Error('资料来源不存在或未获当前工作区授权')
     );
+    vi.spyOn(importController, 'listSources').mockResolvedValue([retained]);
     useImportStore.setState({ sources: [retained] });
 
     await expect(
@@ -236,6 +237,40 @@ describe('importStore', () => {
 
     expect(useImportStore.getState().sources).toEqual([retained]);
     expect(useImportStore.getState().error).toContain('未获当前工作区授权');
+  });
+
+  it('cleans a stale home entry when the backend reports it was already removed', async () => {
+    const removed = source('removed', 'remove.csv');
+    vi.spyOn(importController, 'revokeSource').mockRejectedValue(
+      new Error('资料来源不存在或未获当前工作区授权')
+    );
+    vi.spyOn(importController, 'listSources').mockResolvedValue([]);
+    useImportStore.setState({ sources: [removed] });
+
+    await expect(useImportStore.getState().revokeSource('workspace-1', 'removed')).resolves.toBe(
+      true
+    );
+
+    expect(useImportStore.getState().sources).toEqual([]);
+    expect(useImportStore.getState().error).toBeNull();
+  });
+
+  it('does not let an older home refresh restore a source removed from the workspace', async () => {
+    const removed = source('removed', 'remove.csv');
+    let resolveSources!: (sources: DocumentSource[]) => void;
+    vi.spyOn(importController, 'listSources').mockReturnValue(
+      new Promise((resolve) => {
+        resolveSources = resolve;
+      })
+    );
+    useImportStore.setState({ sources: [removed] });
+
+    const refresh = useImportStore.getState().loadSources('workspace-1');
+    useImportStore.getState().forgetSource('workspace-1', 'removed');
+    resolveSources([removed]);
+    await refresh;
+
+    expect(useImportStore.getState().sources).toEqual([]);
   });
 
   it('does not restore a stale preview after its source authorization is removed', async () => {

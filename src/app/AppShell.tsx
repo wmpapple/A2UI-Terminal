@@ -8,7 +8,7 @@ import {
   SettingOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, ConfigProvider, Dropdown, message, Tag, theme } from 'antd';
+import { Alert, Button, ConfigProvider, Dropdown, message, Modal, Tag, theme } from 'antd';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { HomePage } from '../features/home/components/HomePage';
@@ -112,6 +112,7 @@ export function AppShell() {
   const [route, setRoute] = useState(() => routeFromHash(window.location.hash));
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const [messageApi, messageContextHolder] = message.useMessage();
+  const [modalApi, modalContextHolder] = Modal.useModal();
   const mainContentRef = useRef<HTMLDivElement>(null);
   const initialRouteRef = useRef(true);
   const professional = experienceMode === 'professional';
@@ -180,6 +181,35 @@ export function AppShell() {
     openWorkbench(resultId);
   };
 
+  const confirmWorkspaceFileOpen = async (_path: string, name: string) => {
+    if (!activeResultId) return true;
+    const { useResultStore } = await import('../features/results/resultStore');
+    const resultState = useResultStore.getState();
+    const hasUnsavedChanges = Boolean(
+      resultState.activeDocument && resultState.draftContent !== resultState.activeDocument.content
+    );
+    const confirmed = await modalApi.confirm({
+      title: t('openWorkspaceFileTitle'),
+      content: t(
+        hasUnsavedChanges ? 'openWorkspaceFileUnsavedDescription' : 'openWorkspaceFileDescription'
+      ).replace('{name}', name),
+      okText: t('openWorkspaceFileConfirm'),
+      cancelText: t('stayWithResult'),
+      centered: true,
+    });
+    if (!confirmed) return false;
+    if (hasUnsavedChanges && resultState.saveStatus === 'dirty') {
+      resultState.clearError();
+      await resultState.persistDraft();
+      const draftError = useResultStore.getState().error;
+      if (draftError) {
+        void messageApi.error(draftError);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const undoCreatedResult = async (review: ResultAppliedReview) => {
     const undone = await undoLastPatch(review);
     if (!undone) {
@@ -215,7 +245,12 @@ export function AppShell() {
       <WorkbenchAppearance>
         <WorkspaceLayout
           showLeftPanel={professional}
-          left={<WorkspaceSidebar onActivateWorkspace={() => setActiveResultId(null)} />}
+          left={
+            <WorkspaceSidebar
+              onBeforeOpenFile={confirmWorkspaceFileOpen}
+              onActivateWorkspace={() => setActiveResultId(null)}
+            />
+          }
           center={
             activeResultId ? (
               <ResultWorkbench
@@ -237,7 +272,11 @@ export function AppShell() {
           }
           right={
             activeResultId ? (
-              <ResultAssistantPanel />
+              <ResultAssistantPanel
+                key={`assistant:${activeResultId}`}
+                resultId={activeResultId}
+                onOpenResult={openResult}
+              />
             ) : (
               <ChatPanel professionalTools={professional} />
             )
@@ -283,6 +322,7 @@ export function AppShell() {
       }}
     >
       {messageContextHolder}
+      {modalContextHolder}
       <div className={styles.app}>
         <a className={styles.skipLink} href="#main-content">
           {t('skipToMainContent')}
@@ -302,9 +342,7 @@ export function AppShell() {
                   aria-label={item.label}
                   icon={item.icon}
                   aria-current={route === item.route ? 'page' : undefined}
-                  onClick={() =>
-                    item.route === 'workbench' ? openWorkbench() : openRoute(item.route)
-                  }
+                  onClick={() => openRoute(item.route)}
                 >
                   {item.label}
                 </Button>
@@ -397,7 +435,7 @@ export function AppShell() {
             onClose={() => setCommandOpen(false)}
             onCreate={() => setCreateOpen(true)}
             onOpenWorkbench={openWorkbench}
-            onNavigate={(next) => (next === 'workbench' ? openWorkbench() : openRoute(next))}
+            onNavigate={openRoute}
           />
         )}
         {createOpen && (

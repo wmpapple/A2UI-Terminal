@@ -53,6 +53,24 @@ describe('ResultWorkbench', () => {
     });
   });
 
+  it('does not overwrite the active draft when the same result remounts after navigation', () => {
+    const openResult = vi.fn().mockResolvedValue(undefined);
+    useResultStore.setState({
+      openResult,
+      draftContent: '尚未保存的成果内容',
+      saveStatus: 'dirty',
+    });
+    render(
+      <I18nProvider>
+        <ResultWorkbench resultId="result-1" onDuplicated={vi.fn()} onOpenResults={vi.fn()} />
+      </I18nProvider>
+    );
+
+    expect(openResult).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('编辑'));
+    expect(screen.getByRole('textbox', { name: '成果编辑器' })).toHaveValue('尚未保存的成果内容');
+  });
+
   it('keeps the before/after comparison when autosave finishes while the dialog is open', async () => {
     useResultStore.setState({ draftContent: '修改后的正文', saveStatus: 'dirty' });
     render(
@@ -203,9 +221,12 @@ describe('ResultWorkbench', () => {
   it('states that AI context is not sent automatically', () => {
     render(
       <I18nProvider>
-        <ResultAssistantPanel />
+        <ResultAssistantPanel resultId="result-1" onOpenResult={vi.fn()} />
       </I18nProvider>
     );
-    expect(screen.getByText('当前成果不会自动发送；任何 AI 读取范围仍需明确确认。')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: '上下文' }));
+    expect(
+      screen.getByRole('checkbox', { name: '本次发送当前成果的已保存正文' })
+    ).not.toBeChecked();
   });
 });

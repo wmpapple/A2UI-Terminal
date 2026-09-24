@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { DeleteOutlined, PlayCircleOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Empty, Popconfirm, Spin, Tag } from 'antd';
 import { useEffect, useState } from 'react';
@@ -69,7 +70,7 @@ export function PersonalSurfaceTemplates({ onOpened, onBrowseTasks }: Props) {
             <p>{t('personalTemplatesDescription')}</p>
           </div>
         </header>
-        <Alert
+        <InfoNotice
           className={styles.infoNotice}
           type="info"
           showIcon

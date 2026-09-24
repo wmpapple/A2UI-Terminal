@@ -1,5 +1,6 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { CloudOutlined, DesktopOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Alert, Button, Space, Tag } from 'antd';
+import { Button, Space, Tag } from 'antd';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { getRuntimeMode } from '../../../shared/platform/runtime';
 import { useAppStore } from '../../../stores/useAppStore';
@@ -28,7 +29,7 @@ export function ProcessingStatus() {
 
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      <Alert
+      <InfoNotice
         type={options?.availability === 'ready' ? 'success' : error ? 'warning' : 'info'}
         showIcon
         title={t(statusKey)}

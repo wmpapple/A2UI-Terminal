@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import {
   AppstoreAddOutlined,
   CheckCircleFilled,
@@ -31,6 +32,11 @@ interface Props {
   onOpenWorkbench: (resultId?: string) => void;
   onOpenGuide: () => void;
 }
+
+const GenerationPanel = lazyFeature(async () => {
+  const module = await import('../../generation/GenerationPanel');
+  return { default: module.GenerationPanel };
+});
 
 type HomeAction = 'write' | 'modify' | 'organize' | 'analyze' | 'build' | 'free';
 
@@ -122,6 +128,9 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
   const resetTask = useHomeStore((state) => state.resetTask);
   const clearError = useHomeStore((state) => state.clearError);
   const [taskAction, setTaskAction] = useState<HomeAction | null>(null);
+  const [aiTask, setAiTask] = useState<string | null>(null);
+  const [taskForm] = Form.useForm();
+  const prepareAiTask = useHomeStore((s) => s.prepareAiTask);
   const [createPreset, setCreatePreset] = useState<CreatePreset | null>(null);
   const workspaceId = workspace?.id ?? (runtimeMode === 'web-mock' ? 'web-mock-workspace' : null);
 
@@ -209,7 +218,7 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
         (recoveryStatus.resultDrafts.length > 0 ||
           recoveryStatus.activeReviewCount > 0 ||
           recoveryStatus.exportJobs.some((job) => job.status === 'interrupted')) ? (
-          <Alert
+          <InfoNotice
             className={styles.notice}
             type="info"
             showIcon
@@ -335,7 +344,7 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
         destroyOnHidden
         onCancel={closeTask}
       >
-        <Alert type="info" showIcon title={t('localScaffoldDisclosure')} />
+        <InfoNotice type="info" showIcon title={t('localScaffoldDisclosure')} />
         {error ? (
           <Alert
             className={styles.notice}
@@ -377,8 +386,9 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
             </div>
           </>
         ) : null}
-        {activeTask && !taskRunResult ? (
+        {activeTask && !taskRunResult && aiTask !== activeTask.id ? (
           <Form
+            form={taskForm}
             key={activeTask.id}
             className={styles.taskForm}
             layout="vertical"
@@ -402,8 +412,36 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
             <Button type="primary" htmlType="submit" loading={taskLoading} block>
               {t('createLocalScaffold')}
             </Button>
+            <Button
+              block
+              loading={taskLoading}
+              onClick={() =>
+                void taskForm
+                  .validateFields()
+                  .then(async (answers) => {
+                    if (await prepareAiTask(answers)) setAiTask(activeTask.id);
+                  })
+                  .catch(() => {})
+              }
+            >
+              {t('prepareAiWriting')}
+            </Button>
           </Form>
         ) : null}
+        {activeTask && aiTask === activeTask.id && !taskRunResult && (
+          <GenerationPanel
+            key={activeTask.id}
+            taskId={activeTask.id}
+            workspaceId={activeTask.workspaceId}
+            onApplied={(id) => {
+              setTaskAction(null);
+              setAiTask(null);
+              resetTask();
+              void initialize();
+              onOpenWorkbench(id);
+            }}
+          />
+        )}
         {taskRunResult ? (
           <div className={styles.taskSuccess}>
             <CheckCircleFilled style={{ color: '#22a06b', fontSize: 36 }} />

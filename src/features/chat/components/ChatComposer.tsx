@@ -1,6 +1,6 @@
 import { AppstoreOutlined, PaperClipOutlined, SendOutlined, StopOutlined } from '@ant-design/icons';
 import { Button, Input, Tag, Tooltip } from 'antd';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { ProcessingLocation } from '../../../shared/types/domain';
 import styles from './ChatPanel.module.css';
@@ -19,7 +19,13 @@ interface ChatComposerProps {
   onOpenContext: () => void;
   onSend: () => void;
   onStop: () => void;
-  onDropFiles: (files: FileList) => void;
+  onDropFiles?: (files: FileList) => void;
+  promptLabel?: string;
+  sendDisabled?: boolean;
+  readOnlyWhileActive?: boolean;
+  contextSummary?: ReactNode;
+  contextStatusLabel?: string;
+  maxLength?: number;
 }
 
 export function ChatComposer({
@@ -37,6 +43,12 @@ export function ChatComposer({
   onSend,
   onStop,
   onDropFiles,
+  promptLabel,
+  sendDisabled = false,
+  readOnlyWhileActive = false,
+  contextSummary,
+  contextStatusLabel,
+  maxLength,
 }: ChatComposerProps) {
   const { t } = useI18n();
   const [dragging, setDragging] = useState(false);
@@ -53,7 +65,7 @@ export function ChatComposer({
       className={`${styles.composer} ${dragging ? styles.dragging : ''}`}
       onDragEnter={(event) => {
         event.preventDefault();
-        setDragging(true);
+        if (onDropFiles) setDragging(true);
       }}
       onDragOver={(event) => event.preventDefault()}
       onDragLeave={(event) => {
@@ -62,7 +74,7 @@ export function ChatComposer({
       onDrop={(event) => {
         event.preventDefault();
         setDragging(false);
-        onDropFiles(event.dataTransfer.files);
+        onDropFiles?.(event.dataTransfer.files);
       }}
     >
       {!prompt && !requestActive && !manifestLoading && (
@@ -129,7 +141,13 @@ export function ChatComposer({
           }}
         />
         <div className={styles.contextBar}>
-          <Button type="text" size="small" icon={<AppstoreOutlined />} onClick={onOpenContext}>
+          <Button
+            type="text"
+            size="small"
+            aria-label={t(hasReviewedContext ? 'modifySendList' : 'context')}
+            icon={<AppstoreOutlined />}
+            onClick={onOpenContext}
+          >
             {t(hasReviewedContext ? 'modifySendList' : 'context')}
           </Button>
           {activePath && <Tag title={activePath}>{activePath}</Tag>}
@@ -139,26 +157,29 @@ export function ChatComposer({
             </Tag>
           ))}
           <Tag>
-            {t(
-              contextReviewed
-                ? 'contextSaved'
-                : hasReviewedContext
-                  ? 'contextChanged'
-                  : 'contextRequired'
-            )}
+            {contextStatusLabel ??
+              t(
+                contextReviewed
+                  ? 'contextSaved'
+                  : hasReviewedContext
+                    ? 'contextChanged'
+                    : 'contextRequired'
+              )}
           </Tag>
           <Tag>{t(processingLocation === 'local' ? 'localProcessing' : 'cloudProcessing')}</Tag>
+          {contextSummary}
         </div>
         <Input.TextArea
           ref={input}
           variant="borderless"
           value={prompt}
-          disabled={manifestLoading}
+          maxLength={maxLength}
+          readOnly={manifestLoading || (readOnlyWhileActive && requestActive)}
           onChange={(event) => onPromptChange(event.target.value)}
           placeholder={t('askPlaceholder')}
           rows={3}
           title={t('chatInputResizeHint')}
-          aria-label={t('askPlaceholder')}
+          aria-label={promptLabel ?? t('askPlaceholder')}
           aria-describedby="chat-send-shortcut"
           onCompositionStart={() => {
             composing.current = true;
@@ -170,16 +191,18 @@ export function ChatComposer({
             if (composing.current || event.nativeEvent.isComposing || event.keyCode === 229) return;
             if (!event.shiftKey || event.ctrlKey || event.metaKey) {
               event.preventDefault();
-              if (!requestActive && !manifestLoading && prompt.trim()) onSend();
+              if (!requestActive && !manifestLoading && !sendDisabled && prompt.trim()) onSend();
             }
           }}
         />
         <div className={styles.inputFooter}>
-          <Tooltip title={t('dropFilesHint')}>
-            <span className={styles.dropHint}>
-              <PaperClipOutlined /> {t('dropFilesShort')}
-            </span>
-          </Tooltip>
+          {onDropFiles && (
+            <Tooltip title={t('dropFilesHint')}>
+              <span className={styles.dropHint}>
+                <PaperClipOutlined /> {t('dropFilesShort')}
+              </span>
+            </Tooltip>
+          )}
           {requestActive ? (
             <Tooltip title={t('stop')}>
               <Button
@@ -197,7 +220,7 @@ export function ChatComposer({
                 aria-label={t('send')}
                 type="primary"
                 icon={<SendOutlined />}
-                disabled={!prompt.trim() || manifestLoading}
+                disabled={!prompt.trim() || manifestLoading || sendDisabled}
                 loading={manifestLoading && !contextOpen}
                 onClick={onSend}
               />

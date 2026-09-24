@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { RedoOutlined } from '@ant-design/icons';
 import { Alert, Button } from 'antd';
 import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -7,7 +8,7 @@ import type { ChatMessage } from '../../../shared/types/domain';
 import { AssistantMark } from './AssistantMark';
 import styles from './ChatPanel.module.css';
 
-const AssistantMarkdown = memo(function AssistantMarkdown({
+export const AssistantMarkdown = memo(function AssistantMarkdown({
   content,
   streaming,
 }: {
@@ -256,7 +257,7 @@ export function ChatMessageList({
                 </div>
               ) : fileCreationUnavailable ? (
                 <div className={styles.protocolError}>
-                  <Alert
+                  <InfoNotice
                     type="info"
                     showIcon
                     title={t('fileCreationUnavailable')}
@@ -265,7 +266,7 @@ export function ChatMessageList({
                 </div>
               ) : a2uiGenerating ? (
                 <div className={styles.protocolError}>
-                  <Alert type="info" showIcon title={t('a2uiGenerating')} />
+                  <InfoNotice type="info" showIcon title={t('a2uiGenerating')} />
                 </div>
               ) : a2uiResponse ? (
                 <div className={styles.protocolError}>
@@ -283,7 +284,7 @@ export function ChatMessageList({
                 </div>
               ) : reviewGenerating ? (
                 <div className={styles.protocolError}>
-                  <Alert
+                  <InfoNotice
                     type="info"
                     showIcon
                     title={t('reviewProposalGenerating')}

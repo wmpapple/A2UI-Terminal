@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { desktopApi } from '../shared/platform/desktop';
 import { createMockCreateFileReview } from '../shared/mock/workspace';
+import { useImportStore } from '../features/imports/importStore';
 import { useAppStore } from './useAppStore';
 
 const deferred = <T>() => {
@@ -536,7 +537,14 @@ describe('desktop workspace state', () => {
 
   it('forgets revoked source content from open files and saved context selections', () => {
     const path = 'selected/file-1/notes.md';
+    const forgetSource = vi.spyOn(useImportStore.getState(), 'forgetSource');
     useAppStore.setState({
+      workspace: {
+        id: 'standalone-1',
+        name: 'Standalone',
+        available: true,
+        kind: 'standalone',
+      },
       files: [
         {
           path,
@@ -591,6 +599,7 @@ describe('desktop workspace state', () => {
 
     useAppStore.getState().forgetAuthorizedSource('file-1');
 
+    expect(forgetSource).toHaveBeenCalledWith('standalone-1', 'file-1');
     expect(useAppStore.getState()).toMatchObject({
       files: [],
       workspaceEntries: [],

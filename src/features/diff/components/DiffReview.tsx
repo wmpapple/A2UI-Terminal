@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { CheckOutlined, CloseOutlined, FileSyncOutlined } from '@ant-design/icons';
 import { Alert, Button, Checkbox, Empty, Input, Tag } from 'antd';
 import { useI18n } from '../../../app/i18n/useI18n';
@@ -59,7 +60,7 @@ export function DiffReview({ onOpenResult }: Props) {
           {proposal.blocks.length} {t('changeBlocks')} · {selectedCount} {t('selectedBlocks')}
         </p>
       </div>
-      <Alert type="info" showIcon title={t('reviewSelectionHint')} />
+      <InfoNotice type="info" showIcon title={t('reviewSelectionHint')} />
       {choicesSaved ? <Alert type="success" showIcon title={t('reviewSelectionSaved')} /> : null}
       {proposal.source === 'a2ui_action' ? (
         <Alert

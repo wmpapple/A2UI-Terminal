@@ -269,6 +269,13 @@ fn request_body(config: &ProviderConfig, messages: &[ProviderMessage]) -> serde_
         "temperature": config.temperature,
         "stream": true
     });
+    // SiliconFlow reasoning models can spend the whole content-idle window
+    // emitting only `reasoning_content`. A2UI Terminal needs the reviewable
+    // answer, so request non-thinking mode explicitly instead of timing out
+    // while intentionally ignoring hidden reasoning tokens.
+    if config.kind == ProviderKind::SiliconFlow {
+        body["enable_thinking"] = json!(false);
+    }
     let token_field = if config.kind == ProviderKind::OpenAi {
         "max_completion_tokens"
     } else {
@@ -542,6 +549,23 @@ mod tests {
             };
             assert_eq!(body[token_field], 4096);
             assert!(api_url(&config.endpoint, "chat/completions").is_ok());
+        }
+    }
+
+    #[test]
+    fn siliconflow_requests_final_content_without_a_reasoning_only_delay() {
+        let providers = default_providers();
+        let messages = vec![ProviderMessage {
+            role: "user".into(),
+            content: "summarize".into(),
+        }];
+
+        let siliconflow = request_body(&providers[0], &messages);
+        assert_eq!(siliconflow["enable_thinking"], false);
+
+        for config in &providers[1..] {
+            let body = request_body(config, &messages);
+            assert!(body.get("enable_thinking").is_none());
         }
     }
 

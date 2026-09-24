@@ -22,6 +22,7 @@ interface HomeState {
   initialize: () => Promise<void>;
   beginTask: (workspaceId: string, templateId: string) => Promise<void>;
   createLocalScaffold: (answers: Record<string, unknown>) => Promise<void>;
+  prepareAiTask: (answers: Record<string, unknown>) => Promise<boolean>;
   resetTask: () => void;
   clearError: () => void;
 }
@@ -113,5 +114,22 @@ export const useHomeStore = create<HomeState>((set, get) => ({
   },
 
   resetTask: () => set({ activeTask: null, taskRunResult: null, error: null }),
+  prepareAiTask: async (answers) => {
+    const current = get().activeTask;
+    if (!current) return false;
+    set({ taskLoading: true, error: null });
+    try {
+      const activeTask = current.questions.length
+        ? await homeController.answerTask(current.id, answers)
+        : current;
+      set({ activeTask });
+      return activeTask.status === 'ready';
+    } catch (error) {
+      set({ error: errorDetails(error).message });
+      return false;
+    } finally {
+      set({ taskLoading: false });
+    }
+  },
   clearError: () => set({ error: null }),
 }));

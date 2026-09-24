@@ -57,6 +57,8 @@ fn main() {
         "rebuild_authorized_search_index",
         "confirm_context_manifest",
         "stream_chat",
+        "plan_generation",
+        "start_generation",
         "stop_chat",
         "validate_document_patch",
         "apply_document_patch",

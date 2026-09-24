@@ -6,6 +6,7 @@ import type {
   EditKnowledgeInput,
 } from '../types/knowledge';
 import { Channel, invoke } from '@tauri-apps/api/core';
+import type { PlanGenerationInput, GenerationPlan, GenerationOutput } from '../types/generation';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getRuntimeMode } from './runtime';
@@ -603,6 +604,20 @@ export const desktopApi = {
   async planContext(input: ContextManifestInput): Promise<ContextManifest> {
     requireDesktop();
     return invoke<ContextManifest>('plan_context', { input });
+  },
+
+  async planGeneration(input: PlanGenerationInput): Promise<GenerationPlan> {
+    requireDesktop();
+    return invoke('plan_generation', { input });
+  },
+  async startGeneration(
+    generationId: string,
+    onEvent: (event: ChatStreamEvent) => void
+  ): Promise<GenerationOutput> {
+    requireDesktop();
+    const channel = new Channel<ChatStreamEvent>();
+    channel.onmessage = onEvent;
+    return invoke('start_generation', { generationId, onEvent: channel });
   },
 
   async clearContextIndex(workspaceId: string): Promise<{ clearedDocuments: number }> {

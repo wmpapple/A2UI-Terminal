@@ -73,7 +73,9 @@ describe('HomePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /会议纪要/ }));
     expect(beginTask).toHaveBeenCalledWith('web-mock-workspace', 'meeting_minutes');
     expect(
-      within(screen.getByRole('dialog')).getByText('当前只创建本地结构草稿，尚未调用 AI 生成正文。')
+      within(screen.getByRole('dialog')).getByText(
+        '可创建离线结构草稿，或选择 AI 生成正文；AI 生成需要确认发送范围并审阅后写入。'
+      )
     ).toBeInTheDocument();
   });
 

@@ -244,6 +244,7 @@ pub fn save_document(
             &input.base_hash,
             "autosave",
             "保存成果",
+            None,
         )?,
         "workspace_file" => {
             workspace::save_file_with_history(
@@ -364,6 +365,7 @@ pub fn restore_revision(
             &input.base_hash,
             "restore",
             "恢复成果历史版本",
+            None,
         )?,
         "workspace_file" => {
             workspace::restore_document_version(
@@ -613,6 +615,7 @@ fn save_managed_document(
     base_hash: &str,
     revision_source: &str,
     summary: &str,
+    review_link: Option<(&str, bool)>,
 ) -> Result<(), AppError> {
     let format = format_for_file_name(&source.source_ref)?;
     let path = managed_path(managed_results_dir, &source.source_ref, format, true)?;
@@ -637,12 +640,49 @@ fn save_managed_document(
         &after_hash,
         revision_source,
         summary,
+        review_link,
     ) {
         let _ = fs::write(&path, before.as_bytes());
         return Err(error);
     }
     let _ = storage.cleanup_expired_versions();
     Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn apply_review_replacement(
+    storage: &Storage,
+    root: &Path,
+    review_id: &str,
+    result_id: &str,
+    base_hash: &str,
+    content: &str,
+    undo: bool,
+) -> Result<ResultDocument, AppError> {
+    let source = result_source(storage, result_id)?;
+    if source.source_kind != "managed_local" {
+        return Err(AppError::InvalidInput(
+            "Target is not a managed result".into(),
+        ));
+    }
+    validate_result_content(
+        result_type_from_storage(&source.result.result_type)?,
+        content,
+    )?;
+    if storage.result_draft(result_id)?.is_some() {
+        return Err(AppError::FileConflict);
+    }
+    save_managed_document(
+        storage,
+        root,
+        &source,
+        content,
+        base_hash,
+        if undo { "restore" } else { "patch" },
+        "AI 成果审阅",
+        Some((review_id, undo)),
+    )?;
+    read_document(storage, root, result_id)
 }
 
 fn result_source(storage: &Storage, result_id: &str) -> Result<ResultSourceRow, AppError> {
@@ -990,7 +1030,7 @@ fn validate_hash(hash: &str) -> Result<(), AppError> {
     Ok(())
 }
 
-fn content_hash(bytes: &[u8]) -> String {
+pub(crate) fn content_hash(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     let mut encoded = String::with_capacity(digest.len() * 2);
     for byte in digest {

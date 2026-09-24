@@ -59,6 +59,8 @@
     "allow-rebuild-authorized-search-index",
     "allow-confirm-context-manifest",
     "allow-stream-chat",
+    "allow-plan-generation",
+    "allow-start-generation",
     "allow-stop-chat",
     "allow-validate-document-patch",
     "allow-apply-document-patch",

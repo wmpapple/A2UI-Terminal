@@ -19,6 +19,13 @@ const MAX_RAW_REVIEW_BYTES: usize = 2 * 1024 * 1024;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum StoredReviewPayload {
+    ManagedResult {
+        result_id: String,
+        file_name: String,
+        before: String,
+        base_hash: String,
+        content: String,
+    },
     DocumentPatch {
         patch: DocumentPatch,
         candidate_files: Vec<AppliedPatchFile>,
@@ -50,7 +57,7 @@ pub fn create(
         .map_err(|error| AppError::InvalidInput(format!("Review Schema 无效：{error}")))?;
     match value.get("type").and_then(serde_json::Value::as_str) {
         Some("document_patch") => create_document_patch(storage, &input, json),
-        Some("create_file") => create_file(storage, &input, json),
+        Some("create_file") => create_file(storage, &input, json, None),
         Some("replace_empty_file") => create_empty_replace(storage, &input, json),
         _ => Err(AppError::InvalidInput("不支持的 AI 审阅候选类型".into())),
     }
@@ -191,6 +198,27 @@ pub fn apply(
         .filter(|block| block.status == ReviewBlockStatus::Accepted)
         .collect::<Vec<_>>();
     let result = match payload {
+        StoredReviewPayload::ManagedResult {
+            result_id,
+            base_hash,
+            content,
+            ..
+        } => super::result::apply_review_replacement(
+            storage,
+            managed_results_dir,
+            &input.review_id,
+            &result_id,
+            &base_hash,
+            &content,
+            false,
+        )
+        .map(|document| ReviewApplication {
+            review_id: input.review_id.clone(),
+            status: ReviewStatus::Applied,
+            operation_id: None,
+            files: Vec::new(),
+            result: Some(document),
+        }),
         StoredReviewPayload::DocumentPatch { patch, .. } => {
             let selected = accepted
                 .iter()
@@ -344,6 +372,9 @@ pub fn resolve_conflict(
                     (proposal.file_name, proposal.content)
                 }
                 StoredReviewPayload::ReplaceResult { path, content, .. } => (path, content),
+                StoredReviewPayload::ManagedResult {
+                    file_name, content, ..
+                } => (file_name, content),
                 _ => {
                     return Err(AppError::InvalidInput(
                         "多文件冲突不能合并为一个副本，请重新生成或保留当前版本".into(),
@@ -391,6 +422,39 @@ pub fn undo(
     if current.status != ReviewStatus::Applied {
         return Err(AppError::InvalidInput("审阅尚未应用或已经不能撤销".into()));
     }
+    let row = storage
+        .review_request(&input.review_id)?
+        .ok_or(AppError::StateUnavailable)?;
+    let payload: StoredReviewPayload =
+        serde_json::from_str(&row.payload_json).map_err(|_| AppError::StateUnavailable)?;
+    if let StoredReviewPayload::ManagedResult {
+        result_id,
+        before,
+        content,
+        ..
+    } = payload
+    {
+        // Conflict copies are newly created results; their normal undo deletes the copy.
+        if current.output_result_id.as_deref() == Some(&result_id) {
+            let after_hash = super::result::content_hash(content.as_bytes());
+            let document = super::result::apply_review_replacement(
+                storage,
+                managed_results_dir,
+                &input.review_id,
+                &result_id,
+                &after_hash,
+                &before,
+                true,
+            )?;
+            return Ok(ReviewApplication {
+                review_id: input.review_id,
+                status: ReviewStatus::Undone,
+                operation_id: None,
+                files: Vec::new(),
+                result: Some(document),
+            });
+        }
+    }
     if let Some(operation_id) = current.application_operation_id.as_deref() {
         let application = patch::undo_patch_for_review(
             storage,
@@ -430,6 +494,67 @@ pub fn undo(
         });
     }
     Err(AppError::StateUnavailable)
+}
+
+pub(crate) fn create_result_replacement(
+    storage: &Storage,
+    document: &crate::domain::result::ResultDocument,
+    content: &str,
+) -> Result<ReviewRequest, AppError> {
+    super::result::validate_content(content)?;
+    if content.trim().is_empty() || content == document.content {
+        return Err(AppError::InvalidInput("生成内容为空或没有变化".into()));
+    }
+    let source = storage
+        .result_source(&document.result.summary.id)?
+        .ok_or(AppError::StateUnavailable)?;
+    let payload = if source.source_kind == "managed_local" {
+        StoredReviewPayload::ManagedResult {
+            result_id: source.result.id.clone(),
+            file_name: source.source_ref.clone(),
+            before: document.content.clone(),
+            base_hash: document.content_hash.clone(),
+            content: content.into(),
+        }
+    } else if source.source_kind == "workspace_file" {
+        StoredReviewPayload::ReplaceResult {
+            path: source.source_ref.clone(),
+            base_hash: document.content_hash.clone(),
+            content: content.into(),
+        }
+    } else {
+        return Err(AppError::InvalidInput("成果不支持写作生成".into()));
+    };
+    let id = Uuid::new_v4().to_string();
+    let block_id = Uuid::new_v4().to_string();
+    let json = serde_json::to_string(&payload).map_err(|_| AppError::StateUnavailable)?;
+    storage.create_review_request(
+        NewReviewRequestRow {
+            task_id: None,
+            id: &id,
+            workspace_id: &source.result.workspace_id,
+            result_id: Some(&source.result.id),
+            source: "chat",
+            operation_kind: "replace_result",
+            summary: "AI 成果修改",
+            risk: "high",
+            base_revision_id: document.result.summary.current_revision_id.as_deref(),
+            base_hash: Some(&document.content_hash),
+            payload_json: &json,
+        },
+        &[NewReviewBlockRow {
+            id: &block_id,
+            kind: "replace_result",
+            target_label: &document.result.summary.title,
+            operation: Some("replace"),
+            before_content: &document.content,
+            after_content: content,
+            reason: "按已确认的写作要求生成；请审阅全文后决定",
+            risk: "high",
+            suggested_file_name: None,
+        }],
+    )?;
+    get(storage, &id)
 }
 
 pub fn looks_like_candidate(raw: &str) -> bool {
@@ -489,6 +614,7 @@ fn create_document_patch(
         .collect::<Vec<_>>();
     storage.create_review_request(
         NewReviewRequestRow {
+            task_id: None,
             id: &id,
             workspace_id: &input.workspace_id,
             result_id: input.result_id.as_deref(),
@@ -505,10 +631,11 @@ fn create_document_patch(
     get(storage, &id)
 }
 
-fn create_file(
+pub(crate) fn create_file(
     storage: &Storage,
     input: &CreateReviewRequestInput,
     raw: &str,
+    task_id: Option<&str>,
 ) -> Result<ReviewRequest, AppError> {
     let proposal: CreateFileProposal = serde_json::from_str(raw)
         .map_err(|error| AppError::InvalidInput(format!("Create File Schema 无效：{error}")))?;
@@ -547,6 +674,7 @@ fn create_file(
     let payload_json = serde_json::to_string(&payload).map_err(|_| AppError::StateUnavailable)?;
     storage.create_review_request(
         NewReviewRequestRow {
+            task_id,
             id: &id,
             workspace_id: &input.workspace_id,
             result_id: None,
@@ -625,6 +753,7 @@ fn create_empty_replace(
     let block_id = Uuid::new_v4().to_string();
     storage.create_review_request(
         NewReviewRequestRow {
+            task_id: None,
             id: &id,
             workspace_id: &input.workspace_id,
             result_id: input.result_id.as_deref(),

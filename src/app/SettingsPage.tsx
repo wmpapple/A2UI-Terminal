@@ -1,5 +1,6 @@
+import { InfoNotice } from '../shared/components/InfoNotice';
 import { SettingOutlined, ToolOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, ConfigProvider, Segmented } from 'antd';
+import { Button, Card, ConfigProvider, Segmented } from 'antd';
 import { SystemSettings } from '../features/settings/components/SystemSettings';
 import { ProcessingStatus } from '../features/settings/components/ProcessingStatus';
 import type { ExperienceMode } from './shellPreferences';
@@ -63,7 +64,7 @@ export function SettingsPage({
               ]}
               onChange={(value) => onExperienceModeChange(value as ExperienceMode)}
             />
-            <Alert
+            <InfoNotice
               className={styles.modeNotice}
               type={professional ? 'info' : 'success'}
               showIcon

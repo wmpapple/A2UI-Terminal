@@ -39,7 +39,9 @@ const RESULT_COMMANDS: [&str; 14] = [
     "export_result",
     "cancel_export",
 ];
-const TASK_COMMANDS: [&str; 5] = [
+const TASK_COMMANDS: [&str; 7] = [
+    "plan_generation",
+    "start_generation",
     "list_task_templates",
     "create_task",
     "answer_task_questions",

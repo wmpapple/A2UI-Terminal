@@ -52,4 +52,22 @@ describe('home store', () => {
     expect(useHomeStore.getState().taskRunResult).toEqual(run);
     expect(useHomeStore.getState().recentResults[0].id).toBe(run.result.id);
   });
+
+  it('prepares AI inputs without executing the offline task or creating a result', async () => {
+    const ready = { ...awaiting, status: 'ready' as const, questions: [] };
+    useHomeStore.setState({ activeTask: awaiting });
+    vi.spyOn(homeController, 'answerTask').mockResolvedValue(ready);
+    const start = vi.spyOn(homeController, 'startTask');
+    expect(await useHomeStore.getState().prepareAiTask({ meetingTitle: '产品例会' })).toBe(true);
+    expect(useHomeStore.getState().activeTask).toEqual(ready);
+    expect(useHomeStore.getState().taskRunResult).toBeNull();
+    expect(start).not.toHaveBeenCalled();
+  });
+
+  it('allows an already ready AI task to retry without submitting answers twice', async () => {
+    useHomeStore.setState({ activeTask: { ...awaiting, status: 'ready', questions: [] } });
+    const answer = vi.spyOn(homeController, 'answerTask');
+    expect(await useHomeStore.getState().prepareAiTask({})).toBe(true);
+    expect(answer).not.toHaveBeenCalled();
+  });
 });

@@ -9,6 +9,7 @@ import { ChatHistoryDrawer } from './ChatHistoryDrawer';
 import { ChatComposer } from './ChatComposer';
 import { ChatMessageList } from './ChatMessageList';
 import styles from './ChatPanel.module.css';
+import { AssistantProgress } from './AssistantProgress';
 
 interface ChatPanelProps {
   professionalTools?: boolean;
@@ -77,12 +78,8 @@ function ChatSessionPanel({
         configured={Boolean(context.activeProvider?.configured)}
         busy={Boolean(chatRequestId)}
         professionalTools={professionalTools}
-        modelLabel={
-          professionalTools && context.activeProvider
-            ? `${context.activeProvider.id} · ${context.activeProvider.model}`
-            : undefined
-        }
         onNewSession={() => void createSession()}
+        targetLabel={context.activePath || (useAppStore.getState().workspace?.name ?? 'Workspace')}
       />
       <ChatHistoryDrawer
         open={historyOpen}
@@ -100,6 +97,14 @@ function ChatSessionPanel({
         }}
       />
       {chatError && <Alert className={styles.chatError} type="error" showIcon title={chatError} />}
+      {chatRequestId && (
+        <AssistantProgress
+          receiving={Boolean(
+            context.activeSession?.messages.at(-1)?.role === 'assistant' &&
+            context.activeSession.messages.at(-1)?.content
+          )}
+        />
+      )}
       <ChatMessageList
         messages={context.activeSession?.messages ?? []}
         requestActive={Boolean(chatRequestId)}

@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { Alert, Button, Checkbox, Modal, Tag } from 'antd';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { ImportCapability, SelectedWorkspaceFiles } from '../../../shared/types/domain';
@@ -68,7 +69,7 @@ export function ImportBatchModal({ onConfirmed }: ImportBatchModalProps) {
         </div>
       }
     >
-      <Alert type="info" showIcon title={t('importPrivacyNotice')} />
+      <InfoNotice type="info" showIcon title={t('importPrivacyNotice')} />
       {batch ? (
         <div className={styles.summary}>
           <span>

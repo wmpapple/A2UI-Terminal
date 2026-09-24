@@ -1,3 +1,4 @@
+import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { EmptyIllustration } from '../../../shared/components/EmptyIllustration';
 import {
   CheckCircleOutlined,
@@ -184,9 +185,9 @@ export function A2uiWorkbench({ showInspector = true }: Props) {
           </Button>
         </div>
       </header>
-      {notice ? <Alert className={styles.notice} type="info" showIcon title={notice} /> : null}
+      {notice ? <InfoNotice className={styles.notice} type="info" showIcon title={notice} /> : null}
       {templateNotice ? (
-        <Alert className={styles.notice} type="info" showIcon title={templateNotice} />
+        <InfoNotice className={styles.notice} type="info" showIcon title={templateNotice} />
       ) : null}
       <div className={`${styles.columns} ${showInspector ? '' : styles.columnsSimple}`}>
         <div className={styles.runtimePane} aria-busy={actionLoading}>
