@@ -42,4 +42,4 @@ SHA-256：`C3693ED2F20BDFD92242CA0C1DCD292DB270294031C5FACA0AC2723F6D8B2FFB`
 
 ## 当前阶段门
 
-当前状态：**工程实施完成，待 M3 产品功能验收**。验收步骤见 [M3_MANUAL_ACCEPTANCE.md](M3_MANUAL_ACCEPTANCE.md)。用户明确确认并授权前不进入 M4。
+2026-09-28：用户明确确认 **M3 人工验收通过，并授权开始 M4**。原交付快照保留当时状态；后续实施见 [M4_EXECUTION.md](M4_EXECUTION.md)。

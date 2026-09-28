@@ -11,7 +11,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 22;
+const SCHEMA_VERSION: i64 = 23;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -66,6 +66,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
         22,
         include_str!("../../migrations/0022_writing_profiles.sql"),
     ),
+    (23, include_str!("../../migrations/0023_citations.sql")),
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -4154,7 +4155,7 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         let transaction = connection.transaction()?;
         transaction.execute_batch(
-            "DELETE FROM personal_knowledge;
+            "DELETE FROM citation_outputs; DELETE FROM citation_reviews; DELETE FROM citation_requests; DELETE FROM knowledge_fragments; DELETE FROM knowledge_locator_jobs; DELETE FROM personal_knowledge;
              DELETE FROM writing_profile_examples;
              DELETE FROM writing_profiles;
              DELETE FROM product_events;

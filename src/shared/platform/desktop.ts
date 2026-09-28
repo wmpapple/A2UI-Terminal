@@ -647,6 +647,21 @@ export const desktopApi = {
     return invoke('start_generation', { generationId, onEvent: channel });
   },
 
+  async listCitations(query: {
+    ownerKind: 'result' | 'message';
+    ownerId: string;
+  }): Promise<import('../types/citation').CitationView[]> {
+    requireDesktop();
+    return invoke('list_citations', { query });
+  },
+  async upgradeKnowledgeLocators(
+    process: boolean,
+    retryFailed = false
+  ): Promise<import('../types/citation').UpgradeProgress> {
+    requireDesktop();
+    return invoke('upgrade_knowledge_locators', { process, retryFailed });
+  },
+
   async planInlineEdit(input: {
     selection: SelectionSnapshot;
     providerId: string;

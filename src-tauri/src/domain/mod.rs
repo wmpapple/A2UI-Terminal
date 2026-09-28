@@ -9,3 +9,5 @@ pub mod task;
 pub mod writing_profile;
 
 pub mod knowledge;
+
+pub mod citation;

@@ -55,7 +55,7 @@ pub fn root(managed_results: &Path) -> Result<PathBuf, AppError> {
     Ok(canonical)
 }
 
-fn path(root: &Path, id: &str, format: &str) -> Result<PathBuf, AppError> {
+pub(crate) fn path(root: &Path, id: &str, format: &str) -> Result<PathBuf, AppError> {
     if Uuid::parse_str(id).is_err()
         || !matches!(format, "txt" | "md" | "docx" | "pdf" | "csv" | "xlsx")
     {
@@ -122,7 +122,7 @@ pub fn confirm(
                     "Source changed since inspection; select it again".into(),
                 ));
             }
-            let parsed = parser::parse_bytes(&source.path, &bytes)?;
+            let parsed = parser::parse_located_bytes(&source.path, &bytes)?;
             if parsed.text().len() > 2 * 1024 * 1024 {
                 return Err(AppError::FileTooLarge);
             }

@@ -35,7 +35,18 @@ export interface ParsedDocument {
     text: string;
     locator:
       | { kind: 'text_range'; start: number; end: number; offsetUnit: 'utf16' }
-      | { kind: 'unavailable'; reason: string };
+      | { kind: 'unavailable'; reason: string }
+      | { kind: 'lines'; startLine: number; endLine: number }
+      | { kind: 'paragraph'; paragraph: number }
+      | { kind: 'page'; page: number }
+      | {
+          kind: 'table_range';
+          sheet: string;
+          startRow: number;
+          endRow: number;
+          startColumn: number;
+          endColumn: number;
+        };
   }[];
   warnings: string[];
 }

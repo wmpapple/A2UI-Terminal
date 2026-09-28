@@ -378,7 +378,24 @@ pub fn restore_revision(
         }
         _ => return Err(AppError::InvalidInput("成果不是可编辑的文档".into())),
     }
-    read_document(storage, managed_results_dir, &input.result_id)
+    let restored = read_document(storage, managed_results_dir, &input.result_id)?;
+    if let Some(request) = crate::repository::citation::output_request_for_revision(
+        storage,
+        "result",
+        &input.result_id,
+        &content_hash(revision.content.as_bytes()),
+        Some(&input.revision_id),
+    )? {
+        crate::repository::citation::bind_output(
+            storage,
+            "result",
+            &input.result_id,
+            &restored.content_hash,
+            restored.result.summary.current_revision_id.as_deref(),
+            &request,
+        )?;
+    }
+    Ok(restored)
 }
 
 pub fn duplicate(
@@ -397,7 +414,7 @@ pub fn duplicate(
     let file_name = format!("{result_id}.{extension}");
     let title = format!("{} - 副本", source.result.summary.title);
     let title: String = title.chars().take(160).collect();
-    create_managed_document(
+    let copy = create_managed_document(
         storage,
         managed_results_dir,
         ManagedResultDraft {
@@ -408,7 +425,24 @@ pub fn duplicate(
             content: &source.content,
             review_link: ReviewResultLink::None,
         },
-    )
+    )?;
+    if let Some(request) = crate::repository::citation::output_request_for_revision(
+        storage,
+        "result",
+        &source.result.summary.id,
+        &source.content_hash,
+        source.result.summary.current_revision_id.as_deref(),
+    )? {
+        crate::repository::citation::bind_output(
+            storage,
+            "result",
+            &copy.result.summary.id,
+            &copy.content_hash,
+            copy.result.summary.current_revision_id.as_deref(),
+            &request,
+        )?;
+    }
+    Ok(copy)
 }
 
 fn create_managed_document(

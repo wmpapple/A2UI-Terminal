@@ -96,6 +96,7 @@ const REVIEW_COMMANDS: [&str; 8] = [
     "undo_review",
 ];
 const INLINE_COMMANDS: [&str; 2] = ["plan_inline_edit", "start_inline_edit"];
+const CITATION_COMMANDS: [&str; 2] = ["list_citations", "upgrade_knowledge_locators"];
 
 #[test]
 fn native_commands_are_registered_and_allowed_for_the_main_window() {
@@ -127,6 +128,7 @@ fn native_commands_are_registered_and_allowed_for_the_main_window() {
         .into_iter()
         .chain(REVIEW_COMMANDS)
         .chain(INLINE_COMMANDS)
+        .chain(CITATION_COMMANDS)
     {
         assert!(
             build_script.contains(&format!("\"{command}\"")),

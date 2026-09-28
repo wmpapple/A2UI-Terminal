@@ -196,6 +196,8 @@ pub fn run() {
             commands::stream_chat,
             commands::plan_generation,
             commands::start_generation,
+            commands::list_citations,
+            commands::upgrade_knowledge_locators,
             commands::plan_inline_edit,
             commands::start_inline_edit,
             commands::stop_chat,

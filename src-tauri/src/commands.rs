@@ -1876,7 +1876,7 @@ pub async fn export_result(
             // A native dialog can remain open while the source is changed/revoked.
             let latest =
                 export_service::prepare(&state.storage, &state.managed_results_dir, &input)?;
-            if latest.content_hash != document.content_hash {
+            if latest.content_hash != document.content_hash || latest.content != document.content {
                 return Err(AppError::FileConflict);
             }
             emit_export_progress(&on_event, &input.export_id, "writing", 80)?;
@@ -2114,4 +2114,43 @@ pub async fn start_inline_edit(
             .map_err(|_| AppError::StreamReceiverClosed)
     })
     .await
+}
+
+#[tauri::command]
+pub async fn list_citations(
+    app: AppHandle,
+    query: crate::domain::citation::CitationQuery,
+) -> Result<Vec<crate::domain::citation::CitationView>, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let _guard = state
+            .knowledge_guard
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        crate::application::citation::list(&state.storage, &state.managed_results_dir, &query)
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
+}
+#[tauri::command]
+pub async fn upgrade_knowledge_locators(
+    app: AppHandle,
+    process: bool,
+    retry_failed: bool,
+) -> Result<crate::application::locator_upgrade::UpgradeProgress, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let _guard = state
+            .knowledge_guard
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        crate::application::locator_upgrade::step(
+            &state.storage,
+            &state.managed_results_dir,
+            process,
+            retry_failed,
+        )
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
 }

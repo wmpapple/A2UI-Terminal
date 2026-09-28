@@ -37,6 +37,8 @@ enum StoredReviewPayload {
         path: String,
         base_hash: String,
         content: String,
+        #[serde(default)]
+        trusted_full: bool,
     },
     InlineWorkspace {
         path: String,
@@ -203,6 +205,12 @@ pub fn apply(
         .iter()
         .filter(|block| block.status == ReviewBlockStatus::Accepted)
         .collect::<Vec<_>>();
+    let cited_full_replacement = match &payload {
+        StoredReviewPayload::ReplaceResult { content, .. } => {
+            Some(crate::parser::hash(content.as_bytes()))
+        }
+        _ => None,
+    };
     let result = match payload {
         StoredReviewPayload::ManagedResult {
             result_id,
@@ -284,7 +292,12 @@ pub fn apply(
             path,
             base_hash,
             content,
-        } => patch::apply_full_replace_for_review(
+            trusted_full,
+        } => (if trusted_full {
+            patch::apply_trusted_full_replace_for_review
+        } else {
+            patch::apply_full_replace_for_review
+        })(
             storage,
             &input.workspace_id,
             &path,
@@ -338,6 +351,18 @@ pub fn apply(
             result: None,
         }),
     };
+    if let Ok(application) = &result {
+        if let Some(document) = &application.result {
+            super::citation::bind_result(storage, &input.review_id, document)?;
+        } else if let (Some(hash), Some(result_id)) =
+            (cited_full_replacement, current.result_id.as_deref())
+        {
+            let document = super::result::read_document(storage, managed_results_dir, result_id)?;
+            if document.content_hash == hash {
+                super::citation::bind_result(storage, &input.review_id, &document)?;
+            }
+        }
+    }
     match result {
         Err(AppError::FileConflict) => {
             storage.mark_review_error(&input.review_id, "conflicted", "FILE_CONFLICT")?;
@@ -425,6 +450,7 @@ pub fn resolve_conflict(
                 &path,
                 &content,
             )?;
+            super::citation::bind_result(storage, &input.review_id, &result)?;
             Ok(ReviewApplication {
                 review_id: input.review_id,
                 status: ReviewStatus::Applied,
@@ -557,6 +583,7 @@ pub(crate) fn create_result_replacement(
             path: source.source_ref.clone(),
             base_hash: document.content_hash.clone(),
             content: content.into(),
+            trusted_full: true,
         }
     } else {
         return Err(AppError::InvalidInput("成果不支持写作生成".into()));
@@ -887,6 +914,7 @@ fn create_empty_replace(
         path: proposal.path.clone(),
         base_hash: document.content_hash.clone(),
         content: proposal.content.clone(),
+        trusted_full: false,
     };
     let payload_json = serde_json::to_string(&payload).map_err(|_| AppError::StateUnavailable)?;
     let id = Uuid::new_v4().to_string();

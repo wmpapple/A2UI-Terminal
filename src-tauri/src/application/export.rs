@@ -75,6 +75,10 @@ pub fn prepare(
     }
     document.content = revision.content;
     super::result::validate_result_content(document.result.summary.result_type, &document.content)?;
+    if document.result.summary.result_type == ResultType::Document {
+        let notes = super::citation::export_notes(storage, directory, &document)?;
+        document.content.push_str(&notes);
+    }
     Ok(document)
 }
 

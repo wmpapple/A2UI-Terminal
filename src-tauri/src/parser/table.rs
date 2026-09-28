@@ -151,10 +151,16 @@ fn parse_xlsx(bytes: &[u8]) -> Result<TableSourceContent, AppError> {
         Some(xml) => parse_shared_strings(&xml)?,
         None => Vec::new(),
     };
-    let sheet_names = match read_zip_entry(&mut archive, "xl/workbook.xml")? {
-        Some(xml) => parse_sheet_names(&xml)?,
+    let workbook_xml = match read_zip_entry(&mut archive, "xl/workbook.xml")? {
+        Some(xml) => xml,
         None => return Err(AppError::InvalidInput("XLSX 缺少 workbook.xml".into())),
     };
+    let sheet_names = parse_sheet_names(&workbook_xml)?;
+    let relationships = read_zip_entry(&mut archive, "xl/_rels/workbook.xml.rels")?;
+    let names_by_path = relationships
+        .as_deref()
+        .map(|xml| worksheet_names_by_path(&workbook_xml, xml))
+        .transpose()?;
     let mut worksheet_entries = (0..archive.len())
         .filter_map(|index| {
             archive
@@ -176,10 +182,16 @@ fn parse_xlsx(bytes: &[u8]) -> Result<TableSourceContent, AppError> {
     for (index, entry_name) in worksheet_entries.iter().enumerate() {
         let xml = read_zip_entry(&mut archive, entry_name)?
             .ok_or_else(|| AppError::InvalidInput("XLSX 工作表读取失败".into()))?;
-        let name = sheet_names
-            .get(index)
-            .cloned()
-            .unwrap_or_else(|| format!("Sheet {}", index + 1));
+        let name = if let Some(names) = &names_by_path {
+            names.get(entry_name).cloned().ok_or_else(|| {
+                AppError::InvalidInput("XLSX 工作表关系缺失，无法确认工作表名称".into())
+            })?
+        } else {
+            sheet_names
+                .get(index)
+                .cloned()
+                .unwrap_or_else(|| format!("Sheet {}", index + 1))
+        };
         let (sheet, grid_cells) = parse_worksheet(&xml, name, &shared_strings)?;
         total_cells = total_cells
             .checked_add(grid_cells)
@@ -193,6 +205,78 @@ fn parse_xlsx(bytes: &[u8]) -> Result<TableSourceContent, AppError> {
         sheets,
         limits: TableLimits::default(),
     })
+}
+
+fn worksheet_names_by_path(
+    workbook: &str,
+    relationships: &str,
+) -> Result<BTreeMap<String, String>, AppError> {
+    let mut targets = BTreeMap::new();
+    let mut reader = quick_xml::Reader::from_str(relationships);
+    loop {
+        match reader.read_event() {
+            Ok(Event::Empty(start)) | Ok(Event::Start(start))
+                if start.local_name().as_ref() == b"Relationship" =>
+            {
+                let mut id = String::new();
+                let mut target = String::new();
+                let mut external = false;
+                for attribute in start.attributes().flatten() {
+                    let value = attribute
+                        .decode_and_unescape_value(reader.decoder())
+                        .map_err(|_| AppError::InvalidInput("XLSX 关系属性无效".into()))?
+                        .into_owned();
+                    match attribute.key.as_ref() {
+                        b"Id" => id = value,
+                        b"Target" => target = value,
+                        b"TargetMode" => external = value == "External",
+                        _ => {}
+                    }
+                }
+                if !external && !id.is_empty() {
+                    let path = if target.starts_with('/') {
+                        target.trim_start_matches('/').to_string()
+                    } else {
+                        format!("xl/{}", target.trim_start_matches("./"))
+                    };
+                    targets.insert(id, path);
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(_) => return Err(AppError::InvalidInput("XLSX 工作表关系无效".into())),
+            _ => {}
+        }
+    }
+    let mut names = BTreeMap::new();
+    let mut reader = quick_xml::Reader::from_str(workbook);
+    loop {
+        match reader.read_event() {
+            Ok(Event::Empty(start)) | Ok(Event::Start(start))
+                if start.local_name().as_ref() == b"sheet" =>
+            {
+                let mut name = String::new();
+                let mut id = String::new();
+                for attribute in start.attributes().flatten() {
+                    let value = attribute
+                        .decode_and_unescape_value(reader.decoder())
+                        .map_err(|_| AppError::InvalidInput("XLSX 工作表属性无效".into()))?
+                        .into_owned();
+                    match attribute.key.as_ref() {
+                        b"name" => name = value,
+                        b"r:id" => id = value,
+                        _ => {}
+                    }
+                }
+                if let Some(path) = targets.get(&id) {
+                    names.insert(path.clone(), name);
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(_) => return Err(AppError::InvalidInput("XLSX 工作表定义无效".into())),
+            _ => {}
+        }
+    }
+    Ok(names)
 }
 
 fn parse_shared_strings(xml: &str) -> Result<Vec<String>, AppError> {

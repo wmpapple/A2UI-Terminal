@@ -1,0 +1,75 @@
+{
+  "capturedAt": "2026-09-28T02:41:41.140Z",
+  "stage": "M4",
+  "status": "engineering_verified_awaiting_product_acceptance",
+  "nextStageAuthorized": false,
+  "scope": "located_sources_and_request_bound_citations",
+  "schemaVersion": 23,
+  "verification": {
+    "frontend": {
+      "files": 67,
+      "passed": 296
+    },
+    "rust": {
+      "passed": 277,
+      "ignored": 1,
+      "citationIntegrationPassed": 9
+    },
+    "fullE2e": {
+      "passed": 33,
+      "failed": 0
+    },
+    "configuredCoverage": {
+      "scope": "Existing Vitest configured production module subset; not whole application or M4 coverage",
+      "statements": "97.97%",
+      "branches": "85.89%",
+      "functions": "96.66%",
+      "lines": "98.80%"
+    },
+    "format": "passed",
+    "lint": "passed",
+    "typecheck": "passed",
+    "clippyDenyWarnings": "passed",
+    "frontendBuild": "passed",
+    "desktopBuild": "passed",
+    "isolatedDesktopStartup": "passed",
+    "isolatedDesktopStartupDefaultAffinity": "passed",
+    "thirdPartyAudit": "passed",
+    "betaEvidenceAudit": "passed",
+    "developmentReleaseAudit": "passed",
+    "styleFixtures": {
+      "cases": 40,
+      "passed": true
+    },
+    "localSseGeneration": "passed",
+    "realProviderEvalRun": false,
+    "signedRelease": false
+  },
+  "artifact": {
+    "path": "logs/m4-citations-review/a2ui-terminal.exe",
+    "sha256": "6BCDB83FC450B931F9EAFE0561EA424BC5DA28D50B1449525FB07CD9F7B2F9C5",
+    "bytes": 67453440
+  },
+  "executionNotes": [
+    "Native tool failures occurred before final passing runs; compilation and Rust tests used child-process affinity and serial scheduling. No system or product affinity setting was changed.",
+    "The delivered binary also passed isolated startup with default processor affinity.",
+    "Counts refer to final successful complete runs, not merged partial runs.",
+    "Source verification establishes identity, approved scope and version, not factual entailment."
+  ],
+  "evidence": [
+    "logs/m4-format.log",
+    "logs/m4-lint.log",
+    "logs/m4-typecheck.log",
+    "logs/m4-coverage.log",
+    "logs/m4-e2e.log",
+    "logs/m4-rust-tests.log",
+    "logs/m4-clippy.log",
+    "logs/m4-desktop-build.log",
+    "logs/m4-desktop-smoke.log",
+    "logs/m4-desktop-smoke-default.log",
+    "logs/m4-third-party.log",
+    "logs/m4-beta-evidence.log",
+    "logs/m4-release-audit.log",
+    "logs/m4-style-fixtures.log"
+  ]
+}

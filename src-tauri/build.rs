@@ -62,6 +62,8 @@ fn main() {
         "stream_chat",
         "plan_generation",
         "start_generation",
+        "list_citations",
+        "upgrade_knowledge_locators",
         "plan_inline_edit",
         "start_inline_edit",
         "stop_chat",

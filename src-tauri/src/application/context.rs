@@ -13,7 +13,13 @@ pub fn plan(
     input: ContextManifestInput,
 ) -> Result<ContextManifest, AppError> {
     let input = crate::application::context_pack::expand_manifest_input(storage, input)?;
-    let pending = ai::plan_context_manifest(storage, index, input)?;
+    let mut pending = ai::plan_context_manifest(storage, index, input)?;
+    pending.view.citations = super::citation::decorate(
+        storage,
+        &pending.view.workspace_id,
+        &mut pending.sources,
+        &pending.view.included_sources,
+    )?;
     let view = pending.view.clone();
     manifests.clear();
     manifests.insert(view.id.clone(), pending);

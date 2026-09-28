@@ -382,13 +382,17 @@ where
             &prepared.current_instruction,
             &manifest.sources,
         );
+        let mut composed = composed;
+        composed.system.push_str(super::citation::INSTRUCTION);
         let messages=vec![
             ProviderMessage{role:"system".into(),content:composed.system},
             ProviderMessage{role:"user".into(),content:composed.user},
         ];
         let content=stream_provider(&config,&key,&messages,cancel.clone(),|delta|emit(super::chat::ChatStreamEvent::Delta{request_id:request.request_id.clone(),message_id:request.assistant_message_id.clone(),delta:delta.into()})).await?;
         let _guard=state.knowledge_guard.lock().map_err(|_|AppError::StateUnavailable)?;
-        finish(&state.storage,&state.managed_results_dir,&prepared.target,&content,&cancel)
+        let output=finish(&state.storage,&state.managed_results_dir,&prepared.target,&content,&cancel)?;
+        crate::repository::citation::bind_review(&state.storage,&output.review.id,&request.request_id)?;
+        Ok(output)
     }.await;
     state
         .active_requests

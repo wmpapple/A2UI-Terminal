@@ -25,6 +25,10 @@ pub(super) fn extract_document_text(path: &Path, bytes: &[u8]) -> Result<String,
 }
 
 fn extract_docx_text(bytes: &[u8]) -> Result<String, AppError> {
+    Ok(extract_docx_paragraphs(bytes)?.trim().to_string())
+}
+
+pub(super) fn extract_docx_paragraphs(bytes: &[u8]) -> Result<String, AppError> {
     let cursor = std::io::Cursor::new(bytes);
     let mut archive = zip::ZipArchive::new(cursor)
         .map_err(|error| AppError::InvalidInput(format!("Invalid DOCX package: {error}")))?;
@@ -73,5 +77,64 @@ fn extract_docx_text(bytes: &[u8]) -> Result<String, AppError> {
             "This DOCX document contains no extractable body text".into(),
         ));
     }
-    Ok(output.trim().to_string())
+    Ok(output.strip_suffix('\n').unwrap_or(&output).to_string())
+}
+
+pub(super) fn located_docx_paragraphs(bytes: &[u8]) -> Result<Vec<String>, AppError> {
+    let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bytes))
+        .map_err(|_| AppError::InvalidInput("Invalid DOCX package".into()))?;
+    let mut xml = String::new();
+    archive
+        .by_name("word/document.xml")
+        .map_err(|_| AppError::InvalidInput("Missing DOCX body".into()))?
+        .take(25 * 1024 * 1024 + 1)
+        .read_to_string(&mut xml)?;
+    if xml.len() > 25 * 1024 * 1024 {
+        return Err(AppError::FileTooLarge);
+    }
+    let mut reader = quick_xml::Reader::from_str(&xml);
+    let mut paragraphs = Vec::new();
+    let mut current = String::new();
+    let mut in_paragraph = false;
+    let mut in_text = false;
+    use quick_xml::events::Event;
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(e)) if e.name().as_ref() == b"w:p" => {
+                current.clear();
+                in_paragraph = true;
+            }
+            Ok(Event::Start(e)) if e.name().as_ref() == b"w:t" => in_text = true,
+            Ok(Event::End(e)) if e.name().as_ref() == b"w:t" => in_text = false,
+            Ok(Event::End(e)) if e.name().as_ref() == b"w:p" => {
+                paragraphs.push(std::mem::take(&mut current));
+                in_paragraph = false;
+            }
+            Ok(Event::Empty(e)) if e.name().as_ref() == b"w:p" => paragraphs.push(String::new()),
+            Ok(Event::Empty(e))
+                if in_paragraph && matches!(e.name().as_ref(), b"w:br" | b"w:cr") =>
+            {
+                current.push('\n')
+            }
+            Ok(Event::Empty(e)) if in_paragraph && e.name().as_ref() == b"w:tab" => {
+                current.push('\t')
+            }
+            Ok(Event::Text(text)) if in_paragraph && in_text => current.push_str(
+                &text
+                    .xml_content()
+                    .map_err(|_| AppError::InvalidInput("Invalid DOCX text".into()))?,
+            ),
+            Ok(Event::GeneralRef(reference)) if in_paragraph && in_text => {
+                let entity = format!("&{};", String::from_utf8_lossy(reference.as_ref()));
+                current.push_str(
+                    &quick_xml::escape::unescape(&entity)
+                        .map_err(|_| AppError::InvalidInput("Invalid DOCX entity".into()))?,
+                );
+            }
+            Ok(Event::Eof) => break,
+            Err(_) => return Err(AppError::InvalidInput("Invalid DOCX XML".into())),
+            _ => {}
+        }
+    }
+    Ok(paragraphs)
 }

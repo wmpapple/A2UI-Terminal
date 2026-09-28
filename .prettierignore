@@ -6,3 +6,5 @@ src-tauri/gen
 src-tauri/Cargo.lock
 package-lock.json
 public
+# Import/locator acceptance fixtures preserve their original bytes and line positions.
+docs/V2.X/samples

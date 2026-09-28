@@ -21,3 +21,7 @@ pub mod workspace;
 pub mod writing_profile;
 
 pub mod knowledge;
+
+pub mod citation;
+
+pub mod locator_upgrade;

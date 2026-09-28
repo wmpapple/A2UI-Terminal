@@ -2,7 +2,7 @@
 
 > 日期：2026-09-21（Asia/Shanghai）  
 > 代码基准：`35023d75a0d87e5e16f1d0de8a554e4eb6b49a69`；开始分析时工作树干净。  
-> 状态（2026-09-24）：M0、F0、M1-A、M1-B、M2 产品验收通过；用户已授权 M3。M3 Inline AI 与风险自适应审阅已完成工程实施，当前等待产品功能验收。实施证据见 [M3_EXECUTION.md](M3_EXECUTION.md)。未收到明确授权前不进入 M4。
+> 状态（2026-09-28）：M0、F0、M1-A、M1-B、M2、M3 产品验收通过；M4 可定位资料与可信引用工程验证完成，等待人工产品验收，记录见 [M4_EXECUTION.md](M4_EXECUTION.md)。未经用户验收和授权，不进入 B0 或 M5。
 >
 > 输入：用户提供的 PRD、Engineering Implementation Plan、Product Engineering Roadmap，以及仓库现有 64 份 docs 文档、实现与测试。材料目录见 [V2X_REVIEW_INVENTORY.md](V2X_REVIEW_INVENTORY.md)。
 
@@ -254,7 +254,7 @@ Profile 不是隐形资料通道：范文只保存 Knowledge 引用，正文需�
 
 ## 10. M3：Inline AI 与风险自适应审阅
 
-状态：工程实施完成，待人工验收；依赖 F0 文档目标、M2 Composer。未收到明确授权前不进入 M4。
+状态：2026-09-28 人工验收通过；用户已明确授权 M4。
 
 ### 10.1 一套写入内核，两种审阅展示
 
@@ -292,7 +292,7 @@ SelectionSnapshot + action + 有效 Manifest
 
 ## 11. M4：可定位资料与可信引用
 
-状态：待开始；依赖 M1 资料、F0 解析结构、生成请求快照。预计 10–15 人日。
+状态：2026-09-28 工程验证完成，等待人工产品验收；依赖 M1 资料、F0 解析结构、生成请求快照。验收入口见 [M4_MANUAL_ACCEPTANCE.md](M4_MANUAL_ACCEPTANCE.md)。
 
 ### 11.1 分成三层数据
 

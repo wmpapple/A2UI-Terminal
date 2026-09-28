@@ -81,6 +81,8 @@ pub struct ConfirmContextManifestInput {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContextManifest {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub citations: Vec<crate::domain::citation::CitationSource>,
     pub id: String,
     pub workspace_id: String,
     pub session_id: String,
@@ -109,7 +111,7 @@ pub struct PendingContextManifest {
     provider_fingerprint: String,
     prompt_hash: String,
     expires_at_epoch: u64,
-    sources: Vec<ContextSource>,
+    pub(crate) sources: Vec<ContextSource>,
     source_bindings: Vec<(String, String, String)>,
     history: Vec<ProviderMessage>,
 }
@@ -226,8 +228,7 @@ pub fn plan_context_manifest(
                 exclusion_reason: Some("当前 Provider 合同不支持可信视觉输入；图片未发送".into()),
             }),
             DocumentSourceKind::Table => {
-                let content = serde_json::to_string_pretty(&trusted.table_content)
-                    .map_err(|_| AppError::StateUnavailable)?;
+                let content = crate::parser::parse_located(Path::new(&row.absolute_path))?.text();
                 resolved_sources.push(ResolvedTextSource {
                     kind: ContextSourceKind::AttachedDocument,
                     manifest_kind: "table".into(),
@@ -243,7 +244,13 @@ pub fn plan_context_manifest(
                 let content = candidate
                     .content
                     .filter(|_| {
-                        candidate.base_hash.as_deref() == Some(&trusted.source.content_hash)
+                        trusted.source.editable
+                            && candidate.base_hash.as_deref() == Some(&trusted.source.content_hash)
+                    })
+                    .or_else(|| {
+                        crate::parser::parse_located(Path::new(&row.absolute_path))
+                            .ok()
+                            .map(|p| p.text())
                     })
                     .or(trusted.text_content)
                     .unwrap_or_default();
@@ -368,6 +375,7 @@ pub fn plan_context_manifest(
         })
         .collect::<Vec<_>>();
     let view = ContextManifest {
+        citations: Vec::new(),
         id: Uuid::new_v4().to_string(),
         workspace_id: input.workspace_id,
         session_id: input.session_id,
@@ -499,6 +507,13 @@ pub fn consume_context_manifest(
             ));
         }
     }
+    crate::repository::citation::register_request(
+        storage,
+        &request.request_id,
+        &manifest.view.id,
+        &request.workspace_id,
+        &manifest.view.citations,
+    )?;
     Ok(ConfirmedContextManifest {
         view: manifest.view,
         sources: manifest.sources,

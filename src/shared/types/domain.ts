@@ -646,6 +646,12 @@ export interface ContextManifestSource {
 }
 
 export interface ContextManifest {
+  citations?: {
+    key: string;
+    fragmentId: string;
+    title: string;
+    locator: import('./citation').CitationLocator;
+  }[];
   id: string;
   workspaceId: string;
   sessionId: string;

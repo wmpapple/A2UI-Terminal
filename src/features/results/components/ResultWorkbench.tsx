@@ -1,3 +1,4 @@
+import { CitationPanel } from '../../citation/CitationPanel';
 import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { WorkbenchAppearanceControl } from '../../../app/WorkbenchAppearanceControl';
 import {
@@ -321,6 +322,13 @@ export function ResultWorkbench({
           }}
         />
       ) : null}
+      <CitationPanel
+        key={activeDocument.result.id + draftContent}
+        ownerKind="result"
+        ownerId={activeDocument.result.id}
+        content={draftContent}
+        dirty={draftContent !== activeDocument.content}
+      />
       <ResultContentAdapter
         type={activeDocument.result.type}
         format={activeDocument.format}

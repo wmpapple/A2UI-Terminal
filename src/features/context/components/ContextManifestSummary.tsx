@@ -1,3 +1,4 @@
+import { locatorLabel } from '../../citation/locatorLabel';
 import { Button, Divider, Tag } from 'antd';
 import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { useI18n } from '../../../app/i18n/useI18n';
@@ -97,6 +98,16 @@ export function ContextManifestSummary({
               </code>
             </div>
           ))}
+      {manifest.citations?.length ? (
+        <details>
+          <summary>{locale === 'zh-CN' ? '本次可引用片段' : 'Citable passages'}</summary>
+          {manifest.citations.map((source) => (
+            <div key={source.key}>
+              [{source.key}] {source.title} · {locatorLabel(source.locator, locale === 'zh-CN')}
+            </div>
+          ))}
+        </details>
+      ) : null}
       {(!compact || manifest.excludedSources.length > 0) && <strong>{t('excludedSources')}</strong>}
       <div className={styles.manifestExcluded}>
         {manifest.excludedSources.map((source) => (

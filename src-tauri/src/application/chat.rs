@@ -189,6 +189,8 @@ where
         &request.prompt,
         &manifest.sources,
     );
+    let mut composed = composed;
+    composed.system.push_str(super::citation::INSTRUCTION);
     let mut messages = vec![ProviderMessage {
         role: "system".into(),
         content: composed.system,
@@ -450,6 +452,17 @@ where
             } else {
                 content.clone()
             };
+            crate::repository::citation::bind_output(
+                storage,
+                "message",
+                &request.assistant_message_id,
+                &crate::parser::hash(assistant_content.as_bytes()),
+                None,
+                &request.request_id,
+            )?;
+            if let Some(review) = validated_review.as_ref() {
+                crate::repository::citation::bind_review(storage, &review.id, &request.request_id)?;
+            }
             repository.update_assistant(
                 &request.assistant_message_id,
                 &assistant_content,

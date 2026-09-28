@@ -1,10 +1,12 @@
 //! Local parsing only. Callers own file authorization and persistence.
 mod formats;
+mod located;
 pub mod table;
 mod text;
 pub use formats::{
     is_supported_document_path, is_supported_text_path, is_supported_workspace_path,
 };
+pub use located::{parse_located, parse_located_bytes, LOCATED_PARSER_VERSION};
 pub const MAX_TEXT_FILE_BYTES: u64 = 2 * 1024 * 1024;
 pub const MAX_DOCUMENT_FILE_BYTES: u64 = 25 * 1024 * 1024;
 
@@ -23,6 +25,23 @@ pub const PARSER_VERSION: &str = "local-v1";
     deny_unknown_fields
 )]
 pub enum Locator {
+    Lines {
+        start_line: usize,
+        end_line: usize,
+    },
+    Paragraph {
+        paragraph: usize,
+    },
+    Page {
+        page: usize,
+    },
+    TableRange {
+        sheet: String,
+        start_row: usize,
+        end_row: usize,
+        start_column: usize,
+        end_column: usize,
+    },
     TextRange {
         start: usize,
         end: usize,

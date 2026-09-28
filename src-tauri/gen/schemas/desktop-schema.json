@@ -471,6 +471,12 @@
           "markdownDescription": "Enables the list_chat_sessions command without any pre-configured scope."
         },
         {
+          "description": "Enables the list_citations command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-citations",
+          "markdownDescription": "Enables the list_citations command without any pre-configured scope."
+        },
+        {
           "description": "Enables the list_context_packs command without any pre-configured scope.",
           "type": "string",
           "const": "allow-list-context-packs",
@@ -807,6 +813,12 @@
           "markdownDescription": "Enables the undo_review command without any pre-configured scope."
         },
         {
+          "description": "Enables the upgrade_knowledge_locators command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-upgrade-knowledge-locators",
+          "markdownDescription": "Enables the upgrade_knowledge_locators command without any pre-configured scope."
+        },
+        {
           "description": "Enables the validate_document_patch command without any pre-configured scope.",
           "type": "string",
           "const": "allow-validate-document-patch",
@@ -1105,6 +1117,12 @@
           "type": "string",
           "const": "deny-list-chat-sessions",
           "markdownDescription": "Denies the list_chat_sessions command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_citations command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-citations",
+          "markdownDescription": "Denies the list_citations command without any pre-configured scope."
         },
         {
           "description": "Denies the list_context_packs command without any pre-configured scope.",
@@ -1441,6 +1459,12 @@
           "type": "string",
           "const": "deny-undo-review",
           "markdownDescription": "Denies the undo_review command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the upgrade_knowledge_locators command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-upgrade-knowledge-locators",
+          "markdownDescription": "Denies the upgrade_knowledge_locators command without any pre-configured scope."
         },
         {
           "description": "Denies the validate_document_patch command without any pre-configured scope.",

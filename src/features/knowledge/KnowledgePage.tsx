@@ -1,3 +1,4 @@
+import { LocatorUpgrade } from '../citation/LocatorUpgrade';
 import { InfoNotice } from '../../shared/components/InfoNotice';
 import { Alert, Button, Checkbox, Empty, Input, Modal, Select, Space, Spin, Tabs, Tag } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -31,6 +32,7 @@ export function KnowledgePage() {
           ? '保存资料，再按用途组成资料包。资料包只引用已有资料，不重复保存正文。'
           : 'Save sources and group them by purpose. Packs reference sources without duplicating content.'}
       </p>
+      <LocatorUpgrade />
       <Tabs
         activeKey={tab}
         onChange={(key) => {
@@ -371,8 +373,8 @@ function KnowledgeSources() {
         />
         <p>
           {zh
-            ? '只读提取正文；复杂版式和精确页段定位暂不提供。更新内容请删除旧副本后重新导入，已有发送清单将失效。'
-            : 'Read-only extracted text; advanced layout and page/paragraph navigation are unavailable. To update content, delete and reimport; previous send manifests become invalid.'}
+            ? '只读提取正文；引用支持页、段落、行或表格行列定位，无法可靠定位时会明确提示。更新内容请删除旧副本后重新导入，旧引用将显示来源不可用。'
+            : 'Read-only extracted text with page, paragraph, line or table locations where available. Updating a source requires reimport; old citations will show the source as unavailable.'}
         </p>
         <pre className={styles.preview}>{preview?.parsed.blocks.map((b) => b.text).join('\n')}</pre>
       </Modal>

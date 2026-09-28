@@ -1,3 +1,4 @@
+import { CitationPanel } from '../../citation/CitationPanel';
 import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { RedoOutlined } from '@ant-design/icons';
 import { Alert, Button } from 'antd';
@@ -349,6 +350,14 @@ export function ChatMessageList({
               ) : (
                 <p className={styles.plainBubble}>{chatMessage.content}</p>
               )}
+              {chatMessage.role === 'assistant' && chatMessage.status === 'complete' ? (
+                <CitationPanel
+                  key={chatMessage.id + chatMessage.content}
+                  ownerKind="message"
+                  ownerId={chatMessage.id}
+                  content={chatMessage.content}
+                />
+              ) : null}
               {(chatMessage.status === 'error' ||
                 chatMessage.status === 'stopped' ||
                 patchFailed ||

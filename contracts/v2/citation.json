@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "referenceSyntax": "[S1]",
+  "authority": "Keys are assigned by Rust to actually transmitted fragments after retrieval and budget selection. A key has meaning only inside its persisted request and manifest.",
+  "query": { "ownerKind": "result", "ownerId": "opaque-result-id" },
+  "statuses": ["verified", "unknown", "stale", "unauthorized", "unavailable"],
+  "locators": ["lines", "paragraph", "page", "table_range", "text_range", "unavailable"],
+  "limits": { "keysPerRequest": 64, "referencesPerOutput": 128 },
+  "lifecycle": {
+    "edit": "Conservatively require reverification for all retained keys when the output content hash changes.",
+    "restore": "Restore the selected revision's immutable request binding and recheck source authorization and hashes. Content-only fallback is allowed only for a unique request; identical text from different requests is ambiguous.",
+    "deleteSource": "Remove readable fragments and managed source; preserve only unavailable citation metadata in independent results.",
+    "copy": "Copy the exact-content request binding and revalidate source state on access.",
+    "export": "Append source title, locator and current validation status to the selected result revision; omit internal IDs and absolute source paths."
+  }
+}
