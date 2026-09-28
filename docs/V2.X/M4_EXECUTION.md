@@ -2,7 +2,7 @@
 
 2026-09-28：用户确认 M3 验收通过并授权 M4。本轮完成后只进入 M4 人工验收，不进入 B0/M5。
 
-当前状态：M4 工程验证完成，等待人工产品验收。验证程序位于 `logs/m4-citations-review/a2ui-terminal.exe`，构建与隔离桌面启动检查通过。文件 Hash、大小和完整证据索引见 [M4_DELIVERY_SNAPSHOT.json](M4_DELIVERY_SNAPSHOT.json)。
+当前状态：2026-09-28 用户确认 M4 人工验收通过，授权 B0。M4 验证程序位于 `logs/m4-citations-review/a2ui-terminal.exe`，构建与隔离桌面启动检查通过。历史交付时的文件 Hash、大小和完整证据索引见 [M4_DELIVERY_SNAPSHOT.json](M4_DELIVERY_SNAPSHOT.json)，该快照不追改。
 
 ## 实现范围
 

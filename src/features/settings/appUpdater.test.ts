@@ -20,6 +20,18 @@ describe('appUpdater', () => {
     relaunchMock.mockReset().mockResolvedValue(undefined);
   });
 
+  it('handles version IPC failure without an unhandled rejection or update request', async () => {
+    vi.resetModules();
+    getVersionMock.mockRejectedValue(new Error('Version IPC unavailable'));
+    const updater = await import('./appUpdater');
+    await expect(updater.checkForAppUpdate()).resolves.toMatchObject({
+      phase: 'error',
+      currentVersion: '',
+      error: 'Version IPC unavailable',
+    });
+    expect(checkMock).not.toHaveBeenCalled();
+  });
+
   it('checks, reports progress, verifies through the plugin, and relaunches', async () => {
     const downloadAndInstall = vi.fn(async (onEvent: (event: unknown) => void) => {
       onEvent({ event: 'Started', data: { contentLength: 100 } });

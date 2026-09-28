@@ -481,9 +481,8 @@ pub fn read_workspace_file(
     workspace_id: String,
     relative_path: String,
 ) -> Result<WorkspaceDocument, AppError> {
-    let document = workspace_service::read_file(&state.storage, &workspace_id, &relative_path)?;
-    crate::application::result::ensure_file_result(&state.storage, &workspace_id, &document)?;
-    Ok(document)
+    // Opening a source file must not publish it to My Results.
+    workspace_service::read_file(&state.storage, &workspace_id, &relative_path)
 }
 
 #[tauri::command]

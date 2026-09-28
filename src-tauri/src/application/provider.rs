@@ -13,15 +13,33 @@ use zeroize::Zeroizing;
 const LOCAL_PROBE_CONNECT_TIMEOUT: Duration = Duration::from_millis(350);
 
 pub(crate) fn request_key(config: &ProviderConfig) -> Result<Zeroizing<String>, AppError> {
-    let key = SecretStore::get_optional(&config.id)?;
+    resolve_request_key(config, SecretStore::get_optional(&config.id))
+}
+
+fn resolve_request_key(
+    config: &ProviderConfig,
+    key: Result<Option<Zeroizing<String>>, AppError>,
+) -> Result<Zeroizing<String>, AppError> {
     match key {
-        Some(key) => Ok(key),
-        None if normalized_loopback_endpoint(&config.endpoint).is_some() => {
+        Ok(Some(key)) => Ok(key),
+        Ok(None) | Err(AppError::CredentialUnavailable)
+            if normalized_loopback_endpoint(&config.endpoint).is_some() =>
+        {
             Ok(Zeroizing::new(String::new()))
         }
-        None => Err(AppError::InvalidInput(
+        Ok(None) => Err(AppError::InvalidInput(
             "当前云端 Provider 尚未配置 API Key，请在设置中保存后重试".into(),
         )),
+        Err(error) => Err(error),
+    }
+}
+
+fn credential_configured(status: Result<bool, AppError>) -> Result<bool, AppError> {
+    // Listing providers must remain usable for keyless local models when the
+    // system credential service is unavailable. Cloud requests still fail closed.
+    match status {
+        Err(AppError::CredentialUnavailable) => Ok(false),
+        other => other,
     }
 }
 const LOCAL_PROBE_TOTAL_TIMEOUT: Duration = Duration::from_millis(1_500);
@@ -155,7 +173,7 @@ pub fn list_configs(storage: &Storage) -> Result<Vec<ProviderConfigView>, AppErr
         .map(|config| {
             Ok(ProviderConfigView {
                 configured: normalized_loopback_endpoint(&config.endpoint).is_some()
-                    || SecretStore::exists(&config.id)?,
+                    || credential_configured(SecretStore::exists(&config.id))?,
                 active: config.id == active_id,
                 config,
             })
@@ -435,6 +453,41 @@ pub(crate) fn normalized_loopback_endpoint(value: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn credential_service_failure_does_not_block_keyless_loopback_or_downgrade_cloud() {
+        use super::{credential_configured, resolve_request_key};
+        use crate::error::AppError;
+        let mut config = ProviderConfig {
+            id: "test".into(),
+            kind: ProviderKind::Custom,
+            endpoint: "http://127.0.0.1:1234/v1".into(),
+            model: "local".into(),
+            temperature: 0.0,
+            proxy_url: None,
+        };
+        assert!(
+            resolve_request_key(&config, Err(AppError::CredentialUnavailable))
+                .unwrap()
+                .is_empty()
+        );
+        assert!(resolve_request_key(&config, Ok(None)).unwrap().is_empty());
+        assert_eq!(
+            resolve_request_key(
+                &config,
+                Ok(Some(zeroize::Zeroizing::new("configured".into())))
+            )
+            .unwrap()
+            .as_str(),
+            "configured"
+        );
+        config.endpoint = "https://api.example.com/v1".into();
+        assert!(matches!(
+            resolve_request_key(&config, Err(AppError::CredentialUnavailable)),
+            Err(AppError::CredentialUnavailable)
+        ));
+        assert!(resolve_request_key(&config, Ok(None)).is_err());
+        assert!(!credential_configured(Err(AppError::CredentialUnavailable)).unwrap());
+    }
     use super::{
         local_probe_candidates, normalized_loopback_endpoint, probe_candidate, LocalProbeCandidate,
         LocalProbeStatus, LocalProviderKind,

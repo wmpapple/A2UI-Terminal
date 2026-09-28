@@ -114,7 +114,8 @@ export const messages = {
     homeBuildNotReady: '表单、清单和小工具将在可信组件与保存闭环完成后开放。',
     homeSourcesSectionTitle: '添加资料',
     homeSourceTitle: '拖入资料或从设备选择',
-    homeSourceDescription: '拖入的文件会先进入读取范围确认；不会扫描或读取其他文件。',
+    homeSourceDescription:
+      '新增资料将加入“独立文件”，不会归入当前目录工作区。确认读取范围后加入，不会移动原文件。',
     homeSourceReady: '已准备 {count} 项资料 · {workspace}',
     homeSelectedSources: '已选资料',
     chooseSources: '选择资料',
@@ -827,7 +828,7 @@ export const messages = {
     homeSourcesSectionTitle: 'Add source material',
     homeSourceTitle: 'Drop source material or choose from your device',
     homeSourceDescription:
-      'Dropped files first enter reading-scope confirmation. Other files are never scanned or read.',
+      'New sources go to Standalone Files, not the selected directory workspace. Confirm the reading scope to add them; original files stay in place.',
     homeSourceReady: '{count} source item(s) ready · {workspace}',
     homeSelectedSources: 'Selected sources',
     chooseSources: 'Choose sources',

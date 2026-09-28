@@ -5,6 +5,7 @@
   "windows": ["main"],
   "platforms": ["windows"],
   "permissions": [
+    "core:app:allow-version",
     "allow-get-bootstrap-status",
     "allow-get-writing-profiles",
     "allow-save-writing-profile",

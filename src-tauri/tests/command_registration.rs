@@ -110,6 +110,12 @@ fn native_commands_are_registered_and_allowed_for_the_main_window() {
     let permissions = capability["permissions"]
         .as_array()
         .expect("permissions array");
+    assert!(
+        permissions
+            .iter()
+            .any(|value| value == "core:app:allow-version"),
+        "automatic update checks must be able to read the installed app version"
+    );
 
     for permission in ["core:event:allow-listen", "core:event:allow-unlisten"] {
         assert!(

@@ -95,6 +95,7 @@ export function WorkspaceSidebar({ onActivateWorkspace, onBeforeOpenFile }: Prop
               options={recentWorkspaces.map((item) => ({
                 value: item.id,
                 label: item.name,
+                title: item.name,
                 disabled: !item.available,
               }))}
               onChange={(workspaceId) => void restoreWorkspace(workspaceId)}

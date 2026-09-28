@@ -129,4 +129,43 @@ describe('SourceDropZone', () => {
     expect(selectBrowserDropFallback).toHaveBeenCalledTimes(1);
     expect(selectBrowserDropFallback).toHaveBeenCalledWith(undefined);
   });
+
+  it('does not attach home imports to the selected directory workspace', async () => {
+    const select = vi.fn().mockResolvedValue(undefined);
+    const selectBrowserDropFallback = vi.fn().mockResolvedValue(undefined);
+    const loadSources = vi.fn().mockResolvedValue(undefined);
+    useImportStore.setState({ select, selectBrowserDropFallback, loadSources });
+    useAppStore.setState({
+      workspace: { id: 'directory-workspace', name: 'Project', kind: 'directory', available: true },
+    });
+    const bounds = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      right: 400,
+      bottom: 200,
+      width: 400,
+      height: 200,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    try {
+      render(
+        <I18nProvider>
+          <SourceDropZone />
+        </I18nProvider>
+      );
+      fireEvent.click(screen.getByRole('button', { name: /选择资料$/ }));
+      fireEvent.drop(screen.getByTestId('home-source-drop-zone'));
+      expect(select).toHaveBeenCalledWith(undefined);
+      expect(selectBrowserDropFallback).toHaveBeenCalledWith(undefined);
+      await waitFor(() =>
+        expect(setDropTargetMock).toHaveBeenCalledWith(
+          expect.objectContaining({ enabled: true, workspaceId: null })
+        )
+      );
+    } finally {
+      bounds.mockRestore();
+    }
+  });
 });

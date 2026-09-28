@@ -49,9 +49,10 @@ export const subscribeToUpdates = (listener: () => void) => {
 export async function checkForAppUpdate(): Promise<UpdateSnapshot> {
   if (getRuntimeMode() !== 'desktop') return snapshot;
 
-  const currentVersion = snapshot.currentVersion || (await getVersion());
-  publish({ phase: 'checking', currentVersion });
+  let currentVersion = snapshot.currentVersion;
   try {
+    currentVersion ||= await getVersion();
+    publish({ phase: 'checking', currentVersion });
     const update = await check({ timeout: 15_000 });
     pendingUpdate = update;
     if (!update) {

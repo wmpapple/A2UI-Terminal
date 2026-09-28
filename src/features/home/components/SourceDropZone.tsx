@@ -28,18 +28,18 @@ export function SourceDropZone() {
   const authorizedSourceCount = useImportStore((state) => state.sources.length);
   const loadSources = useImportStore((state) => state.loadSources);
   const clearWorkspaceError = useAppStore((state) => state.clearWorkspaceError);
-  const dropZoneRef = useImportDropTarget(workspace?.id, setDragging);
+  const dropZoneRef = useImportDropTarget(undefined, setDragging);
   const sourceCount = Math.max(workspaceSourceCount, authorizedSourceCount);
 
   useEffect(() => {
     if (workspace?.id) void loadSources(workspace.id);
   }, [loadSources, workspace?.id]);
 
-  const requestTrustedSelection = () => void selectImportSources(workspace?.id);
+  const requestTrustedSelection = () => void selectImportSources(undefined);
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setDragging(false);
-    void selectBrowserDropFallback(workspace?.id);
+    void selectBrowserDropFallback(undefined);
   };
 
   return (

@@ -46,10 +46,7 @@ pub async fn test_connection(config: &ProviderConfig, api_key: &str) -> Result<u
     let started = Instant::now();
     let response = tokio::time::timeout(
         CONNECTION_TEST_TIMEOUT,
-        client
-            .get(api_url(&config.endpoint, "models")?)
-            .bearer_auth(api_key)
-            .send(),
+        authorize(client.get(api_url(&config.endpoint, "models")?), api_key).send(),
     )
     .await
     .map_err(|_| provider_error("PROVIDER_RESPONSE_TIMEOUT", "等待 Provider 响应超时", true))?
@@ -100,10 +97,11 @@ where
         return Err(AppError::RequestCancelled);
     }
     let client = build_client(config)?;
-    let request = client
-        .post(api_url(&config.endpoint, "chat/completions")?)
-        .bearer_auth(api_key)
-        .json(&request_body(config, messages));
+    let request = authorize(
+        client.post(api_url(&config.endpoint, "chat/completions")?),
+        api_key,
+    )
+    .json(&request_body(config, messages));
     let response_future = request.send();
     tokio::pin!(response_future);
     let response_timeout = tokio::time::sleep(timeouts.response_headers);
@@ -224,7 +222,10 @@ fn validate_url(value: &str, require_secure_remote: bool) -> Result<Url, AppErro
             "Endpoint 或代理地址不能包含查询参数、片段或空主机".into(),
         ));
     }
-    let loopback = matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "::1"));
+    let loopback = matches!(
+        url.host_str(),
+        Some("localhost" | "127.0.0.1" | "::1" | "[::1]")
+    );
     if require_secure_remote && url.scheme() != "https" && !(url.scheme() == "http" && loopback) {
         return Err(AppError::InvalidInput(
             "远程 Endpoint 必须使用 HTTPS；仅本机回环地址允许 HTTP".into(),
@@ -248,7 +249,17 @@ fn build_client(config: &ProviderConfig) -> Result<Client, AppError> {
     let mut builder = Client::builder()
         .connect_timeout(CONNECT_TIMEOUT)
         .user_agent("A2UI-Terminal/0.1");
-    if let Some(proxy_url) = config
+    let url = validate_url(&config.endpoint, true)?;
+    if matches!(
+        url.host_str(),
+        Some("localhost" | "127.0.0.1" | "::1" | "[::1]")
+    ) {
+        // A request advertised as local must never leave through a system or
+        // configured HTTP proxy. Local services are contacted directly.
+        builder = builder
+            .no_proxy()
+            .redirect(reqwest::redirect::Policy::none());
+    } else if let Some(proxy_url) = config
         .proxy_url
         .as_deref()
         .filter(|value| !value.trim().is_empty())
@@ -260,6 +271,14 @@ fn build_client(config: &ProviderConfig) -> Result<Client, AppError> {
         );
     }
     builder.build().map_err(network_error)
+}
+
+fn authorize(request: reqwest::RequestBuilder, api_key: &str) -> reqwest::RequestBuilder {
+    if api_key.is_empty() {
+        request
+    } else {
+        request.bearer_auth(api_key)
+    }
 }
 
 fn request_body(config: &ProviderConfig, messages: &[ProviderMessage]) -> serde_json::Value {
@@ -584,6 +603,30 @@ mod tests {
         let unavailable = status_error(StatusCode::SERVICE_UNAVAILABLE, None);
         assert_eq!(unavailable.code(), "PROVIDER_UNAVAILABLE");
         assert!(unavailable.retryable());
+    }
+
+    #[tokio::test]
+    async fn local_connection_does_not_follow_redirects_or_send_empty_auth() {
+        assert!(super::validate_endpoint("http://[::1]:1234/v1").is_ok());
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            socket
+                .set_read_timeout(Some(Duration::from_secs(2)))
+                .unwrap();
+            let mut data = [0; 4096];
+            let n = socket.read(&mut data).unwrap();
+            assert!(!String::from_utf8_lossy(&data[..n])
+                .to_lowercase()
+                .contains("authorization:"));
+            socket.write_all(b"HTTP/1.1 307 Temporary Redirect\r\nLocation: http://127.0.0.1:9/other\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap();
+        });
+        let mut config = default_providers().remove(3);
+        config.endpoint = format!("http://{address}/v1");
+        let error = super::test_connection(&config, "").await.unwrap_err();
+        assert_eq!(error.http_status(), Some(307));
+        server.join().unwrap();
     }
 
     #[tokio::test]

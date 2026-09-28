@@ -2,7 +2,7 @@
 
 > 日期：2026-09-21（Asia/Shanghai）  
 > 代码基准：`35023d75a0d87e5e16f1d0de8a554e4eb6b49a69`；开始分析时工作树干净。  
-> 状态（2026-09-28）：M0、F0、M1-A、M1-B、M2、M3 产品验收通过；M4 可定位资料与可信引用工程验证完成，等待人工产品验收，记录见 [M4_EXECUTION.md](M4_EXECUTION.md)。未经用户验收和授权，不进入 B0 或 M5。
+> 状态（2026-09-28）：M0、F0、M1-A、M1-B、M2、M3、M4 产品验收通过；B0 Product Beta 集成工程验证完成，等待用户产品验收，执行记录见 [B0_EXECUTION.md](B0_EXECUTION.md)。未开始 M5。
 >
 > 输入：用户提供的 PRD、Engineering Implementation Plan、Product Engineering Roadmap，以及仓库现有 64 份 docs 文档、实现与测试。材料目录见 [V2X_REVIEW_INVENTORY.md](V2X_REVIEW_INVENTORY.md)。
 
@@ -292,7 +292,7 @@ SelectionSnapshot + action + 有效 Manifest
 
 ## 11. M4：可定位资料与可信引用
 
-状态：2026-09-28 工程验证完成，等待人工产品验收；依赖 M1 资料、F0 解析结构、生成请求快照。验收入口见 [M4_MANUAL_ACCEPTANCE.md](M4_MANUAL_ACCEPTANCE.md)。
+状态：2026-09-28 用户确认人工验收通过，授权 B0；依赖 M1 资料、F0 解析结构、生成请求快照。历史验收入口见 [M4_MANUAL_ACCEPTANCE.md](M4_MANUAL_ACCEPTANCE.md)。
 
 ### 11.1 分成三层数据
 

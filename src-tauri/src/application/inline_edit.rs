@@ -204,13 +204,24 @@ pub fn plan(state: &AppState, input: PlanInlineEditInput) -> Result<InlineEditPl
     Ok(plan)
 }
 
-pub async fn start<F>(
+pub async fn start<F>(state: &AppState, id: &str, emit: F) -> Result<InlineEditProposal, AppError>
+where
+    F: FnMut(super::chat::ChatStreamEvent) -> Result<(), AppError>,
+{
+    start_with_key_source(state, id, emit, super::provider::request_key).await
+}
+
+/// Trusted adapter seam, matching generation; not exposed through desktop IPC.
+/// Integration fixtures must never read the user's credential store.
+pub async fn start_with_key_source<F, K>(
     state: &AppState,
     id: &str,
     mut emit: F,
+    key_source: K,
 ) -> Result<InlineEditProposal, AppError>
 where
     F: FnMut(super::chat::ChatStreamEvent) -> Result<(), AppError>,
+    K: FnOnce(&crate::ai::ProviderConfig) -> Result<zeroize::Zeroizing<String>, AppError>,
 {
     let cancel = Arc::new(AtomicBool::new(false));
     let (prepared, manifest, config, key) = {
@@ -240,7 +251,7 @@ where
         let config = ProviderRepository::new(&state.storage)
             .find(&prepared.request.provider_id)?
             .ok_or(AppError::StateUnavailable)?;
-        let key = super::provider::request_key(&config)?;
+        let key = key_source(&config)?;
         state
             .active_requests
             .lock()

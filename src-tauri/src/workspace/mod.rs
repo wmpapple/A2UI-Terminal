@@ -131,21 +131,21 @@ pub fn register_workspace(
         .unwrap_or("Workspace");
     let root_path = root.to_string_lossy().into_owned();
     let row = storage.upsert_workspace(&Uuid::new_v4().to_string(), name, &root_path)?;
-    Ok(summary_from_row(&row))
+    summary_from_row(storage, &row)
 }
 
 pub fn register_standalone_workspace(storage: &Storage) -> Result<WorkspaceSummary, AppError> {
     let id = Uuid::new_v4().to_string();
     let row = storage.create_standalone_workspace(&id, "独立文件")?;
-    Ok(summary_from_row(&row))
+    summary_from_row(storage, &row)
 }
 
 pub fn list_recent(storage: &Storage) -> Result<Vec<WorkspaceSummary>, AppError> {
-    Ok(storage
+    storage
         .recent_workspaces(10)?
         .iter()
-        .map(summary_from_row)
-        .collect())
+        .map(|row| summary_from_row(storage, row))
+        .collect()
 }
 
 pub fn restore_workspace(
@@ -157,7 +157,7 @@ pub fn restore_workspace(
         canonicalize_root(Path::new(&row.root_path))?;
     }
     storage.touch_workspace(workspace_id)?;
-    Ok(summary_from_row(&row))
+    summary_from_row(storage, &row)
 }
 
 pub fn list_files(
@@ -651,13 +651,25 @@ fn require_workspace(storage: &Storage, workspace_id: &str) -> Result<WorkspaceR
         .ok_or_else(|| AppError::InvalidInput("工作区不存在或授权记录已删除".into()))
 }
 
-fn summary_from_row(row: &WorkspaceRow) -> WorkspaceSummary {
-    WorkspaceSummary {
+fn summary_from_row(storage: &Storage, row: &WorkspaceRow) -> Result<WorkspaceSummary, AppError> {
+    let mut name = row.name.clone();
+    if row.kind == "standalone" && row.root_path.starts_with("a2ui://standalone/") {
+        let files = storage.workspace_files(&row.id)?;
+        if let Some(first) = files.first() {
+            if let Some(file_name) = Path::new(&first.absolute_path).file_name() {
+                name = file_name.to_string_lossy().into_owned();
+                if files.len() > 1 {
+                    name = format!("{name} 等 {} 个文件", files.len());
+                }
+            }
+        }
+    }
+    Ok(WorkspaceSummary {
         id: row.id.clone(),
-        name: row.name.clone(),
+        name,
         available: row.kind == "standalone" || Path::new(&row.root_path).is_dir(),
         kind: row.kind.clone(),
-    }
+    })
 }
 
 fn selected_file_entry(row: &WorkspaceFileRow) -> WorkspaceFileEntry {

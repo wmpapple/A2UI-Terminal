@@ -1,0 +1,135 @@
+{
+  "capturedAt": "2026-09-28T03:41:58.083Z",
+  "stage": "B0",
+  "status": "engineering_verified_awaiting_product_acceptance",
+  "baselineCommit": "1c03bc8",
+  "previousStage": "M4_product_accepted",
+  "nextStageAuthorized": false,
+  "scope": "product_beta_integration_and_local_performance",
+  "schemaVersion": 23,
+  "verification": {
+    "frontend": {
+      "files": 67,
+      "passed": 297
+    },
+    "rust": {
+      "passed": 281,
+      "failed": 0,
+      "ignored": 1
+    },
+    "fullE2e": {
+      "passed": 33,
+      "failed": 0
+    },
+    "configuredCoverage": {
+      "scope": "Existing Vitest configured module subset, not whole-application coverage",
+      "statements": "97.97%",
+      "branches": "85.89%",
+      "functions": "96.66%",
+      "lines": "98.80%"
+    },
+    "integratedWorkflow": {
+      "credentialsRead": false,
+      "formats": ["md", "docx", "pdf"],
+      "kind": "workflow",
+      "passed": true,
+      "requests": 2,
+      "transport": "real_loopback_sse"
+    },
+    "desktop": {
+      "runtime": "real_tauri_webview2",
+      "isolated": true,
+      "credentialsDisabled": true,
+      "checks": [
+        "profile_prompt",
+        "generation_review_apply",
+        "input_cleared",
+        "autosave",
+        "home_return",
+        "unknown_citation",
+        "webview_reload_persistence"
+      ],
+      "pageErrors": [],
+      "launchToHomeIncludingSetupMs": 666.3591000000006,
+      "timings": {
+        "homeInteractive": {
+          "samples": 1,
+          "p95Ms": 63.1,
+          "budgetMs": 2500
+        },
+        "resultOpen": {
+          "samples": 5,
+          "p95Ms": 332.3,
+          "budgetMs": 1000
+        },
+        "requestFeedback": {
+          "samples": 5,
+          "p95Ms": 22.1,
+          "budgetMs": 300
+        }
+      }
+    },
+    "libraryPerformance": {
+      "charactersPerSourceApprox": 650,
+      "coldMs": 39.0334,
+      "firstPage": 40,
+      "kind": "library_performance",
+      "largerScaleValidated": false,
+      "mode": "existing_memory_lexical",
+      "sources": 100,
+      "warmP50Ms": 18.5173,
+      "warmP95Ms": 25.0762,
+      "warmSamples": 20
+    },
+    "format": "passed",
+    "lint": "passed",
+    "typecheck": "passed",
+    "clippyDenyWarnings": "passed",
+    "frontendBuild": "passed",
+    "desktopBuild": "passed",
+    "isolatedDesktopSmoke": "passed",
+    "thirdPartyAudit": "passed",
+    "legacyBetaEvidenceAudit": "passed",
+    "productBetaEvidenceAudit": "passed",
+    "developmentReleaseAudit": "passed",
+    "styleFixtures": {
+      "cases": 40,
+      "passed": true
+    },
+    "realRemoteModelEvalRun": false,
+    "signedRelease": false
+  },
+  "artifact": {
+    "path": "logs/b0-product-beta-review/a2ui-terminal.exe",
+    "sha256": "01D10389CEB3969CDEF2AEF4ADF53DA702ED50E1866B960E3C3461F2FAF5AFFC",
+    "bytes": 67458560
+  },
+  "executionNotes": [
+    "One initial browser suite hung and was stopped; the final complete run passed 33 tests. Counts are not merged partial reruns.",
+    "Rust checks ran with child-process affinity and serial test scheduling. Final real desktop integration used default processor affinity.",
+    "The fixed loopback responses verify transport and workflow, not model factuality or writing quality.",
+    "Performance covers 100 short synthetic sources and a small number of real desktop opens; no thousand-source guarantee or M5 persistent index."
+  ],
+  "evidence": [
+    "logs/b0-rust-tests.log",
+    "logs/b0-integration.log",
+    "logs/b0-clippy.log",
+    "logs/b0-coverage.log",
+    "logs/b0-e2e.log",
+    "logs/b0-e2e-initial.log",
+    "logs/b0-desktop/report.json",
+    "logs/b0-desktop/desktop-result.png",
+    "logs/b0-desktop-run.log",
+    "logs/b0-desktop-build.log",
+    "logs/b0-desktop-smoke.log",
+    "logs/b0-evidence.json",
+    "logs/b0-evidence-audit.log",
+    "logs/b0-format.log",
+    "logs/b0-lint.log",
+    "logs/b0-typecheck.log",
+    "logs/b0-third-party.log",
+    "logs/b0-legacy-beta-evidence.log",
+    "logs/b0-release-audit.log",
+    "logs/b0-style-fixtures.log"
+  ]
+}

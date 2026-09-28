@@ -249,6 +249,7 @@ pub fn confirm(
     let workspace =
         workspace_service::resolve_context_workspace(storage, pending.workspace_id.as_deref())?;
     let attached = attach_confirmed_sources(storage, &workspace.id, &confirmed_sources)?;
+    let workspace = workspace_service::restore(storage, &workspace.id)?;
     let mut batch = pending.batch.clone();
     batch.status = ImportBatchStatus::Confirmed;
     batch.can_confirm = false;
