@@ -16,7 +16,7 @@ export function ExportResultModal({
   document: ResultDocument;
   onClose: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const formats = exportFormatsFor(document.result.type, document.format);
   const [format, setFormat] = useState<ExportFormat>(formats.includes('pdf') ? 'pdf' : formats[0]);
   const [busy, setBusy] = useState(false);
@@ -153,6 +153,22 @@ export function ExportResultModal({
       <p>{t('exportRevisionBound')}</p>
       <p>{t('exportFormatLimit')}</p>
       {isWebMock() ? <InfoNotice type="info" showIcon title={t('exportMockNotice')} /> : null}
+      {document.format === 'markdown' && (format === 'docx' || format === 'pdf') && (
+        <InfoNotice
+          key={format}
+          type="info"
+          showIcon
+          title={
+            locale === 'zh-CN'
+              ? format === 'docx'
+                ? 'Word 保留基础结构、粗斜体、简单表格、内嵌 PNG 和分页；列表按可见序号导出，外部图片以文字说明代替。不保证复杂 Office 样式无损往返。'
+                : 'PDF 保留正文、标题和分页；表格简化为文本行，图片以说明代替，复杂样式不保留。需要可编辑表格和图片时请选择 Word。'
+              : format === 'docx'
+                ? 'Word preserves basic structure, bold/italic, simple tables, embedded PNG and page breaks. Lists use visible markers; external images become text. Complex Office round-tripping is not supported.'
+                : 'PDF preserves text, headings and page breaks. Tables become text rows and images become descriptions. Choose Word for editable tables and images.'
+          }
+        />
+      )}
       <Select
         aria-label={t('exportFormatLabel')}
         value={format}

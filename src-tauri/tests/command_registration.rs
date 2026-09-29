@@ -39,7 +39,11 @@ const RESULT_COMMANDS: [&str; 14] = [
     "export_result",
     "cancel_export",
 ];
-const TASK_COMMANDS: [&str; 26] = [
+const TASK_COMMANDS: [&str; 30] = [
+    "inspect_structured_document",
+    "propose_structured_patch",
+    "import_structured_document",
+    "pick_document_image",
     "inspect_document_critic",
     "ignore_critic_finding",
     "resolve_critic_finding",

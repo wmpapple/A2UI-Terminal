@@ -190,6 +190,9 @@ fn xlsx(content: &str) -> Result<Vec<u8>, AppError> {
 }
 
 fn docx(content: &str, source_format: TextResultFormat) -> Result<Vec<u8>, AppError> {
+    if source_format == TextResultFormat::Markdown {
+        return super::structured_docx::export(content);
+    }
     let mut document = Docx::new();
     for line in content.lines() {
         let (text, heading) = document_line(line, source_format);

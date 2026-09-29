@@ -22,6 +22,7 @@ import { A2uiWorkbench } from '../../a2ui/inspector/A2uiWorkbench';
 import { DiffReview } from '../../diff/components/DiffReview';
 import { SelectionAssistant } from '../../selection/components/SelectionAssistant';
 import { CriticPanel } from '../../critic/CriticPanel';
+import { StructuredDocumentPanel } from '../../structuredDocument/StructuredDocumentPanel';
 import { EmptyIllustration } from '../../../shared/components/EmptyIllustration';
 import { WorkbenchAppearanceControl } from '../../../app/WorkbenchAppearanceControl';
 import { useSystemTheme } from '../../../app/useSystemTheme';
@@ -470,6 +471,9 @@ export function EditorPane({
           workspaceId={workspace?.id ?? 'web-mock-workspace'}
           onApplied={receiveInlineApplication}
         />
+      )}
+      {centerView === 'editor' && (
+        <StructuredDocumentPanel snapshot={inlineSnapshot} onApplied={receiveInlineApplication} />
       )}
       {activeFile && recoveryDraft ? (
         <Alert

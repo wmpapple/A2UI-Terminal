@@ -316,7 +316,7 @@ export const createReviewStore = (set: AppSet, get: AppGet): ReviewActions => ({
     }
     const workspaceId = review?.workspaceId ?? currentWorkspaceId;
     if (!workspaceId) {
-      set({ patchError: '当前工作区不可用，无法撤销上次 AI 修改' });
+      set({ patchError: '当前工作区不可用，无法撤销上次审阅修改' });
       return false;
     }
     set({ patchApplying: true, patchError: null });

@@ -227,7 +227,7 @@ describe('ResultWorkbench', () => {
       </I18nProvider>
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /撤销上次 AI 修改/ }));
+    fireEvent.click(screen.getByRole('button', { name: /撤销上次审阅修改/ }));
     expect(onUndoReview).toHaveBeenCalledWith(appliedReview);
     expect(screen.getByTestId('review-undo-error')).toHaveTextContent(
       '当前成果已变化，不能直接撤销'

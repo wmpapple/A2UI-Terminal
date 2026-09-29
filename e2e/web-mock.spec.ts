@@ -234,7 +234,7 @@ test('keeps file changes behind review before applying the Web Mock patch', asyn
   await expect(page.getByText('已通过 Rust 校验')).toBeVisible();
   await page.getByRole('button', { name: /应用已选修改/ }).click();
   await expect(page.getByRole('radio', { name: '编辑器' })).toBeChecked();
-  await expect(page.getByRole('button', { name: /撤销上次 AI 修改/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /撤销上次审阅修改/ })).toBeVisible();
 });
 
 test('routes selection edits through review with inline accept and undo', async ({ page }) => {
@@ -259,7 +259,7 @@ test('routes selection edits through review with inline accept and undo', async 
   await assistant.getByRole('button', { name: /润\s*色/ }).click();
   await proposal.getByRole('button', { name: /接\s*受/ }).click();
   await expect(editor).toContainText('context-window（已润色）');
-  await page.getByRole('button', { name: /撤销上次 AI 修改/ }).click();
+  await page.getByRole('button', { name: /撤销上次审阅修改/ }).click();
   await expect(editor).toHaveText(original ?? '');
 });
 
@@ -296,10 +296,10 @@ test('keeps AI-created travel documents behind a complete create-file review', a
   await page.getByRole('button', { name: /查看我的成果/ }).click();
   const reopened = page.getByRole('article').filter({ hasText: '杭州三日游' });
   await reopened.getByRole('button', { name: /继续处理/ }).click();
-  await expect(page.getByRole('button', { name: /撤销上次 AI 修改/ })).toBeVisible();
-  await page.getByRole('button', { name: /撤销上次 AI 修改/ }).click();
+  await expect(page.getByRole('button', { name: /撤销上次审阅修改/ })).toBeVisible();
+  await page.getByRole('button', { name: /撤销上次审阅修改/ }).click();
   await expect(page).toHaveURL(/#\/results$/);
-  await expect(page.getByText(/已撤销上次 AI 修改/)).toBeVisible();
+  await expect(page.getByText(/已撤销上次审阅修改/)).toBeVisible();
   await expect(page.getByText('杭州三日游', { exact: true })).toHaveCount(0);
 });
 

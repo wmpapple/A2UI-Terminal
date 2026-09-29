@@ -227,6 +227,30 @@ export const desktopApi = {
       input: { target, options },
     });
   },
+  async inspectStructuredDocument(target: import('../types/document').DocumentTarget) {
+    requireDesktop();
+    return invoke<import('../types/structuredDocument').StructuredView>(
+      'inspect_structured_document',
+      { target }
+    );
+  },
+  async proposeStructuredPatch(patch: import('../types/structuredDocument').StructuredPatch) {
+    requireDesktop();
+    return invoke<ReviewRequest>('propose_structured_patch', { patch });
+  },
+  async importStructuredDocument(snapshot: import('../types/document').DocumentSnapshot) {
+    requireDesktop();
+    return invoke<ReviewRequest | null>('import_structured_document', {
+      target: snapshot.target,
+      baseHash: snapshot.contentHash,
+      baseRevisionId: snapshot.revisionId,
+    });
+  },
+  async pickDocumentImage() {
+    requireDesktop();
+    return invoke<string | null>('pick_document_image');
+  },
+
   async ignoreCriticFinding(reportId: string, findingId: string, ignored: boolean) {
     requireDesktop();
     return invoke<import('../types/critic').CriticReport>('ignore_critic_finding', {

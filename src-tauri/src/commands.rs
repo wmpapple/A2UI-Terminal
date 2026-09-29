@@ -2323,3 +2323,129 @@ pub fn save_writing_draft(
         &crate::domain::writing_project::WritingDraft { content, summary },
     )
 }
+#[tauri::command]
+pub async fn inspect_structured_document(
+    app: AppHandle,
+    target: crate::domain::document::DocumentTarget,
+) -> Result<crate::domain::structured_document::StructuredView, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        crate::application::structured_document::inspect(
+            &state.storage,
+            &state.managed_results_dir,
+            &target,
+        )
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
+}
+
+#[tauri::command]
+pub async fn propose_structured_patch(
+    app: AppHandle,
+    patch: crate::domain::structured_document::StructuredPatch,
+) -> Result<crate::domain::review::ReviewRequest, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        crate::application::structured_document::propose(
+            &state.storage,
+            &state.managed_results_dir,
+            patch,
+        )
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
+}
+
+#[tauri::command]
+pub async fn import_structured_document(
+    app: AppHandle,
+    target: crate::domain::document::DocumentTarget,
+    base_hash: String,
+    base_revision_id: Option<String>,
+) -> Result<Option<crate::domain::review::ReviewRequest>, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        // Resolve the authorized destination before showing any source dialog.
+        crate::application::structured_document::inspect(
+            &state.storage,
+            &state.managed_results_dir,
+            &target,
+        )?;
+        let Some(selected) = app
+            .dialog()
+            .file()
+            .set_title("导入文档副本（确认后替换当前正文）")
+            .add_filter("Word / Markdown", &["docx", "md"])
+            .blocking_pick_file()
+        else {
+            return Ok(None);
+        };
+        let path = selected
+            .into_path()
+            .map_err(|_| AppError::InvalidInput("所选文件路径无效".into()))?;
+        let file = std::fs::File::open(&path)?;
+        use std::io::Read;
+        let mut bytes = Vec::new();
+        file.take(25 * 1024 * 1024 + 1).read_to_end(&mut bytes)?;
+        if bytes.len() > 25 * 1024 * 1024 {
+            return Err(AppError::InvalidInput("文件超过 25 MiB".into()));
+        }
+        let extension = path
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+        let markdown = match extension.as_str() {
+            "md" => String::from_utf8(bytes)
+                .map_err(|_| AppError::InvalidInput("Markdown 文件需要 UTF-8 编码".into()))?,
+            "docx" => crate::application::structured_docx::import(&bytes)?,
+            _ => {
+                return Err(AppError::InvalidInput(
+                    "仅支持 DOCX 和 Markdown；PDF 保持只读资料".into(),
+                ))
+            }
+        };
+        crate::application::structured_document::propose_import(
+            &state.storage,
+            &state.managed_results_dir,
+            &target,
+            &base_hash,
+            &base_revision_id,
+            &markdown,
+        )
+        .map(Some)
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
+}
+
+#[tauri::command]
+pub async fn pick_document_image(app: AppHandle) -> Result<Option<String>, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(selected) = app
+            .dialog()
+            .file()
+            .set_title("插入 PNG 图片")
+            .add_filter("PNG", &["png"])
+            .blocking_pick_file()
+        else {
+            return Ok(None);
+        };
+        let path = selected
+            .into_path()
+            .map_err(|_| AppError::InvalidInput("所选图片路径无效".into()))?;
+        let file = std::fs::File::open(path)?;
+        use std::io::Read;
+        let mut bytes = Vec::new();
+        file.take(1024 * 1024 + 1).read_to_end(&mut bytes)?;
+        crate::application::structured_docx::png_dimensions(&bytes)?;
+        use base64::Engine;
+        Ok(Some(format!(
+            "data:image/png;base64,{}",
+            base64::engine::general_purpose::STANDARD.encode(bytes)
+        )))
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
+}

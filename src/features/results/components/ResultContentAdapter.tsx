@@ -1,9 +1,10 @@
 import { InfoNotice } from '../../../shared/components/InfoNotice';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { BoldOutlined, ItalicOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { Alert, Button, Checkbox, Input, Select, Space, Tag } from 'antd';
 import TextArea from 'antd/es/input/TextArea';
 import type { TextAreaRef } from 'antd/es/input/TextArea';
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { formatSelection } from '../formatSelection';
 import { textAreaSelection, type SourceEditorPort } from '../../selection/editorAdapter';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
@@ -48,27 +49,85 @@ function RawEditor({
   onChange,
   onEditorPort,
   onSelection,
-}: Pick<Props, 'content' | 'editable' | 'onChange' | 'onEditorPort' | 'onSelection'>) {
-  const { t } = useI18n();
+  markdown = false,
+}: Pick<Props, 'content' | 'editable' | 'onChange' | 'onEditorPort' | 'onSelection'> & {
+  markdown?: boolean;
+}) {
+  const { t, locale } = useI18n();
   const editor = useRef<TextAreaRef>(null);
+  const [selection, setSelection] = useState<{
+    content: string;
+    start: number;
+    end: number;
+  } | null>(null);
+  const pending = useRef<ReturnType<typeof formatSelection>>(null);
+  const canFormat = editable && selection?.content === content && selection.end > selection.start;
+  const format = (mark: '**' | '*') => {
+    if (!canFormat || !selection) return;
+    const next = formatSelection(content, selection.start, selection.end, mark);
+    if (!next) return;
+    pending.current = next;
+    onChange(next.content);
+  };
+  useLayoutEffect(() => {
+    const next = pending.current;
+    pending.current = null;
+    if (!next || next.content !== content) return;
+    const textarea = editor.current?.resizableTextArea?.textArea;
+    textarea?.focus();
+    textarea?.setSelectionRange(next.start, next.end);
+  }, [content]);
   useLayoutEffect(() => {
     onEditorPort?.({ read: () => textAreaSelection(editor.current?.resizableTextArea?.textArea) });
     return () => onEditorPort?.(null);
   }, [onEditorPort]);
   return (
-    <TextArea
-      ref={editor}
-      className={styles.editor}
-      aria-label={t('resultEditor')}
-      value={content}
-      disabled={!editable}
-      onChange={(event) => onChange(event.target.value)}
-      onSelect={(event) => {
-        const target = event.currentTarget;
-        onSelection?.(target.value.slice(target.selectionStart, target.selectionEnd));
-      }}
-      autoSize={false}
-    />
+    <>
+      {markdown && editable ? (
+        <div
+          className={styles.formatToolbar}
+          role="group"
+          aria-label={locale === 'zh-CN' ? '文字格式' : 'Text formatting'}
+        >
+          <Button
+            size="small"
+            icon={<BoldOutlined />}
+            disabled={!canFormat}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => format('**')}
+          >
+            {locale === 'zh-CN' ? '加粗' : 'Bold'}
+          </Button>
+          <Button
+            size="small"
+            icon={<ItalicOutlined />}
+            disabled={!canFormat}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => format('*')}
+          >
+            {locale === 'zh-CN' ? '斜体' : 'Italic'}
+          </Button>
+        </div>
+      ) : null}
+      <TextArea
+        ref={editor}
+        className={styles.editor}
+        aria-label={t('resultEditor')}
+        value={content}
+        disabled={!editable}
+        onChange={(event) => onChange(event.target.value)}
+        onSelect={(event) => {
+          const target = event.currentTarget;
+          setSelection({
+            content: target.value,
+            start: target.selectionStart,
+            end: target.selectionEnd,
+          });
+          onSelection?.(target.value.slice(target.selectionStart, target.selectionEnd));
+        }}
+        autoSize={false}
+      />
+    </>
   );
 }
 
@@ -435,5 +494,11 @@ export function ResultContentAdapter(props: Props) {
       />
     );
   }
-  return <RawEditor {...props} onEditorPort={sourceMode ? onEditorPort : undefined} />;
+  return (
+    <RawEditor
+      {...props}
+      markdown={props.type === 'document' && props.format === 'markdown'}
+      onEditorPort={sourceMode ? onEditorPort : undefined}
+    />
+  );
 }

@@ -1,0 +1,158 @@
+{
+  "stage": "M8",
+  "status": "engineering_verified_awaiting_product_acceptance",
+  "generatedAt": "2026-09-29T07:37:14.207Z",
+  "baselineCommit": "7f66ced",
+  "previousStage": "M7_product_accepted",
+  "nextStageAuthorized": false,
+  "schemaVersion": 28,
+  "engineeringPassed": true,
+  "artifact": "logs/m8-structured-review/a2ui-terminal.exe",
+  "binarySha256": "7eba116f55a6d01c4c08c9cc6902ad5fe57fb11579921081966d6e1ce12fd3c7",
+  "binaryBytes": 70244864,
+  "rustPassed": 323,
+  "frontendFiles": 73,
+  "frontendPassed": 323,
+  "e2ePassed": 37,
+  "modelQuality": {
+    "realModelEvaluatedInM8": false,
+    "fixtureIsModelQualityEvidence": false
+  },
+  "coverageScope": "Existing configured subset, not whole-repository coverage",
+  "desktop": {
+    "passed": true,
+    "binarySha256": "7eba116f55a6d01c4c08c9cc6902ad5fe57fb11579921081966d6e1ce12fd3c7",
+    "runtime": "real_tauri_webview2",
+    "isolated": true,
+    "credentialsDisabled": true,
+    "provider": "loopback_sse_fixture",
+    "remoteModelEvaluated": false,
+    "modelRequests": 1,
+    "launchToHomeIncludingSetupMs": 2052.4904000000006,
+    "measurements": [
+      {
+        "name": "homeInteractive",
+        "durationMs": 144.3,
+        "budgetMs": 2500,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T07:34:00.411Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 18.5,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T07:34:06.066Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 368.1,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T07:34:06.415Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 46.6,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T07:34:06.694Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 46.8,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T07:34:06.694Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 53.4,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T07:34:06.951Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 53.9,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T07:34:06.951Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 37.6,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T07:34:07.271Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 40.2,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T07:34:07.274Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 45.3,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T07:34:07.593Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 45.5,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T07:34:07.593Z"
+      }
+    ],
+    "checks": [
+      "structured_table_review_before_write",
+      "structured_stable_ids",
+      "structured_discard",
+      "structured_insert",
+      "structured_stale_candidate_blocked",
+      "structured_webview_reload",
+      "structured_zero_model_requests",
+      "structured_rich_text_formatting",
+      "profile_prompt",
+      "generation_review_apply",
+      "input_cleared",
+      "autosave",
+      "home_return",
+      "unknown_citation",
+      "webview_reload_persistence"
+    ],
+    "pageErrors": []
+  },
+  "evidence": {
+    "logs/m8-rust-tests.log": "183e3c3b1c72e8bdd698eb3969929d9a5dce1f11afb72d415ee244d2091dc768",
+    "logs/m8-frontend-tests.log": "7dff678cc453d1e09d407c2def1add430dfe7632fc7abf7ffee49ecea3be52c6",
+    "logs/m8-e2e.log": "0ef86edba5d92cf7a6cd43f3b68299f96d50a97128f60e29181fa08247a7999f",
+    "logs/m8-typecheck.log": "4c8b7208af0720678b3ea1e36be75eb4ef86195b32313ee730ba211088f48e4b",
+    "logs/m8-ui-tests.log": "0f539a81f2aa3f4338f759551b3bc2498929d51b6179892e88e31683b110721d",
+    "logs/m8-lint.log": "f9bb06c3240a02f0c791464782b4fe16d7efbc0c41de3193a66d140afb3f2644",
+    "logs/m8-format.log": "7be0ad369791d4b96f6a7096ff9280c3ad556536c646070834c242bc457665d2",
+    "logs/m8-clippy.log": "b631cf90af48f807ec5bb0b38827200b5ea1ce612684ef78ac5cac2f69ef7784",
+    "logs/m8-desktop-build.log": "40bcf8afc27c9d3cff8e85abdb7827fec96433487d24de4cae2cc139dff9d8fa",
+    "logs/m8-desktop/report.json": "3a8b1d0853b9a0df8a7c463412112f777ece2fae793bfd93c16fa4d09a90bf3a",
+    "src-tauri/src/domain/structured_document.rs": "da8406730be5f4f0e93f165d7d50bf7709017a4f6b4c286c920b94026d834439",
+    "src-tauri/src/application/structured_document.rs": "c7d2f6969a43e4acf74819fdcf273afc38495f17b5e27454f23a80e2601b7e47",
+    "src-tauri/src/application/structured_markdown.rs": "fb99a41a4d15d851356f578d796e9f1856881807473127841aa80337751a46be",
+    "src-tauri/src/application/structured_docx.rs": "d6cf486b6c82c4dfbfb6bf6ee10c8d3f440be2d26d53b4bf7cffc4bbe118e564",
+    "src-tauri/src/application/review.rs": "3a45a6b550f51e3001bc1470b5490748828c65f5cda1379af39d5a4a0988ff1f",
+    "src-tauri/src/repository/structured_document.rs": "ba63cdd298d230a781c313c97078278eef36ffa87b60562663aeec79f2e74ad2",
+    "src-tauri/migrations/0028_document_structures.sql": "c5438975db36bd482d52f1f6a407b2ec18ec6d099ae833a7c46ab9927459a219",
+    "src-tauri/tests/structured_document.rs": "e0edcda81139d90b1089f464d5380c63565667d02174c1a04f2ca51810fa361b",
+    "src/features/structuredDocument/StructuredDocumentPanel.tsx": "57cfc3e57b343a94bd864072499cdc50996fa003aae948fa482193610ebfee51",
+    "src/features/structuredDocument/editorAdapter.ts": "ca617a2efd4e5bd60871b1eef8a57a6b4c3d3fd78b6a2ed5ef15f441cf30d50b",
+    "src/features/structuredDocument/StructuredDocumentPanel.test.tsx": "be01fca97fc5dc5496b526586c483c28a6bbe04e69170b87d5a074103c4204c1",
+    "src/app/i18n/messages.ts": "5e5f82d567eecbb750014502a572c05637e51658adc23498095972dbb885fd85",
+    "src/shared/markdown/renderSafeMarkdown.ts": "24f00c44201abe22d39733b40d478aa795f60976a227096705aef9281b098407",
+    "src/shared/types/structuredDocument.ts": "a5ebd55fe65732eee8f58f842b9066149bf4a62ba039f704e9064869cd1c4cfd",
+    "scripts/verify-structured-workflow.mjs": "b8d31b3a579e86671b5750658176b639cafecea0d31ff881d25b0817c86c3e9c",
+    "docs/V2.X/M8_EDITOR_ADR.md": "2a2e4da6d1d6968ebebdb003f730bb12b1ed7eef49f4ef5faec5affce821edb4"
+  }
+}

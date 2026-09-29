@@ -11,7 +11,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 27;
+const SCHEMA_VERSION: i64 = 28;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -74,6 +74,10 @@ const MIGRATIONS: &[(i64, &str)] = &[
         include_str!("../../migrations/0026_writing_projects.sql"),
     ),
     (27, include_str!("../../migrations/0027_critic.sql")),
+    (
+        28,
+        include_str!("../../migrations/0028_document_structures.sql"),
+    ),
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -4162,7 +4166,7 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         let transaction = connection.transaction()?;
         transaction.execute_batch(
-            "DELETE FROM critic_reports; DELETE FROM writing_projects; DELETE FROM embedding_settings; DELETE FROM search_documents; DELETE FROM embedding_models; DELETE FROM citation_outputs; DELETE FROM citation_reviews; DELETE FROM citation_requests; DELETE FROM knowledge_fragments; DELETE FROM knowledge_locator_jobs; DELETE FROM personal_knowledge;
+            "DELETE FROM document_structures; DELETE FROM critic_reports; DELETE FROM writing_projects; DELETE FROM embedding_settings; DELETE FROM search_documents; DELETE FROM embedding_models; DELETE FROM citation_outputs; DELETE FROM citation_reviews; DELETE FROM citation_requests; DELETE FROM knowledge_fragments; DELETE FROM knowledge_locator_jobs; DELETE FROM personal_knowledge;
              DELETE FROM writing_profile_examples;
              DELETE FROM writing_profiles;
              DELETE FROM product_events;

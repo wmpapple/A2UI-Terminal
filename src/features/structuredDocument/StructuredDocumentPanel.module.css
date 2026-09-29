@@ -1,0 +1,39 @@
+.fieldset {
+  border: 0;
+  padding: 0;
+  margin-top: 16px;
+  min-width: 0;
+}
+.block {
+  border: 1px solid var(--border-color, #dce3ed);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.editable {
+  border: 1px solid #8ba1bd;
+  border-radius: 6px;
+  min-height: 100px;
+  padding: 12px;
+  margin: 8px 0;
+  white-space: pre-wrap;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+.table td {
+  border: 1px solid #dce3ed;
+  padding: 4px;
+  min-width: 70px;
+}
+.source {
+  white-space: pre-wrap;
+  max-height: 280px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  background: #f5f7fa;
+  padding: 12px;
+}

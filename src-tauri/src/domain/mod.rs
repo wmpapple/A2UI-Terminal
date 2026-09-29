@@ -13,4 +13,5 @@ pub mod knowledge;
 pub mod citation;
 pub mod critic;
 pub mod semantic_search;
+pub mod structured_document;
 pub mod writing_project;

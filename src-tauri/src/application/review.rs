@@ -198,6 +198,30 @@ pub fn apply(
     let row = storage
         .review_request(&input.review_id)?
         .ok_or(AppError::StateUnavailable)?;
+    if current
+        .blocks
+        .iter()
+        .any(|b| b.operation.as_deref() == Some("structured_patch_v2"))
+    {
+        let binding: Option<String> = storage.with_read(|db| {
+            Ok(db.query_row(
+                "SELECT structured_binding FROM review_requests WHERE id=?1",
+                [&input.review_id],
+                |r| r.get(0),
+            )?)
+        })?;
+        let expected: crate::domain::document::DocumentSnapshot =
+            serde_json::from_str(&binding.ok_or(AppError::StateUnavailable)?)
+                .map_err(|_| AppError::StateUnavailable)?;
+        let latest = super::document::snapshot(storage, managed_results_dir, &expected.target)?;
+        if latest.content_hash != expected.content_hash
+            || latest.revision_id != expected.revision_id
+            || latest.has_unsaved_draft
+            || !latest.editable
+        {
+            return Err(AppError::FileConflict);
+        }
+    }
     let payload: StoredReviewPayload =
         serde_json::from_str(&row.payload_json).map_err(|_| AppError::StateUnavailable)?;
     let accepted = current
@@ -628,8 +652,59 @@ pub(crate) fn create_inline_replacement(
     replacement: &str,
     action: crate::application::inline_edit::InlineEditAction,
 ) -> Result<ReviewRequest, AppError> {
+    create_replacement(
+        storage,
+        snapshot,
+        selection,
+        replacement,
+        &format!("选区内 AI 修改：{action:?}"),
+        false,
+    )
+}
+
+pub(crate) fn create_structured_replacement(
+    storage: &Storage,
+    _root: &Path,
+    snapshot: &crate::domain::document::DocumentSnapshot,
+    selection: &crate::domain::document::SelectionSnapshot,
+    replacement: &str,
+) -> Result<ReviewRequest, AppError> {
+    let review = create_replacement(
+        storage,
+        snapshot,
+        selection,
+        replacement,
+        "结构化文档修改",
+        true,
+    )?;
+    let mut binding = snapshot.clone();
+    binding.text.clear();
+    let json = serde_json::to_string(&binding).map_err(|_| AppError::StateUnavailable)?;
+    storage.with_transaction(|db| {
+        db.execute(
+            "UPDATE review_requests SET structured_binding=?1 WHERE id=?2",
+            rusqlite::params![json, review.id],
+        )?;
+        Ok(())
+    })?;
+    Ok(review)
+}
+
+fn create_replacement(
+    storage: &Storage,
+    snapshot: &crate::domain::document::DocumentSnapshot,
+    selection: &crate::domain::document::SelectionSnapshot,
+    replacement: &str,
+    reason: &str,
+    structured: bool,
+) -> Result<ReviewRequest, AppError> {
     super::result::validate_content(replacement)?;
-    let range = super::document::utf16_range(&snapshot.text, selection.start, selection.end)?;
+    let range =
+        if structured && snapshot.text.is_empty() && selection.start == 0 && selection.end == 0 {
+            0..0
+        } else {
+            super::document::utf16_range(&snapshot.text, selection.start, selection.end)?
+        };
     let before_selection = &snapshot.text[range.clone()];
     if replacement == before_selection {
         return Err(AppError::InvalidInput("AI 返回内容与所选文字相同".into()));
@@ -694,7 +769,6 @@ pub(crate) fn create_inline_replacement(
     let id = Uuid::new_v4().to_string();
     let block_id = Uuid::new_v4().to_string();
     let payload_json = serde_json::to_string(&payload).map_err(|_| AppError::StateUnavailable)?;
-    let reason = format!("选区内 AI 修改：{action:?}");
     storage.create_review_request(
         NewReviewRequestRow {
             task_id: None,
@@ -703,7 +777,11 @@ pub(crate) fn create_inline_replacement(
             result_id: result_id.as_deref(),
             source: "selection",
             operation_kind: "replace_result",
-            summary: "选区内 AI 修改",
+            summary: if structured {
+                "结构化文档修改"
+            } else {
+                "选区内 AI 修改"
+            },
             risk: "low",
             base_revision_id: base_revision_id.as_deref(),
             base_hash: Some(&snapshot.content_hash),
@@ -713,10 +791,14 @@ pub(crate) fn create_inline_replacement(
             id: &block_id,
             kind: "replace_result",
             target_label: &target_label,
-            operation: Some("replace_selection"),
+            operation: Some(if structured {
+                "structured_patch_v2"
+            } else {
+                "replace_selection"
+            }),
             before_content: before_selection,
             after_content: replacement,
-            reason: &reason,
+            reason,
             risk: "low",
             suggested_file_name: None,
         }],

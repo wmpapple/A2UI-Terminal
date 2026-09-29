@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-import-structured-document"
+description = "Enables the import_structured_document command without any pre-configured scope."
+commands.allow = ["import_structured_document"]
+
+[[permission]]
+identifier = "deny-import-structured-document"
+description = "Denies the import_structured_document command without any pre-configured scope."
+commands.deny = ["import_structured_document"]

@@ -14,6 +14,7 @@ enum Kind {
     Heading(u8),
     Code,
     Rule,
+    PageBreak,
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct Style {
@@ -120,6 +121,13 @@ fn markdown_blocks(content: &str) -> Vec<Block> {
             }
             Event::Start(Tag::Strong) => strong += 1,
             Event::End(TagEnd::Strong) => strong = strong.saturating_sub(1),
+            Event::Html(text) if text.trim() == "<!-- pagebreak -->" => {
+                flush(&mut blocks, &mut current);
+                blocks.push(Block {
+                    kind: Kind::PageBreak,
+                    ..Block::default()
+                });
+            }
             Event::Text(text) | Event::Html(text) | Event::InlineHtml(text) => {
                 current.quote = quote > 0;
                 current.push(
@@ -330,6 +338,13 @@ pub fn generate(title: &str, content: &str, markdown: bool) -> Result<Vec<u8>, A
     let mut y = 277.0_f32;
     let mut actual_text = Vec::new();
     for block in blocks {
+        if block.kind == Kind::PageBreak {
+            let next = document.add_page(Mm(210.0), Mm(297.0), "Content");
+            page = next.0;
+            layer_id = next.1;
+            y = 277.0;
+            continue;
+        }
         let size = block.size();
         let height = size * 25.4 / 72.0 * 1.5;
         let inset = block.indent

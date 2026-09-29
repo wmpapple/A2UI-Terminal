@@ -1,5 +1,6 @@
 import { CitationPanel } from '../../citation/CitationPanel';
 import { CriticPanel } from '../../critic/CriticPanel';
+import { StructuredDocumentPanel } from '../../structuredDocument/StructuredDocumentPanel';
 import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { WorkbenchAppearanceControl } from '../../../app/WorkbenchAppearanceControl';
 import {
@@ -343,6 +344,21 @@ export function ResultWorkbench({
           editable: activeDocument.editable && activeDocument.result.type === 'document',
         }}
         workspaceId={activeDocument.result.workspaceId}
+        onApplied={async (application) => {
+          await resultController.receiveInlineApplication(
+            activeDocument.result.id,
+            application,
+            activeDocument.contentHash
+          );
+          await openResult(activeDocument.result.id);
+          setSelectedText('');
+        }}
+      />
+      <StructuredDocumentPanel
+        snapshot={{
+          ...inlineSnapshot,
+          editable: activeDocument.editable && activeDocument.result.type === 'document',
+        }}
         onApplied={async (application) => {
           await resultController.receiveInlineApplication(
             activeDocument.result.id,

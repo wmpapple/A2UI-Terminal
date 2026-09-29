@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-propose-structured-patch"
+description = "Enables the propose_structured_patch command without any pre-configured scope."
+commands.allow = ["propose_structured_patch"]
+
+[[permission]]
+identifier = "deny-propose-structured-patch"
+description = "Denies the propose_structured_patch command without any pre-configured scope."
+commands.deny = ["propose_structured_patch"]

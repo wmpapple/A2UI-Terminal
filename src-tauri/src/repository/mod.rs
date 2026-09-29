@@ -13,4 +13,5 @@ pub mod citation;
 pub mod critic;
 pub(crate) mod embedding;
 pub(crate) mod search;
+pub mod structured_document;
 pub mod writing_project;

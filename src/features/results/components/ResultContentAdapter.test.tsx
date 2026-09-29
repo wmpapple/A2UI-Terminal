@@ -3,6 +3,59 @@ import { describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../app/i18n/I18nProvider';
 import { ResultContentAdapter } from './ResultContentAdapter';
 import type { SourceEditorPort } from '../../selection/editorAdapter';
+import { useState } from 'react';
+
+it('formats a selection in place and renders the saved Markdown in reading mode', () => {
+  function Harness() {
+    const [content, setContent] = useState('预算 420 元');
+    const [preview, setPreview] = useState(false);
+    return (
+      <I18nProvider>
+        <button onClick={() => setPreview(true)}>阅读测试</button>
+        <ResultContentAdapter
+          type="document"
+          format="markdown"
+          content={content}
+          editable
+          viewMode={preview ? 'preview' : 'edit'}
+          onChange={setContent}
+        />
+      </I18nProvider>
+    );
+  }
+  render(<Harness />);
+  const bold = screen.getByRole('button', { name: /加\s*粗/ });
+  expect(bold).toBeDisabled();
+  const editor = screen.getByRole('textbox') as HTMLTextAreaElement;
+  editor.focus();
+  editor.setSelectionRange(3, 6);
+  fireEvent.select(editor);
+  expect(bold).toBeEnabled();
+  fireEvent.mouseDown(bold);
+  fireEvent.click(bold);
+  expect(editor).toHaveValue('预算 **420** 元');
+  expect(editor).toHaveFocus();
+  expect(editor.value.slice(editor.selectionStart, editor.selectionEnd)).toBe('**420**');
+  fireEvent.click(screen.getByText('阅读测试'));
+  expect(screen.getByText('420').tagName).toBe('STRONG');
+  expect(screen.queryByRole('button', { name: /加\s*粗/ })).not.toBeInTheDocument();
+});
+
+it.each(['plain_text', 'csv'] as const)('does not offer Markdown formatting for %s', (format) => {
+  render(
+    <I18nProvider>
+      <ResultContentAdapter
+        type={format === 'csv' ? 'spreadsheet' : 'document'}
+        format={format}
+        content="hello"
+        editable
+        viewMode="edit"
+        onChange={vi.fn()}
+      />
+    </I18nProvider>
+  );
+  expect(screen.queryByRole('button', { name: /加\s*粗/ })).not.toBeInTheDocument();
+});
 
 it('exposes Result source selection only in editable document mode', () => {
   const onEditorPort = vi.fn<(port: SourceEditorPort | null) => void>();

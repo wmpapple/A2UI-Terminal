@@ -2,7 +2,7 @@
 
 > 日期：2026-09-21（Asia/Shanghai）  
 > 代码基准：`35023d75a0d87e5e16f1d0de8a554e4eb6b49a69`；开始分析时工作树干净。  
-> 状态（2026-09-29）：M0、F0、M1-A、M1-B、M2、M3、M4、B0、M5-A、M5-B、M6 产品验收通过。M7 主动审稿已完成工程验证，停在 M7 人工验收；不进入 M8。执行与边界见 [M7_EXECUTION.md](M7_EXECUTION.md)，产品步骤见 [M7_MANUAL_ACCEPTANCE.md](M7_MANUAL_ACCEPTANCE.md)。M6 的本机 1.7B 测试模型未达写作质量门槛，未作为推荐模型；历史详情见 [M6_EXECUTION.md](M6_EXECUTION.md)。
+> 状态（2026-09-29）：M0、F0、M1-A、M1-B、M2、M3、M4、B0、M5-A、M5-B、M6、M7 产品验收通过。M8 结构化文档工程完成，停在 M8 人工验收，不进入 M9。执行与边界见 [M8_EXECUTION.md](M8_EXECUTION.md)，产品步骤见 [M8_MANUAL_ACCEPTANCE.md](M8_MANUAL_ACCEPTANCE.md)。M6 的本机 1.7B 测试模型未达写作质量门槛，未作为推荐模型；历史详情见 [M6_EXECUTION.md](M6_EXECUTION.md)。
 >
 > 输入：用户提供的 PRD、Engineering Implementation Plan、Product Engineering Roadmap，以及仓库现有 64 份 docs 文档、实现与测试。材料目录见 [V2X_REVIEW_INVENTORY.md](V2X_REVIEW_INVENTORY.md)。
 

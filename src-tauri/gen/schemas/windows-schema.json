@@ -495,6 +495,12 @@
           "markdownDescription": "Enables the ignore_critic_finding command without any pre-configured scope."
         },
         {
+          "description": "Enables the import_structured_document command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-import-structured-document",
+          "markdownDescription": "Enables the import_structured_document command without any pre-configured scope."
+        },
+        {
           "description": "Enables the inspect_document_critic command without any pre-configured scope.",
           "type": "string",
           "const": "allow-inspect-document-critic",
@@ -505,6 +511,12 @@
           "type": "string",
           "const": "allow-inspect-import-batch",
           "markdownDescription": "Enables the inspect_import_batch command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the inspect_structured_document command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-inspect-structured-document",
+          "markdownDescription": "Enables the inspect_structured_document command without any pre-configured scope."
         },
         {
           "description": "Enables the list_a2ui_inspections command without any pre-configured scope.",
@@ -621,6 +633,12 @@
           "markdownDescription": "Enables the open_a2ui_template command without any pre-configured scope."
         },
         {
+          "description": "Enables the pick_document_image command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-pick-document-image",
+          "markdownDescription": "Enables the pick_document_image command without any pre-configured scope."
+        },
+        {
           "description": "Enables the pin_chat_session command without any pre-configured scope.",
           "type": "string",
           "const": "allow-pin-chat-session",
@@ -679,6 +697,12 @@
           "type": "string",
           "const": "allow-process-a2ui-message",
           "markdownDescription": "Enables the process_a2ui_message command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the propose_structured_patch command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-propose-structured-patch",
+          "markdownDescription": "Enables the propose_structured_patch command without any pre-configured scope."
         },
         {
           "description": "Enables the provider_secret_status command without any pre-configured scope.",
@@ -1281,6 +1305,12 @@
           "markdownDescription": "Denies the ignore_critic_finding command without any pre-configured scope."
         },
         {
+          "description": "Denies the import_structured_document command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-import-structured-document",
+          "markdownDescription": "Denies the import_structured_document command without any pre-configured scope."
+        },
+        {
           "description": "Denies the inspect_document_critic command without any pre-configured scope.",
           "type": "string",
           "const": "deny-inspect-document-critic",
@@ -1291,6 +1321,12 @@
           "type": "string",
           "const": "deny-inspect-import-batch",
           "markdownDescription": "Denies the inspect_import_batch command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the inspect_structured_document command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-inspect-structured-document",
+          "markdownDescription": "Denies the inspect_structured_document command without any pre-configured scope."
         },
         {
           "description": "Denies the list_a2ui_inspections command without any pre-configured scope.",
@@ -1407,6 +1443,12 @@
           "markdownDescription": "Denies the open_a2ui_template command without any pre-configured scope."
         },
         {
+          "description": "Denies the pick_document_image command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-pick-document-image",
+          "markdownDescription": "Denies the pick_document_image command without any pre-configured scope."
+        },
+        {
           "description": "Denies the pin_chat_session command without any pre-configured scope.",
           "type": "string",
           "const": "deny-pin-chat-session",
@@ -1465,6 +1507,12 @@
           "type": "string",
           "const": "deny-process-a2ui-message",
           "markdownDescription": "Denies the process_a2ui_message command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the propose_structured_patch command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-propose-structured-patch",
+          "markdownDescription": "Denies the propose_structured_patch command without any pre-configured scope."
         },
         {
           "description": "Denies the provider_secret_status command without any pre-configured scope.",
