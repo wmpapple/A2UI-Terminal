@@ -34,7 +34,7 @@
     ],
     "indexedDocuments": 3,
     "skippedDocuments": 1,
-    "indexMode": "memory_lexical"
+    "indexMode": "persistent_lexical"
   },
   "rebuildOutput": {
     "clearedDocuments": 3,

@@ -293,7 +293,6 @@ fn survives_restart_workspace_removal_and_original_move_but_delete_preserves_ori
     let found = search::search(
         &storage,
         &managed,
-        &mut ContextIndex::default(),
         search::SearchAuthorizedContentInput {
             workspace_id: None,
             query: "420".into(),
@@ -315,7 +314,6 @@ fn survives_restart_workspace_removal_and_original_move_but_delete_preserves_ori
     let found = search::search(
         &storage,
         &managed,
-        &mut ContextIndex::default(),
         search::SearchAuthorizedContentInput {
             workspace_id: None,
             query: "420".into(),

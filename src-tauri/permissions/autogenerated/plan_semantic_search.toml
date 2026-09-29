@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-plan-semantic-search"
+description = "Enables the plan_semantic_search command without any pre-configured scope."
+commands.allow = ["plan_semantic_search"]
+
+[[permission]]
+identifier = "deny-plan-semantic-search"
+description = "Denies the plan_semantic_search command without any pre-configured scope."
+commands.deny = ["plan_semantic_search"]

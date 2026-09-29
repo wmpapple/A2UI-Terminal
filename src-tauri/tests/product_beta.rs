@@ -1,6 +1,6 @@
 //! B0 integration: one database and real loopback transport across the writing workflow.
 use a2ui_terminal_lib::{
-    ai::{self, ConfirmContextManifestInput, ContextIndex},
+    ai::{self, ConfirmContextManifestInput},
     application::{
         citation, document, export, generation, import, inline_edit, knowledge, result, review,
         search, writing_profile,
@@ -461,14 +461,12 @@ fn hundred_source_local_baseline_is_paged_and_measured() {
     .unwrap();
     assert_eq!(page.items.len(), 40);
     assert!(page.next_cursor.is_some());
-    let mut index = ContextIndex::default();
     let mut times = Vec::new();
     for _ in 0..21 {
         let start = Instant::now();
         let hits = search::search(
             &storage,
             &managed,
-            &mut index,
             search::SearchAuthorizedContentInput {
                 workspace_id: None,
                 query: "星河 420".into(),
@@ -484,6 +482,6 @@ fn hundred_source_local_baseline_is_paged_and_measured() {
     times.sort_by(f64::total_cmp);
     println!(
         "B0_REPORT {}",
-        serde_json::json!({"kind":"library_performance","sources":100,"charactersPerSourceApprox":650,"firstPage":40,"warmSamples":20,"coldMs":cold,"warmP50Ms":times[9],"warmP95Ms":times[18],"mode":"existing_memory_lexical","largerScaleValidated":false})
+        serde_json::json!({"kind":"library_performance","sources":100,"charactersPerSourceApprox":650,"firstPage":40,"warmSamples":20,"coldMs":cold,"warmP50Ms":times[9],"warmP95Ms":times[18],"mode":"persistent_lexical","largerScaleValidated":false})
     );
 }

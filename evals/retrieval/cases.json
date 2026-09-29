@@ -1,0 +1,55 @@
+{
+  "version": "retrieval-v1",
+  "sources": [
+    { "id": "travel", "text": "出差报销：员工须在返程后七日内提交车票、住宿发票与费用明细。" },
+    { "id": "leave", "text": "休假申请：请假需要提前三天提交申请，经直属主管批准后生效。" },
+    {
+      "id": "backup",
+      "text": "数据备份：系统每晚将文档复制到独立磁盘，误删文件可从最近的副本恢复。"
+    },
+    {
+      "id": "password",
+      "text": "账户安全：忘记登录口令时可以通过注册邮箱找回，管理员不会索取验证码。"
+    },
+    { "id": "delivery", "text": "快递配送：商品发出后通常三天送达，偏远地区可能延迟。" },
+    { "id": "refund", "text": "退货政策：未拆封的商品可在签收后七日内退回，款项返还原支付账户。" },
+    { "id": "budget", "text": "星河项目：预算为420元，目前尚未批准，负责人是小林。" },
+    { "id": "launch", "text": "产品发布计划：十月十五日上线新版本，测试团队必须先完成回归验收。" },
+    { "id": "meeting", "text": "周会安排：每周一上午九点在二号会议室交流项目进展。" },
+    { "id": "battery", "text": "设备充电：电池电量低于百分之二十时接通电源，充满后可工作八小时。" },
+    {
+      "id": "support",
+      "text": "Customer support is available by email on weekdays. Include your order number when reporting a problem."
+    },
+    {
+      "id": "encryption",
+      "text": "Encryption protects stored documents with a secret key so unauthorized people cannot read their contents."
+    }
+  ],
+  "queries": [
+    { "query": "出差报销", "relevant": "travel" },
+    { "query": "坐火车住酒店的钱如何申请返还", "relevant": "travel" },
+    { "query": "休假申请", "relevant": "leave" },
+    { "query": "想休息几天该提前告诉谁", "relevant": "leave" },
+    { "query": "数据备份", "relevant": "backup" },
+    { "query": "不小心把文件删掉了怎么办", "relevant": "backup" },
+    { "query": "账户安全", "relevant": "password" },
+    { "query": "记不起密码进不去账号了", "relevant": "password" },
+    { "query": "快递配送", "relevant": "delivery" },
+    { "query": "买的东西几天能收到", "relevant": "delivery" },
+    { "query": "退货政策", "relevant": "refund" },
+    { "query": "东西不想要了钱怎么拿回来", "relevant": "refund" },
+    { "query": "星河 420", "relevant": "budget" },
+    { "query": "小林负责的事项花费是否获准", "relevant": "budget" },
+    { "query": "产品发布计划", "relevant": "launch" },
+    { "query": "新版本什么时候可以给大家用", "relevant": "launch" },
+    { "query": "周会安排", "relevant": "meeting" },
+    { "query": "大家在哪一天几点碰头聊工作", "relevant": "meeting" },
+    { "query": "设备充电", "relevant": "battery" },
+    { "query": "机器快没电了要怎么处理", "relevant": "battery" },
+    { "query": "Customer support", "relevant": "support" },
+    { "query": "How do I contact someone about a broken purchase?", "relevant": "support" },
+    { "query": "Encryption", "relevant": "encryption" },
+    { "query": "Keep strangers from reading private files", "relevant": "encryption" }
+  ]
+}

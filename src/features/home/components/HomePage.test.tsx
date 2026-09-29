@@ -112,7 +112,7 @@ describe('HomePage', () => {
       ],
       indexedDocuments: 1,
       skippedDocuments: 0,
-      indexMode: 'memory_lexical',
+      indexMode: 'persistent_lexical',
     });
     render(
       <I18nProvider>
@@ -150,7 +150,7 @@ describe('HomePage', () => {
       ],
       indexedDocuments: 1,
       skippedDocuments: 0,
-      indexMode: 'memory_lexical',
+      indexMode: 'persistent_lexical',
     });
     const onOpenWorkbench = vi.fn();
     render(

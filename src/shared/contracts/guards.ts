@@ -379,7 +379,7 @@ export const isSearchAuthorizedContentOutput = (
   isNumber(value.skippedDocuments) &&
   Number.isInteger(value.skippedDocuments) &&
   value.skippedDocuments >= 0 &&
-  value.indexMode === 'memory_lexical';
+  (value.indexMode === 'persistent_lexical' || value.indexMode === 'hybrid');
 
 export const isProcessingOptions = (value: unknown): value is ProcessingOptions =>
   isObject(value) &&

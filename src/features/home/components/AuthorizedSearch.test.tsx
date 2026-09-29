@@ -11,7 +11,7 @@ const output = (title: string): SearchAuthorizedContentOutput => ({
   items: [{ id: title, kind: 'result', title, snippet: '', updatedAt: null, score: 1 }],
   indexedDocuments: 1,
   skippedDocuments: 0,
-  indexMode: 'memory_lexical',
+  indexMode: 'persistent_lexical',
 });
 const setup = () => {
   render(

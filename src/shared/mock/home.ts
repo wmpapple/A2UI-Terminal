@@ -287,7 +287,7 @@ export const webMockHomeGateway = {
       items,
       indexedDocuments: resultRecords.size,
       skippedDocuments: 0,
-      indexMode: 'memory_lexical',
+      indexMode: 'persistent_lexical',
     };
   },
 

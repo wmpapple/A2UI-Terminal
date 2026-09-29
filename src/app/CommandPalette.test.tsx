@@ -8,18 +8,21 @@ vi.mock('antd', async (importOriginal) => ({
   ...(await importOriginal<typeof import('antd')>()),
   // Drive the delayed opening callback after the user has focused a field.
   Modal: ({
+    open,
     children,
     afterOpenChange,
   }: {
+    open: boolean;
     children: ReactNode;
     afterOpenChange: (open: boolean) => void;
-  }) => (
-    <div role="dialog" onAnimationEnd={() => afterOpenChange(true)}>
-      <div tabIndex={0} data-testid="dialog-focus-sentinel" />
-      <button data-testid="dialog-default-close">Close</button>
-      {children}
-    </div>
-  ),
+  }) =>
+    open ? (
+      <div role="dialog" onAnimationEnd={() => afterOpenChange(true)}>
+        <div tabIndex={0} data-testid="dialog-focus-sentinel" />
+        <button data-testid="dialog-default-close">Close</button>
+        {children}
+      </div>
+    ) : null,
 }));
 
 describe('command palette delayed opening focus', () => {

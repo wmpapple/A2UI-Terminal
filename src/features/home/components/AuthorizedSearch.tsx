@@ -13,6 +13,7 @@ import { useAppStore } from '../../../stores/useAppStore';
 import { homeController } from '../homeController';
 import styles from './HomePage.module.css';
 import { SearchEmptyIllustration } from './SearchEmptyIllustration';
+import { SemanticSearch } from './SemanticSearch';
 
 interface Props {
   onOpenWorkbench: (resultId?: string) => void;
@@ -148,6 +149,18 @@ function WorkspaceSearch({ onOpenWorkbench }: Props) {
           {t('repairSearchIndex')}
         </Button>
       </div>
+      <SemanticSearch
+        query={query}
+        workspaceId={workspaceId}
+        onResult={(value) => {
+          if (value.query !== query.trim()) return;
+          clearTimeout(timer.current);
+          requestVersion.current.value++;
+          setLoading(false);
+          setError(null);
+          setResult(value);
+        }}
+      />
       <form
         className={styles.searchBar}
         onSubmit={(event) => {

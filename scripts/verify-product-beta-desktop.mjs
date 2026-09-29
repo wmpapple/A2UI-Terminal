@@ -12,6 +12,8 @@ import { chromium, expect } from '@playwright/test';
 
 const binary = path.resolve(process.argv[2] ?? 'src-tauri/target/debug/a2ui-terminal.exe');
 const output = path.resolve(process.argv[3] ?? 'logs/b0-desktop');
+const verifyHybridSearch = process.argv.includes('--hybrid-search');
+const verifyPersistentSearch = process.argv.includes('--persistent-search') || verifyHybridSearch;
 await fs.mkdir(output, { recursive: true });
 // A failed rerun must not leave an earlier successful report looking current.
 await fs.writeFile(
@@ -176,10 +178,81 @@ try {
     await page.getByText('编辑', { exact: true }).click();
     await expect(page.getByRole('textbox', { name: '成果编辑器' })).toHaveValue(edited);
   }
-  const measurements = [
-    ...homeMeasurements,
-    ...(await page.evaluate(() => window.__A2UI_PERFORMANCE__ ?? [])),
-  ];
+  // Search verification reloads the WebView; preserve the workflow measurements
+  // before that reload clears the page's in-memory performance buffer.
+  const workflowMeasurements = await page.evaluate(() => window.__A2UI_PERFORMANCE__ ?? []);
+  if (verifyPersistentSearch) {
+    await navigation.getByRole('button', { name: '首页', exact: true }).click();
+    const search = page.getByRole('region', { name: '搜索本地内容' });
+    const input = search.getByRole('textbox');
+    await input.fill('尚未批准');
+    await expect(search.getByRole('article').filter({ hasText: 'B0 桌面成果' })).toBeVisible();
+    const native = await page.evaluate(() =>
+      window.__TAURI_INTERNALS__.invoke('search_authorized_content', {
+        input: { workspaceId: null, query: '尚未批准', limit: 20 },
+      })
+    );
+    assert.equal(native.indexMode, 'persistent_lexical');
+    assert.equal(native.items.length, 1);
+    await search.getByRole('button', { name: '修复搜索' }).click();
+    await expect(page.getByText('已重置搜索，下次搜索会自动重新整理资料。')).toBeVisible();
+    await expect(search.getByRole('article').filter({ hasText: 'B0 桌面成果' })).toBeVisible();
+    await page.reload();
+    await input.fill('尚未批准');
+    await expect(search.getByRole('article').filter({ hasText: 'B0 桌面成果' })).toBeVisible();
+    await page.screenshot({ path: path.join(output, 'persistent-search.png') });
+  }
+  if (verifyHybridSearch) {
+    const modelEndpoint = process.env.M5B_EMBEDDING_ENDPOINT;
+    assert(modelEndpoint?.startsWith('http://127.0.0.1:'));
+    const modelStats = async () => (await fetch(`${modelEndpoint}/models`)).json();
+    const before = await modelStats();
+    const saveEndpoint = async (endpoint) =>
+      page.evaluate(async (endpoint) => {
+        await window.__TAURI_INTERNALS__.invoke('save_provider_config', {
+          config: {
+            id: 'custom',
+            kind: 'custom',
+            endpoint,
+            model: 'unused-chat-model',
+            temperature: 0,
+            proxyUrl: null,
+          },
+          secret: null,
+        });
+      }, endpoint);
+    await saveEndpoint(modelEndpoint);
+    const search = page.getByRole('region', { name: '搜索本地内容' });
+    await search.getByRole('button', { name: '语义搜索', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: '语义搜索与发送范围' });
+    await dialog.getByRole('combobox', { name: '处理服务' }).click();
+    await page.getByText(`custom · ${modelEndpoint}`, { exact: true }).click();
+    await dialog
+      .getByRole('textbox', { name: '向量模型名称', exact: true })
+      .fill('multilingual-minilm');
+    await dialog.getByRole('textbox', { name: '模型版本标记', exact: true }).fill(before.revision);
+    await dialog.getByRole('button', { name: '规划发送范围' }).click();
+    await expect(dialog.getByRole('button', { name: '确认并搜索' })).toBeVisible();
+    assert.equal((await modelStats()).requests, before.requests);
+    await dialog.getByRole('button', { name: '确认并搜索' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByText('已结合关键词与语义匹配排序。')).toBeVisible();
+    assert.equal((await modelStats()).requests, before.requests + 2);
+    await search.getByRole('button', { name: '语义搜索', exact: true }).click();
+    await expect(dialog).toContainText('需发送 0 个新片段');
+    await dialog.getByRole('button', { name: '确认并搜索' }).click();
+    await expect(dialog).toBeHidden();
+    assert.equal((await modelStats()).requests, before.requests + 3);
+    await page.screenshot({ path: path.join(output, 'hybrid-search.png') });
+    await saveEndpoint('http://127.0.0.1:9/v1');
+    await search.getByRole('button', { name: '语义搜索', exact: true }).click();
+    await expect(dialog).toContainText('http://127.0.0.1:9/v1');
+    await dialog.getByRole('button', { name: '确认并搜索' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByText(/向量服务连接失败.*已返回关键词搜索结果/)).toBeVisible();
+    await expect(search.getByRole('article').filter({ hasText: 'B0 桌面成果' })).toBeVisible();
+  }
+  const measurements = [...homeMeasurements, ...workflowMeasurements];
   assert.equal(pageErrors.length, 0, pageErrors.join('\n'));
   for (const name of ['homeInteractive', 'resultOpen', 'requestFeedback']) {
     const values = measurements.filter((m) => m.name === name);
@@ -209,6 +282,17 @@ try {
           'home_return',
           'unknown_citation',
           'webview_reload_persistence',
+          ...(verifyPersistentSearch
+            ? ['persistent_search', 'search_reset', 'search_after_reload']
+            : []),
+          ...(verifyHybridSearch
+            ? [
+                'embedding_requires_consent',
+                'hybrid_real_model',
+                'embedding_cache',
+                'semantic_fallback',
+              ]
+            : []),
         ],
         pageErrors,
       },

@@ -13,7 +13,7 @@
 
 ## 状态
 
-工程验证完成，等待人工产品验收。未开始 M5。验证程序：`logs/b0-product-beta-review/a2ui-terminal.exe`；[产品验收清单](B0_MANUAL_ACCEPTANCE.md)。技术验证和问题修复由代理完成；用户只负责最终产品功能、体验与结果验收。
+2026-09-28：用户已确认 B0 产品验收通过，并授权下一阶段 M5-A。以下为 B0 历史交付记录。验证程序：`logs/b0-product-beta-review/a2ui-terminal.exe`；[产品验收清单](B0_MANUAL_ACCEPTANCE.md)。技术验证和问题修复由代理完成；用户只负责最终产品功能、体验与结果验收。
 
 ## 联调修复
 

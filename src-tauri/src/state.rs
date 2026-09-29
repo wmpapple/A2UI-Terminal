@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 pub struct AppState {
+    pub semantic_searches: Mutex<HashMap<String, Arc<crate::application::semantic_search::Entry>>>,
     pub pending_inline_edits:
         Mutex<HashMap<String, crate::application::inline_edit::PreparedInlineEdit>>,
     pub pending_generations:
@@ -25,12 +26,13 @@ pub struct AppState {
     pub active_exports: Mutex<HashMap<String, Arc<crate::application::export::ExportCancellation>>>,
     pub pending_context_manifests: Mutex<HashMap<String, PendingContextManifest>>,
     pub context_index: Mutex<ContextIndex>,
-    pub search_index: Mutex<ContextIndex>,
+    pub search_guard: Mutex<()>,
 }
 
 impl AppState {
     pub fn new(storage: Storage, managed_results_dir: PathBuf) -> Self {
         Self {
+            semantic_searches: Mutex::new(HashMap::new()),
             pending_inline_edits: Mutex::new(HashMap::new()),
             pending_generations: Mutex::new(HashMap::new()),
             knowledge_guard: Mutex::new(()),
@@ -45,7 +47,7 @@ impl AppState {
             active_exports: Mutex::new(HashMap::new()),
             pending_context_manifests: Mutex::new(HashMap::new()),
             context_index: Mutex::new(ContextIndex::default()),
-            search_index: Mutex::new(ContextIndex::default()),
+            search_guard: Mutex::new(()),
         }
     }
 }

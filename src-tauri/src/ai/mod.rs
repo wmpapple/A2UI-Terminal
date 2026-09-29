@@ -1,8 +1,9 @@
 mod client;
 mod context;
+pub mod embedding;
 mod planner;
 mod prompt;
-mod retrieval;
+pub(crate) mod retrieval;
 
 pub use client::{stream_chat, test_connection, StreamChunk};
 pub use context::{
@@ -16,7 +17,6 @@ pub use prompt::{
     build_writing_profile_snapshot, compose as compose_prompt, ComposedPrompt,
     WritingProfileLayerSnapshot, WritingProfileSnapshot, PROMPT_COMPOSER_VERSION,
 };
-pub(crate) use retrieval::rank_chunks;
 pub use retrieval::ContextIndex;
 
 use crate::error::AppError;

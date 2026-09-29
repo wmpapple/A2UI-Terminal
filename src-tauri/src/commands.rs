@@ -310,11 +310,6 @@ pub fn clear_all_local_data(
         .map_err(|_| AppError::StateUnavailable)?
         .clear();
     state
-        .search_index
-        .lock()
-        .map_err(|_| AppError::StateUnavailable)?
-        .clear();
-    state
         .import_drop_targets
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
@@ -431,11 +426,6 @@ pub async fn select_workspace(
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .retain_workspace(&workspace.id);
-    state
-        .search_index
-        .lock()
-        .map_err(|_| AppError::StateUnavailable)?
-        .clear();
     invalidate_pending_context(state.inner())?;
     Ok(Some(workspace))
 }
@@ -458,11 +448,6 @@ pub fn restore_workspace(
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .retain_workspace(&workspace.id);
-    state
-        .search_index
-        .lock()
-        .map_err(|_| AppError::StateUnavailable)?
-        .clear();
     invalidate_pending_context(state.inner())?;
     Ok(workspace)
 }
@@ -559,11 +544,6 @@ pub fn remove_workspace(
     let removed = workspace_service::remove(&state.storage, &workspace_id)?;
     if removed {
         index.clear_workspace(&workspace_id);
-        state
-            .search_index
-            .lock()
-            .map_err(|_| AppError::StateUnavailable)?
-            .clear();
         invalidate_pending_context(state.inner())?;
     }
     Ok(RemoveWorkspaceResult {
@@ -774,11 +754,6 @@ pub fn delete_personal_knowledge(state: State<'_, AppState>, id: String) -> Resu
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
         .clear();
-    state
-        .search_index
-        .lock()
-        .map_err(|_| AppError::StateUnavailable)?
-        .clear();
     let root = crate::application::knowledge::root(&state.managed_results_dir)?;
     crate::application::knowledge::delete(&state.storage, &root, &id)
 }
@@ -864,11 +839,6 @@ pub fn revoke_document_source(
         .map_err(|_| AppError::StateUnavailable)?;
     crate::document_source::revoke(&state.storage, &workspace_id, &source_id)?;
     index.clear_source(&workspace_id, &source_id);
-    state
-        .search_index
-        .lock()
-        .map_err(|_| AppError::StateUnavailable)?
-        .clear();
     invalidate_pending_context(state.inner())?;
     Ok(RevokeDocumentSourceResult {
         revoked: true,
@@ -899,11 +869,6 @@ pub fn delete_context_pack(
     pack_id: String,
 ) -> Result<DeleteContextPackOutput, AppError> {
     let result = context_pack::delete(&state.storage, &workspace_id, &pack_id)?;
-    state
-        .search_index
-        .lock()
-        .map_err(|_| AppError::StateUnavailable)?
-        .clear();
     invalidate_pending_context(state.inner())?;
     Ok(result)
 }
@@ -1123,31 +1088,67 @@ pub fn clear_context_index(
 }
 
 #[tauri::command]
-pub fn search_authorized_content(
-    state: State<'_, AppState>,
+pub async fn search_authorized_content(
+    app: AppHandle,
     input: search_service::SearchAuthorizedContentInput,
 ) -> Result<search_service::SearchAuthorizedContentOutput, AppError> {
-    let mut index = state
-        .search_index
-        .lock()
-        .map_err(|_| AppError::StateUnavailable)?;
-    search_service::search(
-        &state.storage,
-        &state.managed_results_dir,
-        &mut index,
-        input,
-    )
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let _guard = state
+            .search_guard
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        search_service::search(&state.storage, &state.managed_results_dir, input)
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
 }
 
 #[tauri::command]
-pub fn rebuild_authorized_search_index(
+pub fn get_semantic_config(
     state: State<'_, AppState>,
+) -> Result<Option<crate::application::semantic_search::EmbeddingConfig>, AppError> {
+    crate::application::semantic_search::config(&state.storage)
+}
+#[tauri::command]
+pub async fn plan_semantic_search(
+    app: AppHandle,
+    input: crate::application::semantic_search::PlanInput,
+) -> Result<crate::application::semantic_search::PlanView, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::application::semantic_search::plan(app.state::<AppState>().inner(), input)
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
+}
+#[tauri::command]
+pub async fn step_semantic_search(
+    app: AppHandle,
+    plan_id: String,
+    confirmed: bool,
+) -> Result<crate::application::semantic_search::StepOutput, AppError> {
+    crate::application::semantic_search::step(app.state::<AppState>().inner(), &plan_id, confirmed)
+        .await
+}
+#[tauri::command]
+pub fn cancel_semantic_search(state: State<'_, AppState>, plan_id: String) -> Result<(), AppError> {
+    crate::application::semantic_search::cancel(state.inner(), &plan_id)
+}
+
+#[tauri::command]
+pub async fn rebuild_authorized_search_index(
+    app: AppHandle,
 ) -> Result<search_service::RebuildAuthorizedSearchIndexOutput, AppError> {
-    let mut index = state
-        .search_index
-        .lock()
-        .map_err(|_| AppError::StateUnavailable)?;
-    Ok(search_service::rebuild(&mut index))
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let _guard = state
+            .search_guard
+            .lock()
+            .map_err(|_| AppError::StateUnavailable)?;
+        search_service::rebuild(&state.storage)
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
 }
 
 #[tauri::command]

@@ -201,6 +201,12 @@
           "markdownDescription": "Enables the cancel_export command without any pre-configured scope."
         },
         {
+          "description": "Enables the cancel_semantic_search command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cancel-semantic-search",
+          "markdownDescription": "Enables the cancel_semantic_search command without any pre-configured scope."
+        },
+        {
           "description": "Enables the clear_all_local_data command without any pre-configured scope.",
           "type": "string",
           "const": "allow-clear-all-local-data",
@@ -417,6 +423,12 @@
           "markdownDescription": "Enables the get_review command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_semantic_config command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-semantic-config",
+          "markdownDescription": "Enables the get_semantic_config command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_task command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-task",
@@ -577,6 +589,12 @@
           "type": "string",
           "const": "allow-plan-inline-edit",
           "markdownDescription": "Enables the plan_inline_edit command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the plan_semantic_search command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-plan-semantic-search",
+          "markdownDescription": "Enables the plan_semantic_search command without any pre-configured scope."
         },
         {
           "description": "Enables the probe_local_providers command without any pre-configured scope.",
@@ -783,6 +801,12 @@
           "markdownDescription": "Enables the start_task command without any pre-configured scope."
         },
         {
+          "description": "Enables the step_semantic_search command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-step-semantic-search",
+          "markdownDescription": "Enables the step_semantic_search command without any pre-configured scope."
+        },
+        {
           "description": "Enables the stop_chat command without any pre-configured scope.",
           "type": "string",
           "const": "allow-stop-chat",
@@ -847,6 +871,12 @@
           "type": "string",
           "const": "deny-cancel-export",
           "markdownDescription": "Denies the cancel_export command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cancel_semantic_search command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cancel-semantic-search",
+          "markdownDescription": "Denies the cancel_semantic_search command without any pre-configured scope."
         },
         {
           "description": "Denies the clear_all_local_data command without any pre-configured scope.",
@@ -1065,6 +1095,12 @@
           "markdownDescription": "Denies the get_review command without any pre-configured scope."
         },
         {
+          "description": "Denies the get_semantic_config command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-semantic-config",
+          "markdownDescription": "Denies the get_semantic_config command without any pre-configured scope."
+        },
+        {
           "description": "Denies the get_task command without any pre-configured scope.",
           "type": "string",
           "const": "deny-get-task",
@@ -1225,6 +1261,12 @@
           "type": "string",
           "const": "deny-plan-inline-edit",
           "markdownDescription": "Denies the plan_inline_edit command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the plan_semantic_search command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-plan-semantic-search",
+          "markdownDescription": "Denies the plan_semantic_search command without any pre-configured scope."
         },
         {
           "description": "Denies the probe_local_providers command without any pre-configured scope.",
@@ -1429,6 +1471,12 @@
           "type": "string",
           "const": "deny-start-task",
           "markdownDescription": "Denies the start_task command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the step_semantic_search command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-step-semantic-search",
+          "markdownDescription": "Denies the step_semantic_search command without any pre-configured scope."
         },
         {
           "description": "Denies the stop_chat command without any pre-configured scope.",

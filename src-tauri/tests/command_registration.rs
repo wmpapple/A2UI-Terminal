@@ -70,8 +70,12 @@ const CONTEXT_COMMANDS: [&str; 6] = [
     "create_context_pack",
     "delete_context_pack",
 ];
-const SEARCH_COMMANDS: [&str; 2] = [
+const SEARCH_COMMANDS: [&str; 6] = [
     "search_authorized_content",
+    "get_semantic_config",
+    "plan_semantic_search",
+    "step_semantic_search",
+    "cancel_semantic_search",
     "rebuild_authorized_search_index",
 ];
 const PROVIDER_V2_COMMANDS: [&str; 2] = ["get_processing_options", "probe_local_providers"];

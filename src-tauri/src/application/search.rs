@@ -1,11 +1,11 @@
-use crate::ai::{rank_chunks, ContextIndex};
 use crate::document_source::{self, DocumentSourceContent, DocumentSourceKind};
 use crate::error::AppError;
+use crate::repository::search as persistent;
 use crate::security::{is_hidden_path, is_sensitive_path};
 use crate::storage::Storage;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::Path;
 
@@ -65,7 +65,7 @@ struct SearchDocument {
     id: String,
     kind: SearchItemKind,
     title: String,
-    content: String,
+    content: Option<String>,
     content_hash: String,
     updated_at: Option<String>,
 }
@@ -73,7 +73,6 @@ struct SearchDocument {
 pub fn search(
     storage: &Storage,
     managed_results_dir: &Path,
-    index: &mut ContextIndex,
     input: SearchAuthorizedContentInput,
 ) -> Result<SearchAuthorizedContentOutput, AppError> {
     let query = input.query.trim();
@@ -102,83 +101,71 @@ pub fn search(
         }
     }
 
+    let scope = workspace_id
+        .map(|id| format!("workspace:{id}"))
+        .unwrap_or_else(|| "global".into());
+    let generation = persistent::generation(storage)?;
+    let cached = persistent::fingerprints(storage, &scope)?;
     let (documents, skipped_documents) =
-        collect_documents(storage, managed_results_dir, workspace_id)?;
-    let scope = format!("authorized-search:{}", workspace_id.unwrap_or("global"));
-    index.retain_workspace(&scope);
-    let mut indexed = Vec::with_capacity(documents.len());
-    let mut allowed_ids = BTreeSet::new();
+        collect_documents(storage, managed_results_dir, workspace_id, &cached)?;
     let metadata = documents
         .into_iter()
-        .enumerate()
-        .map(|(order, document)| {
-            let source_id = format!("{}:{}", kind_key(document.kind), document.id);
-            allowed_ids.insert(source_id.clone());
-            let chunks = index.chunks(
-                &scope,
-                &source_id,
-                &document.content_hash,
-                &document.content,
-            );
-            indexed.push((order, source_id.clone(), chunks));
-            (source_id, document)
+        .map(|document| {
+            (
+                format!("{}:{}", kind_key(document.kind), document.id),
+                document,
+            )
         })
         .collect::<BTreeMap<_, _>>();
-    index.retain_sources(&scope, &allowed_ids);
-
-    let mut best_by_document = BTreeMap::new();
-    for ranked in rank_chunks(query, &indexed)
+    let indexed = metadata
+        .iter()
+        .map(|(key, document)| persistent::Document {
+            key: key.clone(),
+            kind: kind_key(document.kind),
+            source_id: document.id.clone(),
+            fingerprint: document.content_hash.clone(),
+            content: document.content.clone(),
+        })
+        .collect::<Vec<_>>();
+    persistent::synchronize(storage, &scope, &indexed, generation)?;
+    let items = persistent::query(storage, &scope, query, limit)?
         .into_iter()
-        .filter(|item| item.score > 0.0)
-    {
-        best_by_document
-            .entry(ranked.source_id.clone())
-            .or_insert(ranked);
-    }
-    let mut items = best_by_document
-        .into_iter()
-        .filter_map(|(source_id, ranked)| {
-            let document = metadata.get(&source_id)?;
+        .filter_map(|hit| {
+            let document = metadata.get(&hit.key)?;
             Some(SearchAuthorizedContentItem {
                 id: document.id.clone(),
                 kind: document.kind,
                 title: document.title.clone(),
-                snippet: snippet(&ranked.chunk.content, query, &document.title),
+                snippet: snippet(&hit.content, query, &document.title),
                 updated_at: document.updated_at.clone(),
-                score: ranked.score,
+                score: hit.score,
             })
         })
-        .collect::<Vec<_>>();
-    items.sort_by(|left, right| {
-        right
-            .score
-            .total_cmp(&left.score)
-            .then_with(|| right.updated_at.cmp(&left.updated_at))
-            .then_with(|| left.title.cmp(&right.title))
-            .then_with(|| left.id.cmp(&right.id))
-    });
-    items.truncate(limit);
-
+        .collect();
+    if persistent::generation(storage)? != generation {
+        return Err(AppError::InvalidInput("资料已发生变化，请重新搜索".into()));
+    }
     Ok(SearchAuthorizedContentOutput {
         query: query.to_string(),
         items,
         indexed_documents: metadata.len(),
         skipped_documents,
-        index_mode: "memory_lexical".into(),
+        index_mode: "persistent_lexical".into(),
     })
 }
 
-pub fn rebuild(index: &mut ContextIndex) -> RebuildAuthorizedSearchIndexOutput {
-    RebuildAuthorizedSearchIndexOutput {
-        cleared_documents: index.clear(),
+pub fn rebuild(storage: &Storage) -> Result<RebuildAuthorizedSearchIndexOutput, AppError> {
+    Ok(RebuildAuthorizedSearchIndexOutput {
+        cleared_documents: persistent::clear(storage)?,
         result_data_changed: false,
-    }
+    })
 }
 
 fn collect_documents(
     storage: &Storage,
     managed_results_dir: &Path,
     workspace_id: Option<&str>,
+    cached: &BTreeMap<String, String>,
 ) -> Result<(Vec<SearchDocument>, usize), AppError> {
     let mut documents = Vec::new();
     let mut skipped = 0;
@@ -203,8 +190,8 @@ fn collect_documents(
             id: summary.id,
             kind: SearchItemKind::Result,
             title: summary.title.clone(),
-            content: format!("{}\n{}", summary.title, body),
-            content_hash: document.content_hash,
+            content_hash: sha256(format!("{}\n{}", summary.title, body).as_bytes()),
+            content: Some(format!("{}\n{}", summary.title, body)),
             updated_at: Some(summary.updated_at),
         });
     }
@@ -223,18 +210,28 @@ fn collect_documents(
             if source.status != "ready" {
                 continue;
             }
-            let document = crate::repository::knowledge::get(storage, &source.id)?;
-            let content = format!(
-                "{}\n{}\n{}",
-                source.title,
-                source.tags.join(" "),
-                document.parsed.text()
+            let fingerprint = sha256(
+                serde_json::to_string(&source)
+                    .map_err(|_| AppError::StateUnavailable)?
+                    .as_bytes(),
             );
+            let key = format!("knowledge:{}", source.id);
+            let content = if cached.get(&key) == Some(&fingerprint) {
+                None
+            } else {
+                let document = crate::repository::knowledge::get(storage, &source.id)?;
+                Some(format!(
+                    "{}\n{}\n{}",
+                    source.title,
+                    source.tags.join(" "),
+                    document.parsed.text()
+                ))
+            };
             documents.push(SearchDocument {
                 id: source.id,
                 kind: SearchItemKind::PersonalKnowledge,
                 title: source.title,
-                content_hash: sha256(content.as_bytes()),
+                content_hash: fingerprint,
                 content,
                 updated_at: Some(source.updated_at),
             });
@@ -261,8 +258,8 @@ fn collect_documents(
                 id: content.source.id.clone(),
                 kind: SearchItemKind::DocumentSource,
                 title: content.source.name.clone(),
-                content: format!("{}\n{}", content.source.name, text),
-                content_hash: content.source.content_hash,
+                content_hash: sha256(format!("{}\n{}", content.source.name, text).as_bytes()),
+                content: Some(format!("{}\n{}", content.source.name, text)),
                 updated_at: None,
             });
         }
@@ -280,7 +277,7 @@ fn collect_documents(
                 kind: SearchItemKind::ContextPack,
                 title: pack.name.clone(),
                 content_hash: sha256(content.as_bytes()),
-                content,
+                content: Some(content),
                 updated_at: Some(pack.updated_at),
             });
         }
@@ -367,10 +364,54 @@ fn sha256(bytes: &[u8]) -> String {
     encoded
 }
 
+pub(crate) fn semantic_snapshot(
+    storage: &Storage,
+    managed: &Path,
+    input: SearchAuthorizedContentInput,
+) -> Result<
+    (
+        SearchAuthorizedContentOutput,
+        BTreeMap<String, SearchAuthorizedContentItem>,
+    ),
+    AppError,
+> {
+    let output = search(storage, managed, input.clone())?;
+    let scope = input
+        .workspace_id
+        .as_ref()
+        .map(|w| format!("workspace:{}", w.trim()))
+        .unwrap_or_else(|| "global".into());
+    let cached = persistent::fingerprints(storage, &scope)?;
+    let (documents, _) =
+        collect_documents(storage, managed, input.workspace_id.as_deref(), &cached)?;
+    Ok((
+        output,
+        documents
+            .into_iter()
+            .map(|d| {
+                (
+                    format!("{}:{}", kind_key(d.kind), d.id),
+                    SearchAuthorizedContentItem {
+                        id: d.id,
+                        kind: d.kind,
+                        title: d.title,
+                        snippet: String::new(),
+                        updated_at: d.updated_at,
+                        score: 0.0,
+                    },
+                )
+            })
+            .collect(),
+    ))
+}
+
+pub(crate) fn item_key(item: &SearchAuthorizedContentItem) -> String {
+    format!("{}:{}", kind_key(item.kind), item.id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{rebuild, search, SearchAuthorizedContentInput, SearchItemKind};
-    use crate::ai::ContextIndex;
     use crate::application::{context_pack, result};
     use crate::domain::context_pack::CreateContextPackInput;
     use crate::domain::result::{CreateTextResultInput, SaveResultDocumentInput, TextResultFormat};
@@ -435,56 +476,50 @@ mod tests {
             },
         )
         .unwrap();
-        let mut index = ContextIndex::default();
 
-        let result_hit = search(
-            &storage,
-            &managed,
-            &mut index,
-            input("workspace-search", "北极星"),
-        )
-        .unwrap();
+        let result_hit = search(&storage, &managed, input("workspace-search", "北极星")).unwrap();
         assert_eq!(result_hit.items[0].kind, SearchItemKind::Result);
 
-        let source_hit = search(
-            &storage,
-            &managed,
-            &mut index,
-            input("workspace-search", "客户反馈"),
-        )
-        .unwrap();
+        let source_hit = search(&storage, &managed, input("workspace-search", "客户反馈")).unwrap();
         assert_eq!(source_hit.items[0].id, "source-meeting");
 
-        let pack_hit = search(
-            &storage,
-            &managed,
-            &mut index,
-            input("workspace-search", "资料包"),
-        )
-        .unwrap();
+        storage
+            .create_standalone_workspace("workspace-other", "Other")
+            .unwrap();
+        let other = search(&storage, &managed, input("workspace-other", "客户反馈")).unwrap();
+        assert!(other.items.is_empty());
+        fs::write(&source_path, "外部修改后的独有关键词 externalreplacement").unwrap();
+        assert!(
+            search(&storage, &managed, input("workspace-search", "客户反馈"))
+                .unwrap()
+                .items
+                .is_empty()
+        );
+        assert_eq!(
+            search(
+                &storage,
+                &managed,
+                input("workspace-search", "externalreplacement")
+            )
+            .unwrap()
+            .items[0]
+                .id,
+            "source-meeting"
+        );
+        fs::write(&source_path, "发布蓝图和客户反馈").unwrap();
+
+        let pack_hit = search(&storage, &managed, input("workspace-search", "资料包")).unwrap();
         assert_eq!(pack_hit.items[0].id, pack.id);
 
-        let excluded = search(
-            &storage,
-            &managed,
-            &mut index,
-            input("workspace-search", "TOPSECRET"),
-        )
-        .unwrap();
+        let excluded = search(&storage, &managed, input("workspace-search", "TOPSECRET")).unwrap();
         assert!(excluded.items.is_empty());
         assert!(excluded.skipped_documents >= 1);
 
         crate::document_source::revoke(&storage, "workspace-search", "source-meeting").unwrap();
-        let revoked = search(
-            &storage,
-            &managed,
-            &mut index,
-            input("workspace-search", "客户反馈"),
-        )
-        .unwrap();
+        let revoked = search(&storage, &managed, input("workspace-search", "客户反馈")).unwrap();
         assert!(revoked.items.is_empty());
 
-        let rebuilt = rebuild(&mut index);
+        let rebuilt = rebuild(&storage).unwrap();
         assert!(rebuilt.cleared_documents > 0);
         assert!(!rebuilt.result_data_changed);
         assert!(result::get(&storage, &created.result.summary.id).is_ok());

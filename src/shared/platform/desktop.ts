@@ -6,6 +6,12 @@ import type {
   EditKnowledgeInput,
 } from '../types/knowledge';
 import { Channel, invoke } from '@tauri-apps/api/core';
+import type {
+  EmbeddingConfig,
+  SemanticPlanInput,
+  SemanticPlan,
+  SemanticStep,
+} from '../types/semanticSearch';
 import type { PlanGenerationInput, GenerationPlan, GenerationOutput } from '../types/generation';
 import type { InlineEditAction, SelectionSnapshot } from '../types/document';
 import { listen } from '@tauri-apps/api/event';
@@ -210,6 +216,23 @@ export const desktopApi = {
   ): Promise<SearchAuthorizedContentOutput> {
     requireDesktop();
     return invoke<SearchAuthorizedContentOutput>('search_authorized_content', { input });
+  },
+
+  async getSemanticConfig() {
+    requireDesktop();
+    return invoke<EmbeddingConfig | null>('get_semantic_config');
+  },
+  async planSemanticSearch(input: SemanticPlanInput) {
+    requireDesktop();
+    return invoke<SemanticPlan>('plan_semantic_search', { input });
+  },
+  async stepSemanticSearch(planId: string, confirmed: boolean) {
+    requireDesktop();
+    return invoke<SemanticStep>('step_semantic_search', { planId, confirmed });
+  },
+  async cancelSemanticSearch(planId: string) {
+    requireDesktop();
+    return invoke<void>('cancel_semantic_search', { planId });
   },
 
   async rebuildAuthorizedSearchIndex(): Promise<RebuildAuthorizedSearchIndexOutput> {

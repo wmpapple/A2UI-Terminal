@@ -234,7 +234,7 @@ fn preferred_boundary(characters: &[char], start: usize, target_end: usize) -> u
     target_end
 }
 
-fn tokenize(content: &str) -> Vec<String> {
+pub(crate) fn tokenize(content: &str) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut word = String::new();
     let mut cjk = Vec::new();

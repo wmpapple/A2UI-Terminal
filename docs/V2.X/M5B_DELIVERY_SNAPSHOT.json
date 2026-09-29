@@ -1,0 +1,348 @@
+{
+  "capturedAt": "2026-09-28T09:30:41.425Z",
+  "stage": "M5-B",
+  "status": "engineering_verified_awaiting_product_acceptance",
+  "baselineCommit": "63a115d",
+  "previousStage": "M5-A_product_accepted",
+  "nextStageAuthorized": false,
+  "schemaVersion": 25,
+  "scope": "explicitly_confirmed_homepage_hybrid_search",
+  "generatedAt": "2026-09-28T09:30:41.363Z",
+  "passed": true,
+  "artifact": "logs/m5b-hybrid-search-review/a2ui-terminal.exe",
+  "binarySha256": "68fda338375cb60576ef20fc5a32db11951521f7a228f6af9f76c7f0b98a00d7",
+  "binaryBytes": 68216320,
+  "rustPassed": 295,
+  "rustIgnored": 2,
+  "realModelTestsPassed": 1,
+  "frontendPassed": 301,
+  "frontendFiles": 68,
+  "e2ePassed": 33,
+  "quality": {
+    "cases": [
+      {
+        "elapsedMs": 292.8067,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 12,
+        "query": "出差报销",
+        "relevant": "travel"
+      },
+      {
+        "elapsedMs": 15.6054,
+        "hybridRank": 3,
+        "lexicalRank": null,
+        "newChunks": 0,
+        "query": "坐火车住酒店的钱如何申请返还",
+        "relevant": "travel"
+      },
+      {
+        "elapsedMs": 11.457500000000001,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "休假申请",
+        "relevant": "leave"
+      },
+      {
+        "elapsedMs": 13.7194,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "想休息几天该提前告诉谁",
+        "relevant": "leave"
+      },
+      {
+        "elapsedMs": 11.4144,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "数据备份",
+        "relevant": "backup"
+      },
+      {
+        "elapsedMs": 14.7966,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "不小心把文件删掉了怎么办",
+        "relevant": "backup"
+      },
+      {
+        "elapsedMs": 11.909899999999999,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "账户安全",
+        "relevant": "password"
+      },
+      {
+        "elapsedMs": 13.971300000000001,
+        "hybridRank": 1,
+        "lexicalRank": null,
+        "newChunks": 0,
+        "query": "记不起密码进不去账号了",
+        "relevant": "password"
+      },
+      {
+        "elapsedMs": 11.969000000000001,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "快递配送",
+        "relevant": "delivery"
+      },
+      {
+        "elapsedMs": 12.3436,
+        "hybridRank": 1,
+        "lexicalRank": null,
+        "newChunks": 0,
+        "query": "买的东西几天能收到",
+        "relevant": "delivery"
+      },
+      {
+        "elapsedMs": 12.7281,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "退货政策",
+        "relevant": "refund"
+      },
+      {
+        "elapsedMs": 13.7713,
+        "hybridRank": 1,
+        "lexicalRank": null,
+        "newChunks": 0,
+        "query": "东西不想要了钱怎么拿回来",
+        "relevant": "refund"
+      },
+      {
+        "elapsedMs": 12.553999999999998,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "星河 420",
+        "relevant": "budget"
+      },
+      {
+        "elapsedMs": 15.0777,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "小林负责的事项花费是否获准",
+        "relevant": "budget"
+      },
+      {
+        "elapsedMs": 13.587800000000001,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "产品发布计划",
+        "relevant": "launch"
+      },
+      {
+        "elapsedMs": 16.1595,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "新版本什么时候可以给大家用",
+        "relevant": "launch"
+      },
+      {
+        "elapsedMs": 14.301599999999999,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "周会安排",
+        "relevant": "meeting"
+      },
+      {
+        "elapsedMs": 19.097800000000003,
+        "hybridRank": 2,
+        "lexicalRank": null,
+        "newChunks": 0,
+        "query": "大家在哪一天几点碰头聊工作",
+        "relevant": "meeting"
+      },
+      {
+        "elapsedMs": 14.039299999999999,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "设备充电",
+        "relevant": "battery"
+      },
+      {
+        "elapsedMs": 15.3044,
+        "hybridRank": 1,
+        "lexicalRank": null,
+        "newChunks": 0,
+        "query": "机器快没电了要怎么处理",
+        "relevant": "battery"
+      },
+      {
+        "elapsedMs": 13.7695,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "Customer support",
+        "relevant": "support"
+      },
+      {
+        "elapsedMs": 16.7461,
+        "hybridRank": 1,
+        "lexicalRank": 2,
+        "newChunks": 0,
+        "query": "How do I contact someone about a broken purchase?",
+        "relevant": "support"
+      },
+      {
+        "elapsedMs": 12.1927,
+        "hybridRank": 1,
+        "lexicalRank": 1,
+        "newChunks": 0,
+        "query": "Encryption",
+        "relevant": "encryption"
+      },
+      {
+        "elapsedMs": 13.748099999999999,
+        "hybridRank": 1,
+        "lexicalRank": null,
+        "newChunks": 0,
+        "query": "Keep strangers from reading private files",
+        "relevant": "encryption"
+      }
+    ],
+    "fixture": "retrieval-v1",
+    "hybridMrrAt5": 0.9513888888888888,
+    "lexicalMrrAt5": 0.6875,
+    "queries": 24,
+    "realModel": true,
+    "remoteInference": false
+  },
+  "fixtureSha256": "bf4a8883cd4aab3685445bcfc5c7065ab984d3823d09ff876665fb3312dfe554",
+  "model": {
+    "endpoint": "http://127.0.0.1:50516/v1",
+    "revision": "2c4055b12046f11709e9df2c122e59ffbdc2f900",
+    "modelSha256": "66fc00f5f29afcaff34092e1bdd20008ca3918265a82fb9695a551e510cc4ebc",
+    "model": "Xenova/paraphrase-multilingual-MiniLM-L12-v2",
+    "runtime": "@huggingface/transformers@3.8.1",
+    "remoteInference": false
+  },
+  "latency": {
+    "scope": "12 synthetic documents, embedding requests plus ranking; excludes planning and model loading",
+    "firstQueryWithEmbeddingBuildMs": 292.8067,
+    "warmSamples": 23,
+    "warmP95Ms": 16.7461,
+    "cloudInferenceCost": 0,
+    "largeVectorCorpusBenchmarked": false
+  },
+  "desktop": {
+    "passed": true,
+    "binarySha256": "68fda338375cb60576ef20fc5a32db11951521f7a228f6af9f76c7f0b98a00d7",
+    "runtime": "real_tauri_webview2",
+    "isolated": true,
+    "credentialsDisabled": true,
+    "provider": "loopback_sse_fixture",
+    "remoteModelEvaluated": false,
+    "modelRequests": 1,
+    "launchToHomeIncludingSetupMs": 961.8788999999997,
+    "measurements": [
+      {
+        "name": "homeInteractive",
+        "durationMs": 67.3,
+        "budgetMs": 2500,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T09:24:03.569Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 13.3,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T09:24:07.469Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 331.6,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T09:24:07.787Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 20.5,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T09:24:08.410Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 20.6,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T09:24:08.410Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 20.4,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T09:24:08.576Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 20.5,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T09:24:08.576Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 18.4,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T09:24:08.724Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 18.5,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T09:24:08.724Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 20.7,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T09:24:08.877Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 20.7,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T09:24:08.877Z"
+      }
+    ],
+    "checks": [
+      "profile_prompt",
+      "generation_review_apply",
+      "input_cleared",
+      "autosave",
+      "home_return",
+      "unknown_citation",
+      "webview_reload_persistence",
+      "persistent_search",
+      "search_reset",
+      "search_after_reload",
+      "embedding_requires_consent",
+      "hybrid_real_model",
+      "embedding_cache",
+      "semantic_fallback"
+    ],
+    "pageErrors": []
+  },
+  "humanAcceptance": "pending"
+}

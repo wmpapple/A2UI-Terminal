@@ -10,3 +10,5 @@ pub mod writing_profile;
 pub mod knowledge;
 
 pub mod citation;
+pub(crate) mod embedding;
+pub(crate) mod search;

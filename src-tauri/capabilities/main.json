@@ -117,6 +117,10 @@
     "allow-get-personal-knowledge",
     "allow-edit-personal-knowledge",
     "allow-delete-personal-knowledge",
-    "allow-confirm-personal-knowledge-import"
+    "allow-confirm-personal-knowledge-import",
+    "allow-get-semantic-config",
+    "allow-plan-semantic-search",
+    "allow-step-semantic-search",
+    "allow-cancel-semantic-search"
   ]
 }

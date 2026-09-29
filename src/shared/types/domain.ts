@@ -389,7 +389,7 @@ export interface SearchAuthorizedContentOutput {
   items: SearchAuthorizedContentItem[];
   indexedDocuments: number;
   skippedDocuments: number;
-  indexMode: 'memory_lexical';
+  indexMode: 'persistent_lexical' | 'hybrid';
 }
 
 export interface RebuildAuthorizedSearchIndexOutput {

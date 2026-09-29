@@ -1,0 +1,168 @@
+{
+  "capturedAt": "2026-09-28T08:11:08.692Z",
+  "stage": "M5-A",
+  "status": "engineering_verified_awaiting_product_acceptance",
+  "baselineCommit": "63a115d",
+  "previousStage": "B0_product_accepted",
+  "nextStageAuthorized": false,
+  "schemaVersion": 24,
+  "scope": "persistent_local_content_lexical_search",
+  "artifact": "logs/m5a-persistent-search-review/a2ui-terminal.exe",
+  "generatedAt": "2026-09-28T08:09:42.842Z",
+  "passed": true,
+  "binarySha256": "c7252860bbc476ebc33e26fc1b890a997527b94c53b507cd9a6f5e4a6fbfc9f0",
+  "binaryBytes": 67630592,
+  "rustPassed": 289,
+  "frontendPassed": 298,
+  "e2ePassed": 33,
+  "benchmarks": [
+    {
+      "coldMs": 486.2771,
+      "fragments": 1000,
+      "mode": "persistent_lexical",
+      "samples": 20,
+      "sources": 100,
+      "warmP50Ms": 8.207,
+      "warmP95Ms": 13.182899999999998,
+      "warmRebuilt": false
+    },
+    {
+      "coldMs": 4495.0839,
+      "fragments": 10000,
+      "mode": "persistent_lexical",
+      "samples": 20,
+      "sources": 1000,
+      "warmP50Ms": 62.2594,
+      "warmP95Ms": 115.9642,
+      "warmRebuilt": false
+    }
+  ],
+  "desktop": {
+    "passed": true,
+    "binarySha256": "c7252860bbc476ebc33e26fc1b890a997527b94c53b507cd9a6f5e4a6fbfc9f0",
+    "runtime": "real_tauri_webview2",
+    "isolated": true,
+    "credentialsDisabled": true,
+    "provider": "loopback_sse_fixture",
+    "remoteModelEvaluated": false,
+    "modelRequests": 1,
+    "launchToHomeIncludingSetupMs": 565.5011000000001,
+    "measurements": [
+      {
+        "name": "homeInteractive",
+        "durationMs": 55.7,
+        "budgetMs": 2500,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T08:09:07.352Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 13.8,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T08:09:11.169Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 334.9,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T08:09:11.490Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 21.6,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T08:09:12.128Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 21.8,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T08:09:12.128Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 20.7,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T08:09:12.293Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 20.8,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T08:09:12.293Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 21.1,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T08:09:12.444Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 21.2,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T08:09:12.444Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 18.9,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T08:09:12.591Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 19.1,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-28T08:09:12.592Z"
+      }
+    ],
+    "checks": [
+      "profile_prompt",
+      "generation_review_apply",
+      "input_cleared",
+      "autosave",
+      "home_return",
+      "unknown_citation",
+      "webview_reload_persistence",
+      "persistent_search",
+      "search_reset",
+      "search_after_reload"
+    ],
+    "pageErrors": []
+  },
+  "modelQualityEvaluated": false,
+  "hybridRetrievalImplemented": false,
+  "humanAcceptance": "pending",
+  "benchmarkBuildSemantics": {
+    "sources100": "initial 100 sources",
+    "sources1000": "reuse initial 100; add 900 sources"
+  },
+  "checks": {
+    "rustfmt": true,
+    "clippyWarningsDenied": true,
+    "frontendFormat": true,
+    "eslint": true,
+    "typescript": true,
+    "frontendProductionBuild": true,
+    "desktopDebugBuild": true,
+    "thirdPartyAudit": true,
+    "legacyBetaEvidence": true,
+    "developmentReleaseIdentity": true,
+    "styleFixtures": 40
+  },
+  "limits": [
+    "Synthetic text benchmark, not a large external-file/PDF corpus",
+    "Library pagination/filtering and AI send-manifest retrieval remain their existing implementations",
+    "No embeddings, hybrid ranking, remote-model quality eval, or signed release"
+  ]
+}

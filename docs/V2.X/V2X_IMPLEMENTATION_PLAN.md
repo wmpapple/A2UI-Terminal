@@ -2,7 +2,7 @@
 
 > 日期：2026-09-21（Asia/Shanghai）  
 > 代码基准：`35023d75a0d87e5e16f1d0de8a554e4eb6b49a69`；开始分析时工作树干净。  
-> 状态（2026-09-28）：M0、F0、M1-A、M1-B、M2、M3、M4 产品验收通过；B0 Product Beta 集成工程验证完成，等待用户产品验收，执行记录见 [B0_EXECUTION.md](B0_EXECUTION.md)。未开始 M5。
+> 状态（2026-09-28）：M0、F0、M1-A、M1-B、M2、M3、M4、B0、M5-A 产品验收通过；M5-B 混合检索工程验证完成，等待人工验收，执行记录见 [M5B_EXECUTION.md](M5B_EXECUTION.md)。尚未开始 M6。
 >
 > 输入：用户提供的 PRD、Engineering Implementation Plan、Product Engineering Roadmap，以及仓库现有 64 份 docs 文档、实现与测试。材料目录见 [V2X_REVIEW_INVENTORY.md](V2X_REVIEW_INVENTORY.md)。
 

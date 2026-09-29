@@ -15,6 +15,7 @@ pub mod result;
 pub mod review;
 pub mod revision;
 pub mod search;
+pub mod semantic_search;
 pub mod task;
 pub mod telemetry;
 pub mod workspace;
