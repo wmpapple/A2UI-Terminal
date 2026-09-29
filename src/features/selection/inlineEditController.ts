@@ -50,6 +50,9 @@ const replacementFor = (action: InlineEditAction, selected: string, custom?: str
 };
 
 export const inlineEditController = {
+  async stop(requestId: string) {
+    if (!isWebMock()) await desktopGateway.stopChat(requestId);
+  },
   async plan(input: PlanInput): Promise<InlineEditPlan> {
     if (!isWebMock()) {
       return desktopGateway.planInlineEdit({

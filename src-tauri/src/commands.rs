@@ -132,6 +132,11 @@ pub struct ClearContextIndexResult {
 
 fn invalidate_pending_context(state: &AppState) -> Result<(), AppError> {
     state
+        .pending_critics
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
+    state
         .pending_context_manifests
         .lock()
         .map_err(|_| AppError::StateUnavailable)?
@@ -283,6 +288,11 @@ pub fn clear_all_local_data(
     let knowledge_root = crate::application::knowledge::root(&state.managed_results_dir)?;
     crate::application::knowledge::clear(&state.storage, &knowledge_root)?;
     state.storage.clear_all()?;
+    state
+        .pending_critics
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?
+        .clear();
     state
         .selected_files
         .lock()
@@ -2157,6 +2167,58 @@ pub async fn upgrade_knowledge_locators(
 #[tauri::command]
 pub fn create_writing_workspace(state: State<'_, AppState>) -> Result<WorkspaceSummary, AppError> {
     crate::application::workspace::resolve_context_workspace(&state.storage, None)
+}
+
+#[tauri::command]
+pub async fn inspect_document_critic(
+    app: AppHandle,
+    input: crate::domain::critic::InspectCriticInput,
+) -> Result<crate::domain::critic::CriticView, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::application::critic::inspect(app.state::<AppState>().inner(), input)
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
+}
+#[tauri::command]
+pub fn ignore_critic_finding(
+    state: State<'_, AppState>,
+    report_id: String,
+    finding_id: String,
+    ignored: bool,
+) -> Result<crate::domain::critic::CriticReport, AppError> {
+    crate::application::critic::ignore(state.inner(), &report_id, &finding_id, ignored)
+}
+#[tauri::command]
+pub fn resolve_critic_finding(
+    state: State<'_, AppState>,
+    report_id: String,
+    finding_id: String,
+) -> Result<crate::domain::critic::CriticSelection, AppError> {
+    crate::application::critic::resolve(state.inner(), &report_id, &finding_id)
+}
+#[tauri::command]
+pub async fn plan_document_critic(
+    app: AppHandle,
+    report_id: String,
+    provider_id: String,
+) -> Result<crate::application::critic::CriticPlan, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::application::critic::plan(app.state::<AppState>().inner(), &report_id, &provider_id)
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
+}
+#[tauri::command]
+pub async fn start_document_critic(
+    app: AppHandle,
+    plan_id: String,
+) -> Result<crate::domain::critic::CriticReport, AppError> {
+    crate::application::critic::start(app.state::<AppState>().inner(), &plan_id).await
+}
+#[tauri::command]
+pub fn cancel_document_critic(state: State<'_, AppState>, id: String) -> Result<(), AppError> {
+    crate::application::critic::cancel(state.inner(), &id)
 }
 #[tauri::command]
 pub fn list_writing_projects(

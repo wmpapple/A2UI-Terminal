@@ -39,6 +39,34 @@ beforeEach(() => {
 });
 
 describe('desktop workspace state', () => {
+  it('retains directory document identity without changing the file save authorization route', async () => {
+    useAppStore.setState({
+      workspace: { id: 'directory', name: 'Directory', kind: 'directory', available: true },
+    });
+    vi.spyOn(desktopApi, 'readWorkspaceFile').mockResolvedValue({
+      path: 'notes.md',
+      name: 'notes.md',
+      language: 'markdown',
+      content: 'Saved',
+      contentHash: 'before',
+      sizeBytes: 5,
+      draft: null,
+      editable: true,
+      extracted: false,
+      documentId: 'opaque-directory-id',
+    });
+    vi.spyOn(desktopApi, 'saveWorkspaceDraft').mockResolvedValue();
+    const save = vi
+      .spyOn(desktopApi, 'saveWorkspaceFile')
+      .mockResolvedValue({ path: 'notes.md', contentHash: 'after', sizeBytes: 7 });
+    const selectedSave = vi.spyOn(desktopApi, 'saveContextFile');
+    await useAppStore.getState().openFile('notes.md');
+    expect(useAppStore.getState().files[0].documentId).toBe('opaque-directory-id');
+    useAppStore.getState().updateFile('notes.md', 'Changed', 'directory');
+    await useAppStore.getState().saveFileToDisk('notes.md', 'directory');
+    expect(save).toHaveBeenCalledWith('directory', 'notes.md', 'Changed', 'before');
+    expect(selectedSave).not.toHaveBeenCalled();
+  });
   it('does not let a stale editor callback modify a same-path file in another workspace', () => {
     useAppStore.setState({
       workspace: {

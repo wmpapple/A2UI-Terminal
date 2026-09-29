@@ -71,6 +71,22 @@ describe('ResultWorkbench', () => {
     expect(screen.getByRole('textbox', { name: '成果编辑器' })).toHaveValue('尚未保存的成果内容');
   });
 
+  it('shows a Chinese conflict explanation while preserving the unsaved draft', () => {
+    useResultStore.setState({
+      error: 'file changed outside A2UI Workbench',
+      draftContent: '尚未保存的内容',
+      saveStatus: 'conflict',
+    });
+    render(
+      <I18nProvider>
+        <ResultWorkbench resultId="result-1" onDuplicated={vi.fn()} onOpenResults={vi.fn()} />
+      </I18nProvider>
+    );
+    expect(screen.getByText(/文档版本或编辑状态已变化/)).toBeVisible();
+    expect(screen.queryByText('file changed outside A2UI Workbench')).not.toBeInTheDocument();
+    expect(useResultStore.getState().draftContent).toBe('尚未保存的内容');
+  });
+
   it('keeps the before/after comparison when autosave finishes while the dialog is open', async () => {
     useResultStore.setState({ draftContent: '修改后的正文', saveStatus: 'dirty' });
     render(

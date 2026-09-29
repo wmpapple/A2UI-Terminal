@@ -218,6 +218,45 @@ export const desktopApi = {
     return invoke<SearchAuthorizedContentOutput>('search_authorized_content', { input });
   },
 
+  async inspectDocumentCritic(
+    target: import('../types/document').DocumentTarget,
+    options: import('../types/critic').CriticOptions
+  ) {
+    requireDesktop();
+    return invoke<import('../types/critic').CriticView>('inspect_document_critic', {
+      input: { target, options },
+    });
+  },
+  async ignoreCriticFinding(reportId: string, findingId: string, ignored: boolean) {
+    requireDesktop();
+    return invoke<import('../types/critic').CriticReport>('ignore_critic_finding', {
+      reportId,
+      findingId,
+      ignored,
+    });
+  },
+  async resolveCriticFinding(reportId: string, findingId: string) {
+    requireDesktop();
+    return invoke<import('../types/critic').CriticSelection>('resolve_critic_finding', {
+      reportId,
+      findingId,
+    });
+  },
+  async planDocumentCritic(reportId: string, providerId: string) {
+    requireDesktop();
+    return invoke<import('../types/critic').CriticPlan>('plan_document_critic', {
+      reportId,
+      providerId,
+    });
+  },
+  async startDocumentCritic(planId: string) {
+    requireDesktop();
+    return invoke<import('../types/critic').CriticReport>('start_document_critic', { planId });
+  },
+  async cancelDocumentCritic(id: string) {
+    requireDesktop();
+    await invoke('cancel_document_critic', { id });
+  },
   async createWritingWorkspace() {
     requireDesktop();
     return invoke<WorkspaceSummary>('create_writing_workspace');

@@ -24,6 +24,7 @@ pub mod writing_profile;
 pub mod knowledge;
 
 pub mod citation;
+pub mod critic;
 
 pub mod locator_upgrade;
 pub mod writing_project;

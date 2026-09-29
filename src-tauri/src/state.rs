@@ -9,6 +9,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 pub struct AppState {
+    pub critic_guard: Mutex<()>,
+    pub pending_critics: Mutex<HashMap<String, crate::application::critic::PreparedCritic>>,
     pub writing_guard: Mutex<()>,
     pub pending_writing:
         Mutex<HashMap<String, crate::application::writing_project::PreparedWriting>>,
@@ -35,6 +37,8 @@ pub struct AppState {
 impl AppState {
     pub fn new(storage: Storage, managed_results_dir: PathBuf) -> Self {
         Self {
+            critic_guard: Mutex::new(()),
+            pending_critics: Mutex::new(HashMap::new()),
             writing_guard: Mutex::new(()),
             pending_writing: Mutex::new(HashMap::new()),
             semantic_searches: Mutex::new(HashMap::new()),

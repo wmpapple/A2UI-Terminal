@@ -1,0 +1,160 @@
+{
+  "stage": "M7",
+  "status": "engineering_verified_awaiting_product_acceptance",
+  "generatedAt": "2026-09-29T04:28:54.571Z",
+  "baselineCommit": "91f9244",
+  "previousStage": "M6_product_accepted",
+  "nextStageAuthorized": false,
+  "schemaVersion": 27,
+  "engineeringPassed": true,
+  "artifact": "logs/m7-critic-review/a2ui-terminal.exe",
+  "binarySha256": "93a193ee022fbed478af71fae6e5ef661f10091b42091252d829ae4eda5178a4",
+  "binaryBytes": 69518848,
+  "rustPassed": 310,
+  "rustIgnored": 3,
+  "frontendPassed": 310,
+  "frontendFiles": 70,
+  "e2ePassed": 37,
+  "modelQuality": {
+    "qualifiedModels": [],
+    "realModelEvaluatedInM7": false,
+    "fixtureIsModelQualityEvidence": false,
+    "outputRequiresHumanReview": true
+  },
+  "coverageScope": "Existing configured chat buffer/context snapshot subset; not whole-repository coverage",
+  "desktop": {
+    "passed": true,
+    "binarySha256": "93a193ee022fbed478af71fae6e5ef661f10091b42091252d829ae4eda5178a4",
+    "runtime": "real_tauri_webview2",
+    "isolated": true,
+    "credentialsDisabled": true,
+    "provider": "loopback_sse_fixture",
+    "remoteModelEvaluated": false,
+    "modelRequests": 3,
+    "launchToHomeIncludingSetupMs": 1687.5404,
+    "measurements": [
+      {
+        "name": "homeInteractive",
+        "durationMs": 132.1,
+        "budgetMs": 2500,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T04:27:58.446Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 14.1,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T04:28:03.977Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 348.9,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T04:28:04.312Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 37.2,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T04:28:04.688Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 37.4,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T04:28:04.688Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 33.9,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T04:28:05.049Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 34.2,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T04:28:05.049Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 33.3,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T04:28:05.231Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 33.5,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T04:28:05.231Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 30.6,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T04:28:05.477Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 30.8,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T04:28:05.477Z"
+      }
+    ],
+    "checks": [
+      "critic_local_zero_requests",
+      "critic_ignored_restart",
+      "critic_explicit_consent",
+      "critic_read_only",
+      "critic_located_passage",
+      "critic_inline_review_apply",
+      "critic_old_revision_rejected",
+      "critic_saved_history",
+      "profile_prompt",
+      "generation_review_apply",
+      "input_cleared",
+      "autosave",
+      "home_return",
+      "unknown_citation",
+      "webview_reload_persistence"
+    ],
+    "pageErrors": []
+  },
+  "evidence": {
+    "logs/m7-rust-tests.log": "1731ab5ccf98f8fcc1de656c406dd35a2eece1c26242ef18609307e5556f478e",
+    "logs/m7-frontend-tests.log": "45c56446bb9a516656a5878db6c1d5cb49308817ac87627e44eb12c0620eb1f0",
+    "logs/m7-e2e.log": "b5136a8ee289a50e6c9425157676182f70bf636be83a81addde25643f5de8b84",
+    "logs/m7-ui-targeted.log": "8c23c9519c56d44e2ec74bdfff34b1c826b0c6c9ca57e19b63b014378672d081",
+    "logs/m7-typecheck.log": "4c8b7208af0720678b3ea1e36be75eb4ef86195b32313ee730ba211088f48e4b",
+    "logs/m7-lint.log": "f9bb06c3240a02f0c791464782b4fe16d7efbc0c41de3193a66d140afb3f2644",
+    "logs/m7-format.log": "7be0ad369791d4b96f6a7096ff9280c3ad556536c646070834c242bc457665d2",
+    "logs/m7-clippy.log": "f83710173f665f3a9805c269379f025d9bd88be414d7b4a1bfc046e5d5b839c0",
+    "logs/m7-desktop-build.log": "13f443482f2d4c0713b524d252ac94ab74209720b0e8dfe4a325fc5b8cc29b86",
+    "logs/m7-desktop/report.json": "b103aafb76ce73b24d1a45ec22016c171b280f7c53298c19a34dcd1c5b4784da",
+    "src-tauri/src/application/critic.rs": "b2dccb2e02a54a8e4623bdb706666b62b121a2676f0df288f47ac20c68147d1f",
+    "src-tauri/src/domain/critic.rs": "0dd6ad438ae68dc762c41a5c149e38857626f4a39d9a1818a3f31549597acff8",
+    "src-tauri/src/repository/critic.rs": "f8d96397b3c531c25ba5400eaa8e7062b2e78da0f26836a00d1b928a664d03d9",
+    "src-tauri/src/repository/document.rs": "14ee7e303ff4c1d3b8e05e9119a921adad8af7bac88d900ff715a47e3afc1acc",
+    "src-tauri/src/workspace/mod.rs": "2dcfbef620cce6e062a738adc84f90b542ba473f23a7792a6f78ed2523a2d595",
+    "src-tauri/migrations/0027_critic.sql": "7c3cbc7ed861edaccb9ea315efe31654bcd4da60a55e764249a50bb700539f48",
+    "src-tauri/tests/critic.rs": "ebdeb3fde6d02de1c294643a9b93301e9261fd0e39f588206389867344999bc4",
+    "src-tauri/tests/citations.rs": "1d2d561c7e96cde62d1f660a92521b5c042e1a7b586e7bf706a269fe9c9430c1",
+    "src-tauri/tests/workspace_result_boundary.rs": "fabfa9bcfadab2544050c288fd99c315d4c646c1d3616907659950c58f9c2f3e",
+    "src/features/critic/CriticPanel.tsx": "89b4c0f99dea58b36f6d7dc6307f0b923284dbc99550d4cb1fa2a82e67d965b1",
+    "src/features/critic/CriticPanel.test.tsx": "02fa18c8c1f69f3fba34fbfde4a0d5dfce41c85926a0fd646be234d001162c27",
+    "src/features/workspace/workspaceStore.ts": "88bd6d200c307649781c078d09605b2c8b759aa16b7af1cb6c498aeb0c7821bd",
+    "src/stores/desktopWorkspace.test.ts": "efbfbc238040e894876fee30c41dbfe78c4004f8beee908ba55f48aa0d27110f",
+    "e2e/critic.spec.ts": "8e00ca40dd8e59358a1b91c791191ebbfbee5ae62f51667d201691a23f03e767",
+    "scripts/verify-critic-workflow.mjs": "65a482374d4237bda584179a9f7aa8e5fb7d89d1691b24fbaaaf469f1b29b5b6"
+  }
+}

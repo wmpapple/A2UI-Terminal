@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-resolve-critic-finding"
+description = "Enables the resolve_critic_finding command without any pre-configured scope."
+commands.allow = ["resolve_critic_finding"]
+
+[[permission]]
+identifier = "deny-resolve-critic-finding"
+description = "Denies the resolve_critic_finding command without any pre-configured scope."
+commands.deny = ["resolve_critic_finding"]

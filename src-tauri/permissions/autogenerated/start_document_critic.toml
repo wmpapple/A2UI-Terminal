@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-start-document-critic"
+description = "Enables the start_document_critic command without any pre-configured scope."
+commands.allow = ["start_document_critic"]
+
+[[permission]]
+identifier = "deny-start-document-critic"
+description = "Denies the start_document_critic command without any pre-configured scope."
+commands.deny = ["start_document_critic"]

@@ -224,7 +224,51 @@ fn citation_result_lifecycle_survives_restart_session_delete_copy_edit_restore_a
         citation::list(&storage, &managed, &query).unwrap()[0].status,
         "verified"
     );
+    let critic_state =
+        a2ui_terminal_lib::state::AppState::new(Storage::open(&db).unwrap(), managed.clone());
+    let critic_target = a2ui_terminal_lib::domain::document::DocumentTarget::Result {
+        result_id: query.owner_id.clone(),
+    };
+    let critic_input = || a2ui_terminal_lib::domain::critic::InspectCriticInput {
+        target: critic_target.clone(),
+        options: Default::default(),
+    };
+    let critic_before =
+        a2ui_terminal_lib::application::critic::inspect(&critic_state, critic_input())
+            .unwrap()
+            .local;
+    assert!(!critic_before
+        .findings
+        .iter()
+        .any(|f| f.kind == "missing_citation"));
+    assert_eq!(
+        critic_before
+            .findings
+            .iter()
+            .filter(|f| f.kind == "citation")
+            .count(),
+        1
+    );
     knowledge::delete(&storage, &root, &id).unwrap();
+    assert!(a2ui_terminal_lib::application::critic::resolve(
+        &critic_state,
+        &critic_before.id,
+        &critic_before.findings[0].id
+    )
+    .is_err());
+    let critic_after =
+        a2ui_terminal_lib::application::critic::inspect(&critic_state, critic_input())
+            .unwrap()
+            .local;
+    assert_ne!(critic_before.id, critic_after.id);
+    assert_eq!(
+        critic_after
+            .findings
+            .iter()
+            .filter(|f| f.kind == "citation")
+            .count(),
+        2
+    );
     let refs = citation::list(&storage, &managed, &query).unwrap();
     assert_eq!(refs[0].status, "unavailable");
     assert!(refs[0].excerpt.is_none());
@@ -247,6 +291,10 @@ fn workspace_file_results_keep_full_generation_citations() {
     fs::write(work.join("report.md"), "Old draft").unwrap();
     let workspace = workspace::register_workspace(&storage, &work).unwrap();
     let file = workspace::read_file(&storage, &workspace.id, "report.md").unwrap();
+    let critic_target = a2ui_terminal_lib::domain::document::DocumentTarget::WorkspaceFile {
+        workspace_id: workspace.id.clone(),
+        source_id: file.document_id.clone().unwrap(),
+    };
     let detail = result::ensure_file_result(&storage, &workspace.id, &file).unwrap();
     let document = result::read_document(&storage, &managed, &detail.summary.id).unwrap();
     let source = dir.path().join("evidence.txt");
@@ -302,6 +350,26 @@ fn workspace_file_results_keep_full_generation_citations() {
     assert_eq!(
         fs::read_to_string(work.join("report.md")).unwrap(),
         "Budget 420 [S1]"
+    );
+    let critic_state = a2ui_terminal_lib::state::AppState::new(
+        Storage::open(&dir.path().join("test.db")).unwrap(),
+        managed.clone(),
+    );
+    let checked = a2ui_terminal_lib::application::critic::inspect(
+        &critic_state,
+        a2ui_terminal_lib::domain::critic::InspectCriticInput {
+            target: critic_target,
+            options: Default::default(),
+        },
+    )
+    .unwrap();
+    assert!(
+        !checked
+            .local
+            .findings
+            .iter()
+            .any(|f| matches!(f.kind.as_str(), "missing_citation" | "citation")),
+        "workspace-file findings must resolve the same citations as the Result view"
     );
 }
 

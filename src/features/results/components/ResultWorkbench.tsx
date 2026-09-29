@@ -1,4 +1,5 @@
 import { CitationPanel } from '../../citation/CitationPanel';
+import { CriticPanel } from '../../critic/CriticPanel';
 import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { WorkbenchAppearanceControl } from '../../../app/WorkbenchAppearanceControl';
 import {
@@ -16,6 +17,7 @@ import { Alert, Button, Drawer, Empty, Modal, Segmented, Skeleton, Tag } from 'a
 import { useEffect, useRef, useState } from 'react';
 import { resultController } from '../resultController';
 import { useI18n } from '../../../app/i18n/useI18n';
+import { userFacingError } from '../../../shared/errors/userFacingError';
 import type { MessageKey } from '../../../app/i18n/messages';
 import type { FileSaveStatus, ResultAppliedReview } from '../../../shared/types/domain';
 import type { DocumentSnapshot } from '../../../shared/types/document';
@@ -63,7 +65,7 @@ export function ResultWorkbench({
   reviewUndoError = null,
   onUndoReview,
 }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const activeDocument = useResultStore((state) => state.activeDocument);
   const draftContent = useResultStore((state) => state.draftContent);
   const saveStatus = useResultStore((state) => state.saveStatus);
@@ -183,7 +185,7 @@ export function ResultWorkbench({
     return (
       <div className={styles.empty}>
         {error ? (
-          <Alert type="error" showIcon title={error} />
+          <Alert type="error" showIcon title={userFacingError(error, locale)} />
         ) : (
           <Empty description={t('resultOpenFailed')} />
         )}
@@ -283,9 +285,22 @@ export function ResultWorkbench({
         </div>
       </header>
       {reviewUndoError ? (
-        <Alert type="error" showIcon title={reviewUndoError} data-testid="review-undo-error" />
+        <Alert
+          type="error"
+          showIcon
+          title={userFacingError(reviewUndoError, locale)}
+          data-testid="review-undo-error"
+        />
       ) : null}
-      {error ? <Alert type="error" showIcon title={error} closable onClose={clearError} /> : null}
+      {error ? (
+        <Alert
+          type="error"
+          showIcon
+          title={userFacingError(error, locale)}
+          closable
+          onClose={clearError}
+        />
+      ) : null}
       <Modal
         open={activeDocument.recoveryDraft !== null}
         title={t('resultRecoveryTitle')}
@@ -322,6 +337,22 @@ export function ResultWorkbench({
           }}
         />
       ) : null}
+      <CriticPanel
+        snapshot={{
+          ...inlineSnapshot,
+          editable: activeDocument.editable && activeDocument.result.type === 'document',
+        }}
+        workspaceId={activeDocument.result.workspaceId}
+        onApplied={async (application) => {
+          await resultController.receiveInlineApplication(
+            activeDocument.result.id,
+            application,
+            activeDocument.contentHash
+          );
+          await openResult(activeDocument.result.id);
+          setSelectedText('');
+        }}
+      />
       <CitationPanel
         key={activeDocument.result.id + draftContent}
         ownerKind="result"

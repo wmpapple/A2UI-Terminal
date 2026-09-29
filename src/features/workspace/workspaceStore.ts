@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   A2uiInspection,
   A2uiSurface,
   SelectedWorkspaceFiles,
@@ -202,6 +202,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
           editable: document.editable,
           extracted: document.extracted,
           sourceId: document.sourceId,
+          documentId: document.documentId,
         }));
         const selectedRecoveryDrafts = Object.fromEntries(
           documents
@@ -331,6 +332,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
         editable: document.editable,
         extracted: document.extracted,
         sourceId: document.sourceId,
+        documentId: document.documentId,
       }));
       const selectedRecoveryDrafts = Object.fromEntries(
         documents
@@ -652,6 +654,7 @@ export const createWorkspaceStore = (set: AppSet, get: AppGet): WorkspaceActions
             editable: document.editable,
             extracted: document.extracted,
             sourceId: document.sourceId,
+            documentId: document.documentId,
           };
           set((state) => {
             const recoveryDrafts = { ...state.recoveryDrafts };

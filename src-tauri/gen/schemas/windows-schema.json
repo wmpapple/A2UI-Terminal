@@ -201,6 +201,12 @@
           "markdownDescription": "Enables the apply_review command without any pre-configured scope."
         },
         {
+          "description": "Enables the cancel_document_critic command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cancel-document-critic",
+          "markdownDescription": "Enables the cancel_document_critic command without any pre-configured scope."
+        },
+        {
           "description": "Enables the cancel_export command without any pre-configured scope.",
           "type": "string",
           "const": "allow-cancel-export",
@@ -483,6 +489,18 @@
           "markdownDescription": "Enables the get_writing_project command without any pre-configured scope."
         },
         {
+          "description": "Enables the ignore_critic_finding command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-ignore-critic-finding",
+          "markdownDescription": "Enables the ignore_critic_finding command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the inspect_document_critic command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-inspect-document-critic",
+          "markdownDescription": "Enables the inspect_document_critic command without any pre-configured scope."
+        },
+        {
           "description": "Enables the inspect_import_batch command without any pre-configured scope.",
           "type": "string",
           "const": "allow-inspect-import-batch",
@@ -621,6 +639,12 @@
           "markdownDescription": "Enables the plan_context command without any pre-configured scope."
         },
         {
+          "description": "Enables the plan_document_critic command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-plan-document-critic",
+          "markdownDescription": "Enables the plan_document_critic command without any pre-configured scope."
+        },
+        {
           "description": "Enables the plan_generation command without any pre-configured scope.",
           "type": "string",
           "const": "allow-plan-generation",
@@ -709,6 +733,12 @@
           "type": "string",
           "const": "allow-remove-workspace",
           "markdownDescription": "Enables the remove_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the resolve_critic_finding command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-resolve-critic-finding",
+          "markdownDescription": "Enables the resolve_critic_finding command without any pre-configured scope."
         },
         {
           "description": "Enables the resolve_review_conflict command without any pre-configured scope.",
@@ -855,6 +885,12 @@
           "markdownDescription": "Enables the set_telemetry_settings command without any pre-configured scope."
         },
         {
+          "description": "Enables the start_document_critic command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-start-document-critic",
+          "markdownDescription": "Enables the start_document_critic command without any pre-configured scope."
+        },
+        {
           "description": "Enables the start_generation command without any pre-configured scope.",
           "type": "string",
           "const": "allow-start-generation",
@@ -949,6 +985,12 @@
           "type": "string",
           "const": "deny-apply-review",
           "markdownDescription": "Denies the apply_review command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cancel_document_critic command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cancel-document-critic",
+          "markdownDescription": "Denies the cancel_document_critic command without any pre-configured scope."
         },
         {
           "description": "Denies the cancel_export command without any pre-configured scope.",
@@ -1233,6 +1275,18 @@
           "markdownDescription": "Denies the get_writing_project command without any pre-configured scope."
         },
         {
+          "description": "Denies the ignore_critic_finding command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-ignore-critic-finding",
+          "markdownDescription": "Denies the ignore_critic_finding command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the inspect_document_critic command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-inspect-document-critic",
+          "markdownDescription": "Denies the inspect_document_critic command without any pre-configured scope."
+        },
+        {
           "description": "Denies the inspect_import_batch command without any pre-configured scope.",
           "type": "string",
           "const": "deny-inspect-import-batch",
@@ -1371,6 +1425,12 @@
           "markdownDescription": "Denies the plan_context command without any pre-configured scope."
         },
         {
+          "description": "Denies the plan_document_critic command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-plan-document-critic",
+          "markdownDescription": "Denies the plan_document_critic command without any pre-configured scope."
+        },
+        {
           "description": "Denies the plan_generation command without any pre-configured scope.",
           "type": "string",
           "const": "deny-plan-generation",
@@ -1459,6 +1519,12 @@
           "type": "string",
           "const": "deny-remove-workspace",
           "markdownDescription": "Denies the remove_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the resolve_critic_finding command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-resolve-critic-finding",
+          "markdownDescription": "Denies the resolve_critic_finding command without any pre-configured scope."
         },
         {
           "description": "Denies the resolve_review_conflict command without any pre-configured scope.",
@@ -1603,6 +1669,12 @@
           "type": "string",
           "const": "deny-set-telemetry-settings",
           "markdownDescription": "Denies the set_telemetry_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the start_document_critic command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-start-document-critic",
+          "markdownDescription": "Denies the start_document_critic command without any pre-configured scope."
         },
         {
           "description": "Denies the start_generation command without any pre-configured scope.",

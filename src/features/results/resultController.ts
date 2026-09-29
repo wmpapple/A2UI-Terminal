@@ -5,11 +5,21 @@ import type {
   CreateTextResultInput,
   ExportProgressEvent,
   ExportResultInput,
+  ReviewApplication,
 } from '../../shared/types/domain';
 
 const gateway = () => (isWebMock() ? webMockHomeGateway : desktopGateway);
 
 export const resultController = {
+  async receiveInlineApplication(
+    resultId: string,
+    application: ReviewApplication,
+    baseHash: string
+  ) {
+    if (isWebMock() && application.files[0]) {
+      await webMockHomeGateway.saveResultDocument(resultId, application.files[0].content, baseHash);
+    }
+  },
   delete: (resultId: string) => gateway().deleteResult(resultId),
   pin: (resultId: string, pinned: boolean) => gateway().pinResult(resultId, pinned),
   list: () => gateway().listResults(),

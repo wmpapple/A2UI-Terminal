@@ -10,11 +10,13 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium, expect } from '@playwright/test';
 import { verifyLongform } from './verify-longform-workflow.mjs';
+import { verifyCritic } from './verify-critic-workflow.mjs';
 
 const binary = path.resolve(process.argv[2] ?? 'src-tauri/target/debug/a2ui-terminal.exe');
 const output = path.resolve(process.argv[3] ?? 'logs/b0-desktop');
 const verifyHybridSearch = process.argv.includes('--hybrid-search');
 const verifyWritingProjects = process.argv.includes('--longform');
+const verifyDocumentCritic = process.argv.includes('--critic');
 const verifyPersistentSearch = process.argv.includes('--persistent-search') || verifyHybridSearch;
 await fs.mkdir(output, { recursive: true });
 // A failed rerun must not leave an earlier successful report looking current.
@@ -44,15 +46,33 @@ const fixture = http.createServer(async (req, res) => {
   for await (const chunk of req) chunks.push(chunk);
   const payload = JSON.parse(Buffer.concat(chunks).toString());
   received.push({ credentialSent: Boolean(req.headers.authorization), payload });
-  const response =
-    verifyWritingProjects && payload.messages?.some((m) => m.content.includes('仅返回 JSON：'))
-      ? JSON.stringify({
-          sections: [
-            { id: null, title: '预算现状', objective: '保留预算和审批状态', targetWords: 300 },
-            { id: null, title: '后续行动', objective: '讨论下一步建议', targetWords: 300 },
-          ],
-        })
-      : answer;
+  const criticRequest =
+    verifyDocumentCritic &&
+    payload.messages?.some((m) => m.content.includes('read-only document critic'));
+  const inlineRequest =
+    verifyDocumentCritic &&
+    payload.messages?.some((m) => m.content.includes('You edit exactly one selected text range'));
+  const response = criticRequest
+    ? JSON.stringify({
+        findings: [
+          {
+            kind: 'style',
+            quote: '预算 420 元，尚未批准。',
+            message: '可调整句式，但保留预算及否定关系',
+            evidence: null,
+          },
+        ],
+      })
+    : inlineRequest
+      ? '当前预算为 420 元，仍未获得批准。'
+      : verifyWritingProjects && payload.messages?.some((m) => m.content.includes('仅返回 JSON：'))
+        ? JSON.stringify({
+            sections: [
+              { id: null, title: '预算现状', objective: '保留预算和审批状态', targetWords: 300 },
+              { id: null, title: '后续行动', objective: '讨论下一步建议', targetWords: 300 },
+            ],
+          })
+        : answer;
   res.setHeader('Content-Type', 'text/event-stream');
   res.end(
     `data: ${JSON.stringify({ choices: [{ delta: { content: response } }] })}\n\ndata: [DONE]\n\n`
@@ -266,6 +286,7 @@ try {
   }
   const measurements = [...homeMeasurements, ...workflowMeasurements];
   const writingChecks = verifyWritingProjects ? await verifyLongform(page, received) : [];
+  const criticChecks = verifyDocumentCritic ? await verifyCritic(page, received) : [];
   assert.equal(pageErrors.length, 0, pageErrors.join('\n'));
   for (const name of ['homeInteractive', 'resultOpen', 'requestFeedback']) {
     const values = measurements.filter((m) => m.name === name);
@@ -289,6 +310,7 @@ try {
         measurements,
         checks: [
           ...writingChecks,
+          ...criticChecks,
           'profile_prompt',
           'generation_review_apply',
           'input_cleared',

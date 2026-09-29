@@ -1,4 +1,5 @@
 import { InfoNotice } from '../../../shared/components/InfoNotice';
+import { userFacingError } from '../../../shared/errors/userFacingError';
 import {
   CloseOutlined,
   EyeInvisibleOutlined,
@@ -20,6 +21,7 @@ import { useImportStore } from '../../imports/importStore';
 import { A2uiWorkbench } from '../../a2ui/inspector/A2uiWorkbench';
 import { DiffReview } from '../../diff/components/DiffReview';
 import { SelectionAssistant } from '../../selection/components/SelectionAssistant';
+import { CriticPanel } from '../../critic/CriticPanel';
 import { EmptyIllustration } from '../../../shared/components/EmptyIllustration';
 import { WorkbenchAppearanceControl } from '../../../app/WorkbenchAppearanceControl';
 import { useSystemTheme } from '../../../app/useSystemTheme';
@@ -181,7 +183,10 @@ export function EditorPane({
           target: {
             kind: 'workspace_file',
             workspaceId: workspace?.id ?? 'web-mock-workspace',
-            sourceId: activeFile.sourceId ?? '00000000-0000-0000-0000-000000000001',
+            sourceId:
+              activeFile.documentId ??
+              activeFile.sourceId ??
+              '00000000-0000-0000-0000-000000000001',
           },
           revisionId: null,
           contentHash: activeFile.contentHash ?? webContentHash,
@@ -418,12 +423,12 @@ export function EditorPane({
           closable
           type="error"
           showIcon
-          title={workspaceError}
+          title={userFacingError(workspaceError, locale)}
           onClose={clearWorkspaceError}
         />
       ) : null}
       {patchError && centerView !== 'diff' ? (
-        <Alert type="error" showIcon title={patchError} />
+        <Alert type="error" showIcon title={userFacingError(patchError, locale)} />
       ) : null}
       <div className={styles.tabs} role="tablist">
         {openPaths.map((path) => (
@@ -459,6 +464,13 @@ export function EditorPane({
           onApplied={receiveInlineApplication}
         />
       ) : null}
+      {centerView === 'editor' && (
+        <CriticPanel
+          snapshot={inlineSnapshot}
+          workspaceId={workspace?.id ?? 'web-mock-workspace'}
+          onApplied={receiveInlineApplication}
+        />
+      )}
       {activeFile && recoveryDraft ? (
         <Alert
           type="warning"

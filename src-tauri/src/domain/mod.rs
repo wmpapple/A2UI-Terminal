@@ -11,5 +11,6 @@ pub mod writing_profile;
 pub mod knowledge;
 
 pub mod citation;
+pub mod critic;
 pub mod semantic_search;
 pub mod writing_project;

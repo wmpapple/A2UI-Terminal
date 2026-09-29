@@ -88,6 +88,8 @@ pub struct WorkspaceDocument {
     pub editable: bool,
     pub extracted: bool,
     pub source_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -190,7 +192,7 @@ pub fn list_files(
             files.push(WorkspaceFileEntry {
                 name: entry.file_name().to_string_lossy().into_owned(),
                 language: language_for_path(entry.path()).to_string(),
-                path: relative,
+                path: relative.clone(),
                 size_bytes: metadata.len(),
                 readable: metadata.len() <= size_limit,
                 editable: !extracted,
@@ -262,7 +264,23 @@ pub fn read_file(
         editable: !extracted,
         extracted,
         source_id: None,
+        document_id: Some(directory_source_id(workspace_id, relative_path)),
     })
+}
+
+/// Stable opaque identity for a file inside a directory grant. This is not an
+/// independent file grant: resolving it must re-check the live directory scope.
+pub fn directory_source_id(workspace_id: &str, relative_path: &str) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"a2ui-directory-document-v1\0");
+    digest.update(workspace_id.as_bytes());
+    digest.update(b"\0");
+    digest.update(relative_path.replace('\\', "/").as_bytes());
+    let mut bytes = [0_u8; 16];
+    bytes.copy_from_slice(&digest.finalize()[..16]);
+    bytes[6] = (bytes[6] & 0x0f) | 0x80;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    Uuid::from_bytes(bytes).to_string()
 }
 
 pub fn read_selected_file(path: &Path, source_id: &str) -> Result<WorkspaceDocument, AppError> {
@@ -300,6 +318,7 @@ pub fn read_selected_file(path: &Path, source_id: &str) -> Result<WorkspaceDocum
         editable: !extracted,
         extracted,
         source_id: Some(source_id.to_string()),
+        document_id: Some(source_id.to_string()),
     })
 }
 

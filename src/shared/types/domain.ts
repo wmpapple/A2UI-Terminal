@@ -202,6 +202,7 @@ export interface RecoveryStatus {
 }
 
 export interface WorkspaceFile {
+  documentId?: string | null;
   path: string;
   name: string;
   language: string;
