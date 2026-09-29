@@ -121,6 +121,19 @@
     "allow-get-semantic-config",
     "allow-plan-semantic-search",
     "allow-step-semantic-search",
-    "allow-cancel-semantic-search"
+    "allow-cancel-semantic-search",
+    "allow-create-writing-workspace",
+    "allow-list-writing-projects",
+    "allow-get-writing-project",
+    "allow-save-writing-project",
+    "allow-save-writing-outline",
+    "allow-read-writing-outline-proposal",
+    "allow-plan-writing-run",
+    "allow-start-writing-run",
+    "allow-cancel-writing-run",
+    "allow-accept-writing-section",
+    "allow-finalize-writing-project",
+    "allow-delete-writing-project",
+    "allow-save-writing-draft"
   ]
 }

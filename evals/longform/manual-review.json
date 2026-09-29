@@ -1,0 +1,31 @@
+{
+  "reviewedAt": "2026-09-29",
+  "reviewer": "Codex agent reading all six generated chapters; not user product acceptance",
+  "promptVersion": "longform-v1",
+  "resultsSha256": "356152290e4f253c93d46ed97f971916c773a58f1f646ee47346ef863e13b7be",
+  "passed": false,
+  "recommendation": "This model/configuration is not qualified for the fixed longform tasks. Do not present it as a recommended writing model.",
+  "cases": [
+    {
+      "id": "approval-report",
+      "passed": false,
+      "facts": "420 元、未批准和截止日期在全文保留，但第三章无依据声称项目尚未进入实施阶段；不能据此认定事实准确。",
+      "outline": "第三章重述前两章并重复其标题，偏离只写当前章节的要求。",
+      "terminology": "使用了星河项目，但第一章缺少该名称；没有出现星河工程。",
+      "citations": "三章均未输出合法的 [S1] 引用。出现 [STAR] 标记，不是来源证据。",
+      "continuity": "前章不应引入实际可支出金额或项目阶段等缺失事实；第三章继续扩展了没有依据的状态。",
+      "repetition": "多处语义重复，精确段落去重指标未捕获这些近似重复。"
+    },
+    {
+      "id": "decision-brief",
+      "passed": false,
+      "facts": "保留已知金额、未批准和截止日，没有直接断言已批准；第二章把项目截止日推成审批必须完成的硬性截止日，资料没有给出这种约束。",
+      "outline": "第三章没有给出所要求的沟通问题和跟进建议，而是近乎重复两段现状陈述。全文 680 字，未满足固定的最低 800 字筛查门槛。",
+      "terminology": "星河项目名称一致。",
+      "citations": "仅第一章出现带空格的 [ S1 ]，产品引用语法未识别；另外两章没有引用。",
+      "continuity": "没有明确已批准的正面断言。自动审批筛查的两个命中均位于不能假设/无法推断的否定句，属于筛查假阳性；即使人工排除这两项，其他失败仍成立。",
+      "repetition": "第三章两段结构和含义高度近似，精确字符串重复率 0 不能代表没有重复。"
+    }
+  ],
+  "limits": "Two synthetic three-chapter cases, one run each, one small local q4 model. No general success-rate claim, no cloud model certification, no factual-entailment claim from source identity verification."
+}

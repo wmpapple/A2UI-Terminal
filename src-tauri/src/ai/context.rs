@@ -116,6 +116,12 @@ pub struct PendingContextManifest {
     history: Vec<ProviderMessage>,
 }
 
+impl PendingContextManifest {
+    pub fn expired(&self) -> bool {
+        now_epoch().map_or(true, |now| now > self.expires_at_epoch)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ConfirmedContextManifest {
     pub view: ContextManifest,

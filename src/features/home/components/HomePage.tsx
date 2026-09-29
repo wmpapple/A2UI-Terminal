@@ -22,6 +22,7 @@ import { SourceDropZone } from './SourceDropZone';
 import { lazyFeature } from '../../../app/lazyFeature';
 import { AuthorizedSearch } from './AuthorizedSearch';
 import styles from './HomePage.module.css';
+import { navigateTo } from '../../../app/shellPreferences';
 
 const CreateTextResultModal = lazyFeature(async () => {
   const module = await import('../../results/components/CreateTextResultModal');
@@ -211,6 +212,9 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
               {t('createResult')}
             </Button>
             <Button onClick={onOpenGuide}>{t('replayOnboarding')}</Button>
+            <Button onClick={() => navigateTo('projects')}>
+              {locale === 'zh-CN' ? '长文项目' : 'Writing projects'}
+            </Button>
           </div>
         </div>
 

@@ -12,3 +12,4 @@ pub mod knowledge;
 pub mod citation;
 pub(crate) mod embedding;
 pub(crate) mod search;
+pub mod writing_project;

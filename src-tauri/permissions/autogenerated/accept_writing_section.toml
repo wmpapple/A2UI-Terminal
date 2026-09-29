@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-accept-writing-section"
+description = "Enables the accept_writing_section command without any pre-configured scope."
+commands.allow = ["accept_writing_section"]
+
+[[permission]]
+identifier = "deny-accept-writing-section"
+description = "Denies the accept_writing_section command without any pre-configured scope."
+commands.deny = ["accept_writing_section"]

@@ -1,0 +1,588 @@
+{
+  "cases": [
+    {
+      "chapters": [
+        {
+          "content": "[STAR] 预算 420 元 未获批准，项目执行方尚未获得正式审批。根据项目资料，预算金额为 420 元，但该金额尚未经过正式审批流程。项目执行方在申请预算时，已明确说明预算金额为 420 元，但该金额尚未被批准。因此，项目执行方在使用预算时，仅能使用可支出金额，而不能使用申请金额。预算审批流程尚未完成，项目执行方在使用预算时，需确保不超出可支出金额。",
+          "elapsedMs": 119648,
+          "error": null,
+          "objective": "解释预算 420 元与尚未批准的现状，区分申请金额和可支出金额，不推定审批完成。",
+          "snapshot": {
+            "manifest": {
+              "characterCount": 39,
+              "citations": [
+                {
+                  "fragmentId": "4dbcc3193b93310e64fe3ef9c51ba9741a3502631e967cd0c63ad71ac174cdd3",
+                  "key": "S1",
+                  "locator": {
+                    "endLine": 1,
+                    "kind": "lines",
+                    "startLine": 1
+                  },
+                  "title": "星河项目资料"
+                }
+              ],
+              "confirmedAt": "1790650298",
+              "createdAt": "1790650298",
+              "estimatedTokens": 2915,
+              "excludedSources": [
+                {
+                  "characterCount": 0,
+                  "contentHash": null,
+                  "exclusionReason": "用户未选择",
+                  "kind": "recent_messages",
+                  "label": "最近对话",
+                  "mode": "excluded",
+                  "selectedRanges": [],
+                  "sizeBytes": 0,
+                  "sourceRef": null
+                }
+              ],
+              "expiresAt": "1790650898",
+              "id": "f1928675-0871-4649-9db8-3a9d56ff071a",
+              "includedSources": [
+                {
+                  "characterCount": 39,
+                  "contentHash": "2b0d656d3b8080bbc31c7ffa4fcb57160e318068da2b584c5572edbe3e4c6b26",
+                  "exclusionReason": null,
+                  "kind": "personal_knowledge",
+                  "label": "星河项目资料",
+                  "mode": "full",
+                  "selectedRanges": [
+                    {
+                      "chunkId": "full",
+                      "endCharacter": 39,
+                      "startCharacter": 0
+                    }
+                  ],
+                  "sizeBytes": 79,
+                  "sourceRef": "66000000-0000-4000-8000-000000000002"
+                }
+              ],
+              "indexMode": "none",
+              "processingLocation": "local",
+              "providerId": "custom",
+              "requiresSensitiveConfirmation": false,
+              "retrievedChunkCount": 0,
+              "sensitiveWarning": false,
+              "sessionId": "53bfeb93-1014-4206-9498-de77fd717430",
+              "status": "confirmed",
+              "strategy": "full",
+              "tokenBudget": 32000,
+              "workspaceId": "66000000-0000-4000-8000-000000000001",
+              "writingProfile": {
+                "composerVersion": "m2.1",
+                "enabled": false,
+                "estimatedTokens": 0,
+                "exampleKnowledgeIds": [],
+                "forbiddenWords": [],
+                "hash": "017090ca7f6f926ed5d00d68f89c0f2278848aacb2d6029c8c350bcbaf1068eb",
+                "instructionText": "",
+                "layers": [],
+                "terminology": []
+              }
+            },
+            "prompt": "长文目标：写一份三章项目报告。只用已提供的虚构资料，事实后标注来源；建议用建议语气，不得当作既定安排。全文统一称为星河项目。\n标题：星河项目报告\n读者：经理\n用户提供的关键事实（缺少证据时明确说明）：预算 420 元，尚未批准，截止日 2026 年 10 月 15 日\n项目术语：统一称为星河项目\n已确认大纲：\n1. 预算与审批现状：解释预算 420 元与尚未批准的现状，区分申请金额和可支出金额，不推定审批完成。（约 400 字）\n2. 截止日与推进建议：围绕 2026 年 10 月 15 日截止日提出可执行的建议，保留待审批前提，不虚构已安排的行动。（约 400 字）\n3. 风险与待核实事项：解释预算和截止日限制，指出资料没有审批人、人员分工或实施进度，不虚构补齐；不要重写前两章。（约 400 字）\n本次只写章节：预算与审批现状\n章节目标：解释预算 420 元与尚未批准的现状，区分申请金额和可支出金额，不推定审批完成。\n建议正文长度：约 400 字。不要输出整篇文章或重复前章正文。直接返回本章 Markdown 正文，不含本章标题和事实摘要。\n本次额外要求：不要虚构已批准",
+            "promptVersion": "longform-v1",
+            "provider": {
+              "endpoint": "http://127.0.0.1:59017/v1",
+              "id": "custom",
+              "kind": "custom",
+              "model": "m6-fixture",
+              "proxyUrl": null,
+              "temperature": 0.0
+            }
+          },
+          "status": "review",
+          "title": "预算与审批现状"
+        },
+        {
+          "content": "[建议正文]\n\n截止日与推进建议\n\n星河项目当前面临的主要挑战在于截止日的限制。根据现有资料，项目截止日定于2026年10月15日，但目前尚未有明确的执行计划或资源分配。预算420元尚未批准，这意味着项目资金的使用仍存在不确定性。建议在截止日前，项目团队应尽快启动资金的使用流程，并与相关审批部门沟通，确保资金能够及时到位。同时，项目执行团队应根据截止日的限制，制定详细的进度计划，以确保项目在截止日前完成关键任务。由于截止日的限制，建议在项目执行过程中保持灵活性，随时准备调整计划以应对突发情况。尽管当前资料未提及审批人或人员分工，但项目执行的顺利进行仍依赖于明确的分工与协调。因此，建议在截止日前，项目团队应明确分工，并与相关审批部门保持密切沟通，以确保项目能够按计划推进。",
+          "elapsedMs": 193089,
+          "error": null,
+          "objective": "围绕 2026 年 10 月 15 日截止日提出可执行的建议，保留待审批前提，不虚构已安排的行动。",
+          "snapshot": {
+            "manifest": {
+              "characterCount": 39,
+              "citations": [
+                {
+                  "fragmentId": "4dbcc3193b93310e64fe3ef9c51ba9741a3502631e967cd0c63ad71ac174cdd3",
+                  "key": "S1",
+                  "locator": {
+                    "endLine": 1,
+                    "kind": "lines",
+                    "startLine": 1
+                  },
+                  "title": "星河项目资料"
+                }
+              ],
+              "confirmedAt": "1790650418",
+              "createdAt": "1790650418",
+              "estimatedTokens": 3073,
+              "excludedSources": [
+                {
+                  "characterCount": 0,
+                  "contentHash": null,
+                  "exclusionReason": "用户未选择",
+                  "kind": "recent_messages",
+                  "label": "最近对话",
+                  "mode": "excluded",
+                  "selectedRanges": [],
+                  "sizeBytes": 0,
+                  "sourceRef": null
+                }
+              ],
+              "expiresAt": "1790651018",
+              "id": "9079f93f-1dbb-42a5-9fec-ddf6f73e007b",
+              "includedSources": [
+                {
+                  "characterCount": 39,
+                  "contentHash": "2b0d656d3b8080bbc31c7ffa4fcb57160e318068da2b584c5572edbe3e4c6b26",
+                  "exclusionReason": null,
+                  "kind": "personal_knowledge",
+                  "label": "星河项目资料",
+                  "mode": "full",
+                  "selectedRanges": [
+                    {
+                      "chunkId": "full",
+                      "endCharacter": 39,
+                      "startCharacter": 0
+                    }
+                  ],
+                  "sizeBytes": 79,
+                  "sourceRef": "66000000-0000-4000-8000-000000000002"
+                }
+              ],
+              "indexMode": "none",
+              "processingLocation": "local",
+              "providerId": "custom",
+              "requiresSensitiveConfirmation": false,
+              "retrievedChunkCount": 0,
+              "sensitiveWarning": false,
+              "sessionId": "06ba87e1-99ba-4cb4-9e02-7d1a6039ec7f",
+              "status": "confirmed",
+              "strategy": "full",
+              "tokenBudget": 32000,
+              "workspaceId": "66000000-0000-4000-8000-000000000001",
+              "writingProfile": {
+                "composerVersion": "m2.1",
+                "enabled": false,
+                "estimatedTokens": 0,
+                "exampleKnowledgeIds": [],
+                "forbiddenWords": [],
+                "hash": "017090ca7f6f926ed5d00d68f89c0f2278848aacb2d6029c8c350bcbaf1068eb",
+                "instructionText": "",
+                "layers": [],
+                "terminology": []
+              }
+            },
+            "prompt": "长文目标：写一份三章项目报告。只用已提供的虚构资料，事实后标注来源；建议用建议语气，不得当作既定安排。全文统一称为星河项目。\n标题：星河项目报告\n读者：经理\n用户提供的关键事实（缺少证据时明确说明）：预算 420 元，尚未批准，截止日 2026 年 10 月 15 日\n项目术语：统一称为星河项目\n已确认大纲：\n1. 预算与审批现状：解释预算 420 元与尚未批准的现状，区分申请金额和可支出金额，不推定审批完成。（约 400 字）\n2. 截止日与推进建议：围绕 2026 年 10 月 15 日截止日提出可执行的建议，保留待审批前提，不虚构已安排的行动。（约 400 字）\n3. 风险与待核实事项：解释预算和截止日限制，指出资料没有审批人、人员分工或实施进度，不虚构补齐；不要重写前两章。（约 400 字）\n已审阅的前章连续性备注（不是独立证据）：预算与审批现状 — 星河项目预算 420 元，尚未批准；截止日为 2026 年 10 月 15 日。审批人、人员分工、实施进度未知；所有行动仅为建议。\n本次只写章节：截止日与推进建议\n章节目标：围绕 2026 年 10 月 15 日截止日提出可执行的建议，保留待审批前提，不虚构已安排的行动。\n建议正文长度：约 400 字。不要输出整篇文章或重复前章正文。直接返回本章 Markdown 正文，不含本章标题和事实摘要。\n本次额外要求：不要虚构已批准",
+            "promptVersion": "longform-v1",
+            "provider": {
+              "endpoint": "http://127.0.0.1:59017/v1",
+              "id": "custom",
+              "kind": "custom",
+              "model": "m6-fixture",
+              "proxyUrl": null,
+              "temperature": 0.0
+            }
+          },
+          "status": "review",
+          "title": "截止日与推进建议"
+        },
+        {
+          "content": "[STAR] 预算与审批现状\n\n星河项目当前预算为420元，但该金额尚未获得正式批准。项目预算的申请金额与实际可支出金额之间存在差异，这可能影响项目的执行。由于预算尚未批准，所有支出均需在审批通过后进行。项目团队在预算申请过程中可能面临资金限制，但项目本身仍处于规划阶段，尚未进入实施阶段。\n\n[STAR] 截止日与推进建议\n\n星河项目截止日设定为2026年10月15日，这一日期对于项目的时间安排具有重要意义。截止日的设定可能影响项目的推进速度，尤其是在预算和资源分配方面。建议项目团队在截止日前完成必要的准备工作，确保项目在截止日期前能够顺利推进。尽管截止日的设定为项目提供了明确的时间框架，但实际执行过程中仍需根据实际情况进行调整。\n\n[STAR] 风险与待核实事项\n\n星河项目当前面临的主要风险在于预算和截止日的限制。由于预算尚未批准，项目团队在资金使用上可能面临不确定性。同时，截止日的设定为项目的时间安排提供了明确的指导，但实际执行过程中仍需根据实际情况进行调整。项目资料中未提及审批人、人员分工或实施进度，这可能影响项目的顺利推进。建议项目团队在截止日前完成必要的准备工作，并在预算批准后进行资金分配。",
+          "elapsedMs": 184019,
+          "error": null,
+          "objective": "解释预算和截止日限制，指出资料没有审批人、人员分工或实施进度，不虚构补齐；不要重写前两章。",
+          "snapshot": {
+            "manifest": {
+              "characterCount": 39,
+              "citations": [
+                {
+                  "fragmentId": "4dbcc3193b93310e64fe3ef9c51ba9741a3502631e967cd0c63ad71ac174cdd3",
+                  "key": "S1",
+                  "locator": {
+                    "endLine": 1,
+                    "kind": "lines",
+                    "startLine": 1
+                  },
+                  "title": "星河项目资料"
+                }
+              ],
+              "confirmedAt": "1790650611",
+              "createdAt": "1790650611",
+              "estimatedTokens": 3245,
+              "excludedSources": [
+                {
+                  "characterCount": 0,
+                  "contentHash": null,
+                  "exclusionReason": "用户未选择",
+                  "kind": "recent_messages",
+                  "label": "最近对话",
+                  "mode": "excluded",
+                  "selectedRanges": [],
+                  "sizeBytes": 0,
+                  "sourceRef": null
+                }
+              ],
+              "expiresAt": "1790651211",
+              "id": "aeef15db-a17f-4a34-927f-122d1cfd3e9f",
+              "includedSources": [
+                {
+                  "characterCount": 39,
+                  "contentHash": "2b0d656d3b8080bbc31c7ffa4fcb57160e318068da2b584c5572edbe3e4c6b26",
+                  "exclusionReason": null,
+                  "kind": "personal_knowledge",
+                  "label": "星河项目资料",
+                  "mode": "full",
+                  "selectedRanges": [
+                    {
+                      "chunkId": "full",
+                      "endCharacter": 39,
+                      "startCharacter": 0
+                    }
+                  ],
+                  "sizeBytes": 79,
+                  "sourceRef": "66000000-0000-4000-8000-000000000002"
+                }
+              ],
+              "indexMode": "none",
+              "processingLocation": "local",
+              "providerId": "custom",
+              "requiresSensitiveConfirmation": false,
+              "retrievedChunkCount": 0,
+              "sensitiveWarning": false,
+              "sessionId": "0202655b-9d3b-41dd-9020-4286701df2a0",
+              "status": "confirmed",
+              "strategy": "full",
+              "tokenBudget": 32000,
+              "workspaceId": "66000000-0000-4000-8000-000000000001",
+              "writingProfile": {
+                "composerVersion": "m2.1",
+                "enabled": false,
+                "estimatedTokens": 0,
+                "exampleKnowledgeIds": [],
+                "forbiddenWords": [],
+                "hash": "017090ca7f6f926ed5d00d68f89c0f2278848aacb2d6029c8c350bcbaf1068eb",
+                "instructionText": "",
+                "layers": [],
+                "terminology": []
+              }
+            },
+            "prompt": "长文目标：写一份三章项目报告。只用已提供的虚构资料，事实后标注来源；建议用建议语气，不得当作既定安排。全文统一称为星河项目。\n标题：星河项目报告\n读者：经理\n用户提供的关键事实（缺少证据时明确说明）：预算 420 元，尚未批准，截止日 2026 年 10 月 15 日\n项目术语：统一称为星河项目\n已确认大纲：\n1. 预算与审批现状：解释预算 420 元与尚未批准的现状，区分申请金额和可支出金额，不推定审批完成。（约 400 字）\n2. 截止日与推进建议：围绕 2026 年 10 月 15 日截止日提出可执行的建议，保留待审批前提，不虚构已安排的行动。（约 400 字）\n3. 风险与待核实事项：解释预算和截止日限制，指出资料没有审批人、人员分工或实施进度，不虚构补齐；不要重写前两章。（约 400 字）\n已审阅的前章连续性备注（不是独立证据）：预算与审批现状 — 星河项目预算 420 元，尚未批准；截止日为 2026 年 10 月 15 日。审批人、人员分工、实施进度未知；所有行动仅为建议。\n已审阅的前章连续性备注（不是独立证据）：截止日与推进建议 — 星河项目预算 420 元，尚未批准；截止日为 2026 年 10 月 15 日。审批人、人员分工、实施进度未知；所有行动仅为建议。\n本次只写章节：风险与待核实事项\n章节目标：解释预算和截止日限制，指出资料没有审批人、人员分工或实施进度，不虚构补齐；不要重写前两章。\n建议正文长度：约 400 字。不要输出整篇文章或重复前章正文。直接返回本章 Markdown 正文，不含本章标题和事实摘要。\n本次额外要求：不要虚构已批准",
+            "promptVersion": "longform-v1",
+            "provider": {
+              "endpoint": "http://127.0.0.1:59017/v1",
+              "id": "custom",
+              "kind": "custom",
+              "model": "m6-fixture",
+              "proxyUrl": null,
+              "temperature": 0.0
+            }
+          },
+          "status": "review",
+          "title": "风险与待核实事项"
+        }
+      ],
+      "id": "approval-report",
+      "result": {
+        "citations": [],
+        "content": "# 星河项目报告\n\n## 预算与审批现状\n\n[STAR] 预算 420 元 未获批准，项目执行方尚未获得正式审批。根据项目资料，预算金额为 420 元，但该金额尚未经过正式审批流程。项目执行方在申请预算时，已明确说明预算金额为 420 元，但该金额尚未被批准。因此，项目执行方在使用预算时，仅能使用可支出金额，而不能使用申请金额。预算审批流程尚未完成，项目执行方在使用预算时，需确保不超出可支出金额。\n\n## 截止日与推进建议\n\n[建议正文]\n\n截止日与推进建议\n\n星河项目当前面临的主要挑战在于截止日的限制。根据现有资料，项目截止日定于2026年10月15日，但目前尚未有明确的执行计划或资源分配。预算420元尚未批准，这意味着项目资金的使用仍存在不确定性。建议在截止日前，项目团队应尽快启动资金的使用流程，并与相关审批部门沟通，确保资金能够及时到位。同时，项目执行团队应根据截止日的限制，制定详细的进度计划，以确保项目在截止日前完成关键任务。由于截止日的限制，建议在项目执行过程中保持灵活性，随时准备调整计划以应对突发情况。尽管当前资料未提及审批人或人员分工，但项目执行的顺利进行仍依赖于明确的分工与协调。因此，建议在截止日前，项目团队应明确分工，并与相关审批部门保持密切沟通，以确保项目能够按计划推进。\n\n## 风险与待核实事项\n\n[STAR] 预算与审批现状\n\n星河项目当前预算为420元，但该金额尚未获得正式批准。项目预算的申请金额与实际可支出金额之间存在差异，这可能影响项目的执行。由于预算尚未批准，所有支出均需在审批通过后进行。项目团队在预算申请过程中可能面临资金限制，但项目本身仍处于规划阶段，尚未进入实施阶段。\n\n[STAR] 截止日与推进建议\n\n星河项目截止日设定为2026年10月15日，这一日期对于项目的时间安排具有重要意义。截止日的设定可能影响项目的推进速度，尤其是在预算和资源分配方面。建议项目团队在截止日前完成必要的准备工作，确保项目在截止日期前能够顺利推进。尽管截止日的设定为项目提供了明确的时间框架，但实际执行过程中仍需根据实际情况进行调整。\n\n[STAR] 风险与待核实事项\n\n星河项目当前面临的主要风险在于预算和截止日的限制。由于预算尚未批准，项目团队在资金使用上可能面临不确定性。同时，截止日的设定为项目的时间安排提供了明确的指导，但实际执行过程中仍需根据实际情况进行调整。项目资料中未提及审批人、人员分工或实施进度，这可能影响项目的顺利推进。建议项目团队在截止日前完成必要的准备工作，并在预算批准后进行资金分配。\n\n"
+      }
+    },
+    {
+      "chapters": [
+        {
+          "content": "[ S1 ]\n星河项目预算 420 元，尚未批准；截止日 2026 年 10 月 15 日。这些事实表明项目预算状态为“未批准”，且截止日期为 2026 年 10 月 15 日。这些信息可支持对项目当前状态的判断，但无法支持对预算是否已实际支出的结论。由于预算尚未批准，无法确认是否已实际使用该预算金额。",
+          "elapsedMs": 70799,
+          "error": null,
+          "objective": "准确保留预算 420 元、尚未批准和 2026 年 10 月 15 日截止日，说明这些事实可支持和不能支持哪些结论。",
+          "snapshot": {
+            "manifest": {
+              "characterCount": 39,
+              "citations": [
+                {
+                  "fragmentId": "4dbcc3193b93310e64fe3ef9c51ba9741a3502631e967cd0c63ad71ac174cdd3",
+                  "key": "S1",
+                  "locator": {
+                    "endLine": 1,
+                    "kind": "lines",
+                    "startLine": 1
+                  },
+                  "title": "星河项目资料"
+                }
+              ],
+              "confirmedAt": "1790650795",
+              "createdAt": "1790650795",
+              "estimatedTokens": 2936,
+              "excludedSources": [
+                {
+                  "characterCount": 0,
+                  "contentHash": null,
+                  "exclusionReason": "用户未选择",
+                  "kind": "recent_messages",
+                  "label": "最近对话",
+                  "mode": "excluded",
+                  "selectedRanges": [],
+                  "sizeBytes": 0,
+                  "sourceRef": null
+                }
+              ],
+              "expiresAt": "1790651395",
+              "id": "94b12dfb-fb66-40ff-b9f9-6bf759a910ac",
+              "includedSources": [
+                {
+                  "characterCount": 39,
+                  "contentHash": "2b0d656d3b8080bbc31c7ffa4fcb57160e318068da2b584c5572edbe3e4c6b26",
+                  "exclusionReason": null,
+                  "kind": "personal_knowledge",
+                  "label": "星河项目资料",
+                  "mode": "full",
+                  "selectedRanges": [
+                    {
+                      "chunkId": "full",
+                      "endCharacter": 39,
+                      "startCharacter": 0
+                    }
+                  ],
+                  "sizeBytes": 79,
+                  "sourceRef": "66000000-0000-4000-8000-000000000002"
+                }
+              ],
+              "indexMode": "none",
+              "processingLocation": "local",
+              "providerId": "custom",
+              "requiresSensitiveConfirmation": false,
+              "retrievedChunkCount": 0,
+              "sensitiveWarning": false,
+              "sessionId": "32a026f0-db69-4ac6-8c33-50c876289b05",
+              "status": "confirmed",
+              "strategy": "full",
+              "tokenBudget": 32000,
+              "workspaceId": "66000000-0000-4000-8000-000000000001",
+              "writingProfile": {
+                "composerVersion": "m2.1",
+                "enabled": false,
+                "estimatedTokens": 0,
+                "exampleKnowledgeIds": [],
+                "forbiddenWords": [],
+                "hash": "017090ca7f6f926ed5d00d68f89c0f2278848aacb2d6029c8c350bcbaf1068eb",
+                "instructionText": "",
+                "layers": [],
+                "terminology": []
+              }
+            },
+            "prompt": "长文目标：写给新接手经理的三章决策备忘录。使用虚构资料中的事实并引用；区分事实、推断与建议。统一使用星河项目，不使用星河工程。\n标题：星河项目报告\n读者：经理\n用户提供的关键事实（缺少证据时明确说明）：预算 420 元，尚未批准，截止日 2026 年 10 月 15 日\n项目术语：统一称为星河项目\n已确认大纲：\n1. 已知事实：准确保留预算 420 元、尚未批准和 2026 年 10 月 15 日截止日，说明这些事实可支持和不能支持哪些结论。（约 400 字）\n2. 决策前置条件：解释为什么需要确认审批和支出权限；资料未提供审批人或已用预算，必须说明未知，不能推算为零。（约 400 字）\n3. 沟通与跟进建议：提出经理可采用的沟通问题和跟进建议，保持审批未完成的前提，引用事实，不假定建议已经落实。（约 400 字）\n本次只写章节：已知事实\n章节目标：准确保留预算 420 元、尚未批准和 2026 年 10 月 15 日截止日，说明这些事实可支持和不能支持哪些结论。\n建议正文长度：约 400 字。不要输出整篇文章或重复前章正文。直接返回本章 Markdown 正文，不含本章标题和事实摘要。\n本次额外要求：不要虚构已批准",
+            "promptVersion": "longform-v1",
+            "provider": {
+              "endpoint": "http://127.0.0.1:59017/v1",
+              "id": "custom",
+              "kind": "custom",
+              "model": "m6-fixture",
+              "proxyUrl": null,
+              "temperature": 0.0
+            }
+          },
+          "status": "review",
+          "title": "已知事实"
+        },
+        {
+          "content": "在星河项目中，预算金额为420元，但该预算尚未获得正式批准。截止日期定为2026年10月15日，这意味着项目在该日期前必须完成所有必要的审批流程。由于审批人及已用预算的具体信息未被提供，因此无法确定当前预算的使用状态。项目执行方必须在截止日期前确认预算的批准状态，并确保所有相关支出在批准后进行。若预算未被批准，项目执行方需在截止日期前与相关审批机构沟通，以确认预算的使用情况。此过程对于项目后续的执行和财务控制至关重要，必须保持审批流程的透明和及时。",
+          "elapsedMs": 90900,
+          "error": null,
+          "objective": "解释为什么需要确认审批和支出权限；资料未提供审批人或已用预算，必须说明未知，不能推算为零。",
+          "snapshot": {
+            "manifest": {
+              "characterCount": 39,
+              "citations": [
+                {
+                  "fragmentId": "4dbcc3193b93310e64fe3ef9c51ba9741a3502631e967cd0c63ad71ac174cdd3",
+                  "key": "S1",
+                  "locator": {
+                    "endLine": 1,
+                    "kind": "lines",
+                    "startLine": 1
+                  },
+                  "title": "星河项目资料"
+                }
+              ],
+              "confirmedAt": "1790650866",
+              "createdAt": "1790650866",
+              "estimatedTokens": 3095,
+              "excludedSources": [
+                {
+                  "characterCount": 0,
+                  "contentHash": null,
+                  "exclusionReason": "用户未选择",
+                  "kind": "recent_messages",
+                  "label": "最近对话",
+                  "mode": "excluded",
+                  "selectedRanges": [],
+                  "sizeBytes": 0,
+                  "sourceRef": null
+                }
+              ],
+              "expiresAt": "1790651466",
+              "id": "5ed965bd-91fa-4c3f-a5c3-71b754961bc7",
+              "includedSources": [
+                {
+                  "characterCount": 39,
+                  "contentHash": "2b0d656d3b8080bbc31c7ffa4fcb57160e318068da2b584c5572edbe3e4c6b26",
+                  "exclusionReason": null,
+                  "kind": "personal_knowledge",
+                  "label": "星河项目资料",
+                  "mode": "full",
+                  "selectedRanges": [
+                    {
+                      "chunkId": "full",
+                      "endCharacter": 39,
+                      "startCharacter": 0
+                    }
+                  ],
+                  "sizeBytes": 79,
+                  "sourceRef": "66000000-0000-4000-8000-000000000002"
+                }
+              ],
+              "indexMode": "none",
+              "processingLocation": "local",
+              "providerId": "custom",
+              "requiresSensitiveConfirmation": false,
+              "retrievedChunkCount": 0,
+              "sensitiveWarning": false,
+              "sessionId": "078be443-23b5-41a7-bd16-27c70e634bb3",
+              "status": "confirmed",
+              "strategy": "full",
+              "tokenBudget": 32000,
+              "workspaceId": "66000000-0000-4000-8000-000000000001",
+              "writingProfile": {
+                "composerVersion": "m2.1",
+                "enabled": false,
+                "estimatedTokens": 0,
+                "exampleKnowledgeIds": [],
+                "forbiddenWords": [],
+                "hash": "017090ca7f6f926ed5d00d68f89c0f2278848aacb2d6029c8c350bcbaf1068eb",
+                "instructionText": "",
+                "layers": [],
+                "terminology": []
+              }
+            },
+            "prompt": "长文目标：写给新接手经理的三章决策备忘录。使用虚构资料中的事实并引用；区分事实、推断与建议。统一使用星河项目，不使用星河工程。\n标题：星河项目报告\n读者：经理\n用户提供的关键事实（缺少证据时明确说明）：预算 420 元，尚未批准，截止日 2026 年 10 月 15 日\n项目术语：统一称为星河项目\n已确认大纲：\n1. 已知事实：准确保留预算 420 元、尚未批准和 2026 年 10 月 15 日截止日，说明这些事实可支持和不能支持哪些结论。（约 400 字）\n2. 决策前置条件：解释为什么需要确认审批和支出权限；资料未提供审批人或已用预算，必须说明未知，不能推算为零。（约 400 字）\n3. 沟通与跟进建议：提出经理可采用的沟通问题和跟进建议，保持审批未完成的前提，引用事实，不假定建议已经落实。（约 400 字）\n已审阅的前章连续性备注（不是独立证据）：已知事实 — 星河项目预算 420 元，尚未批准；截止日为 2026 年 10 月 15 日。审批人、人员分工、实施进度未知；所有行动仅为建议。\n本次只写章节：决策前置条件\n章节目标：解释为什么需要确认审批和支出权限；资料未提供审批人或已用预算，必须说明未知，不能推算为零。\n建议正文长度：约 400 字。不要输出整篇文章或重复前章正文。直接返回本章 Markdown 正文，不含本章标题和事实摘要。\n本次额外要求：不要虚构已批准",
+            "promptVersion": "longform-v1",
+            "provider": {
+              "endpoint": "http://127.0.0.1:59017/v1",
+              "id": "custom",
+              "kind": "custom",
+              "model": "m6-fixture",
+              "proxyUrl": null,
+              "temperature": 0.0
+            }
+          },
+          "status": "review",
+          "title": "决策前置条件"
+        },
+        {
+          "content": "[事实陈述]  \n星河项目预算 420 元，尚未批准；截止日为 2026 年 10 月 15 日。这些事实表明项目资金状态为“未批准”，且时间限制明确。然而，这些信息无法直接推断出审批流程是否已完成或预算是否已实际使用。由于审批人、人员分工及实施进度均未知，因此不能假设审批已完成或预算已支出。\n\n[决策前置条件]  \n星河项目预算 420 元，尚未批准；截止日为 2026 年 10 月 15 日。这些信息表明项目仍处于“未批准”状态，且时间限制明确。然而，这些信息无法直接推断出审批流程是否已完成或预算是否已实际使用。由于审批人、人员分工及实施进度均未知，因此不能假设审批已完成或预算已支出。",
+          "elapsedMs": 125384,
+          "error": null,
+          "objective": "提出经理可采用的沟通问题和跟进建议，保持审批未完成的前提，引用事实，不假定建议已经落实。",
+          "snapshot": {
+            "manifest": {
+              "characterCount": 39,
+              "citations": [
+                {
+                  "fragmentId": "4dbcc3193b93310e64fe3ef9c51ba9741a3502631e967cd0c63ad71ac174cdd3",
+                  "key": "S1",
+                  "locator": {
+                    "endLine": 1,
+                    "kind": "lines",
+                    "startLine": 1
+                  },
+                  "title": "星河项目资料"
+                }
+              ],
+              "confirmedAt": "1790650957",
+              "createdAt": "1790650957",
+              "estimatedTokens": 3247,
+              "excludedSources": [
+                {
+                  "characterCount": 0,
+                  "contentHash": null,
+                  "exclusionReason": "用户未选择",
+                  "kind": "recent_messages",
+                  "label": "最近对话",
+                  "mode": "excluded",
+                  "selectedRanges": [],
+                  "sizeBytes": 0,
+                  "sourceRef": null
+                }
+              ],
+              "expiresAt": "1790651557",
+              "id": "0f5ad38b-e776-4019-8011-b95d0e88cf62",
+              "includedSources": [
+                {
+                  "characterCount": 39,
+                  "contentHash": "2b0d656d3b8080bbc31c7ffa4fcb57160e318068da2b584c5572edbe3e4c6b26",
+                  "exclusionReason": null,
+                  "kind": "personal_knowledge",
+                  "label": "星河项目资料",
+                  "mode": "full",
+                  "selectedRanges": [
+                    {
+                      "chunkId": "full",
+                      "endCharacter": 39,
+                      "startCharacter": 0
+                    }
+                  ],
+                  "sizeBytes": 79,
+                  "sourceRef": "66000000-0000-4000-8000-000000000002"
+                }
+              ],
+              "indexMode": "none",
+              "processingLocation": "local",
+              "providerId": "custom",
+              "requiresSensitiveConfirmation": false,
+              "retrievedChunkCount": 0,
+              "sensitiveWarning": false,
+              "sessionId": "b4a7ca1e-a955-45e2-8995-30d804249fad",
+              "status": "confirmed",
+              "strategy": "full",
+              "tokenBudget": 32000,
+              "workspaceId": "66000000-0000-4000-8000-000000000001",
+              "writingProfile": {
+                "composerVersion": "m2.1",
+                "enabled": false,
+                "estimatedTokens": 0,
+                "exampleKnowledgeIds": [],
+                "forbiddenWords": [],
+                "hash": "017090ca7f6f926ed5d00d68f89c0f2278848aacb2d6029c8c350bcbaf1068eb",
+                "instructionText": "",
+                "layers": [],
+                "terminology": []
+              }
+            },
+            "prompt": "长文目标：写给新接手经理的三章决策备忘录。使用虚构资料中的事实并引用；区分事实、推断与建议。统一使用星河项目，不使用星河工程。\n标题：星河项目报告\n读者：经理\n用户提供的关键事实（缺少证据时明确说明）：预算 420 元，尚未批准，截止日 2026 年 10 月 15 日\n项目术语：统一称为星河项目\n已确认大纲：\n1. 已知事实：准确保留预算 420 元、尚未批准和 2026 年 10 月 15 日截止日，说明这些事实可支持和不能支持哪些结论。（约 400 字）\n2. 决策前置条件：解释为什么需要确认审批和支出权限；资料未提供审批人或已用预算，必须说明未知，不能推算为零。（约 400 字）\n3. 沟通与跟进建议：提出经理可采用的沟通问题和跟进建议，保持审批未完成的前提，引用事实，不假定建议已经落实。（约 400 字）\n已审阅的前章连续性备注（不是独立证据）：已知事实 — 星河项目预算 420 元，尚未批准；截止日为 2026 年 10 月 15 日。审批人、人员分工、实施进度未知；所有行动仅为建议。\n已审阅的前章连续性备注（不是独立证据）：决策前置条件 — 星河项目预算 420 元，尚未批准；截止日为 2026 年 10 月 15 日。审批人、人员分工、实施进度未知；所有行动仅为建议。\n本次只写章节：沟通与跟进建议\n章节目标：提出经理可采用的沟通问题和跟进建议，保持审批未完成的前提，引用事实，不假定建议已经落实。\n建议正文长度：约 400 字。不要输出整篇文章或重复前章正文。直接返回本章 Markdown 正文，不含本章标题和事实摘要。\n本次额外要求：不要虚构已批准",
+            "promptVersion": "longform-v1",
+            "provider": {
+              "endpoint": "http://127.0.0.1:59017/v1",
+              "id": "custom",
+              "kind": "custom",
+              "model": "m6-fixture",
+              "proxyUrl": null,
+              "temperature": 0.0
+            }
+          },
+          "status": "review",
+          "title": "沟通与跟进建议"
+        }
+      ],
+      "id": "decision-brief",
+      "result": {
+        "citations": [],
+        "content": "# 星河项目报告\n\n## 已知事实\n\n[ S1 ]\n星河项目预算 420 元，尚未批准；截止日 2026 年 10 月 15 日。这些事实表明项目预算状态为“未批准”，且截止日期为 2026 年 10 月 15 日。这些信息可支持对项目当前状态的判断，但无法支持对预算是否已实际支出的结论。由于预算尚未批准，无法确认是否已实际使用该预算金额。\n\n## 决策前置条件\n\n在星河项目中，预算金额为420元，但该预算尚未获得正式批准。截止日期定为2026年10月15日，这意味着项目在该日期前必须完成所有必要的审批流程。由于审批人及已用预算的具体信息未被提供，因此无法确定当前预算的使用状态。项目执行方必须在截止日期前确认预算的批准状态，并确保所有相关支出在批准后进行。若预算未被批准，项目执行方需在截止日期前与相关审批机构沟通，以确认预算的使用情况。此过程对于项目后续的执行和财务控制至关重要，必须保持审批流程的透明和及时。\n\n## 沟通与跟进建议\n\n[事实陈述]  \n星河项目预算 420 元，尚未批准；截止日为 2026 年 10 月 15 日。这些事实表明项目资金状态为“未批准”，且时间限制明确。然而，这些信息无法直接推断出审批流程是否已完成或预算是否已实际使用。由于审批人、人员分工及实施进度均未知，因此不能假设审批已完成或预算已支出。\n\n[决策前置条件]  \n星河项目预算 420 元，尚未批准；截止日为 2026 年 10 月 15 日。这些信息表明项目仍处于“未批准”状态，且时间限制明确。然而，这些信息无法直接推断出审批流程是否已完成或预算是否已实际使用。由于审批人、人员分工及实施进度均未知，因此不能假设审批已完成或预算已支出。\n\n"
+      }
+    }
+  ],
+  "fixtureVersion": "m6-longform-1",
+  "promptVersion": "longform-v1"
+}

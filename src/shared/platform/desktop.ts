@@ -218,6 +218,59 @@ export const desktopApi = {
     return invoke<SearchAuthorizedContentOutput>('search_authorized_content', { input });
   },
 
+  async createWritingWorkspace() {
+    requireDesktop();
+    return invoke<WorkspaceSummary>('create_writing_workspace');
+  },
+  async listWritingProjects(workspaceId: string) {
+    requireDesktop();
+    return invoke<WritingProject[]>('list_writing_projects', { workspaceId });
+  },
+  async getWritingProject(projectId: string) {
+    requireDesktop();
+    return invoke<ProjectView>('get_writing_project', { projectId });
+  },
+  async saveWritingProject(input: SaveProjectInput) {
+    requireDesktop();
+    return invoke<WritingProject>('save_writing_project', { input });
+  },
+  async saveWritingOutline(input: SaveOutlineInput) {
+    requireDesktop();
+    return invoke<WritingProject>('save_writing_outline', { input });
+  },
+  async readWritingOutlineProposal(runId: string) {
+    requireDesktop();
+    return invoke<OutlineSection[]>('read_writing_outline_proposal', { runId });
+  },
+  async planWritingRun(input: PlanWritingInput) {
+    requireDesktop();
+    return invoke<WritingPlan>('plan_writing_run', { input });
+  },
+  async startWritingRun(planId: string) {
+    requireDesktop();
+    return invoke<WritingRun>('start_writing_run', { planId });
+  },
+  async cancelWritingRun(id: string) {
+    requireDesktop();
+    return invoke<void>('cancel_writing_run', { id });
+  },
+  async acceptWritingSection(input: AcceptSectionInput) {
+    requireDesktop();
+    return invoke<WritingProject>('accept_writing_section', { input });
+  },
+  async finalizeWritingProject(projectId: string, revision: number) {
+    requireDesktop();
+    return invoke<string>('finalize_writing_project', { projectId, revision });
+  },
+  async deleteWritingProject(projectId: string) {
+    requireDesktop();
+    return invoke<void>('delete_writing_project', { projectId });
+  },
+  async saveWritingDraft(runId: string, content: string, summary: string) {
+    requireDesktop();
+    return invoke<void>('save_writing_draft', { runId, content, summary });
+  },
+
   async getSemanticConfig() {
     requireDesktop();
     return invoke<EmbeddingConfig | null>('get_semantic_config');
@@ -671,7 +724,7 @@ export const desktopApi = {
   },
 
   async listCitations(query: {
-    ownerKind: 'result' | 'message';
+    ownerKind: 'result' | 'message' | 'writing_run';
     ownerId: string;
   }): Promise<import('../types/citation').CitationView[]> {
     requireDesktop();
@@ -877,3 +930,14 @@ export const desktopApi = {
     return invoke<A2uiActionResult>('execute_a2ui_action', { request });
   },
 };
+import type {
+  WritingProject,
+  ProjectView,
+  SaveProjectInput,
+  SaveOutlineInput,
+  OutlineSection,
+  PlanWritingInput,
+  WritingPlan,
+  WritingRun,
+  AcceptSectionInput,
+} from '../types/writingProject';

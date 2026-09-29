@@ -177,6 +177,12 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Enables the accept_writing_section command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-accept-writing-section",
+          "markdownDescription": "Enables the accept_writing_section command without any pre-configured scope."
+        },
+        {
           "description": "Enables the answer_task_questions command without any pre-configured scope.",
           "type": "string",
           "const": "allow-answer-task-questions",
@@ -205,6 +211,12 @@
           "type": "string",
           "const": "allow-cancel-semantic-search",
           "markdownDescription": "Enables the cancel_semantic_search command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the cancel_writing_run command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cancel-writing-run",
+          "markdownDescription": "Enables the cancel_writing_run command without any pre-configured scope."
         },
         {
           "description": "Enables the clear_all_local_data command without any pre-configured scope.",
@@ -267,6 +279,12 @@
           "markdownDescription": "Enables the create_text_result command without any pre-configured scope."
         },
         {
+          "description": "Enables the create_writing_workspace command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-writing-workspace",
+          "markdownDescription": "Enables the create_writing_workspace command without any pre-configured scope."
+        },
+        {
           "description": "Enables the decide_review_blocks command without any pre-configured scope.",
           "type": "string",
           "const": "allow-decide-review-blocks",
@@ -327,6 +345,12 @@
           "markdownDescription": "Enables the delete_writing_profile command without any pre-configured scope."
         },
         {
+          "description": "Enables the delete_writing_project command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-writing-project",
+          "markdownDescription": "Enables the delete_writing_project command without any pre-configured scope."
+        },
+        {
           "description": "Enables the discard_result_draft command without any pre-configured scope.",
           "type": "string",
           "const": "allow-discard-result-draft",
@@ -379,6 +403,12 @@
           "type": "string",
           "const": "allow-export-result",
           "markdownDescription": "Enables the export_result command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the finalize_writing_project command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-finalize-writing-project",
+          "markdownDescription": "Enables the finalize_writing_project command without any pre-configured scope."
         },
         {
           "description": "Enables the get_a2ui_capabilities command without any pre-configured scope.",
@@ -445,6 +475,12 @@
           "type": "string",
           "const": "allow-get-writing-profiles",
           "markdownDescription": "Enables the get_writing_profiles command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_writing_project command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-writing-project",
+          "markdownDescription": "Enables the get_writing_project command without any pre-configured scope."
         },
         {
           "description": "Enables the inspect_import_batch command without any pre-configured scope.",
@@ -555,6 +591,12 @@
           "markdownDescription": "Enables the list_workspace_files command without any pre-configured scope."
         },
         {
+          "description": "Enables the list_writing_projects command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-writing-projects",
+          "markdownDescription": "Enables the list_writing_projects command without any pre-configured scope."
+        },
+        {
           "description": "Enables the open_a2ui_template command without any pre-configured scope.",
           "type": "string",
           "const": "allow-open-a2ui-template",
@@ -595,6 +637,12 @@
           "type": "string",
           "const": "allow-plan-semantic-search",
           "markdownDescription": "Enables the plan_semantic_search command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the plan_writing_run command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-plan-writing-run",
+          "markdownDescription": "Enables the plan_writing_run command without any pre-configured scope."
         },
         {
           "description": "Enables the probe_local_providers command without any pre-configured scope.",
@@ -643,6 +691,12 @@
           "type": "string",
           "const": "allow-read-workspace-file",
           "markdownDescription": "Enables the read_workspace_file command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the read_writing_outline_proposal command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-read-writing-outline-proposal",
+          "markdownDescription": "Enables the read_writing_outline_proposal command without any pre-configured scope."
         },
         {
           "description": "Enables the rebuild_authorized_search_index command without any pre-configured scope.",
@@ -729,10 +783,28 @@
           "markdownDescription": "Enables the save_workspace_file command without any pre-configured scope."
         },
         {
+          "description": "Enables the save_writing_draft command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-writing-draft",
+          "markdownDescription": "Enables the save_writing_draft command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_writing_outline command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-writing-outline",
+          "markdownDescription": "Enables the save_writing_outline command without any pre-configured scope."
+        },
+        {
           "description": "Enables the save_writing_profile command without any pre-configured scope.",
           "type": "string",
           "const": "allow-save-writing-profile",
           "markdownDescription": "Enables the save_writing_profile command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_writing_project command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-writing-project",
+          "markdownDescription": "Enables the save_writing_project command without any pre-configured scope."
         },
         {
           "description": "Enables the search_authorized_content command without any pre-configured scope.",
@@ -801,6 +873,12 @@
           "markdownDescription": "Enables the start_task command without any pre-configured scope."
         },
         {
+          "description": "Enables the start_writing_run command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-start-writing-run",
+          "markdownDescription": "Enables the start_writing_run command without any pre-configured scope."
+        },
+        {
           "description": "Enables the step_semantic_search command without any pre-configured scope.",
           "type": "string",
           "const": "allow-step-semantic-search",
@@ -849,6 +927,12 @@
           "markdownDescription": "Enables the validate_document_patch command without any pre-configured scope."
         },
         {
+          "description": "Denies the accept_writing_section command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-accept-writing-section",
+          "markdownDescription": "Denies the accept_writing_section command without any pre-configured scope."
+        },
+        {
           "description": "Denies the answer_task_questions command without any pre-configured scope.",
           "type": "string",
           "const": "deny-answer-task-questions",
@@ -877,6 +961,12 @@
           "type": "string",
           "const": "deny-cancel-semantic-search",
           "markdownDescription": "Denies the cancel_semantic_search command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cancel_writing_run command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cancel-writing-run",
+          "markdownDescription": "Denies the cancel_writing_run command without any pre-configured scope."
         },
         {
           "description": "Denies the clear_all_local_data command without any pre-configured scope.",
@@ -939,6 +1029,12 @@
           "markdownDescription": "Denies the create_text_result command without any pre-configured scope."
         },
         {
+          "description": "Denies the create_writing_workspace command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-writing-workspace",
+          "markdownDescription": "Denies the create_writing_workspace command without any pre-configured scope."
+        },
+        {
           "description": "Denies the decide_review_blocks command without any pre-configured scope.",
           "type": "string",
           "const": "deny-decide-review-blocks",
@@ -999,6 +1095,12 @@
           "markdownDescription": "Denies the delete_writing_profile command without any pre-configured scope."
         },
         {
+          "description": "Denies the delete_writing_project command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-writing-project",
+          "markdownDescription": "Denies the delete_writing_project command without any pre-configured scope."
+        },
+        {
           "description": "Denies the discard_result_draft command without any pre-configured scope.",
           "type": "string",
           "const": "deny-discard-result-draft",
@@ -1051,6 +1153,12 @@
           "type": "string",
           "const": "deny-export-result",
           "markdownDescription": "Denies the export_result command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the finalize_writing_project command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-finalize-writing-project",
+          "markdownDescription": "Denies the finalize_writing_project command without any pre-configured scope."
         },
         {
           "description": "Denies the get_a2ui_capabilities command without any pre-configured scope.",
@@ -1117,6 +1225,12 @@
           "type": "string",
           "const": "deny-get-writing-profiles",
           "markdownDescription": "Denies the get_writing_profiles command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_writing_project command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-writing-project",
+          "markdownDescription": "Denies the get_writing_project command without any pre-configured scope."
         },
         {
           "description": "Denies the inspect_import_batch command without any pre-configured scope.",
@@ -1227,6 +1341,12 @@
           "markdownDescription": "Denies the list_workspace_files command without any pre-configured scope."
         },
         {
+          "description": "Denies the list_writing_projects command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-writing-projects",
+          "markdownDescription": "Denies the list_writing_projects command without any pre-configured scope."
+        },
+        {
           "description": "Denies the open_a2ui_template command without any pre-configured scope.",
           "type": "string",
           "const": "deny-open-a2ui-template",
@@ -1267,6 +1387,12 @@
           "type": "string",
           "const": "deny-plan-semantic-search",
           "markdownDescription": "Denies the plan_semantic_search command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the plan_writing_run command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-plan-writing-run",
+          "markdownDescription": "Denies the plan_writing_run command without any pre-configured scope."
         },
         {
           "description": "Denies the probe_local_providers command without any pre-configured scope.",
@@ -1315,6 +1441,12 @@
           "type": "string",
           "const": "deny-read-workspace-file",
           "markdownDescription": "Denies the read_workspace_file command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the read_writing_outline_proposal command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-read-writing-outline-proposal",
+          "markdownDescription": "Denies the read_writing_outline_proposal command without any pre-configured scope."
         },
         {
           "description": "Denies the rebuild_authorized_search_index command without any pre-configured scope.",
@@ -1401,10 +1533,28 @@
           "markdownDescription": "Denies the save_workspace_file command without any pre-configured scope."
         },
         {
+          "description": "Denies the save_writing_draft command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-writing-draft",
+          "markdownDescription": "Denies the save_writing_draft command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_writing_outline command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-writing-outline",
+          "markdownDescription": "Denies the save_writing_outline command without any pre-configured scope."
+        },
+        {
           "description": "Denies the save_writing_profile command without any pre-configured scope.",
           "type": "string",
           "const": "deny-save-writing-profile",
           "markdownDescription": "Denies the save_writing_profile command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_writing_project command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-writing-project",
+          "markdownDescription": "Denies the save_writing_project command without any pre-configured scope."
         },
         {
           "description": "Denies the search_authorized_content command without any pre-configured scope.",
@@ -1471,6 +1621,12 @@
           "type": "string",
           "const": "deny-start-task",
           "markdownDescription": "Denies the start_task command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the start_writing_run command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-start-writing-run",
+          "markdownDescription": "Denies the start_writing_run command without any pre-configured scope."
         },
         {
           "description": "Denies the step_semantic_search command without any pre-configured scope.",

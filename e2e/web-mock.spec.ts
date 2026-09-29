@@ -128,7 +128,9 @@ test('defaults to the simple navigation shell and persists professional mode', a
   await expect(page.getByTestId('workspace-layout')).toBeVisible();
   await expect(page.getByRole('complementary', { name: '项目文件' })).toHaveCount(0);
   await expect(page.getByText('协议 Inspector')).toHaveCount(0);
-  await expect(page.getByText(/siliconflow/i)).toHaveCount(0);
+  // The unified model picker is available in both modes; endpoint/key setup
+  // remains confined to professional settings.
+  await expect(page.getByRole('combobox', { name: 'AI 模型', exact: true })).toBeVisible();
   await expect(page.getByText('Endpoint', { exact: true })).toHaveCount(0);
   await expect(page.getByText('API Key', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /选择文件/ }).first()).toBeVisible();

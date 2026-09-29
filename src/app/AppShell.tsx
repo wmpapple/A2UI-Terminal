@@ -46,6 +46,10 @@ const KnowledgePage = lazyFeature(async () => {
   const module = await import('../features/knowledge/KnowledgePage');
   return { default: module.KnowledgePage };
 });
+const WritingProjectsPage = lazyFeature(async () => {
+  const module = await import('../features/writingProjects/WritingProjectsPage');
+  return { default: module.WritingProjectsPage };
+});
 const CommandPalette = lazyFeature(async () => {
   const module = await import('./CommandPalette');
   return { default: module.CommandPalette };
@@ -237,6 +241,8 @@ export function AppShell() {
   const content =
     route === 'home' ? (
       <HomePage onOpenWorkbench={openWorkbench} onOpenGuide={() => setOnboardingOpen(true)} />
+    ) : route === 'projects' ? (
+      <WritingProjectsPage onOpenResult={openResult} />
     ) : route === 'knowledge' ? (
       <KnowledgePage />
     ) : route === 'results' ? (

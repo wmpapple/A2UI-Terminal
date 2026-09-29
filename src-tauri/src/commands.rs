@@ -2154,3 +2154,110 @@ pub async fn upgrade_knowledge_locators(
     .await
     .map_err(|_| AppError::StateUnavailable)?
 }
+#[tauri::command]
+pub fn create_writing_workspace(state: State<'_, AppState>) -> Result<WorkspaceSummary, AppError> {
+    crate::application::workspace::resolve_context_workspace(&state.storage, None)
+}
+#[tauri::command]
+pub fn list_writing_projects(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> Result<Vec<crate::domain::writing_project::WritingProject>, AppError> {
+    crate::repository::writing_project::list(&state.storage, &workspace_id)
+}
+#[tauri::command]
+pub fn get_writing_project(
+    state: State<'_, AppState>,
+    project_id: String,
+) -> Result<crate::domain::writing_project::ProjectView, AppError> {
+    crate::application::writing_project::view(state.inner(), &project_id)
+}
+#[tauri::command]
+pub fn save_writing_project(
+    state: State<'_, AppState>,
+    input: crate::domain::writing_project::SaveProjectInput,
+) -> Result<crate::domain::writing_project::WritingProject, AppError> {
+    crate::application::writing_project::save(state.inner(), input)
+}
+#[tauri::command]
+pub fn save_writing_outline(
+    state: State<'_, AppState>,
+    input: crate::domain::writing_project::SaveOutlineInput,
+) -> Result<crate::domain::writing_project::WritingProject, AppError> {
+    crate::application::writing_project::outline(state.inner(), input)
+}
+#[tauri::command]
+pub fn read_writing_outline_proposal(
+    state: State<'_, AppState>,
+    run_id: String,
+) -> Result<Vec<crate::domain::writing_project::OutlineSection>, AppError> {
+    crate::application::writing_project::proposal_outline(state.inner(), &run_id)
+}
+#[tauri::command]
+pub async fn plan_writing_run(
+    app: AppHandle,
+    input: crate::domain::writing_project::PlanWritingInput,
+) -> Result<crate::application::writing_project::WritingPlan, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::application::writing_project::plan(app.state::<AppState>().inner(), input)
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
+}
+#[tauri::command]
+pub async fn start_writing_run(
+    app: AppHandle,
+    plan_id: String,
+) -> Result<crate::domain::writing_project::WritingRun, AppError> {
+    crate::application::writing_project::start(app.state::<AppState>().inner(), &plan_id).await
+}
+#[tauri::command]
+pub fn cancel_writing_run(state: State<'_, AppState>, id: String) -> Result<(), AppError> {
+    crate::application::writing_project::cancel(state.inner(), &id)
+}
+#[tauri::command]
+pub fn accept_writing_section(
+    state: State<'_, AppState>,
+    input: crate::domain::writing_project::AcceptSectionInput,
+) -> Result<crate::domain::writing_project::WritingProject, AppError> {
+    crate::application::writing_project::accept(state.inner(), input)
+}
+#[tauri::command]
+pub async fn finalize_writing_project(
+    app: AppHandle,
+    project_id: String,
+    revision: i64,
+) -> Result<String, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::application::writing_project::finalize(
+            app.state::<AppState>().inner(),
+            &project_id,
+            revision,
+        )
+    })
+    .await
+    .map_err(|_| AppError::StateUnavailable)?
+}
+#[tauri::command]
+pub fn delete_writing_project(
+    state: State<'_, AppState>,
+    project_id: String,
+) -> Result<(), AppError> {
+    crate::application::writing_project::delete(state.inner(), &project_id)
+}
+#[tauri::command]
+pub fn save_writing_draft(
+    state: State<'_, AppState>,
+    run_id: String,
+    content: String,
+    summary: String,
+) -> Result<(), AppError> {
+    if content.chars().count() > 100_000 || summary.chars().count() > 1500 {
+        return Err(AppError::InvalidInput("章节草稿或摘要过长".into()));
+    }
+    crate::repository::writing_project::save_draft(
+        &state.storage,
+        &run_id,
+        &crate::domain::writing_project::WritingDraft { content, summary },
+    )
+}

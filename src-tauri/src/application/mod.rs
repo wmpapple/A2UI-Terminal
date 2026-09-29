@@ -26,3 +26,4 @@ pub mod knowledge;
 pub mod citation;
 
 pub mod locator_upgrade;
+pub mod writing_project;

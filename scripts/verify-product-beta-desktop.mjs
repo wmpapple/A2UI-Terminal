@@ -9,10 +9,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium, expect } from '@playwright/test';
+import { verifyLongform } from './verify-longform-workflow.mjs';
 
 const binary = path.resolve(process.argv[2] ?? 'src-tauri/target/debug/a2ui-terminal.exe');
 const output = path.resolve(process.argv[3] ?? 'logs/b0-desktop');
 const verifyHybridSearch = process.argv.includes('--hybrid-search');
+const verifyWritingProjects = process.argv.includes('--longform');
 const verifyPersistentSearch = process.argv.includes('--persistent-search') || verifyHybridSearch;
 await fs.mkdir(output, { recursive: true });
 // A failed rerun must not leave an earlier successful report looking current.
@@ -42,9 +44,18 @@ const fixture = http.createServer(async (req, res) => {
   for await (const chunk of req) chunks.push(chunk);
   const payload = JSON.parse(Buffer.concat(chunks).toString());
   received.push({ credentialSent: Boolean(req.headers.authorization), payload });
+  const response =
+    verifyWritingProjects && payload.messages?.some((m) => m.content.includes('仅返回 JSON：'))
+      ? JSON.stringify({
+          sections: [
+            { id: null, title: '预算现状', objective: '保留预算和审批状态', targetWords: 300 },
+            { id: null, title: '后续行动', objective: '讨论下一步建议', targetWords: 300 },
+          ],
+        })
+      : answer;
   res.setHeader('Content-Type', 'text/event-stream');
   res.end(
-    `data: ${JSON.stringify({ choices: [{ delta: { content: answer } }] })}\n\ndata: [DONE]\n\n`
+    `data: ${JSON.stringify({ choices: [{ delta: { content: response } }] })}\n\ndata: [DONE]\n\n`
   );
 });
 await new Promise((resolve) => fixture.listen(0, '127.0.0.1', resolve));
@@ -54,6 +65,7 @@ const child = spawn(binary, ['--smoke-test-root', root], {
   stdio: 'ignore',
   env: {
     ...process.env,
+    WEBVIEW2_USER_DATA_FOLDER: path.join(root, 'webview'),
     WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port} --remote-debugging-address=127.0.0.1`,
   },
 });
@@ -253,6 +265,7 @@ try {
     await expect(search.getByRole('article').filter({ hasText: 'B0 桌面成果' })).toBeVisible();
   }
   const measurements = [...homeMeasurements, ...workflowMeasurements];
+  const writingChecks = verifyWritingProjects ? await verifyLongform(page, received) : [];
   assert.equal(pageErrors.length, 0, pageErrors.join('\n'));
   for (const name of ['homeInteractive', 'resultOpen', 'requestFeedback']) {
     const values = measurements.filter((m) => m.name === name);
@@ -275,6 +288,7 @@ try {
         launchToHomeIncludingSetupMs: launchToHomeMs,
         measurements,
         checks: [
+          ...writingChecks,
           'profile_prompt',
           'generation_review_apply',
           'input_cleared',

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-writing-project"
+description = "Enables the get_writing_project command without any pre-configured scope."
+commands.allow = ["get_writing_project"]
+
+[[permission]]
+identifier = "deny-get-writing-project"
+description = "Denies the get_writing_project command without any pre-configured scope."
+commands.deny = ["get_writing_project"]

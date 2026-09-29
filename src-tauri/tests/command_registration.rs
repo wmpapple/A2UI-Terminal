@@ -39,7 +39,20 @@ const RESULT_COMMANDS: [&str; 14] = [
     "export_result",
     "cancel_export",
 ];
-const TASK_COMMANDS: [&str; 7] = [
+const TASK_COMMANDS: [&str; 20] = [
+    "create_writing_workspace",
+    "save_writing_draft",
+    "list_writing_projects",
+    "get_writing_project",
+    "save_writing_project",
+    "save_writing_outline",
+    "read_writing_outline_proposal",
+    "plan_writing_run",
+    "start_writing_run",
+    "cancel_writing_run",
+    "accept_writing_section",
+    "finalize_writing_project",
+    "delete_writing_project",
     "plan_generation",
     "start_generation",
     "list_task_templates",

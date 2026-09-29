@@ -1,0 +1,210 @@
+{
+  "stage": "M6",
+  "status": "engineering_verified_awaiting_product_acceptance",
+  "generatedAt": "2026-09-29T03:27:20.842Z",
+  "baselineCommit": "ebceca7",
+  "previousStage": "M5-B_product_accepted",
+  "nextStageAuthorized": false,
+  "schemaVersion": 26,
+  "engineeringPassed": true,
+  "artifact": "logs/m6-scroll-fix-review/a2ui-terminal.exe",
+  "binarySha256": "1a0e7551a5391a19f851cd63c70cdb7a5c9bbe7bffaa5a94fd6920718cc93ccd",
+  "binaryBytes": 68935168,
+  "rustPassed": 300,
+  "rustIgnored": 3,
+  "frontendPassed": 303,
+  "frontendFiles": 69,
+  "e2ePassed": 34,
+  "scrollRegressionPassed": 3,
+  "desktop": {
+    "passed": true,
+    "binarySha256": "1a0e7551a5391a19f851cd63c70cdb7a5c9bbe7bffaa5a94fd6920718cc93ccd",
+    "runtime": "real_tauri_webview2",
+    "isolated": true,
+    "credentialsDisabled": true,
+    "provider": "loopback_sse_fixture",
+    "remoteModelEvaluated": false,
+    "modelRequests": 4,
+    "launchToHomeIncludingSetupMs": 1790.106099999999,
+    "measurements": [
+      {
+        "name": "homeInteractive",
+        "durationMs": 123.7,
+        "budgetMs": 2500,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T03:26:41.247Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 12.3,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T03:26:46.629Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 349.7,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T03:26:46.967Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 41.8,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T03:26:47.176Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 42.1,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T03:26:47.176Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 30.9,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T03:26:47.365Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 31,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T03:26:47.365Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 29.1,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T03:26:47.563Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 29.2,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T03:26:47.564Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 33.3,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T03:26:47.767Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 33.3,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T03:26:47.768Z"
+      }
+    ],
+    "checks": [
+      "longform_mouse_scroll",
+      "longform_outline_confirmation",
+      "longform_serial_chapters",
+      "longform_consent_no_early_request",
+      "longform_draft_navigation_reload",
+      "longform_summary_context",
+      "longform_result_assembly",
+      "profile_prompt",
+      "generation_review_apply",
+      "input_cleared",
+      "autosave",
+      "home_return",
+      "unknown_citation",
+      "webview_reload_persistence"
+    ],
+    "pageErrors": []
+  },
+  "quality": {
+    "fixtureVersion": "m6-longform-1",
+    "fixtureSha256": "cbe1bded2dbdd5e449c65da42de9b8c734d3242927a8a03dd401a16481eb2197",
+    "promptVersion": "longform-v1",
+    "model": {
+      "model": "onnx-community/Qwen3-1.7B-ONNX",
+      "revision": "cc6a06a21d614e9b8e92a6adfab1074d4e7d2438",
+      "modelSha256": "3763020b62164be3d9c31dc6b15aa042052f5a9da846e991f6c45e0f1a6dced7",
+      "runtime": "@huggingface/transformers@3.8.1",
+      "remoteInference": false,
+      "endpoint": "http://127.0.0.1:59017/v1"
+    },
+    "repetitions": 1,
+    "decoding": {
+      "doSample": false,
+      "maxNewTokens": 1800,
+      "thinking": false
+    },
+    "automatedPassed": false,
+    "manualReviewRequired": true,
+    "scores": [
+      {
+        "id": "approval-report",
+        "complete": true,
+        "characters": 1029,
+        "criticalFactsRetained": 1,
+        "chaptersWithSourceCitation": 0,
+        "unknownKeys": [],
+        "approvalFlags": 0,
+        "terminologyFlags": 0,
+        "repeatedParagraphRatio": 0,
+        "citationsVerified": false,
+        "automatedPassed": false,
+        "chapterMilliseconds": [119648, 193089, 184019]
+      },
+      {
+        "id": "decision-brief",
+        "complete": true,
+        "characters": 680,
+        "criticalFactsRetained": 1,
+        "chaptersWithSourceCitation": 0,
+        "unknownKeys": [],
+        "approvalFlags": 2,
+        "terminologyFlags": 0,
+        "repeatedParagraphRatio": 0,
+        "citationsVerified": false,
+        "automatedPassed": false,
+        "chapterMilliseconds": [70799, 90900, 125384]
+      }
+    ]
+  },
+  "modelQualifiedOnFixedCases": false,
+  "manualReview": {
+    "reviewedAt": "2026-09-29",
+    "reviewer": "Codex agent reading all six generated chapters; not user product acceptance",
+    "promptVersion": "longform-v1",
+    "resultsSha256": "356152290e4f253c93d46ed97f971916c773a58f1f646ee47346ef863e13b7be",
+    "passed": false,
+    "recommendation": "This model/configuration is not qualified for the fixed longform tasks. Do not present it as a recommended writing model.",
+    "cases": [
+      {
+        "id": "approval-report",
+        "passed": false,
+        "facts": "420 元、未批准和截止日期在全文保留，但第三章无依据声称项目尚未进入实施阶段；不能据此认定事实准确。",
+        "outline": "第三章重述前两章并重复其标题，偏离只写当前章节的要求。",
+        "terminology": "使用了星河项目，但第一章缺少该名称；没有出现星河工程。",
+        "citations": "三章均未输出合法的 [S1] 引用。出现 [STAR] 标记，不是来源证据。",
+        "continuity": "前章不应引入实际可支出金额或项目阶段等缺失事实；第三章继续扩展了没有依据的状态。",
+        "repetition": "多处语义重复，精确段落去重指标未捕获这些近似重复。"
+      },
+      {
+        "id": "decision-brief",
+        "passed": false,
+        "facts": "保留已知金额、未批准和截止日，没有直接断言已批准；第二章把项目截止日推成审批必须完成的硬性截止日，资料没有给出这种约束。",
+        "outline": "第三章没有给出所要求的沟通问题和跟进建议，而是近乎重复两段现状陈述。全文 680 字，未满足固定的最低 800 字筛查门槛。",
+        "terminology": "星河项目名称一致。",
+        "citations": "仅第一章出现带空格的 [ S1 ]，产品引用语法未识别；另外两章没有引用。",
+        "continuity": "没有明确已批准的正面断言。自动审批筛查的两个命中均位于不能假设/无法推断的否定句，属于筛查假阳性；即使人工排除这两项，其他失败仍成立。",
+        "repetition": "第三章两段结构和含义高度近似，精确字符串重复率 0 不能代表没有重复。"
+      }
+    ],
+    "limits": "Two synthetic three-chapter cases, one run each, one small local q4 model. No general success-rate claim, no cloud model certification, no factual-entailment claim from source identity verification."
+  },
+  "humanAcceptance": "pending"
+}

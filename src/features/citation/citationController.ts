@@ -4,7 +4,7 @@ import type { CitationView, UpgradeProgress } from '../../shared/types/citation'
 
 export const citationController = {
   async list(
-    ownerKind: 'result' | 'message',
+    ownerKind: 'result' | 'message' | 'writing_run',
     ownerId: string,
     content: string
   ): Promise<CitationView[]> {

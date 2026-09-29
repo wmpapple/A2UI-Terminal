@@ -12,7 +12,7 @@ export function CitationPanel({
   content,
   dirty = false,
 }: {
-  ownerKind: 'result' | 'message';
+  ownerKind: 'result' | 'message' | 'writing_run';
   ownerId: string;
   content: string;
   dirty?: boolean;

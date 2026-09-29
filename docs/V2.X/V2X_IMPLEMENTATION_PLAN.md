@@ -2,7 +2,7 @@
 
 > 日期：2026-09-21（Asia/Shanghai）  
 > 代码基准：`35023d75a0d87e5e16f1d0de8a554e4eb6b49a69`；开始分析时工作树干净。  
-> 状态（2026-09-28）：M0、F0、M1-A、M1-B、M2、M3、M4、B0、M5-A 产品验收通过；M5-B 混合检索工程验证完成，等待人工验收，执行记录见 [M5B_EXECUTION.md](M5B_EXECUTION.md)。尚未开始 M6。
+> 状态（2026-09-29）：M0、F0、M1-A、M1-B、M2、M3、M4、B0、M5-A、M5-B 产品验收通过；M6 长文项目功能及工程验证完成，等待产品验收。本机 1.7B 测试模型未达写作质量门槛，未作为推荐模型；详情见 [M6_EXECUTION.md](M6_EXECUTION.md)。尚未开始 M7。
 >
 > 输入：用户提供的 PRD、Engineering Implementation Plan、Product Engineering Roadmap，以及仓库现有 64 份 docs 文档、实现与测试。材料目录见 [V2X_REVIEW_INVENTORY.md](V2X_REVIEW_INVENTORY.md)。
 
@@ -370,7 +370,7 @@ PDF 页级与 DOCX 段落级是对应能力声明的基础验收门，高级定�
 
 Embedding 云端调用本身也是资料发送，必须有独立可见授权/发送计划并纳入统一外发边界；不能仅在最终写作请求时确认。未授权资料应在召回前过滤，Top-K 入 Manifest 前再复核，避免只在最后过滤造成侧信道或结果不足。
 
-M6 第一版串行章节即可。当前 `application/context.rs::plan` 会清空所有待确认清单，必须先改成按请求/任务隔离、有 TTL 和容量限制的 registry，才可安全支持 Chat、Inline、Critic 或多个章节并行。
+M6 第一版串行章节即可。实施前 `application/context.rs::plan` 会清空所有待确认清单；M6 已改成按 ID 隔离、10 分钟 TTL、32 个待确认清单上限的 registry。长文仍串行执行，未因此开启并行章节或 M7 Critic。
 
 M5-A 与长文“必须串行”的关系不应机械化：小资料库可以先试验 M6；但不得把尚未验证的大规模检索性能作为长文能力的已知前提。M8 与 M9 可在后续规划时按真实需求调整优先级。
 

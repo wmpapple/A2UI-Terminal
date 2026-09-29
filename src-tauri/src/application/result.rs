@@ -20,7 +20,7 @@ use std::path::{Component, Path, PathBuf};
 use uuid::Uuid;
 
 const MANAGED_RESULTS_DIRECTORY: &str = "my-results";
-const MANAGED_RESULTS_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
+pub(crate) const MANAGED_RESULTS_WORKSPACE_ID: &str = "00000000-0000-4000-8000-000000000001";
 
 enum ReviewResultLink<'a> {
     None,

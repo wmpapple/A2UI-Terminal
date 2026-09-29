@@ -12,6 +12,12 @@ pub fn plan(
     manifests: &mut HashMap<String, PendingContextManifest>,
     input: ContextManifestInput,
 ) -> Result<ContextManifest, AppError> {
+    manifests.retain(|_, pending| !pending.expired());
+    if manifests.len() >= 32 {
+        return Err(AppError::InvalidInput(
+            "待确认清单已达上限，请关闭旧请求或稍后重试".into(),
+        ));
+    }
     let input = crate::application::context_pack::expand_manifest_input(storage, input)?;
     let mut pending = ai::plan_context_manifest(storage, index, input)?;
     pending.view.citations = super::citation::decorate(
@@ -21,7 +27,6 @@ pub fn plan(
         &pending.view.included_sources,
     )?;
     let view = pending.view.clone();
-    manifests.clear();
     manifests.insert(view.id.clone(), pending);
     Ok(view)
 }

@@ -8,6 +8,7 @@ use std::fs;
 use std::path::Path;
 
 pub fn reconcile_startup(storage: &Storage, managed_results_dir: &Path) -> Result<(), AppError> {
+    crate::repository::writing_project::recover(storage)?;
     super::task::recover_pending_runs(storage, managed_results_dir)?;
     reconcile_export_jobs(storage)
 }

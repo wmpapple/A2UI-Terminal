@@ -80,6 +80,16 @@ pub fn output_request(
     storage.with_read(|db| Ok(db.query_row("SELECT min(request_id) FROM citation_outputs WHERE owner_kind=?1 AND owner_id=?2 AND content_hash=?3 HAVING count(DISTINCT request_id)=1", params![kind,id,hash], |r|r.get(0)).optional()?))
 }
 
+pub fn request_workspace(storage: &Storage, request: &str) -> Result<String, AppError> {
+    storage.with_read(|db| {
+        Ok(db.query_row(
+            "SELECT workspace_id FROM citation_requests WHERE id=?1",
+            [request],
+            |r| r.get(0),
+        )?)
+    })
+}
+
 pub fn output_request_for_revision(
     storage: &Storage,
     kind: &str,
@@ -153,4 +163,19 @@ pub fn previously_known(
     key: &str,
 ) -> Result<bool, AppError> {
     storage.with_read(|db|Ok(db.query_row("SELECT EXISTS(SELECT 1 FROM citation_outputs o JOIN request_citations c ON c.request_id=o.request_id WHERE o.owner_kind=?1 AND o.owner_id=?2 AND c.key=?3)",params![kind,id,key],|r|r.get(0))?))
+}
+// Renumber independently scoped chapter keys without reviving deleted source fragments.
+pub fn combine_requests(
+    storage: &Storage,
+    request: &str,
+    workspace: &str,
+    mappings: &[(String, String, String)],
+) -> Result<(), AppError> {
+    storage.with_transaction(|db| {
+        db.execute("INSERT INTO citation_requests(id,manifest_id,workspace_id) VALUES(?1,?1,?2)",params![request,workspace])?;
+        for (source,key,alias) in mappings {
+            if db.execute("INSERT INTO request_citations(request_id,key,fragment_id,title,locator_json,unavailable_status) SELECT ?1,?2,c.fragment_id,c.title,c.locator_json,c.unavailable_status FROM request_citations c JOIN citation_requests r ON r.id=c.request_id WHERE c.request_id=?3 AND c.key=?4 AND r.workspace_id=?5",params![request,alias,source,key,workspace])?!=1 {return Err(AppError::FileConflict);}
+        }
+        Ok(())
+    })
 }

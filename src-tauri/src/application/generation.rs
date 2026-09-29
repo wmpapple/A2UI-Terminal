@@ -226,7 +226,7 @@ pub fn plan(state: &AppState, input: PlanGenerationInput) -> Result<GenerationPl
         .pending_generations
         .lock()
         .map_err(|_| AppError::StateUnavailable)?;
-    pending.clear();
+    pending.retain(|id, _| manifests.contains_key(id));
     pending.insert(
         output.id.clone(),
         PreparedGeneration {

@@ -187,11 +187,15 @@ pub fn plan(state: &AppState, input: PlanInlineEditInput) -> Result<InlineEditPl
         request_id: request.request_id.clone(),
         manifest,
     };
+    let manifests = state
+        .pending_context_manifests
+        .lock()
+        .map_err(|_| AppError::StateUnavailable)?;
     let mut pending = state
         .pending_inline_edits
         .lock()
         .map_err(|_| AppError::StateUnavailable)?;
-    pending.clear();
+    pending.retain(|id, _| manifests.get(id).is_some_and(|m| !m.expired()));
     pending.insert(
         plan.id.clone(),
         PreparedInlineEdit {

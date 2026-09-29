@@ -181,6 +181,7 @@ pub fn list(
     query: &CitationQuery,
 ) -> Result<Vec<CitationView>, AppError> {
     let (content,workspace,revision)=match query.owner_kind.as_str() {
+        "writing_run"=>{let r=crate::repository::writing_project::run(storage,&query.owner_id)?;let p=crate::repository::writing_project::get(storage,&r.project_id)?;(r.content,p.workspace_id,None)},
         "result"=>{let d=super::result::read_document(storage,root,&query.owner_id)?;(d.content,d.result.summary.workspace_id,d.result.summary.current_revision_id)},
         "message"=>storage.with_read(|db| db.query_row("SELECT m.content,s.workspace_id FROM messages m JOIN sessions s ON s.id=m.session_id WHERE m.id=?1 AND m.role='assistant'",[&query.owner_id],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,None))).map_err(AppError::from))?,
         _=>return Err(AppError::InvalidInput("引用所属对象无效".into())),
@@ -227,6 +228,22 @@ pub fn views_for_revision(
         Some(ref id) => repo::sources(storage, id)?,
         None => Vec::new(),
     };
+    // Managed results live in an application-owned storage workspace. Their
+    // immutable output binding preserves the original request's authorization
+    // scope; the managed workspace never grants access to arbitrary sources.
+    // Ordinary workspace outputs must still match their own workspace.
+    let scope = if kind == "result"
+        && workspace == super::result::MANAGED_RESULTS_WORKSPACE_ID
+        && super::result::get(storage, id).is_ok_and(|r| r.summary.workspace_id == workspace)
+    {
+        request
+            .as_deref()
+            .map(|r| repo::request_workspace(storage, r))
+            .transpose()?
+    } else {
+        None
+    };
+    let workspace = scope.as_deref().unwrap_or(workspace);
     let changed = request.is_none() && repo::has_output(storage, kind, id)?;
     let mut result = Vec::new();
     // Validate each source version once per fresh lookup, even when many PDF
