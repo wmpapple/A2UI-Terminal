@@ -6,6 +6,40 @@
   overflow: hidden;
   background: var(--canvas);
 }
+.workbenchTabs {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.toolsWorkspace {
+  display: grid;
+  grid-template-columns: minmax(260px, 290px) minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+.toolsSidebar {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  border-right: 1px solid var(--border);
+}
+.toolContent {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+@media (max-width: 760px) {
+  .toolsWorkspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .toolsSidebar {
+    max-height: 180px;
+    border-bottom: 1px solid var(--border);
+  }
+}
 .skipLink {
   position: absolute;
   z-index: 10000;

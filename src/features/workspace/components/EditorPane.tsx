@@ -21,6 +21,7 @@ import { useImportStore } from '../../imports/importStore';
 import { A2uiWorkbench } from '../../a2ui/inspector/A2uiWorkbench';
 import { DiffReview } from '../../diff/components/DiffReview';
 import { SelectionAssistant } from '../../selection/components/SelectionAssistant';
+import { BoundSceneTools } from '../../sceneTools/BoundSceneTools';
 import { CriticPanel } from '../../critic/CriticPanel';
 import { StructuredDocumentPanel } from '../../structuredDocument/StructuredDocumentPanel';
 import { EmptyIllustration } from '../../../shared/components/EmptyIllustration';
@@ -48,6 +49,7 @@ interface EditorPaneProps {
   showInspector?: boolean;
   showSimpleFileActions?: boolean;
   onOpenResult?: (resultId: string) => void;
+  onOpenTool?: (id: string) => void;
   onEditorPort?: (port: SourceEditorPort | null) => void;
 }
 
@@ -55,6 +57,7 @@ export function EditorPane({
   showInspector = true,
   showSimpleFileActions = false,
   onOpenResult,
+  onOpenTool,
   onEditorPort,
 }: EditorPaneProps) {
   const dark = useSystemTheme();
@@ -463,6 +466,16 @@ export function EditorPane({
           selectedText={selectedText}
           targetLabel={activeFile?.path ?? ''}
           onApplied={receiveInlineApplication}
+        />
+      ) : null}
+      {centerView === 'editor' &&
+      inlineSnapshot &&
+      onOpenResult &&
+      ['markdown', 'text', 'plaintext'].includes(inlineSnapshot.format) ? (
+        <BoundSceneTools
+          binding={{ type: 'document', target: inlineSnapshot.target }}
+          dirty={inlineSnapshot.hasUnsavedDraft}
+          onOpenResult={onOpenTool ?? onOpenResult}
         />
       ) : null}
       {centerView === 'editor' && (

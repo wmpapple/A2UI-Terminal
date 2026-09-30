@@ -255,6 +255,12 @@
           "markdownDescription": "Enables the confirm_personal_knowledge_import command without any pre-configured scope."
         },
         {
+          "description": "Enables the confirm_tool_binding command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-confirm-tool-binding",
+          "markdownDescription": "Enables the confirm_tool_binding command without any pre-configured scope."
+        },
+        {
           "description": "Enables the create_chat_session command without any pre-configured scope.",
           "type": "string",
           "const": "allow-create-chat-session",
@@ -271,6 +277,12 @@
           "type": "string",
           "const": "allow-create-review-request",
           "markdownDescription": "Enables the create_review_request command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the create_scene_tool command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-scene-tool",
+          "markdownDescription": "Enables the create_scene_tool command without any pre-configured scope."
         },
         {
           "description": "Enables the create_task command without any pre-configured scope.",
@@ -543,6 +555,12 @@
           "markdownDescription": "Enables the list_active_reviews command without any pre-configured scope."
         },
         {
+          "description": "Enables the list_bound_tools command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-bound-tools",
+          "markdownDescription": "Enables the list_bound_tools command without any pre-configured scope."
+        },
+        {
           "description": "Enables the list_chat_sessions command without any pre-configured scope.",
           "type": "string",
           "const": "allow-list-chat-sessions",
@@ -609,10 +627,28 @@
           "markdownDescription": "Enables the list_results command without any pre-configured scope."
         },
         {
+          "description": "Enables the list_scene_templates command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-scene-templates",
+          "markdownDescription": "Enables the list_scene_templates command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_scene_tools command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-scene-tools",
+          "markdownDescription": "Enables the list_scene_tools command without any pre-configured scope."
+        },
+        {
           "description": "Enables the list_task_templates command without any pre-configured scope.",
           "type": "string",
           "const": "allow-list-task-templates",
           "markdownDescription": "Enables the list_task_templates command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_tool_binding_targets command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-tool-binding-targets",
+          "markdownDescription": "Enables the list_tool_binding_targets command without any pre-configured scope."
         },
         {
           "description": "Enables the list_workspace_files command without any pre-configured scope.",
@@ -631,6 +667,12 @@
           "type": "string",
           "const": "allow-open-a2ui-template",
           "markdownDescription": "Enables the open_a2ui_template command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the open_scene_template command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-open-scene-template",
+          "markdownDescription": "Enables the open_scene_template command without any pre-configured scope."
         },
         {
           "description": "Enables the pick_document_image command without any pre-configured scope.",
@@ -711,6 +753,12 @@
           "markdownDescription": "Enables the provider_secret_status command without any pre-configured scope."
         },
         {
+          "description": "Enables the publish_scene_tool command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-publish-scene-tool",
+          "markdownDescription": "Enables the publish_scene_tool command without any pre-configured scope."
+        },
+        {
           "description": "Enables the read_document_source command without any pre-configured scope.",
           "type": "string",
           "const": "allow-read-document-source",
@@ -735,6 +783,18 @@
           "markdownDescription": "Enables the read_result_revision command without any pre-configured scope."
         },
         {
+          "description": "Enables the read_scene_tool command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-read-scene-tool",
+          "markdownDescription": "Enables the read_scene_tool command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the read_tool_binding command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-read-tool-binding",
+          "markdownDescription": "Enables the read_tool_binding command without any pre-configured scope."
+        },
+        {
           "description": "Enables the read_workspace_file command without any pre-configured scope.",
           "type": "string",
           "const": "allow-read-workspace-file",
@@ -757,6 +817,18 @@
           "type": "string",
           "const": "allow-remove-workspace",
           "markdownDescription": "Enables the remove_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the rename_scene_tool command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-rename-scene-tool",
+          "markdownDescription": "Enables the rename_scene_tool command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the reset_scene_tool command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-reset-scene-tool",
+          "markdownDescription": "Enables the reset_scene_tool command without any pre-configured scope."
         },
         {
           "description": "Enables the resolve_critic_finding command without any pre-configured scope.",
@@ -823,6 +895,12 @@
           "type": "string",
           "const": "allow-save-result-draft",
           "markdownDescription": "Enables the save_result_draft command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_scene_tool command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-scene-tool",
+          "markdownDescription": "Enables the save_scene_tool command without any pre-configured scope."
         },
         {
           "description": "Enables the save_workspace_draft command without any pre-configured scope.",
@@ -907,6 +985,12 @@
           "type": "string",
           "const": "allow-set-telemetry-settings",
           "markdownDescription": "Enables the set_telemetry_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_tool_binding command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-tool-binding",
+          "markdownDescription": "Enables the set_tool_binding command without any pre-configured scope."
         },
         {
           "description": "Enables the start_document_critic command without any pre-configured scope.",
@@ -1065,6 +1149,12 @@
           "markdownDescription": "Denies the confirm_personal_knowledge_import command without any pre-configured scope."
         },
         {
+          "description": "Denies the confirm_tool_binding command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-confirm-tool-binding",
+          "markdownDescription": "Denies the confirm_tool_binding command without any pre-configured scope."
+        },
+        {
           "description": "Denies the create_chat_session command without any pre-configured scope.",
           "type": "string",
           "const": "deny-create-chat-session",
@@ -1081,6 +1171,12 @@
           "type": "string",
           "const": "deny-create-review-request",
           "markdownDescription": "Denies the create_review_request command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the create_scene_tool command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-scene-tool",
+          "markdownDescription": "Denies the create_scene_tool command without any pre-configured scope."
         },
         {
           "description": "Denies the create_task command without any pre-configured scope.",
@@ -1353,6 +1449,12 @@
           "markdownDescription": "Denies the list_active_reviews command without any pre-configured scope."
         },
         {
+          "description": "Denies the list_bound_tools command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-bound-tools",
+          "markdownDescription": "Denies the list_bound_tools command without any pre-configured scope."
+        },
+        {
           "description": "Denies the list_chat_sessions command without any pre-configured scope.",
           "type": "string",
           "const": "deny-list-chat-sessions",
@@ -1419,10 +1521,28 @@
           "markdownDescription": "Denies the list_results command without any pre-configured scope."
         },
         {
+          "description": "Denies the list_scene_templates command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-scene-templates",
+          "markdownDescription": "Denies the list_scene_templates command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_scene_tools command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-scene-tools",
+          "markdownDescription": "Denies the list_scene_tools command without any pre-configured scope."
+        },
+        {
           "description": "Denies the list_task_templates command without any pre-configured scope.",
           "type": "string",
           "const": "deny-list-task-templates",
           "markdownDescription": "Denies the list_task_templates command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_tool_binding_targets command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-tool-binding-targets",
+          "markdownDescription": "Denies the list_tool_binding_targets command without any pre-configured scope."
         },
         {
           "description": "Denies the list_workspace_files command without any pre-configured scope.",
@@ -1441,6 +1561,12 @@
           "type": "string",
           "const": "deny-open-a2ui-template",
           "markdownDescription": "Denies the open_a2ui_template command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the open_scene_template command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-open-scene-template",
+          "markdownDescription": "Denies the open_scene_template command without any pre-configured scope."
         },
         {
           "description": "Denies the pick_document_image command without any pre-configured scope.",
@@ -1521,6 +1647,12 @@
           "markdownDescription": "Denies the provider_secret_status command without any pre-configured scope."
         },
         {
+          "description": "Denies the publish_scene_tool command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-publish-scene-tool",
+          "markdownDescription": "Denies the publish_scene_tool command without any pre-configured scope."
+        },
+        {
           "description": "Denies the read_document_source command without any pre-configured scope.",
           "type": "string",
           "const": "deny-read-document-source",
@@ -1545,6 +1677,18 @@
           "markdownDescription": "Denies the read_result_revision command without any pre-configured scope."
         },
         {
+          "description": "Denies the read_scene_tool command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-read-scene-tool",
+          "markdownDescription": "Denies the read_scene_tool command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the read_tool_binding command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-read-tool-binding",
+          "markdownDescription": "Denies the read_tool_binding command without any pre-configured scope."
+        },
+        {
           "description": "Denies the read_workspace_file command without any pre-configured scope.",
           "type": "string",
           "const": "deny-read-workspace-file",
@@ -1567,6 +1711,18 @@
           "type": "string",
           "const": "deny-remove-workspace",
           "markdownDescription": "Denies the remove_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the rename_scene_tool command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-rename-scene-tool",
+          "markdownDescription": "Denies the rename_scene_tool command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the reset_scene_tool command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-reset-scene-tool",
+          "markdownDescription": "Denies the reset_scene_tool command without any pre-configured scope."
         },
         {
           "description": "Denies the resolve_critic_finding command without any pre-configured scope.",
@@ -1633,6 +1789,12 @@
           "type": "string",
           "const": "deny-save-result-draft",
           "markdownDescription": "Denies the save_result_draft command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_scene_tool command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-scene-tool",
+          "markdownDescription": "Denies the save_scene_tool command without any pre-configured scope."
         },
         {
           "description": "Denies the save_workspace_draft command without any pre-configured scope.",
@@ -1717,6 +1879,12 @@
           "type": "string",
           "const": "deny-set-telemetry-settings",
           "markdownDescription": "Denies the set_telemetry_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_tool_binding command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-tool-binding",
+          "markdownDescription": "Denies the set_tool_binding command without any pre-configured scope."
         },
         {
           "description": "Denies the start_document_critic command without any pre-configured scope.",

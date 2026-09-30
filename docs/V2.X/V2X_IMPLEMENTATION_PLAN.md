@@ -2,7 +2,7 @@
 
 > 日期：2026-09-21（Asia/Shanghai）  
 > 代码基准：`35023d75a0d87e5e16f1d0de8a554e4eb6b49a69`；开始分析时工作树干净。  
-> 状态（2026-09-29）：M0、F0、M1-A、M1-B、M2、M3、M4、B0、M5-A、M5-B、M6、M7 产品验收通过。M8 结构化文档工程完成，停在 M8 人工验收，不进入 M9。执行与边界见 [M8_EXECUTION.md](M8_EXECUTION.md)，产品步骤见 [M8_MANUAL_ACCEPTANCE.md](M8_MANUAL_ACCEPTANCE.md)。M6 的本机 1.7B 测试模型未达写作质量门槛，未作为推荐模型；历史详情见 [M6_EXECUTION.md](M6_EXECUTION.md)。
+> 状态（2026-09-29）：M0、F0、M1-A、M1-B、M2、M3、M4、B0、M5-A、M5-B、M6、M7、M8 产品验收通过。M9 场景化工具补充工程验证完成，停在 M9 人工验收，不进入 M10。执行与边界见 [M9_EXECUTION.md](M9_EXECUTION.md)，产品步骤见 [M9_MANUAL_ACCEPTANCE.md](M9_MANUAL_ACCEPTANCE.md)。M6 的本机 1.7B 测试模型未达写作质量门槛，未作为推荐模型；历史详情见 [M6_EXECUTION.md](M6_EXECUTION.md)。
 >
 > 输入：用户提供的 PRD、Engineering Implementation Plan、Product Engineering Roadmap，以及仓库现有 64 份 docs 文档、实现与测试。材料目录见 [V2X_REVIEW_INVENTORY.md](V2X_REVIEW_INVENTORY.md)。
 
@@ -27,7 +27,7 @@ M0 当前基线与缺口确认
   → M6 长文工作流
   → M7 主动审稿
   → M8 结构化文档
-  → M9 场景工具
+  → M9 Contextual A2UI Tools（场景化工具）
   → M10 协作与外部来源
 ```
 
@@ -365,12 +365,20 @@ PDF 页级与 DOCX 段落级是对应能力声明的基础验收门，高级定�
 | M6 长文项目   | M1-B 真实生成、M2、M4；M5 按资料规模决定是否必需 | project/outline/sections/runs；用户确认大纲；逐章节生成；取消/恢复/幂等；章节事实摘要                             | 恢复不重复收费式自动重发、不重复写入；每章有来源和审阅；组合为单个最终 Result |
 | M7 主动审稿   | 文档快照、Profile、Citation                      | 先本地术语/长度/标题/引用规则，后可选 LLM 逻辑/重复/风格；findings 绑定 revision                                  | 只提示；用户选择修改后进入 Inline/Review；文档更新使旧 finding 失效           |
 | M8 结构化文档 | 文本写作闭环和新编辑器 ADR                       | 平台无关 AST、稳定 block ID、编辑器 adapter、Patch V2、Revision、DOCX/MD import/export                            | 有限格式保真矩阵；PDF 只读来源；不承诺完整 Office round-trip                  |
-| M9 场景工具   | 有明确用户流程                                   | 复用已有 20 个组件与 3 个 Action，做发布检查表/采访提纲/审核器模板                                                | 真实输入、状态、Result、保存/导出；需要新能力时才增加 Catalog                 |
+| M9 场景化工具 | 有明确用户流程                                   | 复用安全组件；独立、Document／Result／Task／Workspace 绑定，与 Context 分离                                       | 真实输入、Result、保存导出、版本失效和授权撤销；文档型模板强制文档目标        |
 | M10 协作生态  | 单用户产品验证成功                               | 身份、ownership、分享权限、同步/冲突/加密/审计 ADR；外部 Source Adapter                                           | 连接器数据也经过权限快照、Retrieval、Manifest；不直接给模型账号权限           |
 
 Embedding 云端调用本身也是资料发送，必须有独立可见授权/发送计划并纳入统一外发边界；不能仅在最终写作请求时确认。未授权资料应在召回前过滤，Top-K 入 Manifest 前再复核，避免只在最后过滤造成侧信道或结果不足。
 
 M6 第一版串行章节即可。实施前 `application/context.rs::plan` 会清空所有待确认清单；M6 已改成按 ID 隔离、10 分钟 TTL、32 个待确认清单上限的 registry。长文仍串行执行，未因此开启并行章节或 M7 Critic。
+
+M9 补充定义与当前能力矩阵见 [M9_CONTEXTUAL_TOOLS.md](M9_CONTEXTUAL_TOOLS.md)。M10 沿用该绑定模型，重点仍为身份、外部来源和受控协作；不将文档关联作为所有工具前提。ExecutableAction 需另行设计授权、确认、失败恢复和审计，不随绑定能力隐式开放。
+
+M9 保存边界（2026-09-30）：场景工具自身状态自动保存在「我的工具」，不自动进入成果。成果仅由用户点击「保存为成果」生成独立快照，后续填写须手动「更新成果」。旧版自动生成的工具记录保留并迁入「我的工具」。
+
+M9 最新关联边界：所有工具（包括发布检查表、文档审核表）均可独立使用。文档、成果、任务和工作区关联均可选；旧工具和旧个人模板一并取消强制关联限制，原有绑定由用户自行决定是否解除。
+
+M9 页面职责：模板只放内置模板与我的模板，工具实例归入「工作台 → 我的工具」，与「文件」切换。创建后直接打开工具，取消模板空状态跳首页路径。保存为模板与手动保存成果仍是两条独立路径。
 
 M5-A 与长文“必须串行”的关系不应机械化：小资料库可以先试验 M6；但不得把尚未验证的大规模检索性能作为长文能力的已知前提。M8 与 M9 可在后续规划时按真实需求调整优先级。
 

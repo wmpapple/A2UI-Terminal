@@ -12,6 +12,7 @@ import { chromium, expect } from '@playwright/test';
 import { verifyLongform } from './verify-longform-workflow.mjs';
 import { verifyCritic } from './verify-critic-workflow.mjs';
 import { verifyStructured } from './verify-structured-workflow.mjs';
+import { verifyScenes } from './verify-scene-workflow.mjs';
 
 const binary = path.resolve(process.argv[2] ?? 'src-tauri/target/debug/a2ui-terminal.exe');
 const output = path.resolve(process.argv[3] ?? 'logs/b0-desktop');
@@ -291,6 +292,9 @@ try {
   const structuredChecks = process.argv.includes('--structured')
     ? await verifyStructured(page, received)
     : [];
+  const sceneChecks = process.argv.includes('--scenes')
+    ? await verifyScenes(page, received, output)
+    : [];
   assert.equal(pageErrors.length, 0, pageErrors.join('\n'));
   for (const name of ['homeInteractive', 'resultOpen', 'requestFeedback']) {
     const values = measurements.filter((m) => m.name === name);
@@ -316,6 +320,7 @@ try {
           ...writingChecks,
           ...criticChecks,
           ...structuredChecks,
+          ...sceneChecks,
           'profile_prompt',
           'generation_review_apply',
           'input_cleared',

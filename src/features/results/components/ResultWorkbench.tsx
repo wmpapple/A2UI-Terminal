@@ -1,4 +1,6 @@
 import { CitationPanel } from '../../citation/CitationPanel';
+import { SceneToolWorkbench } from '../../sceneTools/SceneToolWorkbench';
+import { BoundSceneTools } from '../../sceneTools/BoundSceneTools';
 import { CriticPanel } from '../../critic/CriticPanel';
 import { StructuredDocumentPanel } from '../../structuredDocument/StructuredDocumentPanel';
 import { InfoNotice } from '../../../shared/components/InfoNotice';
@@ -35,6 +37,7 @@ interface Props {
   resultId: string;
   onDuplicated: (resultId: string) => void;
   onOpenResults: () => void;
+  onOpenTool?: (id: string) => void;
   reviewUndoing?: boolean;
   reviewUndoError?: string | null;
   onUndoReview?: (review: ResultAppliedReview) => void;
@@ -62,6 +65,7 @@ export function ResultWorkbench({
   resultId,
   onDuplicated,
   onOpenResults,
+  onOpenTool,
   reviewUndoing = false,
   reviewUndoError = null,
   onUndoReview,
@@ -193,6 +197,20 @@ export function ResultWorkbench({
       </div>
     );
   const appliedReview = activeDocument.appliedReview;
+  if (
+    activeDocument.result.a2uiSurfaceId &&
+    !activeDocument.result.a2uiSurfaceId.startsWith('scene-snapshot-') &&
+    activeDocument.result.managedState &&
+    JSON.stringify(activeDocument.result.managedState).includes('"ResultSummary"')
+  ) {
+    return (
+      <SceneToolWorkbench
+        resultId={resultId}
+        onOpenResult={onDuplicated}
+        onDeleted={() => onOpenResults()}
+      />
+    );
+  }
   const adapter = resultAdapterDefinitions[activeDocument.result.type];
   const inlineSnapshot: DocumentSnapshot = {
     target: { kind: 'result', resultId: activeDocument.result.id },
@@ -226,6 +244,17 @@ export function ResultWorkbench({
         </div>
         <div className={styles.actions}>
           <WorkbenchAppearanceControl />
+          {
+            <BoundSceneTools
+              binding={
+                activeDocument.result.type === 'document'
+                  ? { type: 'document', target: { kind: 'result', resultId } }
+                  : { type: 'result', targetId: resultId }
+              }
+              dirty={saveStatus !== 'saved' || changed || Boolean(activeDocument.recoveryDraft)}
+              onOpenResult={onOpenTool ?? onDuplicated}
+            />
+          }
           {activeDocument.editable ? (
             <Segmented
               value={viewMode}

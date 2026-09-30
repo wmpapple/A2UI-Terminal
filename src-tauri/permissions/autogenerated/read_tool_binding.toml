@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-read-tool-binding"
+description = "Enables the read_tool_binding command without any pre-configured scope."
+commands.allow = ["read_tool_binding"]
+
+[[permission]]
+identifier = "deny-read-tool-binding"
+description = "Denies the read_tool_binding command without any pre-configured scope."
+commands.deny = ["read_tool_binding"]

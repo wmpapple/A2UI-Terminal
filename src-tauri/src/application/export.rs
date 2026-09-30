@@ -79,6 +79,15 @@ pub fn prepare(
         let notes = super::citation::export_notes(storage, directory, &document)?;
         document.content.push_str(&notes);
     }
+    if document.result.summary.result_type == ResultType::Tool {
+        if let Some(note) = super::scene_link::export_note(storage, directory, &input.result_id)? {
+            let mut value: serde_json::Value =
+                serde_json::from_str(&document.content).map_err(|_| AppError::StateUnavailable)?;
+            value["settings"].as_array_mut().ok_or(AppError::StateUnavailable)?.push(serde_json::json!({"key":"tool_binding_context","label":"关联对象与核对状态（导出时）","value":note}));
+            document.content =
+                serde_json::to_string_pretty(&value).map_err(|_| AppError::StateUnavailable)?;
+        }
+    }
     Ok(document)
 }
 
@@ -102,7 +111,7 @@ pub fn supported_formats(
         }
         ResultType::Spreadsheet => vec![ExportFormat::Csv, ExportFormat::Xlsx],
         ResultType::Checklist | ResultType::Form => vec![ExportFormat::Json, ExportFormat::Pdf],
-        ResultType::Tool => vec![ExportFormat::Json],
+        ResultType::Tool => vec![ExportFormat::Json, ExportFormat::Pdf],
     }
 }
 
@@ -233,6 +242,19 @@ fn printable_lines(
         let value: serde_json::Value = serde_json::from_str(content)
             .map_err(|_| AppError::InvalidInput("结构化成果无法导出 PDF".into()))?;
         let mut lines = Vec::new();
+        if let Some(settings) = value["settings"].as_array() {
+            for setting in settings {
+                lines.push(setting["label"].as_str().unwrap_or_default().to_string());
+                lines.extend(
+                    setting["value"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .lines()
+                        .map(str::to_string),
+                );
+                lines.push(String::new());
+            }
+        }
         if let Some(items) = value["items"].as_array() {
             for item in items {
                 lines.push(format!(

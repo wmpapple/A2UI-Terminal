@@ -27,6 +27,8 @@ pub mod citation;
 pub mod critic;
 
 pub mod locator_upgrade;
+pub mod scene_link;
+pub mod scene_tool;
 pub mod structured_document;
 pub mod structured_docx;
 pub mod structured_markdown;

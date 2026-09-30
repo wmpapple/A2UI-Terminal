@@ -986,6 +986,7 @@ export interface A2uiTemplate {
   invalidReason?: string | null;
   createdAt: string;
   updatedAt: string;
+  sourceTemplateId?: string;
 }
 
 export interface OpenA2uiTemplateResult {

@@ -17,11 +17,13 @@ test('quick controls, empty-state navigation and live system theme work at compa
     '专业模式'
   );
   await navigation.getByRole('button', { name: '模板', exact: true }).click();
-  await expect(page.getByRole('button', { name: '浏览内置任务模板' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '内置场景工具模板' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '浏览内置任务模板' })).toHaveCount(0);
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
   await page.screenshot({ path: info.outputPath('templates-dark.png') });
-  await page.getByRole('button', { name: '浏览内置任务模板' }).click();
+  await expect(page).toHaveURL(/#\/templates$/);
+  await navigation.getByRole('button', { name: '首页', exact: true }).click();
   await expect(page.getByRole('heading', { name: '今天想完成什么？' })).toBeVisible();
   await page.getByRole('button', { name: '中文' }).click();
   await page.getByRole('menuitem', { name: 'English' }).click();

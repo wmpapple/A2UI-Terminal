@@ -1512,6 +1512,112 @@ pub fn list_a2ui_templates(
 }
 
 #[tauri::command]
+pub fn list_scene_templates(
+    locale: String,
+) -> Result<Vec<crate::application::scene_tool::SceneTemplate>, AppError> {
+    crate::application::scene_tool::templates(&locale)
+}
+
+#[tauri::command]
+pub fn open_scene_template(
+    state: State<'_, AppState>,
+    template_id: String,
+    binding: Option<crate::application::scene_link::ToolBinding>,
+) -> Result<crate::application::scene_tool::SceneToolView, AppError> {
+    crate::application::scene_tool::open_bound_template(
+        &state.storage,
+        &state.managed_results_dir,
+        &template_id,
+        &binding.unwrap_or_default(),
+    )
+}
+
+#[tauri::command]
+pub fn create_scene_tool(
+    state: State<'_, AppState>,
+    input: crate::application::scene_tool::CreateSceneTool,
+    binding: Option<crate::application::scene_link::ToolBinding>,
+) -> Result<crate::application::scene_tool::SceneToolView, AppError> {
+    crate::application::scene_tool::create_linked(&state, input, &binding.unwrap_or_default())
+}
+
+#[tauri::command]
+pub fn read_tool_binding(
+    state: State<'_, AppState>,
+    tool_result_id: String,
+) -> Result<crate::application::scene_link::SceneLinkView, AppError> {
+    crate::application::scene_link::read(&state, &tool_result_id)
+}
+#[tauri::command]
+pub fn set_tool_binding(
+    state: State<'_, AppState>,
+    input: crate::application::scene_link::SetSceneLink,
+) -> Result<crate::application::scene_link::SceneLinkView, AppError> {
+    crate::application::scene_link::set(&state, input)
+}
+#[tauri::command]
+pub fn confirm_tool_binding(
+    state: State<'_, AppState>,
+    input: crate::application::scene_link::ConfirmSceneLink,
+) -> Result<crate::application::scene_link::SceneLinkView, AppError> {
+    crate::application::scene_link::confirm(&state, input)
+}
+#[tauri::command]
+pub fn list_bound_tools(
+    state: State<'_, AppState>,
+    binding: crate::application::scene_link::ToolBinding,
+) -> Result<Vec<ResultSummary>, AppError> {
+    crate::application::scene_link::list(&state, &binding)
+}
+
+#[tauri::command]
+pub fn read_scene_tool(
+    state: State<'_, AppState>,
+    result_id: String,
+) -> Result<crate::application::scene_tool::SceneToolView, AppError> {
+    crate::application::scene_tool::read(&state.storage, &result_id)
+}
+
+#[tauri::command]
+pub fn list_scene_tools(
+    state: State<'_, AppState>,
+) -> Result<Vec<crate::application::scene_tool::SceneToolListItem>, AppError> {
+    crate::application::scene_tool::list_items(&state.storage)
+}
+
+#[tauri::command]
+pub fn publish_scene_tool(
+    state: State<'_, AppState>,
+    input: crate::application::scene_tool::PublishSceneTool,
+) -> Result<crate::application::scene_tool::SceneToolView, AppError> {
+    crate::application::scene_tool::publish(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn save_scene_tool(
+    state: State<'_, AppState>,
+    input: crate::application::scene_tool::SaveSceneTool,
+) -> Result<crate::application::scene_tool::SceneToolView, AppError> {
+    crate::application::scene_tool::save(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn rename_scene_tool(
+    state: State<'_, AppState>,
+    input: crate::application::scene_tool::RenameSceneTool,
+) -> Result<crate::application::scene_tool::SceneToolView, AppError> {
+    crate::application::scene_tool::rename(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn reset_scene_tool(
+    state: State<'_, AppState>,
+    input: crate::application::scene_tool::ResetSceneTool,
+) -> Result<crate::application::scene_tool::SceneToolView, AppError> {
+    crate::application::scene_tool::reset(&state.storage, input)
+}
+
+#[tauri::command]
 pub fn open_a2ui_template(
     state: State<'_, AppState>,
     request: OpenA2uiTemplateRequest,
@@ -2448,4 +2554,11 @@ pub async fn pick_document_image(app: AppHandle) -> Result<Option<String>, AppEr
     })
     .await
     .map_err(|_| AppError::StateUnavailable)?
+}
+
+#[tauri::command]
+pub fn list_tool_binding_targets(
+    state: State<'_, AppState>,
+) -> Result<Vec<crate::application::scene_link::BindingChoice>, AppError> {
+    crate::application::scene_link::targets(&state.storage)
 }

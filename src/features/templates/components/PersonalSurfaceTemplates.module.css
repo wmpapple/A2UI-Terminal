@@ -10,7 +10,7 @@
   display: grid;
   align-content: start;
   gap: 24px;
-  width: min(1024px, 100%);
+  width: min(1160px, 100%);
   margin: 0 auto;
 }
 .infoNotice.infoNotice {

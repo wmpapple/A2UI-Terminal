@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-scene-template"
+description = "Enables the open_scene_template command without any pre-configured scope."
+commands.allow = ["open_scene_template"]
+
+[[permission]]
+identifier = "deny-open-scene-template"
+description = "Denies the open_scene_template command without any pre-configured scope."
+commands.deny = ["open_scene_template"]

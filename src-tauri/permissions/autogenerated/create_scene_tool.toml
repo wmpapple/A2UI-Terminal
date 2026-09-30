@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-create-scene-tool"
+description = "Enables the create_scene_tool command without any pre-configured scope."
+commands.allow = ["create_scene_tool"]
+
+[[permission]]
+identifier = "deny-create-scene-tool"
+description = "Denies the create_scene_tool command without any pre-configured scope."
+commands.deny = ["create_scene_tool"]

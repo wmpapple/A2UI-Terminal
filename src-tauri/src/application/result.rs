@@ -1136,13 +1136,15 @@ pub fn ensure_surface_result(
     Ok(result)
 }
 
-struct SurfaceToolSnapshot {
-    title: String,
-    content: String,
-    content_hash: String,
+pub(crate) struct SurfaceToolSnapshot {
+    pub title: String,
+    pub content: String,
+    pub content_hash: String,
 }
 
-fn surface_tool_snapshot(state_json: &str) -> Result<Option<SurfaceToolSnapshot>, AppError> {
+pub(crate) fn surface_tool_snapshot(
+    state_json: &str,
+) -> Result<Option<SurfaceToolSnapshot>, AppError> {
     let raw: Value = serde_json::from_str(state_json).map_err(|_| AppError::StateUnavailable)?;
     if !json_contains_component(&raw, "ResultSummary") {
         return Ok(None);
@@ -1242,7 +1244,7 @@ fn surface_field_value(state: &A2uiSurfaceState, node: &A2uiNode) -> String {
         .or_else(|| node.props.get("checked"))
         .unwrap_or(&Value::Null);
     match node.component.as_str() {
-        "Checklist" => checklist_result_value(node, value),
+        "Checklist" => checklist_result_value(node, value, state.surface_id.starts_with("scene-")),
         "Select" => select_result_value(node, value),
         "Checkbox" => {
             if value.as_bool() == Some(true) {
@@ -1255,7 +1257,7 @@ fn surface_field_value(state: &A2uiSurfaceState, node: &A2uiNode) -> String {
     }
 }
 
-fn checklist_result_value(node: &A2uiNode, value: &Value) -> String {
+fn checklist_result_value(node: &A2uiNode, value: &Value, include_pending: bool) -> String {
     let selected = value
         .as_array()
         .into_iter()
@@ -1277,11 +1279,33 @@ fn checklist_result_value(node: &A2uiNode, value: &Value) -> String {
         })
         .filter_map(|item| item.get("label").and_then(Value::as_str))
         .collect::<Vec<_>>();
-    if labels.is_empty() {
+    let summary = if labels.is_empty() {
         format!("尚未完成（0/{}）", items.len())
     } else {
         format!("{}（{}/{}）", labels.join("、"), labels.len(), items.len())
+    };
+    // Keep historical surface snapshots stable; scene tools include pending items too.
+    if !include_pending {
+        return summary;
     }
+    let all_items = items
+        .iter()
+        .map(|item| {
+            let done = item
+                .get("key")
+                .and_then(Value::as_str)
+                .is_some_and(|key| selected.contains(key));
+            format!(
+                "[{}] {}",
+                if done { "x" } else { " " },
+                item.get("label")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("{summary}\n{all_items}")
 }
 
 fn select_result_value(node: &A2uiNode, value: &Value) -> String {

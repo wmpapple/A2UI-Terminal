@@ -1,0 +1,163 @@
+{
+  "stage": "M9",
+  "status": "engineering_verified_awaiting_product_acceptance",
+  "generatedAt": "2026-09-29T09:12:43.653Z",
+  "baselineCommit": "e7e6faa",
+  "previousStage": "M8_product_accepted",
+  "nextStageAuthorized": false,
+  "schemaVersion": 28,
+  "engineeringPassed": true,
+  "artifact": "logs/m9-scene-review/a2ui-terminal.exe",
+  "binarySha256": "0a71b799da34acc2eb9c614aaa244009e60f2a91fca1410d6419e41e7c3d85fb",
+  "binaryBytes": 70428160,
+  "rustPassed": 332,
+  "frontendFiles": 76,
+  "frontendPassed": 336,
+  "e2ePassed": 37,
+  "sceneProviderRequests": 0,
+  "modelQualityEvaluation": false,
+  "coverageScope": "Existing configured subset, not whole-repository coverage",
+  "desktop": {
+    "passed": true,
+    "binarySha256": "0a71b799da34acc2eb9c614aaa244009e60f2a91fca1410d6419e41e7c3d85fb",
+    "runtime": "real_tauri_webview2",
+    "isolated": true,
+    "credentialsDisabled": true,
+    "provider": "loopback_sse_fixture",
+    "remoteModelEvaluated": false,
+    "modelRequests": 1,
+    "launchToHomeIncludingSetupMs": 1799.3824,
+    "measurements": [
+      {
+        "name": "homeInteractive",
+        "durationMs": 113,
+        "budgetMs": 2500,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T09:10:33.437Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 13.6,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T09:10:38.573Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 345.1,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T09:10:38.905Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 35.7,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T09:10:39.275Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 36.1,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T09:10:39.275Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 33.5,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T09:10:39.644Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 33.7,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T09:10:39.644Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 32.8,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T09:10:39.842Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 33,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T09:10:39.843Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 29.4,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T09:10:40.217Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 29.6,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-29T09:10:40.217Z"
+      }
+    ],
+    "checks": [
+      "scene_five_templates",
+      "scene_real_inputs",
+      "scene_atomic_snapshot",
+      "scene_pending_items_export",
+      "scene_template_values_cleared",
+      "scene_navigation_autosave",
+      "scene_webview_reload",
+      "scene_conflict_keeps_input",
+      "scene_export_entry",
+      "scene_zero_model_requests",
+      "profile_prompt",
+      "generation_review_apply",
+      "input_cleared",
+      "autosave",
+      "home_return",
+      "unknown_citation",
+      "webview_reload_persistence"
+    ],
+    "pageErrors": []
+  },
+  "evidence": {
+    "logs/m9-rust-tests.log": "378304460d580fb319c06e5095b87c150764a7a89f40cff0b77a10d61d198989",
+    "logs/m9-frontend-tests.log": "493ecec87f812ded5dd11f28431a180980a547e525f92d193ec97cf1d2e8f65b",
+    "logs/m9-e2e.log": "49ec1bfa78c1be464ec54564cfea26ff8cdf89ce5a8d0150a7a4ca563721f460",
+    "logs/m9-typecheck.log": "4c8b7208af0720678b3ea1e36be75eb4ef86195b32313ee730ba211088f48e4b",
+    "logs/m9-lint.log": "f9bb06c3240a02f0c791464782b4fe16d7efbc0c41de3193a66d140afb3f2644",
+    "logs/m9-format.log": "7be0ad369791d4b96f6a7096ff9280c3ad556536c646070834c242bc457665d2",
+    "logs/m9-clippy.log": "157888763214fa1fdbde8d41b040b53a957310e4ce3f939bf01c69f7ec7b641c",
+    "logs/m9-desktop-build.log": "abc8216ec222c1046074d6a5a2e879268ecbc27f17279001b73c0278b853749c",
+    "logs/m9-rustfmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "logs/m9-licenses.log": "39e32fd72ffff936eec8ed2a727cbaf5178822487552d6a97fb1a3641d2c0009",
+    "logs/m9-style-fixtures.log": "26358f3b45535bc9334b4ae783cd37a0d000a010e418a57f70c245b095b20090",
+    "logs/m9-beta-evidence.log": "dfc94435a933585ad9835fa3737d30e80272ab1fc8ad8bc6ef87ce3d941df616",
+    "logs/m9-release-config.log": "19bbaf9ab4a539f9d2199379d00a4e53f7147c9753ba99859b4ead9fdd7b1a89",
+    "logs/m9-desktop/report.json": "aa87e7557e025f32cb8807fb39a0ce420260b38451fdf19844c3cb815d64a678",
+    "src-tauri/src/application/scene_tool.rs": "5a956225216cb96c70b0936387118d8c6f4d5d7c292c78da220d0e9f74e0c17c",
+    "src-tauri/src/repository/scene_tool.rs": "5560783cd142556d3e37a284e086108f7e351292404ce24d2d280d5d1833608d",
+    "src-tauri/src/a2ui/mod.rs": "6a4112dbdbc313adc4becd85e447f5765816cc70365eda8551e9993eaf230201",
+    "src-tauri/src/application/result.rs": "1fc52ca48cd0f0a7d73b8b9a2cfa1d123e8705a8df6eca5f6c55ebab887e3eba",
+    "src-tauri/src/application/export.rs": "52729ae8818e4c01c12b19dd6e9764c5a2ebf6797dd5b10c0e68408a48017052",
+    "src-tauri/tests/scene_tools.rs": "1cf43c4063dc4458be8f8aab0e4cc0cacfeb37524cbd010d8b612f5b6b6ff8ac",
+    "src/features/sceneTools/sceneToolStore.ts": "b9a8b983e874aaac0cefa6079ae01c3de6d4eab0825c74b5e40012066676b5a5",
+    "src/features/sceneTools/SceneToolWorkbench.tsx": "b885115d432e191a33d685a1bf52ca48b04de37291fa2b5356931fa65b67052a",
+    "src/features/sceneTools/SceneTemplateCards.tsx": "903104dec6d14337ce4ab20d2196ce5fffc95c19c0b1f8d04254f3493bc40e5b",
+    "src/features/sceneTools/SavedSceneTemplates.tsx": "49b48ba01c8b50a1ba11a235a6b3d97ef1e9ab06bca393713eef9f7bdbd26f15",
+    "src/features/sceneTools/sceneToolController.ts": "8f545622b526b78838319bec4d83477aff48a7d7381d3a662b194cb0fcd4e84c",
+    "src/features/results/components/ResultAssistantPanel.tsx": "2b603a3b99a3657dec7ce2f9870143110e95cc0b1d2879382ae35813442ad404",
+    "src/features/sceneTools/sceneToolStore.test.ts": "5b9202e6a46f42aaa2a6332f680872b767c680146c0932a2ddd350d5f729b8b3",
+    "src/features/sceneTools/SceneTemplateCards.test.tsx": "b9dfb32e91621ff962416abbcd87fb879fccc3668e23b065e83a4c25be80d66c",
+    "src/shared/types/sceneTool.ts": "5d5a8442f8377d72498c651140a50444d7d5b925b44e222a81b4e3ad8280ee68",
+    "contracts/v2x/scene-tool.json": "e05879662e520a382f667fd72754d8bddaab9430084a4e4401f373fc64edbed7",
+    "scripts/verify-scene-workflow.mjs": "6f96442277066f706af07dace3d07f82628d347d16ba4f220f2f49544c5ea17f"
+  }
+}

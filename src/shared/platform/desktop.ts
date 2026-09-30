@@ -7,6 +7,23 @@ import type {
 } from '../types/knowledge';
 import { Channel, invoke } from '@tauri-apps/api/core';
 import type {
+  SceneLinkView,
+  SetSceneLink,
+  ConfirmSceneLink,
+  ToolBinding,
+  BindingChoice,
+} from '../types/sceneTool';
+import type {
+  SceneTemplate,
+  SceneToolView,
+  SceneToolListItem,
+  CreateSceneTool,
+  SaveSceneTool,
+  PublishSceneTool,
+  RenameSceneTool,
+  ResetSceneTool,
+} from '../types/sceneTool';
+import type {
   EmbeddingConfig,
   SemanticPlanInput,
   SemanticPlan,
@@ -110,6 +127,62 @@ const requireDesktop = (): void => {
 };
 
 export const desktopApi = {
+  async listSceneTemplates(locale: string): Promise<SceneTemplate[]> {
+    requireDesktop();
+    return invoke('list_scene_templates', { locale });
+  },
+  async openSceneTemplate(templateId: string, binding?: ToolBinding): Promise<SceneToolView> {
+    requireDesktop();
+    return invoke('open_scene_template', { templateId, binding: binding ?? { type: 'none' } });
+  },
+  async createSceneTool(input: CreateSceneTool, binding?: ToolBinding): Promise<SceneToolView> {
+    requireDesktop();
+    return invoke('create_scene_tool', { input, binding: binding ?? { type: 'none' } });
+  },
+  async readToolBinding(toolResultId: string): Promise<SceneLinkView> {
+    requireDesktop();
+    return invoke('read_tool_binding', { toolResultId });
+  },
+  async setToolBinding(input: SetSceneLink): Promise<SceneLinkView> {
+    requireDesktop();
+    return invoke('set_tool_binding', { input });
+  },
+  async confirmToolBinding(input: ConfirmSceneLink): Promise<SceneLinkView> {
+    requireDesktop();
+    return invoke('confirm_tool_binding', { input });
+  },
+  async listBoundTools(binding: ToolBinding): Promise<ResultSummary[]> {
+    requireDesktop();
+    return invoke('list_bound_tools', { binding });
+  },
+  async listToolBindingTargets(): Promise<BindingChoice[]> {
+    requireDesktop();
+    return invoke('list_tool_binding_targets');
+  },
+  async readSceneTool(resultId: string): Promise<SceneToolView> {
+    requireDesktop();
+    return invoke('read_scene_tool', { resultId });
+  },
+  async listSceneTools(): Promise<SceneToolListItem[]> {
+    requireDesktop();
+    return invoke('list_scene_tools');
+  },
+  async publishSceneTool(input: PublishSceneTool): Promise<SceneToolView> {
+    requireDesktop();
+    return invoke('publish_scene_tool', { input });
+  },
+  async saveSceneTool(input: SaveSceneTool): Promise<SceneToolView> {
+    requireDesktop();
+    return invoke('save_scene_tool', { input });
+  },
+  async renameSceneTool(input: RenameSceneTool): Promise<SceneToolView> {
+    requireDesktop();
+    return invoke('rename_scene_tool', { input });
+  },
+  async resetSceneTool(input: ResetSceneTool): Promise<SceneToolView> {
+    requireDesktop();
+    return invoke('reset_scene_tool', { input });
+  },
   async getWritingProfiles(workspaceId?: string): Promise<WritingProfileBundle> {
     requireDesktop();
     return invoke<WritingProfileBundle>('get_writing_profiles', {

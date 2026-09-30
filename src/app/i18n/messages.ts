@@ -316,9 +316,10 @@ export const messages = {
     templatesPageTitle: '模板',
     templatesPageDescription: '保存并重复使用通过安全校验的交互界面。',
     templatesPageEmpty: '还没有个人交互模板，可在交互成果顶部选择“保存为模板”',
-    personalTemplatesDescription: '个人交互模板只包含声明式界面结构、空白数据模型和权限说明。',
+    personalTemplatesDescription:
+      '从模板创建场景工具。创建后的工具会自动保存到“我的工具”，需要时可再保存为成果。',
     personalTemplatesSafety:
-      '每次打开都会重新检查协议版本、Catalog、Schema 和 Action 权限；当前填写内容、聊天和原始模型消息不会保存。',
+      '个人模板每次打开都会重新检查安全性。模板保留项目名称和操作范围，不包含本次填写值与聊天记录。',
     saveAsPersonalTemplate: '保存为模板',
     saveTemplate: '保存模板',
     templateNamePlaceholder: '输入模板名称',
@@ -1058,9 +1059,9 @@ export const messages = {
     templatesPageEmpty:
       'No personal interaction templates yet. Use “Save as template” on an interaction result.',
     personalTemplatesDescription:
-      'Personal interaction templates contain only declarative UI structure, a blank data model, and permission details.',
+      'Create a scene tool from a template. New tools are autosaved in My Tools and can be saved as results when needed.',
     personalTemplatesSafety:
-      'Every open revalidates the protocol version, Catalog, Schema, and Action permissions. Current input, chats, and raw model messages are not saved.',
+      'Personal templates are checked for safety each time they open. They keep field labels and allowed operations, without entered values or chat history.',
     saveAsPersonalTemplate: 'Save as template',
     saveTemplate: 'Save template',
     templateNamePlaceholder: 'Enter a template name',

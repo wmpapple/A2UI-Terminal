@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-bound-tools"
+description = "Enables the list_bound_tools command without any pre-configured scope."
+commands.allow = ["list_bound_tools"]
+
+[[permission]]
+identifier = "deny-list-bound-tools"
+description = "Denies the list_bound_tools command without any pre-configured scope."
+commands.deny = ["list_bound_tools"]

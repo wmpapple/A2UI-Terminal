@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "create": {
+    "templateId": "publish",
+    "title": "发布前检查",
+    "items": ["核对来源", "确认授权"],
+    "locale": "zh-CN"
+  },
+  "save": {
+    "resultId": "00000000-0000-4000-8000-000000000010",
+    "baseHash": "server-issued-state-hash",
+    "data": {
+      "subject": "星河 420",
+      "checks": ["item0"]
+    }
+  },
+  "templateIds": ["publish", "interview", "review", "tasks", "collect"],
+  "outputs": ["result", "surface", "stateHash", "templateId", "publication"],
+  "exports": ["json", "pdf"],
+  "providerRequests": 0,
+  "bindingVariants": [
+    {
+      "type": "none"
+    },
+    {
+      "type": "document",
+      "target": {
+        "kind": "result",
+        "resultId": "00000000-0000-4000-8000-000000000002"
+      }
+    },
+    {
+      "type": "document",
+      "target": {
+        "kind": "workspace_file",
+        "workspaceId": "00000000-0000-4000-8000-000000000003",
+        "sourceId": "00000000-0000-4000-8000-000000000004"
+      }
+    },
+    {
+      "type": "result",
+      "targetId": "00000000-0000-4000-8000-000000000002"
+    },
+    {
+      "type": "task",
+      "targetId": "00000000-0000-4000-8000-000000000005"
+    },
+    {
+      "type": "workspace",
+      "targetId": "00000000-0000-4000-8000-000000000003"
+    }
+  ]
+}

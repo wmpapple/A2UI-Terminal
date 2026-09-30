@@ -8,7 +8,7 @@ import {
   SettingOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, ConfigProvider, Dropdown, message, Modal, Tag, theme } from 'antd';
+import { Alert, Button, ConfigProvider, Dropdown, Empty, message, Modal, Tag, theme } from 'antd';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { HomePage } from '../features/home/components/HomePage';
@@ -82,6 +82,14 @@ const ResultWorkbench = lazyFeature(async () => {
   const module = await import('../features/results/components/ResultWorkbench');
   return { default: module.ResultWorkbench };
 });
+const MySceneTools = lazyFeature(async () => {
+  const module = await import('../features/sceneTools/MySceneTools');
+  return { default: module.MySceneTools };
+});
+const SceneToolWorkbench = lazyFeature(async () => {
+  const module = await import('../features/sceneTools/SceneToolWorkbench');
+  return { default: module.SceneToolWorkbench };
+});
 const EditorPane = lazyFeature(async () => {
   const module = await import('../features/workspace/components/EditorPane');
   return { default: module.EditorPane };
@@ -115,6 +123,12 @@ export function AppShell() {
   const [experienceMode, setExperienceMode] = useState(readExperienceMode);
   const [route, setRoute] = useState(() => routeFromHash(window.location.hash));
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
+  const [workbenchTab, setWorkbenchTab] = useState<'files' | 'tools'>('files');
+  const [activeToolId, setActiveToolId] = useState<string | null>(null);
+  const [pendingToolAction, setPendingToolAction] = useState<{
+    id: string;
+    action: 'rename' | 'binding' | 'template';
+  } | null>(null);
   const [messageApi, messageContextHolder] = message.useMessage();
   const [modalApi, modalContextHolder] = Modal.useModal();
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -175,7 +189,14 @@ export function AppShell() {
   };
 
   const openWorkbench = (resultId?: string) => {
+    setWorkbenchTab('files');
     setActiveResultId(resultId ?? null);
+    openRoute('workbench');
+  };
+
+  const openTool = (id: string) => {
+    setActiveToolId(id);
+    setWorkbenchTab('tools');
     openRoute('workbench');
   };
 
@@ -249,50 +270,126 @@ export function AppShell() {
       <ResultsPage onOpenResult={openResult} />
     ) : route === 'workbench' ? (
       <WorkbenchAppearance>
-        <WorkspaceLayout
-          showLeftPanel={professional}
-          left={
-            <WorkspaceSidebar
-              onBeforeOpenFile={confirmWorkspaceFileOpen}
-              onActivateWorkspace={() => setActiveResultId(null)}
-            />
-          }
-          center={
-            activeResultId ? (
-              <ResultWorkbench
-                key={activeResultId}
-                resultId={activeResultId}
-                onDuplicated={openResult}
-                onOpenResults={() => openRoute('results')}
-                reviewUndoing={patchApplying}
-                reviewUndoError={patchError}
-                onUndoReview={(review) => void undoCreatedResult(review)}
+        <div
+          className={styles.workbenchTabs}
+          role="tablist"
+          aria-label={locale === 'zh-CN' ? '工作台内容' : 'Workbench contents'}
+        >
+          {(['files', 'tools'] as const).map((tab) => (
+            <Button
+              key={tab}
+              role="tab"
+              aria-selected={workbenchTab === tab}
+              type={workbenchTab === tab ? 'primary' : 'text'}
+              onClick={() => setWorkbenchTab(tab)}
+            >
+              {tab === 'files'
+                ? locale === 'zh-CN'
+                  ? '文件'
+                  : 'Files'
+                : locale === 'zh-CN'
+                  ? '我的工具'
+                  : 'My Tools'}
+            </Button>
+          ))}
+        </div>
+        {workbenchTab === 'tools' ? (
+          <div className={styles.toolsWorkspace}>
+            <aside className={styles.toolsSidebar}>
+              <MySceneTools
+                activeId={activeToolId}
+                onOpenResult={openTool}
+                onCreate={() => openRoute('templates')}
+                onManage={(id, action) => {
+                  openTool(id);
+                  setPendingToolAction({ id, action });
+                }}
+                onDeleted={(id) => {
+                  if (activeToolId === id) setActiveToolId(null);
+                  if (pendingToolAction?.id === id) setPendingToolAction(null);
+                }}
               />
-            ) : (
-              <EditorPane
-                showInspector={professional}
-                showSimpleFileActions={!professional}
-                onOpenResult={openResult}
+            </aside>
+            <div className={styles.toolContent}>
+              {activeToolId ? (
+                <SceneToolWorkbench
+                  key={activeToolId}
+                  resultId={activeToolId}
+                  onOpenResult={openResult}
+                  professional={professional}
+                  requestedAction={
+                    pendingToolAction?.id === activeToolId ? pendingToolAction.action : null
+                  }
+                  onRequestedActionHandled={() => setPendingToolAction(null)}
+                  onDeleted={(id) => {
+                    if (activeToolId === id) setActiveToolId(null);
+                    if (pendingToolAction?.id === id) setPendingToolAction(null);
+                  }}
+                />
+              ) : (
+                <Empty
+                  description={
+                    locale === 'zh-CN'
+                      ? '选择一个工具继续使用，或从模板创建。'
+                      : 'Select a tool or create one from a template.'
+                  }
+                />
+              )}
+            </div>
+          </div>
+        ) : (
+          <WorkspaceLayout
+            showLeftPanel={professional}
+            left={
+              <WorkspaceSidebar
+                onBeforeOpenFile={confirmWorkspaceFileOpen}
+                onActivateWorkspace={() => setActiveResultId(null)}
               />
-            )
-          }
-          right={
-            activeResultId ? (
-              <ResultAssistantPanel
-                key={`assistant:${activeResultId}`}
-                resultId={activeResultId}
-                onOpenResult={openResult}
-              />
-            ) : (
-              <ChatPanel professionalTools={professional} />
-            )
-          }
-        />
+            }
+            center={
+              activeResultId ? (
+                <ResultWorkbench
+                  key={activeResultId}
+                  resultId={activeResultId}
+                  onDuplicated={openResult}
+                  onOpenTool={openTool}
+                  onOpenResults={() => openRoute('results')}
+                  reviewUndoing={patchApplying}
+                  reviewUndoError={patchError}
+                  onUndoReview={(review) => void undoCreatedResult(review)}
+                />
+              ) : (
+                <EditorPane
+                  showInspector={professional}
+                  showSimpleFileActions={!professional}
+                  onOpenResult={openResult}
+                  onOpenTool={openTool}
+                />
+              )
+            }
+            right={
+              activeResultId ? (
+                <ResultAssistantPanel
+                  key={`assistant:${activeResultId}`}
+                  resultId={activeResultId}
+                  onOpenResult={openResult}
+                />
+              ) : (
+                <ChatPanel professionalTools={professional} />
+              )
+            }
+          />
+        )}
       </WorkbenchAppearance>
     ) : route === 'templates' ? (
       <PersonalSurfaceTemplates
-        onOpened={() => openRoute('workbench')}
-        onBrowseTasks={() => openRoute('home')}
+        onOpened={() => openWorkbench()}
+        onOpenMyTools={() => {
+          setWorkbenchTab('tools');
+          openRoute('workbench');
+        }}
+        onOpenResult={openTool}
+        currentResultId={activeResultId}
       />
     ) : route === 'settings' ? (
       <SettingsPage

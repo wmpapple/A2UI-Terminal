@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-reset-scene-tool"
+description = "Enables the reset_scene_tool command without any pre-configured scope."
+commands.allow = ["reset_scene_tool"]
+
+[[permission]]
+identifier = "deny-reset-scene-tool"
+description = "Denies the reset_scene_tool command without any pre-configured scope."
+commands.deny = ["reset_scene_tool"]

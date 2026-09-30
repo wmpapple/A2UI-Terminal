@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-tool-binding"
+description = "Enables the set_tool_binding command without any pre-configured scope."
+commands.allow = ["set_tool_binding"]
+
+[[permission]]
+identifier = "deny-set-tool-binding"
+description = "Denies the set_tool_binding command without any pre-configured scope."
+commands.deny = ["set_tool_binding"]

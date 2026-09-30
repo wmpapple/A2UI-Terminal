@@ -39,7 +39,21 @@ const RESULT_COMMANDS: [&str; 14] = [
     "export_result",
     "cancel_export",
 ];
-const TASK_COMMANDS: [&str; 30] = [
+const TASK_COMMANDS: [&str; 44] = [
+    "list_scene_tools",
+    "publish_scene_tool",
+    "read_tool_binding",
+    "set_tool_binding",
+    "confirm_tool_binding",
+    "list_bound_tools",
+    "list_tool_binding_targets",
+    "open_scene_template",
+    "list_scene_templates",
+    "create_scene_tool",
+    "read_scene_tool",
+    "save_scene_tool",
+    "rename_scene_tool",
+    "reset_scene_tool",
     "inspect_structured_document",
     "propose_structured_patch",
     "import_structured_document",

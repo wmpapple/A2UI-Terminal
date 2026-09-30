@@ -1,0 +1,149 @@
+{
+  "stage": "M9",
+  "fix": "readable_version_labels",
+  "generatedAt": "2026-09-30T01:35:49.114Z",
+  "engineeringPassed": true,
+  "nextStageAuthorized": false,
+  "baseline": "docs/V2.X/M9_DELIVERY_SNAPSHOT.json",
+  "validationScope": "Focused regressions; prior full suite retained as baseline, not rerun for this UI fix",
+  "rustPassed": 20,
+  "frontendPassed": 11,
+  "desktop": {
+    "passed": true,
+    "binarySha256": "18c17fa80deeee0001864a90b9ca1186ffb9c65d46d445c0db0f7c404074433d",
+    "runtime": "real_tauri_webview2",
+    "isolated": true,
+    "credentialsDisabled": true,
+    "provider": "loopback_sse_fixture",
+    "remoteModelEvaluated": false,
+    "modelRequests": 1,
+    "launchToHomeIncludingSetupMs": 1725.6260999999995,
+    "measurements": [
+      {
+        "name": "homeInteractive",
+        "durationMs": 163.1,
+        "budgetMs": 2500,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T01:34:09.825Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 10.6,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T01:34:15.682Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 352,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T01:34:16.023Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 40.6,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T01:34:16.431Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 40.7,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T01:34:16.431Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 37.8,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T01:34:16.829Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 38,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T01:34:16.829Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 41.2,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T01:34:17.146Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 41.5,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T01:34:17.146Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 31.5,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T01:34:17.352Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 31.7,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T01:34:17.352Z"
+      }
+    ],
+    "checks": [
+      "scene_five_templates",
+      "scene_readable_revision_labels",
+      "scene_required_document_binding",
+      "scene_result_binding_without_file",
+      "scene_review_checkpoint",
+      "scene_binding_context_separation",
+      "scene_real_inputs",
+      "scene_atomic_snapshot",
+      "scene_pending_items_export",
+      "scene_template_values_cleared",
+      "scene_navigation_autosave",
+      "scene_webview_reload",
+      "scene_conflict_keeps_input",
+      "scene_export_entry",
+      "scene_zero_model_requests",
+      "profile_prompt",
+      "generation_review_apply",
+      "input_cleared",
+      "autosave",
+      "home_return",
+      "unknown_citation",
+      "webview_reload_persistence"
+    ],
+    "pageErrors": []
+  },
+  "artifact": "logs/m9-readability-review/a2ui-terminal.exe",
+  "binarySha256": "18c17fa80deeee0001864a90b9ca1186ffb9c65d46d445c0db0f7c404074433d",
+  "binaryBytes": 70787072,
+  "evidence": {
+    "logs/m9-readability-rust-tests.log": "67cb916a3849ad4a0fa1820d6f7446be6baa50ba210da8f137e7f6980aa3363f",
+    "logs/m9-readability-ui-tests.log": "b2dbe6e269e5aef247c4ab42b0ea8d92ce714382359516f7dcb309a2b8a2b6d6",
+    "logs/m9-readability-typecheck.log": "4c8b7208af0720678b3ea1e36be75eb4ef86195b32313ee730ba211088f48e4b",
+    "logs/m9-readability-lint.log": "f9bb06c3240a02f0c791464782b4fe16d7efbc0c41de3193a66d140afb3f2644",
+    "logs/m9-readability-clippy.log": "66b12d53ceb2a66c89cb5ab16443fda4297480688fd4b41c7b65d4aabd355a3f",
+    "logs/m9-readability-build.log": "2b4b332d8f31e7eba962b2d497c3c4b08a4776c970c220def2006f4a5454ffdd",
+    "logs/m9-readability-format-check.log": "fbdd37869c73ce85afb11ffefa058e0181874c073fdfee7d7a4b5086b7ea3b1b",
+    "logs/m9-readability-rustfmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "logs/m9-readability-desktop/report.json": "9ba9e814dfabdea8f0dfe4734fbb845c4781aa59907d4dfb3c803bc11b06ee5c",
+    "docs/V2.X/M9_DELIVERY_SNAPSHOT.json": "4a584dbceb6ae90db2e4c0922e05c1cd685ddc0eaeb785aff668eee6cdb038ff",
+    "src-tauri/src/repository/scene_link.rs": "6f355c44cec54227f7727e5ae05d3ee10e372d521b35533eb211b3f30c688845",
+    "src-tauri/src/application/scene_link.rs": "f721b996a23943edc24846af3c921570be1b463bbbfdeae4b1a418da4e6751bd",
+    "src-tauri/tests/scene_bindings.rs": "2b749ea7df7e4e4993f6160cfb0e0d9ec1e656a5adad58c7773e2d9b3901efe4",
+    "src/shared/types/sceneTool.ts": "385921f41022b08299c89cbd2bfb5692d241dbc06e90bbcb4ba347151b452278",
+    "src/features/sceneTools/BindingVersions.tsx": "96539b0705cf6cb9232322c90a1b123fd7a3acd145240e9f552781e08a6f0659",
+    "src/features/sceneTools/ToolBindingPanel.tsx": "06ef21bdcb51830400445a45445bdc84090af5dfeff1d26feeb0496a7bb0258f",
+    "src/features/sceneTools/ToolBindingPanel.test.tsx": "eaf3158f108c8488fb1d722b53a6574f7ad49005f0bd72d3eb76b991fc392942",
+    "scripts/verify-scene-workflow.mjs": "f625fc171dee118c7d1656407b28e5b3b6ff778bb5db064e393680f4c14b4595"
+  }
+}

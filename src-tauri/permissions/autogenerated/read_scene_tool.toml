@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-read-scene-tool"
+description = "Enables the read_scene_tool command without any pre-configured scope."
+commands.allow = ["read_scene_tool"]
+
+[[permission]]
+identifier = "deny-read-scene-tool"
+description = "Denies the read_scene_tool command without any pre-configured scope."
+commands.deny = ["read_scene_tool"]

@@ -11,7 +11,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 28;
+const SCHEMA_VERSION: i64 = 31;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -77,6 +77,18 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (
         28,
         include_str!("../../migrations/0028_document_structures.sql"),
+    ),
+    (
+        29,
+        include_str!("../../migrations/0029_scene_tool_bindings.sql"),
+    ),
+    (
+        30,
+        include_str!("../../migrations/0030_scene_tool_publications.sql"),
+    ),
+    (
+        31,
+        include_str!("../../migrations/0031_optional_scene_bindings.sql"),
     ),
 ];
 
@@ -456,6 +468,7 @@ pub struct A2uiTemplateRow {
     pub permission_json: String,
     pub created_at: String,
     pub updated_at: String,
+    pub source_template_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -746,6 +759,7 @@ fn a2ui_template_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<A2uiTempl
         permission_json: row.get(7)?,
         created_at: row.get(8)?,
         updated_at: row.get(9)?,
+        source_template_id: row.get(10)?,
     })
 }
 
@@ -2861,6 +2875,7 @@ impl Storage {
                 "交互成果不存在或不属于当前工作区".into(),
             ));
         }
+        transaction.execute("INSERT INTO scene_template_policies(template_id,source_template_id,binding_policy) SELECT ?1,i.template_id,i.binding_policy FROM scene_tool_instances i JOIN results r ON r.id=i.tool_result_id JOIN a2ui_surfaces s ON s.id=r.a2ui_surface_row_id WHERE s.workspace_id=?2 AND s.surface_id=?3",params![template_id,workspace_id,source_surface_id])?;
         transaction.commit()?;
         Ok(())
     }
@@ -2871,10 +2886,12 @@ impl Storage {
             .lock()
             .map_err(|_| AppError::StateUnavailable)?;
         let mut statement = connection.prepare(
-            "SELECT id, workspace_id, name, source_surface_id, protocol_version, catalog_id,
-                    state_json, permission_json, created_at, updated_at
-             FROM a2ui_templates WHERE workspace_id = ?1
-             ORDER BY updated_at DESC, id DESC",
+            "SELECT t.id,t.workspace_id,t.name,t.source_surface_id,t.protocol_version,t.catalog_id,
+                    t.state_json,t.permission_json,t.created_at,t.updated_at,p.source_template_id
+             FROM a2ui_templates t
+             LEFT JOIN scene_template_policies p ON p.template_id=t.id
+             WHERE t.workspace_id = ?1
+             ORDER BY t.updated_at DESC,t.id DESC",
         )?;
         let rows = statement.query_map([workspace_id], a2ui_template_from_row)?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
@@ -2891,9 +2908,11 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         Ok(connection
             .query_row(
-                "SELECT id, workspace_id, name, source_surface_id, protocol_version, catalog_id,
-                        state_json, permission_json, created_at, updated_at
-                 FROM a2ui_templates WHERE workspace_id = ?1 AND id = ?2",
+                "SELECT t.id,t.workspace_id,t.name,t.source_surface_id,t.protocol_version,t.catalog_id,
+                        t.state_json,t.permission_json,t.created_at,t.updated_at,p.source_template_id
+                 FROM a2ui_templates t
+                 LEFT JOIN scene_template_policies p ON p.template_id=t.id
+                 WHERE t.workspace_id = ?1 AND t.id = ?2",
                 params![workspace_id, template_id],
                 a2ui_template_from_row,
             )
@@ -2982,6 +3001,7 @@ impl Storage {
                     r.completed_at, r.managed_state_json, r.pinned
              FROM results r
              WHERE (?1 IS NULL OR r.workspace_id = ?1)
+               AND NOT EXISTS (SELECT 1 FROM scene_tool_instances t WHERE t.tool_result_id=r.id)
                AND (?2 = 1 OR r.status <> 'archived')
              ORDER BY r.pinned DESC, r.updated_at DESC, r.id DESC
              LIMIT 200",
@@ -4166,7 +4186,7 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         let transaction = connection.transaction()?;
         transaction.execute_batch(
-            "DELETE FROM document_structures; DELETE FROM critic_reports; DELETE FROM writing_projects; DELETE FROM embedding_settings; DELETE FROM search_documents; DELETE FROM embedding_models; DELETE FROM citation_outputs; DELETE FROM citation_reviews; DELETE FROM citation_requests; DELETE FROM knowledge_fragments; DELETE FROM knowledge_locator_jobs; DELETE FROM personal_knowledge;
+            "DELETE FROM scene_tool_bindings; DELETE FROM scene_tool_instances; DELETE FROM scene_template_policies; DELETE FROM document_structures; DELETE FROM critic_reports; DELETE FROM writing_projects; DELETE FROM embedding_settings; DELETE FROM search_documents; DELETE FROM embedding_models; DELETE FROM citation_outputs; DELETE FROM citation_reviews; DELETE FROM citation_requests; DELETE FROM knowledge_fragments; DELETE FROM knowledge_locator_jobs; DELETE FROM personal_knowledge;
              DELETE FROM writing_profile_examples;
              DELETE FROM writing_profiles;
              DELETE FROM product_events;

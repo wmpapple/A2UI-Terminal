@@ -5,7 +5,7 @@ export const exportFormatsFor = (type: ResultType, format: TextResultFormat): Ex
     return [format === 'markdown' ? 'markdown' : 'plain_text', 'docx', 'pdf', 'rtf'];
   if (type === 'spreadsheet') return ['csv', 'xlsx'];
   if (type === 'checklist' || type === 'form') return ['json', 'pdf'];
-  return ['json'];
+  return ['json', 'pdf'];
 };
 
 export const exportExtension = (format: ExportFormat): string =>

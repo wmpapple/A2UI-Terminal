@@ -475,6 +475,11 @@ fn fresh(state: &AppState, report: &CriticReport) -> Result<Context, AppError> {
     }
     Ok(ctx)
 }
+
+/// Read-only reuse of the same freshness checks as M7; never starts a model run.
+pub(crate) fn report_is_current(state: &AppState, report: &CriticReport) -> bool {
+    fresh(state, report).is_ok()
+}
 pub fn ignore(
     state: &AppState,
     id: &str,
@@ -773,4 +778,18 @@ pub fn cancel(state: &AppState, id: &str) -> Result<(), AppError> {
         flag.store(true, Ordering::SeqCst);
     }
     Ok(())
+}
+
+pub(crate) fn existing_citations(
+    state: &AppState,
+    target: &DocumentTarget,
+) -> Result<Vec<CitationView>, AppError> {
+    Ok(context(
+        state,
+        &InspectCriticInput {
+            target: target.clone(),
+            options: Default::default(),
+        },
+    )?
+    .citations)
 }

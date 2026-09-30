@@ -1,0 +1,501 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 20px 0 32px;
+}
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 16px 0 32px;
+}
+.templateCard {
+  height: 264px;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--border) 82%, transparent);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+.templateCard:hover {
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--border));
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 10%, transparent);
+  transform: translateY(-3px);
+}
+.templateCard :global(.ant-card-head) {
+  flex: none;
+  background: color-mix(in srgb, var(--accent-soft) 58%, var(--panel));
+}
+.templateCard :global(.ant-card-body) {
+  height: calc(100% - 57px);
+}
+.templateCardTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.templateIcon,
+.recommendedIcon {
+  display: inline-grid;
+  flex: none;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft) 78%, var(--panel));
+  place-items: center;
+  transition: transform 180ms ease;
+}
+.templateIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  font-size: 17px;
+}
+.templateCard:hover .templateIcon {
+  transform: scale(1.08);
+}
+.templateCardBody {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 14px;
+}
+.templateCardBody p {
+  min-height: 48px;
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+.templateTags,
+.templateActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.templateTags :global(.ant-tag) {
+  margin: 0;
+  color: var(--text-muted);
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 42%, var(--panel));
+}
+.templateActions {
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 2px;
+}
+.recommendedTemplate {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 112px;
+  padding: 16px 20px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  border-radius: 18px;
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--accent-soft) 70%, var(--panel)),
+    var(--panel)
+  );
+}
+.recommendedIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  font-size: 23px;
+}
+.recommendedCopy h2,
+.recommendedCopy p {
+  margin: 0;
+}
+.recommendedCopy p {
+  margin: 3px 0 8px;
+  color: var(--text-muted);
+}
+.recommendedLabel {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+.personalTemplateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+.personalTemplateCard {
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 12%, var(--panel));
+}
+.personalTemplateTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.personalTemplateTitle :global(.anticon) {
+  color: var(--accent);
+}
+.personalTemplateMeta,
+.personalTemplateSource {
+  margin: 0 0 9px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.personalTemplateActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+.personalTemplateEmpty {
+  display: grid;
+  justify-items: center;
+  margin-top: 14px;
+  padding: 36px 24px;
+  text-align: center;
+  border: 1px dashed color-mix(in srgb, var(--accent) 32%, var(--border));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--accent-soft) 22%, var(--panel));
+}
+.personalTemplateEmptyIcon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 10px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 14px;
+  font-size: 22px;
+  place-items: center;
+}
+.personalTemplateEmpty h3,
+.personalTemplateEmpty p {
+  margin: 0;
+}
+.personalTemplateEmpty p {
+  max-width: 480px;
+  margin: 8px 0 18px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+.field {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+.linkPanel {
+  padding: 16px;
+  margin: 16px 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.linkSummary {
+  display: grid;
+  gap: 8px;
+  margin: 6px 0 12px;
+}
+.linkSummaryRow,
+.actionBar,
+.publicationRelation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.linkSummaryRow,
+.actionBar {
+  justify-content: space-between;
+}
+.linkIdentity {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.bindingStatusText {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.linkDetails {
+  padding: 4px 8px 12px;
+}
+.linkDetails pre {
+  white-space: pre-wrap;
+}
+.page {
+  height: 100%;
+  overflow: auto;
+  padding: 20px;
+}
+.toolHeader h1 {
+  margin: 0 0 4px;
+  font-size: 24px;
+}
+.toolHeader p {
+  margin: 0;
+  color: var(--muted);
+}
+.publicationRelation {
+  padding: 8px 0;
+  color: var(--muted);
+}
+.publicationPending {
+  flex-basis: 100%;
+  color: #ad4e00;
+}
+.actionBar {
+  padding: 12px 0;
+  margin-bottom: 18px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.autosaveStatus,
+.primaryActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.autosaveStatus {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.autosaveStatus[data-tone='saved'] {
+  color: color-mix(in srgb, #389e0d 68%, var(--text-muted));
+}
+.autosaveStatus[data-tone='saving'] {
+  color: #1677ff;
+}
+.autosaveStatus[data-tone='error'] {
+  color: #cf1322;
+}
+.syncedButton {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 15px;
+  color: #237804;
+  border: 1px solid #b7eb8f;
+  border-radius: 8px;
+  background: #f6ffed;
+  gap: 6px;
+}
+.formArea {
+  padding-top: 4px;
+}
+.sceneSurface {
+  padding: 0;
+  background: transparent;
+}
+.sceneSurface :global([data-a2ui-node^='scene-group-']) {
+  padding-top: 24px;
+  margin-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+}
+.sceneSurface :global([data-a2ui-node^='scene-heading-']) {
+  color: var(--text-strong);
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 650;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.toolbar strong {
+  flex: 1;
+  min-width: 150px;
+}
+.body {
+  max-width: 900px;
+  margin: 20px auto;
+}
+.myToolsPanel h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 4px 0 14px;
+  color: var(--text-strong);
+  font-size: 22px;
+}
+.toolCount,
+.toolFilters small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.toolCount {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--panel);
+  place-items: center;
+}
+.createToolButton {
+  width: 100%;
+  justify-content: center;
+  color: #b54708;
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 34%, var(--panel));
+}
+.toolSearch {
+  margin-top: 14px;
+}
+.toolFilters {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 2px;
+  margin: 10px 0 12px;
+}
+.toolFilters button {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 5px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.toolFilters button[aria-pressed='true'] small {
+  color: inherit;
+}
+.toolFilters button:hover {
+  color: var(--text-strong);
+  background: var(--panel);
+}
+.toolFilters button[aria-pressed='true'] {
+  color: #b54708;
+  background: #fff1e7;
+  font-weight: 600;
+}
+.toolFilters button:focus-visible {
+  outline: 2px solid #d45a18;
+  outline-offset: 1px;
+}
+.toolList {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.toolListItem {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: center;
+  min-width: 0;
+  margin-bottom: 3px;
+  overflow: hidden;
+  border-radius: 8px;
+  transition: background-color 160ms ease;
+}
+.toolListItem::before {
+  position: absolute;
+  z-index: 1;
+  top: 7px;
+  bottom: 7px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: transparent;
+  content: '';
+}
+.toolListItem:hover,
+.toolListItem:focus-within {
+  background: var(--panel);
+}
+.toolListItem[data-active='true'] {
+  background: #fff1e7;
+}
+.toolListItem[data-active='true']::before {
+  background: #d45a18;
+}
+.toolListMain {
+  height: auto;
+  min-width: 0;
+  padding: 9px 8px 9px 12px;
+  color: var(--text-strong);
+  background: transparent !important;
+  white-space: normal;
+  text-align: left;
+  justify-content: flex-start;
+}
+.toolListMain > span,
+.toolListMain small {
+  display: block;
+  min-width: 0;
+}
+.toolListMain strong,
+.toolListMain small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toolListMain small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.toolListItem[data-active='true'] .toolListMain strong {
+  color: var(--text-strong);
+}
+.toolRowMenu {
+  position: static;
+  z-index: 2;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+  opacity: 0;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+.toolListItem:hover .toolRowMenu,
+.toolListItem:focus-within .toolRowMenu {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (max-width: 720px) {
+  .templateGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .recommendedTemplate {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .recommendedTemplate > :global(.ant-btn) {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+@media (min-width: 721px) and (max-width: 980px) {
+  .templateGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .templateCard,
+  .templateIcon {
+    transition: none;
+  }
+  .templateCard:hover,
+  .templateCard:hover .templateIcon {
+    transform: none;
+  }
+}

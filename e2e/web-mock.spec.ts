@@ -122,9 +122,14 @@ test('defaults to the simple navigation shell and persists professional mode', a
   await navigation.getByRole('button', { name: /成果$/ }).click();
   await expect(page.getByRole('heading', { name: '我的成果' })).toBeVisible();
   await navigation.getByRole('button', { name: /模板$/ }).click();
-  await expect(page.getByRole('heading', { name: '模板' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '模板', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '我的模板', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: '我的工具', exact: true })).toHaveCount(0);
 
   await navigation.getByRole('button', { name: /工作台$/ }).click();
+  await page.getByRole('tab', { name: '我的工具', exact: true }).click();
+  await expect(page.getByTestId('workspace-layout')).toHaveCount(0);
+  await page.getByRole('tab', { name: '文件', exact: true }).click();
   await expect(page.getByTestId('workspace-layout')).toBeVisible();
   await expect(page.getByRole('complementary', { name: '项目文件' })).toHaveCount(0);
   await expect(page.getByText('协议 Inspector')).toHaveCount(0);

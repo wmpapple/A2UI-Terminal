@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-scene-tools"
+description = "Enables the list_scene_tools command without any pre-configured scope."
+commands.allow = ["list_scene_tools"]
+
+[[permission]]
+identifier = "deny-list-scene-tools"
+description = "Denies the list_scene_tools command without any pre-configured scope."
+commands.deny = ["list_scene_tools"]

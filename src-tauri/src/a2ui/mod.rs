@@ -4,6 +4,7 @@ mod protocol;
 mod standard;
 
 pub use capabilities::{capabilities as get_capabilities, A2uiCapabilities, CATALOG_ID};
+pub(crate) use protocol::validate_runtime_input_value as validate_scene_input;
 pub use protocol::{is_component_allowed, SurfaceMessage, ALLOWED_COMPONENTS, SCHEMA_VERSION};
 pub(crate) use protocol::{validate_surface, A2uiNode, A2uiSurfaceState};
 
@@ -146,6 +147,8 @@ pub struct A2uiTemplateView {
     pub invalid_reason: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_template_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -439,6 +442,13 @@ pub fn open_template(
     validate_opaque_id(&request.workspace_id, "工作区")?;
     validate_opaque_id(&request.template_id, "模板")?;
     validate_opaque_id(&request.session_id, "会话")?;
+    if crate::repository::scene_link::template_policy(storage, &request.template_id)?.1
+        == "document"
+    {
+        return Err(AppError::InvalidInput(
+            "此模板需要通过场景工具入口选择目标文档".into(),
+        ));
+    }
     let session = storage
         .session(&request.session_id)?
         .filter(|session| session.workspace_id == request.workspace_id)
@@ -586,6 +596,7 @@ fn template_from_row(row: A2uiTemplateRow) -> A2uiTemplateView {
             invalid_reason: Some(reason),
             created_at: row.created_at,
             updated_at: row.updated_at,
+            source_template_id: row.source_template_id,
         },
     }
 }
@@ -605,6 +616,7 @@ fn template_from_valid_row(
         invalid_reason: None,
         created_at: row.created_at.clone(),
         updated_at: row.updated_at.clone(),
+        source_template_id: row.source_template_id.clone(),
     }
 }
 
@@ -673,6 +685,24 @@ fn reset_personal_values(state: &mut A2uiSurfaceState) {
     }
     state.data.clear();
     reset(&mut state.root, &mut state.data);
+}
+
+pub(crate) fn scene_template_state(
+    storage: &Storage,
+    template_id: &str,
+) -> Result<A2uiSurfaceState, AppError> {
+    let row = storage
+        .a2ui_template(
+            crate::application::result::MANAGED_RESULTS_WORKSPACE_ID,
+            template_id,
+        )?
+        .ok_or_else(|| AppError::InvalidInput("个人模板不存在".into()))?;
+    let mut state = validate_template_row(&row).map_err(AppError::InvalidInput)?;
+    reset_personal_values(&mut state);
+    state.surface_id = format!("scene-{}", Uuid::new_v4().simple());
+    state.revision = 1;
+    validate_surface(&state).map_err(|e| AppError::InvalidInput(e.join("；")))?;
+    Ok(state)
 }
 
 pub fn list_inspections(
@@ -1040,7 +1070,10 @@ fn load_surface(
         .transpose()
 }
 
-fn surface_from_row(storage: &Storage, row: A2uiSurfaceRow) -> Result<A2uiSurfaceView, AppError> {
+pub(crate) fn surface_from_row(
+    storage: &Storage,
+    row: A2uiSurfaceRow,
+) -> Result<A2uiSurfaceView, AppError> {
     let mut state: A2uiSurfaceState = serde_json::from_str(&row.state_json)
         .map_err(|_| AppError::InvalidInput("Surface 持久化状态无效".into()))?;
     let normalization_warnings = normalize_surface(&mut state).map_err(|errors| {

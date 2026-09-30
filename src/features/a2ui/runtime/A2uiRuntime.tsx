@@ -17,6 +17,8 @@ import styles from './A2uiRuntime.module.css';
 interface RuntimeProps {
   surface: A2uiSurface;
   disabled?: boolean;
+  locale?: string;
+  className?: string;
   onAction: (componentId: string, eventName: string, payload: unknown) => void | Promise<void>;
 }
 
@@ -105,7 +107,13 @@ const summaryValue = (surface: A2uiSurface, field: A2uiNode): string => {
   return text(value, '未填写');
 };
 
-export function A2uiRuntime({ surface, disabled, onAction }: RuntimeProps) {
+export function A2uiRuntime({
+  surface,
+  disabled,
+  onAction,
+  locale = 'zh-CN',
+  className,
+}: RuntimeProps) {
   const renderNode = (node: A2uiNode): ReactNode => {
     const children = node.children.map((child) => (
       <div className={styles.child} key={child.id} data-a2ui-node={child.id}>
@@ -486,7 +494,10 @@ export function A2uiRuntime({ surface, disabled, onAction }: RuntimeProps) {
   };
 
   return (
-    <section className={styles.surface} aria-label={`A2UI Surface ${surface.surfaceId}`}>
+    <section
+      className={`${styles.surface} ${className ?? ''}`.trim()}
+      aria-label={locale === 'zh-CN' ? '工具填写区域' : 'Tool inputs'}
+    >
       {renderNode(surface.root)}
     </section>
   );
