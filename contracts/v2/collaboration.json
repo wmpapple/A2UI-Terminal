@@ -1,0 +1,27 @@
+{
+  "share": {
+    "kind": "share",
+    "payload": {
+      "schemaVersion": 1,
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "senderName": "Owner",
+      "title": "Budget",
+      "format": "markdown",
+      "permission": "review",
+      "content": "# Budget\n\n420, pending approval.",
+      "contentHash": "bc70682aa8a0e34f7bf11e04acb3f6319ff3da8ba16c1b634698653f365b4f05"
+    }
+  },
+  "feedback": {
+    "kind": "feedback",
+    "payload": {
+      "schemaVersion": 1,
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "shareId": "550e8400-e29b-41d4-a716-446655440001",
+      "baseHash": "bc70682aa8a0e34f7bf11e04acb3f6319ff3da8ba16c1b634698653f365b4f05",
+      "reviewerName": "Reviewer",
+      "comments": "Keep the budget.",
+      "proposedContent": null
+    }
+  }
+}

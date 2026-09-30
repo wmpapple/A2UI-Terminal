@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-collaboration-overview"
+description = "Enables the collaboration_overview command without any pre-configured scope."
+commands.allow = ["collaboration_overview"]
+
+[[permission]]
+identifier = "deny-collaboration-overview"
+description = "Denies the collaboration_overview command without any pre-configured scope."
+commands.deny = ["collaboration_overview"]

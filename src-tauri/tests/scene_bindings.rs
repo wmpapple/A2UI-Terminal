@@ -16,6 +16,9 @@ use a2ui_terminal_lib::{
 };
 use links::{ConfirmSceneLink, SetSceneLink, ToolBinding};
 use serde_json::json;
+fn remove_collaboration_schema_for_legacy_fixture(db: &rusqlite::Connection) {
+    db.execute_batch("DROP TRIGGER result_local_owner; DROP TABLE collaboration_reviews; DROP TABLE collaboration_inbox; DROP TABLE collaboration_shares; DROP TABLE collaboration_audit; DROP TABLE result_ownership; DROP TABLE collaboration_identity;").unwrap();
+}
 fn setup() -> (tempfile::TempDir, AppState) {
     let dir = tempfile::tempdir().unwrap();
     let state = AppState::new(
@@ -425,13 +428,14 @@ fn upgrade_from_28_preserves_legacy_tools_without_inventing_a_binding() {
     let t = create(&state, "collect", &ToolBinding::None);
     drop(state);
     let db = rusqlite::Connection::open(dir.path().join("test.db")).unwrap();
+    remove_collaboration_schema_for_legacy_fixture(&db);
     db.execute_batch("DROP TABLE scene_tool_bindings;DROP TABLE scene_tool_instances;DROP TABLE scene_template_policies;PRAGMA user_version=28;").unwrap();
     drop(db);
     let state = AppState::new(
         Storage::open(&dir.path().join("test.db")).unwrap(),
         result::prepare_managed_results_dir(dir.path()).unwrap(),
     );
-    assert_eq!(state.storage.schema_version().unwrap(), 31);
+    assert_eq!(state.storage.schema_version().unwrap(), 32);
     assert_eq!(links::read(&state, &t).unwrap().status, "unbound");
     assert!(result::list(&state.storage, None, false)
         .unwrap()
@@ -468,6 +472,7 @@ fn upgrade_from_30_unlocks_existing_tools_and_templates_without_losing_state() {
     .unwrap();
     drop(state);
     let db = rusqlite::Connection::open(dir.path().join("test.db")).unwrap();
+    remove_collaboration_schema_for_legacy_fixture(&db);
     db.execute_batch("UPDATE scene_tool_instances SET binding_policy='document'; UPDATE scene_template_policies SET binding_policy='document'; PRAGMA user_version=30;").unwrap();
     drop(db);
     let state = AppState::new(

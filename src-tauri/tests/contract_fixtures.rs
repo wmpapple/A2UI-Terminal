@@ -40,6 +40,16 @@ const IMPORT_DROP_FIXTURE: &str = include_str!("../../contracts/v2/import-drop.j
 const DOCUMENT_SOURCE_FIXTURE: &str = include_str!("../../contracts/v2/document-source.json");
 const CONTEXT_MANIFEST_FIXTURE: &str = include_str!("../../contracts/v2/context-manifest.json");
 const REVIEW_FIXTURE: &str = include_str!("../../contracts/v2/review.json");
+#[test]
+fn collaboration_offline_packages_match_shared_contract() {
+    let fixture: Value =
+        serde_json::from_str(include_str!("../../contracts/v2/collaboration.json")).unwrap();
+    for kind in ["share", "feedback"] {
+        assert_round_trip::<a2ui_terminal_lib::domain::collaboration::CollaborationPackage>(
+            &fixture[kind],
+        );
+    }
+}
 const EXPORT_FIXTURE: &str = include_str!("../../contracts/v2/export.json");
 const CONTEXT_PACK_FIXTURE: &str = include_str!("../../contracts/v2/context-pack.json");
 const A2UI_CAPABILITIES_FIXTURE: &str = include_str!("../../contracts/v2/a2ui-capabilities.json");

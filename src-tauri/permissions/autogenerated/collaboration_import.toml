@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-collaboration-import"
+description = "Enables the collaboration_import command without any pre-configured scope."
+commands.allow = ["collaboration_import"]
+
+[[permission]]
+identifier = "deny-collaboration-import"
+description = "Denies the collaboration_import command without any pre-configured scope."
+commands.deny = ["collaboration_import"]

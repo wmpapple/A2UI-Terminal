@@ -1,4 +1,5 @@
 import { CitationPanel } from '../../citation/CitationPanel';
+import { CollaborationPanel } from '../../collaboration/CollaborationPanel';
 import { SceneToolWorkbench } from '../../sceneTools/SceneToolWorkbench';
 import { BoundSceneTools } from '../../sceneTools/BoundSceneTools';
 import { CriticPanel } from '../../critic/CriticPanel';
@@ -244,6 +245,12 @@ export function ResultWorkbench({
         </div>
         <div className={styles.actions}>
           <WorkbenchAppearanceControl />
+          {activeDocument.editable && activeDocument.result.type === 'document' && (
+            <CollaborationPanel
+              key={resultId}
+              snapshot={{ ...inlineSnapshot, editable: activeDocument.editable }}
+            />
+          )}
           {
             <BoundSceneTools
               binding={

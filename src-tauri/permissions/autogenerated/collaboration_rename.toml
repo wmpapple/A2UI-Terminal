@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-collaboration-rename"
+description = "Enables the collaboration_rename command without any pre-configured scope."
+commands.allow = ["collaboration_rename"]
+
+[[permission]]
+identifier = "deny-collaboration-rename"
+description = "Denies the collaboration_rename command without any pre-configured scope."
+commands.deny = ["collaboration_rename"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-collaboration-propose"
+description = "Enables the collaboration_propose command without any pre-configured scope."
+commands.allow = ["collaboration_propose"]
+
+[[permission]]
+identifier = "deny-collaboration-propose"
+description = "Denies the collaboration_propose command without any pre-configured scope."
+commands.deny = ["collaboration_propose"]

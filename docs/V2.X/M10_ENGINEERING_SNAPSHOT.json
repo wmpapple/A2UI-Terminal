@@ -1,0 +1,167 @@
+{
+  "stage": "M10_local_collaboration",
+  "status": "engineering_verified_awaiting_product_acceptance",
+  "nextStageAuthorized": false,
+  "generatedAt": "2026-09-30T10:08:03.871Z",
+  "schemaVersion": 32,
+  "artifact": "logs/m10-collaboration-review/a2ui-terminal.exe",
+  "binarySha256": "0bef564fe2f537076fb470a9752855a6e55687aaa17971fd819abf1f82ea4e0f",
+  "rustPassed": 354,
+  "frontendPassed": 360,
+  "browserPassed": 37,
+  "collaborationModelRequests": 0,
+  "desktop": {
+    "passed": true,
+    "binarySha256": "0bef564fe2f537076fb470a9752855a6e55687aaa17971fd819abf1f82ea4e0f",
+    "runtime": "real_tauri_webview2",
+    "isolated": true,
+    "credentialsDisabled": true,
+    "provider": "loopback_sse_fixture",
+    "remoteModelEvaluated": false,
+    "modelRequests": 1,
+    "launchToHomeIncludingSetupMs": 1831.1601999999993,
+    "measurements": [
+      {
+        "name": "homeInteractive",
+        "durationMs": 120.8,
+        "budgetMs": 2500,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T10:04:44.851Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 17.4,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T10:04:50.770Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 353.5,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T10:04:51.106Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 45,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T10:04:51.331Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 45.3,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T10:04:51.331Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 35.4,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T10:04:51.605Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 35.7,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T10:04:51.605Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 37.5,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T10:04:51.823Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 37.8,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T10:04:51.823Z"
+      },
+      {
+        "name": "resultOpen",
+        "durationMs": 34.3,
+        "budgetMs": 1000,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T10:04:52.019Z"
+      },
+      {
+        "name": "requestFeedback",
+        "durationMs": 34.5,
+        "budgetMs": 300,
+        "withinBudget": true,
+        "measuredAt": "2026-09-30T10:04:52.019Z"
+      }
+    ],
+    "checks": [
+      "collaboration_native_export",
+      "collaboration_native_import",
+      "collaboration_feedback_roundtrip",
+      "collaboration_explicit_accept",
+      "collaboration_undo",
+      "collaboration_stale_feedback_guidance",
+      "collaboration_reload",
+      "collaboration_revoke",
+      "collaboration_no_ai_requests",
+      "collaboration_package_scope",
+      "profile_prompt",
+      "generation_review_apply",
+      "input_cleared",
+      "autosave",
+      "home_return",
+      "unknown_citation",
+      "webview_reload_persistence"
+    ],
+    "pageErrors": []
+  },
+  "evidence": {
+    "logs/m10-rust-tests.log": "22a7cbc7af12fa607f2adb6421b5c7c5c5a8d847f9e69f16d2f642513adc8c08",
+    "logs/m10-frontend-tests.log": "a812064dbf31c2fe44d14f93e8341d40aaead1107f3dda54b481670656710707",
+    "logs/m10-e2e.log": "e5ed215d26736c720f444345f76360bbb29fe9c260183996b68400978218a902",
+    "logs/m10-typecheck.log": "4c8b7208af0720678b3ea1e36be75eb4ef86195b32313ee730ba211088f48e4b",
+    "logs/m10-lint.log": "f9bb06c3240a02f0c791464782b4fe16d7efbc0c41de3193a66d140afb3f2644",
+    "logs/m10-format-check.log": "7be0ad369791d4b96f6a7096ff9280c3ad556536c646070834c242bc457665d2",
+    "logs/m10-clippy.log": "ed569752704b5a196ad23ffbfee9729a02518a77e44c9abe6a1588f48a771b78",
+    "logs/m10-build.log": "20325d5013256bdb3331240f66eff9a664629fc0ec63d48ecfc1a85c4849f505",
+    "logs/m10-desktop/report.json": "11dad0b39107eba43b3e5c5508dd3fb0560d10c7bdb43e50429fa4446555e325",
+    "src-tauri/src/application/collaboration.rs": "88ddacd425dd51e14be4febac9603c703454aaaf2793a36229adb0351f3c65a8",
+    "src-tauri/src/repository/collaboration.rs": "8be7552a1b61d0daf48b4bfecafd13e9636d01fefbc44fa2729a390b6fb0cfe1",
+    "src-tauri/src/domain/collaboration.rs": "39cbf36815b716073276fbc9694642cda503df1c5283d7b62daf2e16be01c8b1",
+    "src-tauri/src/collaboration_commands.rs": "4e419525c5ce44096626032ec102fd8603b38c664099adbd9b542bda52138095",
+    "src-tauri/src/application/review.rs": "166f5cbb9d301ba0a32cf999269216eb79d92a8a36f37a89e0944b3871897463",
+    "src-tauri/src/storage/mod.rs": "400466181a898e81108a2c1b37f2935feba4bc6a2e24e40f029247540e2fa984",
+    "src-tauri/migrations/0032_local_collaboration.sql": "0cb90357621e6b1b350e062c4d50347b71b1fb3f57cc345b18cb57892d92e452",
+    "src-tauri/src/lib.rs": "8b418c2b448d29a8f41f34a5eee4ffc486de5a87a715c58682f60c0ee293813e",
+    "src-tauri/build.rs": "ca88acd77be0af430d44fc6e2ab031ee4f23ef8e94458020cd75b26940fa544c",
+    "src-tauri/capabilities/main.json": "f1ed5a74a441be29d07812f0d3cc663a7809165b394b988181b4a33207b62198",
+    "src-tauri/tests/collaboration.rs": "78b51d148a330fb5a456f01815bfa3564c4771dcb11358a1d4a98e192e929d77",
+    "src-tauri/tests/contract_fixtures.rs": "12fabe5f5d5c004197f703013fca3bf3271479ad859f3298e7d89b663270b7f2",
+    "src-tauri/tests/scene_bindings.rs": "8b9e666ccfc6f5faed036dfc5e8ff55d9378166725747617ae796be6bc51d133",
+    "contracts/v2/collaboration.json": "207ab594ca5b4db99b4ab135214cec85d95486c2db647a790a152888e1e49358",
+    "src/shared/platform/desktop.ts": "a744613abaf2d74bb5f4c05dc0c4bb76a1058cff724ff376a5f21d3c18ce6f71",
+    "src/shared/types/collaboration.ts": "cec3806883f6f6f2484f4049ee9e9c6d61c0ad51b4239e1c133bf9ec2b25aa5e",
+    "src/features/results/components/ResultsPage.tsx": "9d3b8bf73b22572c370dbce075ef7f773e82855b1177346c86a1bd7d60a1c893",
+    "src/features/results/components/ResultWorkbench.tsx": "679ec28e8d5f9a5df7bb9df6412c74dbfd1359eb936d506b634b8ae264dc6084",
+    "scripts/select-collaboration-file.ps1": "f6c55d4cb05eb0e769f1f59b9b5e562aa7d75997b3bddcb27ea2f19fbf0c727c",
+    "scripts/verify-collaboration-workflow.mjs": "dcd4418a81e0af5448805ed4fbe1f747c96dd1c9bc107460bbe7e22ab211e5b0",
+    "scripts/verify-product-beta-desktop.mjs": "dd409fdcd5aa851341d8c05a95f29ad8505c82e15b6f6801aedc3fcc8a9216ce",
+    "scripts/verify-collaboration-evidence.mjs": "034ddedbb39d2eb1b7c92072d90e560e6beb301013cab15975deee4ec15e27c7",
+    "package.json": "3f87632b6c448f0996e95b4e0f994298523e5ce138fcdf1b744a1c7c6686b630",
+    "docs/V2.X/M10_COLLABORATION_ADR.md": "0a45e6d9aa5e1d71b5f7b69585a15cc3e47bd7e0d57b1e824f5f6ab19480d6a7",
+    "docs/V2.X/M10_EXECUTION.md": "366cfec5e03a32f39326714449fe39adbc8c8d15cb062857c8fbcb2eba3dbdab",
+    "docs/V2.X/M10_MANUAL_ACCEPTANCE.md": "0b6ff90e9642c89b342d83dc89c79e4a35bf7b1a6295a166e627c7a76852eeb0",
+    "docs/V2.X/V2X_IMPLEMENTATION_PLAN.md": "8e11697a51ba081aaa7dea8195a12287f12553504bb7a181708893900107cc1d",
+    "logs/m10-desktop/collaboration-roundtrip.png": "169d93a883298eb422aa9ace3901f78d5fbf5f5a14a6fd711597b341eb596e91",
+    "src/features/collaboration/collaborationController.test.ts": "51b59b8244cc9011ffa03843469a437cb574c041c0ec26bfde208a1037c61d68",
+    "src/features/collaboration/collaborationController.ts": "e2e3a8abaabc7aa72ec3572d0beca803599a1d4b0fadd4cf74d2fbc771c0b0d3",
+    "src/features/collaboration/CollaborationPanel.module.css": "14c9e0cba17fa5eec63f5da527fc15c70c113b5175c1b6afd17ad76234ba48cc",
+    "src/features/collaboration/CollaborationPanel.test.tsx": "fcde72013b8c083bb8a1bb2fec6ebce5959a5a0244f0b4903651930e027ae67c",
+    "src/features/collaboration/CollaborationPanel.tsx": "4c9f2be17a45b526572a55b3393350eee6722f4c699e024dad2a949afb9d70fa"
+  }
+}

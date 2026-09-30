@@ -11,7 +11,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 31;
+const SCHEMA_VERSION: i64 = 32;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -89,6 +89,10 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (
         31,
         include_str!("../../migrations/0031_optional_scene_bindings.sql"),
+    ),
+    (
+        32,
+        include_str!("../../migrations/0032_local_collaboration.sql"),
     ),
 ];
 
@@ -4186,7 +4190,9 @@ impl Storage {
             .map_err(|_| AppError::StateUnavailable)?;
         let transaction = connection.transaction()?;
         transaction.execute_batch(
-            "DELETE FROM scene_tool_bindings; DELETE FROM scene_tool_instances; DELETE FROM scene_template_policies; DELETE FROM document_structures; DELETE FROM critic_reports; DELETE FROM writing_projects; DELETE FROM embedding_settings; DELETE FROM search_documents; DELETE FROM embedding_models; DELETE FROM citation_outputs; DELETE FROM citation_reviews; DELETE FROM citation_requests; DELETE FROM knowledge_fragments; DELETE FROM knowledge_locator_jobs; DELETE FROM personal_knowledge;
+            "DELETE FROM collaboration_reviews; DELETE FROM collaboration_inbox; DELETE FROM collaboration_shares; DELETE FROM collaboration_audit; DELETE FROM result_ownership; DELETE FROM collaboration_identity;
+             INSERT INTO collaboration_identity VALUES(1, lower(hex(randomblob(16))), '本机用户');
+             DELETE FROM scene_tool_bindings; DELETE FROM scene_tool_instances; DELETE FROM scene_template_policies; DELETE FROM document_structures; DELETE FROM critic_reports; DELETE FROM writing_projects; DELETE FROM embedding_settings; DELETE FROM search_documents; DELETE FROM embedding_models; DELETE FROM citation_outputs; DELETE FROM citation_reviews; DELETE FROM citation_requests; DELETE FROM knowledge_fragments; DELETE FROM knowledge_locator_jobs; DELETE FROM personal_knowledge;
              DELETE FROM writing_profile_examples;
              DELETE FROM writing_profiles;
              DELETE FROM product_events;

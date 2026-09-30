@@ -1,6 +1,7 @@
 pub mod a2ui;
 pub mod ai;
 pub mod application;
+mod collaboration_commands;
 pub mod commands;
 pub mod document_source;
 pub mod domain;
@@ -201,6 +202,15 @@ pub fn run() {
             commands::save_writing_draft,
             commands::inspect_document_critic,
             commands::inspect_structured_document,
+            collaboration_commands::collaboration_overview,
+            collaboration_commands::collaboration_rename,
+            collaboration_commands::collaboration_share,
+            collaboration_commands::collaboration_revoke,
+            collaboration_commands::collaboration_inbox,
+            collaboration_commands::collaboration_feedback,
+            collaboration_commands::collaboration_propose,
+            collaboration_commands::collaboration_import,
+            collaboration_commands::collaboration_export,
             commands::list_scene_templates,
             commands::read_tool_binding,
             commands::set_tool_binding,

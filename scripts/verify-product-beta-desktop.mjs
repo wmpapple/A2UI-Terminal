@@ -13,6 +13,7 @@ import { verifyLongform } from './verify-longform-workflow.mjs';
 import { verifyCritic } from './verify-critic-workflow.mjs';
 import { verifyStructured } from './verify-structured-workflow.mjs';
 import { verifyScenes } from './verify-scene-workflow.mjs';
+import { verifyCollaboration } from './verify-collaboration-workflow.mjs';
 
 const binary = path.resolve(process.argv[2] ?? 'src-tauri/target/debug/a2ui-terminal.exe');
 const output = path.resolve(process.argv[3] ?? 'logs/b0-desktop');
@@ -296,6 +297,10 @@ try {
     ? await verifyScenes(page, received, output)
     : [];
   assert.equal(pageErrors.length, 0, pageErrors.join('\n'));
+  const collaborationChecks = process.argv.includes('--collaboration')
+    ? await verifyCollaboration(page, received, output, child.pid)
+    : [];
+  assert.equal(pageErrors.length, 0, pageErrors.join('\n'));
   for (const name of ['homeInteractive', 'resultOpen', 'requestFeedback']) {
     const values = measurements.filter((m) => m.name === name);
     assert(values.length > 0, `Missing measurement: ${name}`);
@@ -321,6 +326,7 @@ try {
           ...criticChecks,
           ...structuredChecks,
           ...sceneChecks,
+          ...collaborationChecks,
           'profile_prompt',
           'generation_review_apply',
           'input_cleared',

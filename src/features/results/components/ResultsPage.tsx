@@ -19,6 +19,7 @@ import { resultAdapterDefinitions } from '../resultAdapters';
 import { useResultStore } from '../resultStore';
 import { lazyFeature } from '../../../app/lazyFeature';
 import styles from './ResultsPage.module.css';
+import { CollaborationPanel } from '../../collaboration/CollaborationPanel';
 
 const CreateTextResultModal = lazyFeature(async () => {
   const module = await import('./CreateTextResultModal');
@@ -92,6 +93,7 @@ export function ResultsPage({ onOpenResult }: Props) {
               {t('resultsPageTitle')}
             </h1>
             <p>{t('resultsWorkbenchDescription')}</p>
+            <CollaborationPanel />
           </div>
           <Button
             className={styles.createButton}

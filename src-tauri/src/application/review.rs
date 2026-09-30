@@ -198,11 +198,12 @@ pub fn apply(
     let row = storage
         .review_request(&input.review_id)?
         .ok_or(AppError::StateUnavailable)?;
-    if current
-        .blocks
-        .iter()
-        .any(|b| b.operation.as_deref() == Some("structured_patch_v2"))
-    {
+    if current.blocks.iter().any(|b| {
+        matches!(
+            b.operation.as_deref(),
+            Some("structured_patch_v2" | "collaboration_replace")
+        )
+    }) {
         let binding: Option<String> = storage.with_read(|db| {
             Ok(db.query_row(
                 "SELECT structured_binding FROM review_requests WHERE id=?1",
@@ -221,6 +222,13 @@ pub fn apply(
         {
             return Err(AppError::FileConflict);
         }
+    }
+    if current
+        .blocks
+        .iter()
+        .any(|b| b.operation.as_deref() == Some("collaboration_replace"))
+    {
+        super::collaboration::guard_review(storage, managed_results_dir, &input.review_id)?;
     }
     let payload: StoredReviewPayload =
         serde_json::from_str(&row.payload_json).map_err(|_| AppError::StateUnavailable)?;
@@ -439,6 +447,15 @@ pub fn resolve_conflict(
             })
         }
         ReviewConflictResolution::SaveCopy => {
+            if current
+                .blocks
+                .iter()
+                .any(|b| b.operation.as_deref() == Some("collaboration_replace"))
+            {
+                return Err(AppError::InvalidInput(
+                    "成果已变化，请重新分享后收集建议".into(),
+                ));
+            }
             let row = storage
                 .review_request(&input.review_id)?
                 .ok_or(AppError::StateUnavailable)?;
@@ -659,6 +676,7 @@ pub(crate) fn create_inline_replacement(
         replacement,
         &format!("选区内 AI 修改：{action:?}"),
         false,
+        "replace_selection",
     )
 }
 
@@ -669,6 +687,37 @@ pub(crate) fn create_structured_replacement(
     selection: &crate::domain::document::SelectionSnapshot,
     replacement: &str,
 ) -> Result<ReviewRequest, AppError> {
+    create_bound_replacement(
+        storage,
+        snapshot,
+        selection,
+        replacement,
+        "structured_patch_v2",
+    )
+}
+
+pub(crate) fn create_collaboration_replacement(
+    storage: &Storage,
+    snapshot: &crate::domain::document::DocumentSnapshot,
+    selection: &crate::domain::document::SelectionSnapshot,
+    replacement: &str,
+) -> Result<ReviewRequest, AppError> {
+    create_bound_replacement(
+        storage,
+        snapshot,
+        selection,
+        replacement,
+        "collaboration_replace",
+    )
+}
+
+fn create_bound_replacement(
+    storage: &Storage,
+    snapshot: &crate::domain::document::DocumentSnapshot,
+    selection: &crate::domain::document::SelectionSnapshot,
+    replacement: &str,
+    operation: &str,
+) -> Result<ReviewRequest, AppError> {
     let review = create_replacement(
         storage,
         snapshot,
@@ -676,6 +725,7 @@ pub(crate) fn create_structured_replacement(
         replacement,
         "结构化文档修改",
         true,
+        operation,
     )?;
     let mut binding = snapshot.clone();
     binding.text.clear();
@@ -697,6 +747,7 @@ fn create_replacement(
     replacement: &str,
     reason: &str,
     structured: bool,
+    operation: &str,
 ) -> Result<ReviewRequest, AppError> {
     super::result::validate_content(replacement)?;
     let range =
@@ -791,11 +842,7 @@ fn create_replacement(
             id: &block_id,
             kind: "replace_result",
             target_label: &target_label,
-            operation: Some(if structured {
-                "structured_patch_v2"
-            } else {
-                "replace_selection"
-            }),
+            operation: Some(operation),
             before_content: before_selection,
             after_content: replacement,
             reason,

@@ -237,6 +237,60 @@
           "markdownDescription": "Enables the clear_context_index command without any pre-configured scope."
         },
         {
+          "description": "Enables the collaboration_export command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-collaboration-export",
+          "markdownDescription": "Enables the collaboration_export command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the collaboration_feedback command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-collaboration-feedback",
+          "markdownDescription": "Enables the collaboration_feedback command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the collaboration_import command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-collaboration-import",
+          "markdownDescription": "Enables the collaboration_import command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the collaboration_inbox command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-collaboration-inbox",
+          "markdownDescription": "Enables the collaboration_inbox command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the collaboration_overview command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-collaboration-overview",
+          "markdownDescription": "Enables the collaboration_overview command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the collaboration_propose command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-collaboration-propose",
+          "markdownDescription": "Enables the collaboration_propose command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the collaboration_rename command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-collaboration-rename",
+          "markdownDescription": "Enables the collaboration_rename command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the collaboration_revoke command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-collaboration-revoke",
+          "markdownDescription": "Enables the collaboration_revoke command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the collaboration_share command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-collaboration-share",
+          "markdownDescription": "Enables the collaboration_share command without any pre-configured scope."
+        },
+        {
           "description": "Enables the confirm_context_manifest command without any pre-configured scope.",
           "type": "string",
           "const": "allow-confirm-context-manifest",
@@ -1129,6 +1183,60 @@
           "type": "string",
           "const": "deny-clear-context-index",
           "markdownDescription": "Denies the clear_context_index command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the collaboration_export command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-collaboration-export",
+          "markdownDescription": "Denies the collaboration_export command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the collaboration_feedback command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-collaboration-feedback",
+          "markdownDescription": "Denies the collaboration_feedback command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the collaboration_import command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-collaboration-import",
+          "markdownDescription": "Denies the collaboration_import command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the collaboration_inbox command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-collaboration-inbox",
+          "markdownDescription": "Denies the collaboration_inbox command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the collaboration_overview command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-collaboration-overview",
+          "markdownDescription": "Denies the collaboration_overview command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the collaboration_propose command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-collaboration-propose",
+          "markdownDescription": "Denies the collaboration_propose command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the collaboration_rename command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-collaboration-rename",
+          "markdownDescription": "Denies the collaboration_rename command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the collaboration_revoke command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-collaboration-revoke",
+          "markdownDescription": "Denies the collaboration_revoke command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the collaboration_share command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-collaboration-share",
+          "markdownDescription": "Denies the collaboration_share command without any pre-configured scope."
         },
         {
           "description": "Denies the confirm_context_manifest command without any pre-configured scope.",

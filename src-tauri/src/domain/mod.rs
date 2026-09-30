@@ -1,3 +1,4 @@
+pub mod collaboration;
 pub mod context_pack;
 pub mod document;
 pub mod export;

@@ -127,6 +127,47 @@ const requireDesktop = (): void => {
 };
 
 export const desktopApi = {
+  async collaborationOverview(resultId?: string) {
+    requireDesktop();
+    return invoke<import('../types/collaboration').CollaborationOverview>(
+      'collaboration_overview',
+      { resultId: resultId ?? null }
+    );
+  },
+  async collaborationRename(name: string) {
+    requireDesktop();
+    return invoke<import('../types/collaboration').LocalIdentity>('collaboration_rename', { name });
+  },
+  async collaborationShare(input: import('../types/collaboration').CreateShareInput) {
+    requireDesktop();
+    return invoke<import('../types/collaboration').SharePackage>('collaboration_share', { input });
+  },
+  async collaborationRevoke(id: string) {
+    requireDesktop();
+    return invoke<void>('collaboration_revoke', { id });
+  },
+  async collaborationInbox(id: string) {
+    requireDesktop();
+    return invoke<import('../types/collaboration').InboxDetail>('collaboration_inbox', { id });
+  },
+  async collaborationFeedback(input: import('../types/collaboration').SaveFeedbackInput) {
+    requireDesktop();
+    return invoke<import('../types/collaboration').FeedbackPackage>('collaboration_feedback', {
+      input,
+    });
+  },
+  async collaborationPropose(id: string) {
+    requireDesktop();
+    return invoke<ReviewRequest>('collaboration_propose', { id });
+  },
+  async collaborationImport() {
+    requireDesktop();
+    return invoke<string | null>('collaboration_import');
+  },
+  async collaborationExport(id: string, feedback: boolean) {
+    requireDesktop();
+    return invoke<boolean>('collaboration_export', { id, feedback });
+  },
   async listSceneTemplates(locale: string): Promise<SceneTemplate[]> {
     requireDesktop();
     return invoke('list_scene_templates', { locale });

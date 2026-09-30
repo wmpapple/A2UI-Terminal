@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-collaboration-share"
+description = "Enables the collaboration_share command without any pre-configured scope."
+commands.allow = ["collaboration_share"]
+
+[[permission]]
+identifier = "deny-collaboration-share"
+description = "Denies the collaboration_share command without any pre-configured scope."
+commands.deny = ["collaboration_share"]
