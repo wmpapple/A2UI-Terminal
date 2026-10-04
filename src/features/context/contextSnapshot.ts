@@ -104,6 +104,7 @@ export const looksSensitive = (content: string): boolean => {
 };
 
 interface SnapshotInput {
+  selectionLabel?: string;
   selection: ContextSelection;
   files: WorkspaceFile[];
   activePath: string;
@@ -113,6 +114,7 @@ interface SnapshotInput {
 }
 
 export const buildContextSnapshot = ({
+  selectionLabel,
   selection,
   files,
   activePath,
@@ -134,7 +136,7 @@ export const buildContextSnapshot = ({
   if (selection.selection && selectedText) {
     addSource({
       kind: 'selection',
-      label: activePath,
+      label: selectionLabel ?? activePath,
       content: selectedText,
       baseHash: active?.contentHash,
     });

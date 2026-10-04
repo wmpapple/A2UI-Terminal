@@ -1,16 +1,23 @@
 import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { userFacingError } from '../../../shared/errors/userFacingError';
 import {
-  CloseOutlined,
-  EyeInvisibleOutlined,
-  EyeOutlined,
   HistoryOutlined,
+  MoreOutlined,
   PaperClipOutlined,
   SaveOutlined,
   UndoOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Empty, Segmented, Space, Spin, Tag } from 'antd';
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, Button, Empty, Popover, Segmented, Space, Spin, Tag, Tooltip } from 'antd';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { ExposeParam } from 'md-editor-rt';
 import 'md-editor-rt/lib/style.css';
 import { useI18n } from '../../../app/i18n/useI18n';
@@ -29,6 +36,8 @@ import { WorkbenchAppearanceControl } from '../../../app/WorkbenchAppearanceCont
 import { useSystemTheme } from '../../../app/useSystemTheme';
 import styles from './EditorPane.module.css';
 import { CodeEditor } from './CodeEditor';
+import { WorkspacePanelControls } from '../../../app/WorkspacePanelControls';
+import { WorkItemTabs } from '../../../app/WorkItemTabs';
 import {
   codeMirrorSelection,
   textHash,
@@ -46,6 +55,8 @@ const preserveEmptyMarkdown = (current: string, next: string) =>
   current.length === 0 && next.trim().length === 0 ? current : next;
 
 interface EditorPaneProps {
+  workItemTabs?: ReactNode;
+  leftPanelLabels?: [string, string];
   showInspector?: boolean;
   showSimpleFileActions?: boolean;
   onOpenResult?: (resultId: string) => void;
@@ -54,6 +65,8 @@ interface EditorPaneProps {
 }
 
 export function EditorPane({
+  workItemTabs,
+  leftPanelLabels,
   showInspector = true,
   showSimpleFileActions = false,
   onOpenResult,
@@ -89,23 +102,29 @@ export function EditorPane({
   const restoreRecoveryDraft = useAppStore((state) => state.restoreRecoveryDraft);
   const discardRecoveryDraft = useAppStore((state) => state.discardRecoveryDraft);
   const setCenterView = useAppStore((state) => state.setCenterView);
+  useEffect(() => {
+    if (!showInspector && centerView === 'surface') setCenterView('editor');
+  }, [centerView, setCenterView, showInspector]);
   const setSelectedText = useAppStore((state) => state.setSelectedText);
   const selectedText = useAppStore((state) => state.selectedText);
   const undoLastPatch = useAppStore((state) => state.undoLastPatch);
-  const [previewByPath, setPreviewByPath] = useState<Record<string, boolean>>({});
+  const [viewByPath, setViewByPath] = useState<Record<string, 'edit' | 'split' | 'preview'>>({});
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [inlineEditorPort, setInlineEditorPort] = useState<SourceEditorPort | null>(null);
   const [webContentHash, setWebContentHash] = useState('');
   const editorRegionRef = useRef<HTMLDivElement>(null);
   const markdownEditorRef = useRef<ExposeParam | null>(null);
+  const markdownViewRef = useRef({ preview: false, previewOnly: false });
   const autosaveTimersRef = useRef(
     new Map<string, { signature: string; draftTimer: number; diskTimer: number }>()
   );
   const activeFile = files.find((file) => file.path === activePath);
   const isMarkdown = activeFile?.language === 'markdown';
-  const previewEnabled = Boolean(
-    isMarkdown && activeFile && (previewByPath[activeFile.path] ?? false)
-  );
+  const editorView = isMarkdown && activeFile ? (viewByPath[activeFile.path] ?? 'edit') : 'edit';
+  const previewEnabled = editorView !== 'edit';
+  const previewOnly = editorView === 'preview';
+  const chatRequestId = useAppStore((state) => state.chatRequestId);
+  const pendingDiff = useAppStore((state) => state.pendingDiff);
   const activeSaveStatus = activeFile ? (saveStatusByPath[activeFile.path] ?? 'saved') : 'saved';
   const recoveryDraft = activeFile ? recoveryDrafts[activeFile.path] : undefined;
   const isExtractedDocument = activeFile?.extracted === true;
@@ -145,6 +164,8 @@ export function EditorPane({
   const bindMarkdownEditor = useCallback((instance: unknown) => {
     const editor = instance as ExposeParam | null;
     markdownEditorRef.current = editor;
+    editor?.togglePreview(markdownViewRef.current.preview);
+    editor?.togglePreviewOnly?.(markdownViewRef.current.previewOnly);
   }, []);
 
   const publishEditorPort = useCallback(
@@ -165,7 +186,10 @@ export function EditorPane({
     publishEditorPort({
       read: () => {
         // Do not map selections in the rendered preview back to Markdown source.
-        if (previewEnabled || workspaceLoading || activeFile?.editable === false) return null;
+        if (previewOnly || workspaceLoading || activeFile?.editable === false) return null;
+        const anchor = document.getSelection()?.anchorNode;
+        const element = anchor instanceof Element ? anchor : anchor?.parentElement;
+        if (element?.closest('.md-editor-preview-wrapper')) return null;
         return codeMirrorSelection(markdownEditorRef.current?.getEditorView());
       },
     });
@@ -174,7 +198,7 @@ export function EditorPane({
     activeFile,
     isMarkdown,
     isExtractedDocument,
-    previewEnabled,
+    previewOnly,
     workspaceLoading,
     publishEditorPort,
   ]);
@@ -317,9 +341,11 @@ export function EditorPane({
     return () => document.removeEventListener('selectionchange', captureSelection);
   }, [setSelectedText]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    markdownViewRef.current = { preview: previewEnabled, previewOnly };
     markdownEditorRef.current?.togglePreview(previewEnabled);
-  }, [activePath, previewEnabled]);
+    markdownEditorRef.current?.togglePreviewOnly?.(previewOnly);
+  }, [activePath, previewEnabled, previewOnly]);
 
   useEffect(() => {
     if (!previewEnabled) return;
@@ -331,36 +357,57 @@ export function EditorPane({
         document.querySelector('[role="dialog"]')
       )
         return;
-      setPreviewByPath((current) => ({ ...current, [activePath]: false }));
+      setViewByPath((current) => ({ ...current, [activePath]: 'edit' }));
     };
     window.addEventListener('keydown', closePreview);
     return () => window.removeEventListener('keydown', closePreview);
   }, [activePath, previewEnabled]);
 
-  const toggleMarkdownPreview = () => {
-    if (!activeFile || !isMarkdown) return;
-    const nextPreview = !previewEnabled;
-    markdownEditorRef.current?.togglePreview(nextPreview);
-    setPreviewByPath((current) => ({
-      ...current,
-      [activeFile.path]: nextPreview,
-    }));
-  };
-
   return (
     <main className={styles.pane}>
+      <header className={styles.fileHeader}>
+        <div className={styles.fileIdentity}>
+          <h1 title={activePath}>
+            {activeFile?.name || activePath.split('/').at(-1) || t('editor')}
+          </h1>
+          {activeFile && (
+            <div className={styles.fileMetadata}>
+              <Tag className={styles.saveStatus} data-tone={saveColor}>
+                {isExtractedDocument ? t('readOnlyDocument') : saveLabel}
+              </Tag>
+              <span>{isMarkdown ? 'Markdown' : activeFile.language}</span>
+              <span>
+                {t(chatRequestId ? 'aiGenerating' : pendingDiff ? 'aiPendingReview' : 'aiIdle')}
+              </span>
+            </div>
+          )}
+        </div>
+        <div className={styles.panelControls}>
+          <WorkspacePanelControls leftLabels={leftPanelLabels} />
+        </div>
+      </header>
       <div className={styles.toolbar}>
         <Segmented
+          data-testid="workspace-mode"
           value={centerView}
           onChange={(value) => setCenterView(value as CenterView)}
           options={[
-            { label: t('editor'), value: 'editor' },
-            { label: t('review'), value: 'diff' },
-            { label: t(showInspector ? 'surface' : 'interactiveResult'), value: 'surface' },
+            { label: t('editMode'), value: 'editor' },
+            { label: t('reviewMode'), value: 'diff' },
+            ...(showInspector ? [{ label: t('surface'), value: 'surface' }] : []),
           ]}
         />
         <div className={styles.toolbarActions}>
-          <WorkbenchAppearanceControl />
+          <Popover trigger="click" placement="bottomRight" content={<WorkbenchAppearanceControl />}>
+            <Tooltip title={t('quickControls')}>
+              <Button
+                type="text"
+                size="small"
+                aria-label={t('quickControls')}
+                icon={<MoreOutlined />}
+              />
+            </Tooltip>
+          </Popover>
           {showSimpleFileActions ? (
             <Button
               size="small"
@@ -380,18 +427,6 @@ export function EditorPane({
               onClick={() => void undoLastPatch()}
             >
               {t('undoPatch')}
-            </Button>
-          ) : null}
-          {isMarkdown && activeFile ? (
-            <Button
-              size="small"
-              type={previewEnabled ? 'primary' : 'default'}
-              aria-label={previewEnabled ? t('hidePreview') : t('showPreview')}
-              aria-pressed={previewEnabled}
-              icon={previewEnabled ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-              onClick={toggleMarkdownPreview}
-            >
-              {previewEnabled ? t('hidePreview') : t('showPreview')}
             </Button>
           ) : null}
           {activeFile && dirtyPaths.includes(activeFile.path) ? (
@@ -414,12 +449,6 @@ export function EditorPane({
               {t('versionHistory')}
             </Button>
           ) : null}
-          {isExtractedDocument ? <Tag color="purple">{t('readOnlyDocument')}</Tag> : null}
-          {!isExtractedDocument ? (
-            <Tag className={styles.saveStatus} data-tone={saveColor}>
-              {saveLabel}
-            </Tag>
-          ) : null}
         </div>
       </div>
       {showSimpleFileActions && workspaceError ? (
@@ -434,33 +463,23 @@ export function EditorPane({
       {patchError && centerView !== 'diff' ? (
         <Alert type="error" showIcon title={userFacingError(patchError, locale)} />
       ) : null}
-      <div className={styles.tabs} role="tablist">
-        {openPaths.map((path) => (
-          <div
-            className={`${styles.tab} ${path === activePath ? styles.activeTab : ''}`}
-            key={path}
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={path === activePath}
-              className={styles.tabSelect}
-              onClick={() => openFile(path)}
-            >
-              <span>{path.split('/').at(-1)}</span>
-            </button>
-            <Button
-              type="text"
-              size="small"
-              aria-label={`Close ${path}`}
-              icon={<CloseOutlined />}
-              onClick={() => closeFile(path)}
-            />
-          </div>
-        ))}
-      </div>
-      {centerView === 'editor' && activeFile?.editable !== false && !previewEnabled ? (
+      {workItemTabs ?? (
+        <WorkItemTabs
+          items={openPaths.map((path) => ({
+            id: path,
+            type: 'document',
+            title: path.split('/').at(-1) ?? path,
+            status: dirtyPaths.includes(path) ? 'dirty' : 'saved',
+          }))}
+          activeId={activePath}
+          onSelect={(item) => openFile(item.id)}
+          onClose={(item) => closeFile(item.id)}
+        />
+      )}
+      {centerView === 'editor' && activeFile?.editable !== false && !previewOnly ? (
         <SelectionAssistant
+          floating
+          editorRegion={editorRegionRef}
           editorPort={inlineEditorPort}
           snapshot={inlineSnapshot}
           selectedText={selectedText}
@@ -468,25 +487,54 @@ export function EditorPane({
           onApplied={receiveInlineApplication}
         />
       ) : null}
-      {centerView === 'editor' &&
-      inlineSnapshot &&
-      onOpenResult &&
-      ['markdown', 'text', 'plaintext'].includes(inlineSnapshot.format) ? (
-        <BoundSceneTools
-          binding={{ type: 'document', target: inlineSnapshot.target }}
-          dirty={inlineSnapshot.hasUnsavedDraft}
-          onOpenResult={onOpenTool ?? onOpenResult}
-        />
-      ) : null}
-      {centerView === 'editor' && (
-        <CriticPanel
-          snapshot={inlineSnapshot}
-          workspaceId={workspace?.id ?? 'web-mock-workspace'}
-          onApplied={receiveInlineApplication}
-        />
-      )}
-      {centerView === 'editor' && (
-        <StructuredDocumentPanel snapshot={inlineSnapshot} onApplied={receiveInlineApplication} />
+      {centerView === 'editor' && activeFile && (
+        <div className={styles.fileCapabilities}>
+          {isMarkdown && (
+            <Segmented
+              size="small"
+              value={editorView}
+              options={[
+                { label: t('editView'), value: 'edit' },
+                { label: t('splitView'), value: 'split' },
+                { label: t('previewView'), value: 'preview' },
+              ]}
+              onChange={(value) =>
+                setViewByPath((current) => ({
+                  ...current,
+                  [activePath]: value as 'edit' | 'split' | 'preview',
+                }))
+              }
+            />
+          )}
+          <div className={styles.contextCapabilities}>
+            {centerView === 'editor' &&
+            inlineSnapshot &&
+            onOpenResult &&
+            ['markdown', 'text', 'plaintext'].includes(inlineSnapshot.format) ? (
+              <BoundSceneTools
+                compact
+                binding={{ type: 'document', target: inlineSnapshot.target }}
+                dirty={inlineSnapshot.hasUnsavedDraft}
+                onOpenResult={onOpenTool ?? onOpenResult}
+              />
+            ) : null}
+            {centerView === 'editor' && (
+              <CriticPanel
+                compact
+                snapshot={inlineSnapshot}
+                workspaceId={workspace?.id ?? 'web-mock-workspace'}
+                onApplied={receiveInlineApplication}
+              />
+            )}
+            {centerView === 'editor' && (
+              <StructuredDocumentPanel
+                compact
+                snapshot={inlineSnapshot}
+                onApplied={receiveInlineApplication}
+              />
+            )}
+          </div>
+        </div>
       )}
       {activeFile && recoveryDraft ? (
         <Alert
@@ -538,6 +586,25 @@ export function EditorPane({
               disabled={workspaceLoading}
               language={locale}
               preview={previewEnabled}
+              toolbars={[
+                'bold',
+                'italic',
+                'underline',
+                'strikeThrough',
+                '-',
+                'title',
+                'unorderedList',
+                'orderedList',
+                'quote',
+                '-',
+                'link',
+                'image',
+                'table',
+                'code',
+                '-',
+                'revoke',
+                'next',
+              ]}
               toolbarsExclude={[
                 'github',
                 'save',
@@ -546,7 +613,7 @@ export function EditorPane({
                 'previewOnly',
                 'htmlPreview',
               ]}
-              className={styles.editor}
+              className={`${styles.editor} ${previewOnly ? styles.previewOnly : ''}`}
             />
           </Suspense>
         ) : activeFile && isExtractedDocument ? (

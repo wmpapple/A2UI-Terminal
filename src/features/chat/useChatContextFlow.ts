@@ -19,6 +19,7 @@ import { useImportStore } from '../imports/importStore';
 import { useContextPackStore } from '../contextPacks/contextPackStore';
 import { chatController } from './chatController';
 import { writingProfileController } from '../settings/writingProfileController';
+import type { LinkedMaterial } from './useToolLinkedMaterial';
 
 const defaultContext: ContextSelection = {
   selection: false,
@@ -32,21 +33,24 @@ const PENDING_CONTEXT_PACK_REVIEW = 'pending-context-pack-manifest';
 
 type ContextIntent = 'review' | 'send';
 
-export function useChatContextFlow() {
+export function useChatContextFlow(inlineContext?: { id: string; title: string; content: string }) {
   const { t } = useI18n();
   const sessions = useAppStore((state) => state.sessions);
   const activeSessionId = useAppStore((state) => state.activeSessionId);
-  const activePath = useAppStore((state) => state.activePath);
+  const filePath = useAppStore((state) => state.activePath);
+  const activePath = inlineContext ? '' : filePath;
   const files = useAppStore((state) => state.files);
   const workspace = useAppStore((state) => state.workspace);
   const runtimeMode = useAppStore((state) => state.runtimeMode);
-  const selectedText = useAppStore((state) => state.selectedText);
+  const fileSelection = useAppStore((state) => state.selectedText);
+  const selectedText = inlineContext?.content ?? fileSelection;
   const providerConfigs = useAppStore((state) => state.providerConfigs);
   const activeProviderId = useAppStore((state) => state.activeProviderId);
   const chatRequestId = useAppStore((state) => state.chatRequestId);
   const contextBySession = useAppStore((state) => state.contextBySession);
   const contextReviewKeyBySession = useAppStore((state) => state.contextReviewKeyBySession);
   const setSessionContext = useAppStore((state) => state.setSessionContext);
+  const [toolSelection, setToolSelection] = useState<ContextSelection | null>(null);
   const setSessionContextReviewKey = useAppStore((state) => state.setSessionContextReviewKey);
   const sendChat = useAppStore((state) => state.sendChat);
   const documentSources = useImportStore((state) => state.sources);
@@ -70,7 +74,11 @@ export function useChatContextFlow() {
     () => sessions.find((session) => session.id === activeSessionId) ?? sessions[0],
     [activeSessionId, sessions]
   );
-  const savedContext = contextBySession[activeSessionId];
+  const savedContext = inlineContext ? toolSelection : contextBySession[activeSessionId];
+  const rememberContext = (selection: ContextSelection) => {
+    if (inlineContext) setToolSelection(selection);
+    else setSessionContext(activeSessionId, selection);
+  };
   const activeProvider = providerConfigs.find((config) => config.id === activeProviderId);
   const processingLocation = processingLocationForProvider(activeProvider);
   const providerKey = JSON.stringify([
@@ -81,11 +89,21 @@ export function useChatContextFlow() {
     activeProvider?.temperature,
   ]);
   const effectiveContext = useMemo(
-    () => normalizeContextSelection(savedContext ?? defaultContext, selectedText),
-    [savedContext, selectedText]
+    () =>
+      normalizeContextSelection(
+        savedContext ??
+          (inlineContext
+            ? { ...defaultContext, currentFile: false, selection: true, recentMessages: false }
+            : defaultContext),
+        selectedText
+      ),
+    [savedContext, selectedText, inlineContext]
   );
   const contextFingerprint = (selection: ContextSelection) =>
-    contextReviewFingerprint({ selection, files, activePath, selectedText });
+    JSON.stringify([
+      inlineContext?.id,
+      contextReviewFingerprint({ selection, files, activePath, selectedText }),
+    ]);
   const manifestKey = (request: string, selection: ContextSelection) =>
     JSON.stringify([
       draftWorkspaceId,
@@ -96,8 +114,11 @@ export function useChatContextFlow() {
     ]);
   const currentContextFingerprint = useMemo(
     () =>
-      contextReviewFingerprint({ selection: effectiveContext, files, activePath, selectedText }),
-    [activePath, effectiveContext, files, selectedText]
+      JSON.stringify([
+        inlineContext?.id,
+        contextReviewFingerprint({ selection: effectiveContext, files, activePath, selectedText }),
+      ]),
+    [activePath, effectiveContext, files, selectedText, inlineContext?.id]
   );
   const currentContextReviewKey = JSON.stringify([providerKey, currentContextFingerprint]);
   const currentManifestKey = manifestKey(prompt, effectiveContext);
@@ -114,12 +135,13 @@ export function useChatContextFlow() {
   })();
   const sessionHasSentMessage =
     activeSession?.messages.some((chatMessage) => chatMessage.role === 'user') ?? false;
-  const hasReviewedContext = Boolean(reviewedContextKey) || sessionHasSentMessage;
+  const hasReviewedContext =
+    Boolean(reviewedContextKey) || (!inlineContext && sessionHasSentMessage);
   const contextReviewed = hasReviewedContext
     ? reviewedContextKey
       ? reviewedContextParts?.[0] === providerKey &&
         reviewedContextParts?.[1] === currentContextFingerprint
-      : true
+      : !inlineContext
     : false;
 
   useEffect(() => {
@@ -139,6 +161,29 @@ export function useChatContextFlow() {
     invalidateManifest();
   };
 
+  const toggleLinkedMaterial = (material: LinkedMaterial) => {
+    if (!inlineContext) return;
+    const current = effectiveContext;
+    if (material.kind === 'projectFile') {
+      const selected = current.projectFiles.includes(material.id);
+      rememberContext({
+        ...current,
+        projectFiles: selected
+          ? current.projectFiles.filter((id) => id !== material.id)
+          : [...current.projectFiles, material.id],
+      });
+    } else {
+      const ids = current.documentSourceIds ?? [];
+      rememberContext({
+        ...current,
+        documentSourceIds: ids.includes(material.id)
+          ? ids.filter((id) => id !== material.id)
+          : [...ids, material.id],
+      });
+    }
+    invalidateManifest();
+  };
+
   const sendNow = (
     request: string,
     selection: ContextSelection,
@@ -152,7 +197,7 @@ export function useChatContextFlow() {
     )
       return;
     const rememberedSelection = { ...selection, documentSourceIds: [], personalKnowledgeIds: [] };
-    setSessionContext(activeSessionId, rememberedSelection);
+    rememberContext(rememberedSelection);
     setSessionContextReviewKey(
       activeSessionId,
       JSON.stringify([providerKey, contextFingerprint(rememberedSelection), profileHash])
@@ -176,6 +221,7 @@ export function useChatContextFlow() {
       documentSources: documentSources.filter((source) => source.workspaceId === workspaceId),
       activePath,
       selectedText,
+      selectionLabel: inlineContext?.title,
     });
     if (runtimeMode === 'web-mock') {
       for (const packId of input.contextPackIds) {
@@ -268,14 +314,20 @@ export function useChatContextFlow() {
         setContextOpen(true);
         return;
       }
-      message.info(t('contextChangePrompt'));
+      if (inlineContext) {
+        setContextIntent('send');
+        invalidateManifest();
+        setContextOpen(true);
+      } else {
+        message.info(t('contextChangePrompt'));
+      }
       return;
     }
     if (requestManifest?.requiresSensitiveConfirmation) {
       message.info(t('sensitiveContextChangePrompt'));
       return;
     }
-    if (!reviewedContextKey && sessionHasSentMessage) {
+    if (!inlineContext && !reviewedContextKey && sessionHasSentMessage) {
       setSessionContextReviewKey(activeSessionId, currentContextReviewKey);
     }
     void sendWithReviewedContext(request);
@@ -292,7 +344,7 @@ export function useChatContextFlow() {
     try {
       const manifest = await createContextManifest(request, normalized);
       if (!manifest) return;
-      setSessionContext(activeSessionId, normalized);
+      rememberContext(normalized);
       setPlannedManifest(manifest);
       setPlannedManifestKey(requestManifestKey);
     } catch (error) {
@@ -312,7 +364,7 @@ export function useChatContextFlow() {
     const plannedProfileHash =
       plannedManifest?.id === manifestId ? plannedManifest.writingProfile.hash : undefined;
     const approvedProfileHash = plannedProfileHash ?? reviewedContextParts?.[2];
-    setSessionContext(activeSessionId, normalized);
+    rememberContext(normalized);
     setSessionContextReviewKey(
       activeSessionId,
       contextIntent === 'review' &&
@@ -411,6 +463,7 @@ export function useChatContextFlow() {
     planContext,
     confirmContext,
     invalidateManifest,
+    toggleLinkedMaterial,
     clearContextIndex,
   };
 }

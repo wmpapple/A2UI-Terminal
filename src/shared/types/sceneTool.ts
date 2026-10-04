@@ -97,6 +97,7 @@ export interface PublishSceneTool {
   resultId: string;
   baseHash: string;
   expectedRevision: string | null;
+  title?: string;
 }
 export interface SaveSceneTool {
   resultId: string;

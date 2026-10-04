@@ -41,7 +41,7 @@ test('draft survives navigation, sessions remain isolated, shortcuts keep contex
   const nav = page.getByRole('navigation', { name: '主导航' });
   await nav.getByRole('button', { name: '工作台', exact: true }).click();
   const prompt = page.getByRole('textbox', {
-    name: '描述你希望对当前文件做出的修改…',
+    name: '描述你希望对当前文档做出的修改…',
     exact: true,
   });
   await prompt.fill('尚未发送的草稿');

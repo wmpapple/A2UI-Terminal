@@ -6,15 +6,18 @@ import type { ToolBinding } from '../../shared/types/sceneTool';
 import type { ResultSummary } from '../../shared/types/domain';
 import { sceneToolController } from './sceneToolController';
 import { SceneTemplateCards } from './SceneTemplateCards';
+import { ToolOutlined } from '@ant-design/icons';
 
 export function BoundSceneTools({
   binding,
   dirty,
   onOpenResult,
+  compact = false,
 }: {
   binding: ToolBinding;
   dirty: boolean;
   onOpenResult: (id: string) => void;
+  compact?: boolean;
 }) {
   const { locale } = useI18n();
   const zh = locale === 'zh-CN';
@@ -44,11 +47,15 @@ export function BoundSceneTools({
   return (
     <>
       <Button
+        size={compact ? 'small' : 'middle'}
+        type={compact ? 'text' : 'default'}
+        icon={compact ? <ToolOutlined /> : undefined}
+        aria-label={zh ? '关联工具' : 'Linked tools'}
         disabled={dirty}
         onClick={() => setOpen(true)}
         title={dirty ? (zh ? '请先保存文档' : 'Save the document first') : undefined}
       >
-        {zh ? '关联工具' : 'Linked tools'}
+        {compact ? (zh ? '工具' : 'Tools') : zh ? '关联工具' : 'Linked tools'}
       </Button>
       <Drawer
         title={zh ? '关联场景工具' : 'Document tools'}

@@ -26,16 +26,19 @@ import type { InlineEditPlan, ReviewApplication } from '../../shared/types/domai
 import { ContextManifestSummary } from '../context/components/ContextManifestSummary';
 import { inlineEditController } from '../selection/inlineEditController';
 import { criticController as api } from './criticController';
+import { AuditOutlined } from '@ant-design/icons';
 
 type Proposal = Awaited<ReturnType<typeof inlineEditController.start>>;
 export function CriticPanel({
   snapshot,
   workspaceId,
   onApplied,
+  compact = false,
 }: {
   snapshot: DocumentSnapshot | null;
   workspaceId: string;
   onApplied: (application: ReviewApplication) => void | Promise<void>;
+  compact?: boolean;
 }) {
   const { locale } = useI18n();
   const zh = locale === 'zh-CN';
@@ -221,8 +224,14 @@ export function CriticPanel({
   const reports = view ? [view.local, ...(view.llm ? [view.llm] : [])].filter(matches) : [];
   return (
     <>
-      <Button size="small" onClick={() => setOpen(true)}>
-        {say('文档审稿', 'Document review')}
+      <Button
+        size="small"
+        type={compact ? 'text' : 'default'}
+        aria-label={say('文档审稿', 'Document review')}
+        icon={compact ? <AuditOutlined /> : undefined}
+        onClick={() => setOpen(true)}
+      >
+        {compact ? say('审稿', 'Check') : say('文档审稿', 'Document review')}
       </Button>
       <Drawer title={say('文档审稿', 'Document review')} open={open} onClose={close} size={540}>
         <p>

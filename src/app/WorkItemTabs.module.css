@@ -1,0 +1,50 @@
+.tabs {
+  display: flex;
+  flex: none;
+  min-height: 39px;
+  overflow-x: auto;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  display: flex;
+  align-items: center;
+  min-width: 128px;
+  max-width: 210px;
+  color: var(--text-muted);
+  border-right: 1px solid var(--border);
+}
+.tab[data-active='true'] {
+  color: var(--text-strong);
+  background: var(--panel);
+  box-shadow: inset 0 2px var(--accent);
+}
+.select {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  height: 39px;
+  gap: 7px;
+  padding: 0 10px;
+  color: inherit;
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.select span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dirty {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.conflict {
+  color: #cf1322;
+}

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../app/i18n/I18nProvider';
 import { useAppStore } from '../../../stores/useAppStore';
@@ -19,6 +19,71 @@ const snapshot: DocumentSnapshot = {
 const port = { read: () => ({ text, start: 0, end: text.length }) };
 
 describe('SelectionAssistant', () => {
+  it('floats inside the editor bounds, hides advanced actions and preserves focus on mouse actions', async () => {
+    const editor = document.createElement('div');
+    const background = document.createElement('div');
+    background.className = 'cm-selectionBackground';
+    editor.append(background);
+    document.body.append(editor);
+    vi.spyOn(editor, 'getBoundingClientRect').mockReturnValue({
+      left: 230,
+      top: 200,
+      right: 610,
+      bottom: 800,
+      width: 380,
+      height: 600,
+    } as DOMRect);
+    vi.spyOn(background, 'getBoundingClientRect').mockReturnValue({
+      left: 550,
+      top: 350,
+      right: 590,
+      bottom: 370,
+      width: 40,
+      height: 20,
+    } as DOMRect);
+    try {
+      const { rerender } = render(
+        <I18nProvider>
+          <SelectionAssistant
+            floating
+            editorRegion={{ current: editor }}
+            editorPort={port}
+            snapshot={snapshot}
+            selectedText={text}
+            onApplied={vi.fn()}
+          />
+        </I18nProvider>
+      );
+      const toolbar = await screen.findByRole('region', { name: '选区助手' });
+      await waitFor(() => expect(toolbar).toHaveStyle({ visibility: 'visible' }));
+      expect(toolbar.parentElement).toBe(document.body);
+      expect(toolbar).toHaveStyle({ left: '238px', width: '364px' });
+      expect(screen.queryByRole('textbox', { name: '自定义选区修改' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '翻译' })).not.toBeInTheDocument();
+      const press = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+      fireEvent(screen.getByRole('button', { name: '润色' }), press);
+      expect(press.defaultPrevented).toBe(true);
+      fireEvent.click(screen.getByRole('button', { name: '更多选区操作' }));
+      fireEvent.click(await screen.findByText('自定义指令'));
+      expect(screen.getByRole('textbox', { name: '自定义选区修改' })).toBeVisible();
+      rerender(
+        <I18nProvider>
+          <SelectionAssistant
+            floating
+            editorRegion={{ current: editor }}
+            editorPort={port}
+            snapshot={snapshot}
+            selectedText=""
+            onApplied={vi.fn()}
+          />
+        </I18nProvider>
+      );
+      expect(screen.queryByRole('region', { name: '选区助手' })).not.toBeInTheDocument();
+    } finally {
+      editor.remove();
+    }
+  });
+
   beforeEach(() => {
     useAppStore.setState({
       runtimeMode: 'web-mock',

@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { I18nProvider } from './i18n/I18nProvider';
 import { WorkspaceLayout } from './WorkspaceLayout';
+import { WorkspacePanelControls } from './WorkspacePanelControls';
 
 const renderLayout = () =>
   render(
@@ -29,6 +30,61 @@ const firePointer = (target: Element | Window, type: string, clientX: number) =>
 beforeEach(() => localStorage.clear());
 
 describe('WorkspaceLayout', () => {
+  it('collapses panels without unmounting drafts and restores their widths', () => {
+    render(
+      <I18nProvider>
+        <WorkspaceLayout
+          collapsible
+          left={<input aria-label="file draft" defaultValue="file state" />}
+          center={<WorkspacePanelControls />}
+          right={<textarea aria-label="AI draft" defaultValue="unsent prompt" />}
+        />
+      </I18nProvider>
+    );
+    const draft = screen.getByLabelText('AI draft');
+    fireEvent.click(screen.getByRole('button', { name: '收起 AI 栏' }));
+    expect(draft).not.toBeVisible();
+    expect(draft).toHaveValue('unsent prompt');
+    expect(screen.getAllByRole('separator')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: '收起文件栏' }));
+    expect(screen.getByLabelText('file draft')).not.toBeVisible();
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    expect(screen.getByTestId('workspace-layout').style.gridTemplateColumns).toBe(
+      'minmax(360px, 1fr)'
+    );
+    fireEvent.click(screen.getByRole('button', { name: '展开 AI 栏' }));
+    fireEvent.click(screen.getByRole('button', { name: '展开文件栏' }));
+    expect(screen.getByLabelText('AI draft')).toBe(draft);
+    expect(draft).toBeVisible();
+    expect(screen.getByTestId('workspace-layout').style.gridTemplateColumns).toContain('230px');
+  });
+
+  it('supports sidebar shortcuts without overriding bold or IME input', () => {
+    render(
+      <I18nProvider>
+        <WorkspaceLayout
+          collapsible
+          left={<div>files</div>}
+          center={
+            <>
+              <WorkspacePanelControls />
+              <textarea aria-label="editor draft" />
+            </>
+          }
+          right={<div>assistant</div>}
+        />
+      </I18nProvider>
+    );
+    fireEvent.keyDown(window, { key: 'b', ctrlKey: true });
+    expect(screen.getByRole('button', { name: '展开文件栏' })).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByLabelText('editor draft'), { key: 'b', ctrlKey: true });
+    expect(screen.getByRole('button', { name: '展开文件栏' })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'b', ctrlKey: true, shiftKey: true, isComposing: true });
+    expect(screen.getByRole('button', { name: '收起 AI 栏' })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'b', ctrlKey: true, shiftKey: true });
+    expect(screen.getByRole('button', { name: '展开 AI 栏' })).toBeInTheDocument();
+  });
+
   it('resizes the file column by dragging and persists the result', () => {
     renderLayout();
     const workspace = setWorkspaceWidth(1200);

@@ -23,6 +23,7 @@ interface ManifestInputOptions {
   documentSources: DocumentSource[];
   activePath: string;
   selectedText: string;
+  selectionLabel?: string;
 }
 
 export const processingLocationForProvider = (
@@ -44,6 +45,7 @@ export const buildContextManifestInput = ({
   documentSources,
   activePath,
   selectedText,
+  selectionLabel,
 }: ManifestInputOptions): ContextManifestInput => {
   const candidates: ContextCandidate[] = [];
   const active = files.find((file) => file.path === activePath);
@@ -51,7 +53,7 @@ export const buildContextManifestInput = ({
   if (selectedText || selection.selection) {
     candidates.push({
       kind: 'selection',
-      label: activePath || '当前选区',
+      label: (selectionLabel ?? activePath) || '当前选区',
       selected: selection.selection && Boolean(selectedText),
       sourceId: active?.sourceId,
       content: selection.selection ? selectedText : undefined,

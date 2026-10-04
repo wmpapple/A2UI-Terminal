@@ -10,6 +10,71 @@
   background: color-mix(in srgb, var(--surface-subtle) 60%, var(--panel));
   border-left: 1px solid var(--border);
 }
+.documentContext {
+  flex: 1;
+  min-height: 0;
+  padding: 18px 16px;
+  overflow: auto;
+}
+.documentContext h2 {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.documentContext h2:not(:first-child) {
+  margin-top: 24px;
+}
+.contextDocument {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  color: var(--text-strong);
+  font-size: 13px;
+}
+.contextDocument strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.contextSources {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 12px;
+}
+.contextTasks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.contextTasks :global(.ant-btn) {
+  height: 32px;
+  border-radius: 6px;
+}
+.contextSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.contextSummary :global(.ant-btn) {
+  width: 100%;
+  height: auto;
+  padding: 2px 0;
+  justify-content: start;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: left;
+}
+.contextSummary :global(.ant-btn > span) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.contextSummary > span {
+  overflow-wrap: anywhere;
+}
 .header {
   display: flex;
   flex: none;
@@ -132,8 +197,13 @@
   margin: 4px 12px 8px;
 }
 .shortcutHint {
-  color: var(--text-muted);
-  font-size: 11px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .promptSuggestions {
   display: flex;

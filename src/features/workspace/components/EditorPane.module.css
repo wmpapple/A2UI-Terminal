@@ -7,6 +7,49 @@
   overflow: hidden;
   background: var(--canvas);
 }
+.fileHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  flex: none;
+}
+.fileIdentity {
+  flex: 1;
+  min-width: 0;
+}
+.fileIdentity h1 {
+  margin: 0 0 6px;
+  color: var(--text-strong);
+  font-size: 17px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.fileMetadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.panelControls {
+  display: flex;
+  flex: none;
+}
+.fileCapabilities {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.contextCapabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-left: auto;
+}
 .toolbar {
   display: flex;
   align-items: center;
@@ -153,6 +196,10 @@
 .editor {
   height: 100%;
   border: 0;
+}
+.previewOnly :global(.md-editor-input-wrapper),
+.previewOnly :global(.md-editor-toolbar-wrapper) {
+  display: none;
 }
 .loading {
   display: grid;

@@ -84,6 +84,29 @@ describe('WorkspaceSidebar', () => {
     expect(screen.getByText(/不会读取或写入本地文件/)).toBeInTheDocument();
   });
 
+  it('does not highlight the open file while another work item is active', () => {
+    useAppStore.setState({ activePath: 'README.md' });
+    const { rerender } = render(
+      <I18nProvider>
+        <WorkspaceSidebar highlightActiveFile={false} />
+      </I18nProvider>
+    );
+    expect(screen.getByRole('treeitem', { name: /README\.md/i })).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+    rerender(
+      <I18nProvider>
+        <WorkspaceSidebar highlightActiveFile />
+      </I18nProvider>
+    );
+    expect(screen.getByRole('treeitem', { name: /README\.md/i })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    useAppStore.setState({ activePath: undefined });
+  });
+
   it('returns to the workspace editor when a source file is selected', async () => {
     const onActivateWorkspace = vi.fn();
     render(

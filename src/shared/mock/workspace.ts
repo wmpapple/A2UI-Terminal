@@ -39,14 +39,7 @@ export const mockSessions: ChatSession[] = [
   {
     id: 'welcome',
     title: 'README 优化',
-    messages: [
-      {
-        id: 'welcome-message',
-        role: 'assistant',
-        content: '选择上下文后告诉我需要修改什么。我会先生成可审阅的 Patch。',
-        status: 'complete',
-      },
-    ],
+    messages: [],
   },
 ];
 

@@ -1,12 +1,18 @@
 import { InfoNotice } from '../../../shared/components/InfoNotice';
-import { DeleteOutlined, ExclamationCircleOutlined, FolderAddOutlined } from '@ant-design/icons';
-import { Alert, Button, Input, Popconfirm, Select, Tag, Tooltip, message } from 'antd';
+import {
+  CloseOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined,
+  FolderAddOutlined,
+  MoreOutlined,
+} from '@ant-design/icons';
+import { Alert, Button, Dropdown, Input, Modal, Popconfirm, Select, Tag, Tooltip, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { useAppStore } from '../../../stores/useAppStore';
 import { useImportStore } from '../../imports/importStore';
 import { useContextPackStore } from '../contextPackStore';
-import styles from '../../settings/components/SystemSettings.module.css';
+import styles from './ContextPackSettings.module.css';
 import { KnowledgePicker } from '../../knowledge/KnowledgePicker';
 
 export function ContextPackSettings() {
@@ -39,6 +45,8 @@ function WorkspacePacks() {
   const [name, setName] = useState('');
   const [sourceIds, setSourceIds] = useState<string[]>([]);
   const [knowledgeIds, setKnowledgeIds] = useState<string[]>([]);
+  const [knowledgeTitles, setKnowledgeTitles] = useState<Record<string, string>>({});
+  const [revokeTarget, setRevokeTarget] = useState<(typeof sources)[number] | null>(null);
 
   useEffect(() => {
     if (!workspace?.id) return;
@@ -79,7 +87,7 @@ function WorkspacePacks() {
     >
       <div className={styles.heading}>
         <div className={styles.kpiHeading}>
-          <h3>{t('contextAuthorizationSettings')}</h3>
+          <h2>{zh ? '资料包' : 'Source packs'}</h2>
           <Tooltip
             trigger={['hover', 'focus']}
             placement="top"
@@ -108,11 +116,21 @@ function WorkspacePacks() {
         </div>
         <Tag>{workspace.name}</Tag>
       </div>
+      <p className={styles.intro}>
+        {zh
+          ? '资料包是资料引用集合，不复制文件正文，可在任务中快速选择。'
+          : 'Packs group source references without copying their contents, ready to use in tasks.'}
+      </p>
       {packError || sourceError ? (
         <Alert type="error" showIcon title={packError ?? sourceError ?? ''} />
       ) : null}
-      <div className={styles.packComposer}>
+      <div className={styles.createCard}>
+        <h3>{zh ? '创建资料包' : 'Create a pack'}</h3>
+        <label className={styles.stepLabel} htmlFor="context-pack-name">
+          <span>1</span>{zh ? '名称' : 'Name'}
+        </label>
         <Input
+          id="context-pack-name"
           data-testid="context-pack-name"
           value={name}
           maxLength={80}
@@ -120,42 +138,79 @@ function WorkspacePacks() {
           aria-label={t('contextPackName')}
           onChange={(event) => setName(event.target.value)}
         />
-        <Select
-          data-testid="context-pack-sources"
-          mode="multiple"
-          value={sourceIds}
-          maxCount={20 - knowledgeIds.length}
-          placeholder={t('contextPackSourcesPlaceholder')}
-          aria-label={t('contextPackSources')}
-          options={sources.map((source) => ({ value: source.id, label: source.name }))}
-          onChange={setSourceIds}
-        />
+        <div className={styles.stepLabel}>
+          <span>2</span>{zh ? '添加资料' : 'Add sources'}
+        </div>
+        <div className={styles.sourceSelectors}>
+          <div>
+            <label>{zh ? '工作区资料' : 'Workspace sources'}</label>
+            <Select
+              data-testid="context-pack-sources"
+              mode="multiple"
+              value={sourceIds}
+              maxCount={20 - knowledgeIds.length}
+              placeholder={zh ? '+ 添加工作区资料' : '+ Add workspace sources'}
+              aria-label={t('contextPackSources')}
+              options={sources.map((source) => ({ value: source.id, label: source.name }))}
+              onChange={setSourceIds}
+            />
+          </div>
+          <div>
+            <label>{zh ? '个人资料' : 'My sources'}</label>
+            <KnowledgePicker
+              value={knowledgeIds}
+              onChange={setKnowledgeIds}
+              purpose="pack"
+              maxCount={20 - sourceIds.length}
+              hideLabel
+              placeholder={zh ? '+ 添加个人资料' : '+ Add library sources'}
+              onSourceChosen={(source) =>
+                setKnowledgeTitles((current) => ({ ...current, [source.id]: source.title }))
+              }
+            />
+          </div>
+        </div>
+        <div className={styles.selectedSources}>
+          <strong>
+            {zh ? `已选择 ${sourceIds.length + knowledgeIds.length} 项` : `${sourceIds.length + knowledgeIds.length} selected`}
+          </strong>
+          {sourceIds.length + knowledgeIds.length === 0 ? (
+            <p>{zh ? '从上方添加资料，最多 20 项。' : 'Add up to 20 sources above.'}</p>
+          ) : (
+            <ul>
+              {sourceIds.map((id) => (
+                <li key={id}>
+                  <span>{sources.find((source) => source.id === id)?.name ?? id}</span>
+                  <Button type="text" icon={<CloseOutlined />} aria-label={`${zh ? '移除' : 'Remove'} ${id}`} onClick={() => setSourceIds((current) => current.filter((item) => item !== id))} />
+                </li>
+              ))}
+              {knowledgeIds.map((id) => (
+                <li key={id}>
+                  <span>{knowledgeTitles[id] ?? id}</span>
+                  <Button type="text" icon={<CloseOutlined />} aria-label={`${zh ? '移除' : 'Remove'} ${id}`} onClick={() => setKnowledgeIds((current) => current.filter((item) => item !== id))} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className={styles.createFooter}>
+          <span>{zh ? '资料包保存在当前工作区，使用时仍需确认发送清单。' : 'Saved in this workspace; sending still requires confirmation.'}</span>
+          <Button
+            data-testid="create-context-pack"
+            type="primary"
+            icon={<FolderAddOutlined />}
+            loading={loading}
+            disabled={!name.trim() || sourceIds.length + knowledgeIds.length === 0 || sourceIds.length + knowledgeIds.length > 20}
+            onClick={() => void create()}
+          >
+            {t('createContextPack')}
+          </Button>
+        </div>
       </div>
-      <KnowledgePicker
-        value={knowledgeIds}
-        onChange={setKnowledgeIds}
-        purpose="pack"
-        maxCount={20 - sourceIds.length}
-      />
-      <p>
-        {zh
-          ? '可混合选择个人资料与当前工作区资料，合计最多 20 项。资料包保存在上方标明的工作区；选择后仍需确认发送清单。'
-          : 'Combine up to 20 library and workspace sources. Packs belong to the workspace shown above; sending still requires confirmation.'}
-      </p>
-      <Button
-        data-testid="create-context-pack"
-        type="primary"
-        icon={<FolderAddOutlined />}
-        loading={loading}
-        disabled={
-          !name.trim() ||
-          sourceIds.length + knowledgeIds.length === 0 ||
-          sourceIds.length + knowledgeIds.length > 20
-        }
-        onClick={() => void create()}
-      >
-        {t('createContextPack')}
-      </Button>
+      <div className={styles.heading}>
+        <h3>{zh ? '已有资料包' : 'Saved packs'}</h3>
+        <span>{packs.length}</span>
+      </div>
       <div className={styles.managedList}>
         {packs.length === 0 ? <span>{t('noContextPacks')}</span> : null}
         {packs.map((pack) => (
@@ -186,64 +241,68 @@ function WorkspacePacks() {
               }}
             >
               <Button
-                danger
                 size="small"
                 icon={<DeleteOutlined />}
                 data-testid="delete-context-pack"
-              >
-                {t('deleteContextPack')}
-              </Button>
+                aria-label={t('deleteContextPack')}
+                title={t('deleteContextPack')}
+              />
             </Popconfirm>
           </article>
         ))}
       </div>
-      <div className={styles.heading}>
-        <h3>{t('authorizedSources')}</h3>
-        <span>{t('sourceNotSent')}</span>
-      </div>
-      <div className={styles.managedList}>
-        {sources.length === 0 ? <span>{t('noAuthorizedSources')}</span> : null}
-        {sources.map((source) => (
-          <article
-            key={source.id}
-            className={styles.managedItem}
-            data-testid="authorized-source-item"
-          >
-            <div>
-              <strong>{source.name}</strong>
-              <span>{t('sourceAuthorizationStoredInWorkspace')}</span>
-            </div>
-            <Tag>
-              {t(
-                `sourceKind${source.kind === 'table' ? 'Table' : source.kind === 'image' ? 'Image' : 'Text'}`
-              )}
-            </Tag>
-            <Popconfirm
-              title={t('revokeSourceTitle').replace('{name}', source.name)}
-              description={t('revokeSourceDescription')}
-              okText={t('revokeSourceConfirm')}
-              cancelText={t('revokeSourceCancel')}
-              okButtonProps={{ danger: true }}
-              onConfirm={async () => {
-                if (await revokeSource(workspace.id, source.id)) {
-                  forgetAuthorizedSource(source.id);
-                  message.success(t('sourceAuthorizationRevoked'));
-                }
-              }}
-            >
-              <Button
-                data-testid="revoke-authorized-source"
-                danger
-                size="small"
-                icon={<DeleteOutlined />}
-                loading={revokingSourceId === source.id}
+      <details className={styles.workspaceSources}>
+        <summary>
+          {zh ? `当前工作区资料 ${sources.length} 项` : `${sources.length} workspace sources`}
+        </summary>
+        <p>{zh ? '这里只管理当前工作区的资料授权，不会删除资料库副本或原文件。' : 'This manages workspace authorization only, not library copies or original files.'}</p>
+        <div className={styles.managedList}>
+          {sources.length === 0 ? <span>{t('noAuthorizedSources')}</span> : null}
+          {sources.map((source) => (
+            <article key={source.id} className={styles.managedItem} data-testid="authorized-source-item">
+              <div>
+                <strong>{source.name}</strong>
+                <span>{t('sourceAuthorizationStoredInWorkspace')}</span>
+              </div>
+              <Tag>{t(`sourceKind${source.kind === 'table' ? 'Table' : source.kind === 'image' ? 'Image' : 'Text'}`)}</Tag>
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  items: [{ key: 'remove', label: zh ? '从当前工作区移除' : 'Remove from workspace', danger: true }],
+                  onClick: () => setRevokeTarget(source),
+                }}
               >
-                {t('revokeSource')}
-              </Button>
-            </Popconfirm>
-          </article>
-        ))}
-      </div>
+                <Button
+                  data-testid="revoke-authorized-source"
+                  size="small"
+                  icon={<MoreOutlined />}
+                  aria-label={`${zh ? '资料操作' : 'Source actions'}：${source.name}`}
+                  loading={revokingSourceId === source.id}
+                />
+              </Dropdown>
+            </article>
+          ))}
+        </div>
+      </details>
+      <Modal
+        open={Boolean(revokeTarget)}
+        title={revokeTarget ? t('revokeSourceTitle').replace('{name}', revokeTarget.name) : ''}
+        okText={zh ? '从工作区移除' : 'Remove from workspace'}
+        cancelText={t('revokeSourceCancel')}
+        okButtonProps={{ danger: true, loading: Boolean(revokingSourceId) }}
+        onCancel={() => setRevokeTarget(null)}
+        onOk={async () => {
+          if (!revokeTarget) return;
+          if (await revokeSource(workspace.id, revokeTarget.id)) {
+            forgetAuthorizedSource(revokeTarget.id);
+            message.success(t('sourceAuthorizationRevoked'));
+            setRevokeTarget(null);
+          }
+        }}
+      >
+        <p>{t('revokeSourceDescription')}</p>
+        <p>{zh ? '个人资料库中的副本不受影响。' : 'Any personal library copy is unaffected.'}</p>
+      </Modal>
     </section>
   );
 }

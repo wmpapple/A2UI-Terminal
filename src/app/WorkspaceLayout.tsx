@@ -2,6 +2,7 @@ import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useI18n } from './i18n/useI18n';
 import styles from './AppShell.module.css';
+import { WorkspacePanelsContext } from './workspacePanels';
 
 const STORAGE_KEY = 'a2ui.workspace.column-widths.v1';
 const SPLITTER_WIDTH = 8;
@@ -27,6 +28,8 @@ interface WorkspaceLayoutProps {
   center: ReactNode;
   right: ReactNode;
   showLeftPanel?: boolean;
+  collapsible?: boolean;
+  leftPanelLabel?: string;
 }
 
 interface ResizeHandleProps {
@@ -88,8 +91,18 @@ function readStoredWidths(): ColumnWidths {
 function constrainWidths(
   widths: ColumnWidths,
   containerWidth: number,
-  showLeftPanel: boolean
+  showLeftPanel: boolean,
+  showRightPanel = true
 ): ColumnWidths {
+  if (!showRightPanel) {
+    return {
+      ...widths,
+      left:
+        showLeftPanel && containerWidth >= MIN_LEFT_WIDTH + MIN_CENTER_WIDTH + SPLITTER_WIDTH
+          ? clamp(widths.left, MIN_LEFT_WIDTH, containerWidth - MIN_CENTER_WIDTH - SPLITTER_WIDTH)
+          : widths.left,
+    };
+  }
   if (!showLeftPanel) {
     const minimumLayoutWidth = MIN_CENTER_WIDTH + MIN_RIGHT_WIDTH + SPLITTER_WIDTH;
     if (!Number.isFinite(containerWidth) || containerWidth < minimumLayoutWidth) return widths;
@@ -117,15 +130,51 @@ export function WorkspaceLayout({
   center,
   right,
   showLeftPanel = true,
+  collapsible = false,
+  leftPanelLabel,
 }: WorkspaceLayoutProps) {
   const { t } = useI18n();
   const [initialWidths] = useState(readStoredWidths);
   const [widths, setWidths] = useState(initialWidths);
   const [dragging, setDragging] = useState<'left' | 'right' | null>(null);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const leftVisible = showLeftPanel && !(collapsible && leftCollapsed);
+  const rightVisible = !(collapsible && rightCollapsed);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const widthsRef = useRef(widths);
   const preferredWidthsRef = useRef(initialWidths);
   const dragRef = useRef<DragState | null>(null);
+
+  useEffect(() => {
+    if (!collapsible) return;
+    const toggle = (event: globalThis.KeyboardEvent) => {
+      if (
+        !(event.ctrlKey || event.metaKey) ||
+        event.altKey ||
+        event.key.toLowerCase() !== 'b' ||
+        event.isComposing ||
+        event.repeat ||
+        event.defaultPrevented ||
+        document.querySelector('[role="dialog"]')
+      )
+        return;
+      const target = event.target;
+      // Preserve native bold while typing. The AI shortcut does not conflict with formatting.
+      if (
+        !event.shiftKey &&
+        target instanceof Element &&
+        target.closest('input, textarea, [contenteditable="true"]')
+      )
+        return;
+      if (!event.shiftKey && !showLeftPanel) return;
+      event.preventDefault();
+      if (event.shiftKey) setRightCollapsed((value) => !value);
+      else setLeftCollapsed((value) => !value);
+    };
+    window.addEventListener('keydown', toggle);
+    return () => window.removeEventListener('keydown', toggle);
+  }, [collapsible, showLeftPanel]);
 
   const updateWidths = useCallback((next: ColumnWidths, preferred = true) => {
     widthsRef.current = next;
@@ -152,7 +201,7 @@ export function WorkspaceLayout({
       const containerWidth = workspace.getBoundingClientRect().width;
       if (containerWidth <= 0) return;
       updateWidths(
-        constrainWidths(preferredWidthsRef.current, containerWidth, showLeftPanel),
+        constrainWidths(preferredWidthsRef.current, containerWidth, leftVisible, rightVisible),
         false
       );
     };
@@ -160,7 +209,7 @@ export function WorkspaceLayout({
     observer.observe(workspace);
     fitToContainer();
     return () => observer.disconnect();
-  }, [showLeftPanel, updateWidths]);
+  }, [leftVisible, rightVisible, updateWidths]);
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
@@ -173,7 +222,7 @@ export function WorkspaceLayout({
           ? { left: drag.startWidths.left + delta, right: drag.startWidths.right }
           : { left: drag.startWidths.left, right: drag.startWidths.right - delta };
       updateWidths(
-        constrainWidths(desired, workspace.getBoundingClientRect().width, showLeftPanel)
+        constrainWidths(desired, workspace.getBoundingClientRect().width, leftVisible, rightVisible)
       );
     };
     window.addEventListener('pointermove', move);
@@ -185,7 +234,7 @@ export function WorkspaceLayout({
       window.removeEventListener('pointercancel', endDragging);
       endDragging();
     };
-  }, [endDragging, showLeftPanel, updateWidths]);
+  }, [endDragging, leftVisible, rightVisible, updateWidths]);
 
   const startDragging = useCallback(
     (kind: 'left' | 'right', event: ReactPointerEvent<HTMLDivElement>) => {
@@ -210,17 +259,17 @@ export function WorkspaceLayout({
         kind === 'left'
           ? { ...widthsRef.current, left: widthsRef.current.left + delta }
           : { ...widthsRef.current, right: widthsRef.current.right - delta };
-      updateWidths(constrainWidths(desired, workspaceWidth, showLeftPanel));
+      updateWidths(constrainWidths(desired, workspaceWidth, leftVisible, rightVisible));
       persistWidths();
     },
-    [persistWidths, showLeftPanel, updateWidths]
+    [persistWidths, leftVisible, rightVisible, updateWidths]
   );
 
   const resetWidths = useCallback(() => {
     const workspaceWidth = workspaceRef.current?.getBoundingClientRect().width ?? 0;
-    updateWidths(constrainWidths(DEFAULT_WIDTHS, workspaceWidth, showLeftPanel));
+    updateWidths(constrainWidths(DEFAULT_WIDTHS, workspaceWidth, leftVisible, rightVisible));
     persistWidths();
-  }, [persistWidths, showLeftPanel, updateWidths]);
+  }, [persistWidths, leftVisible, rightVisible, updateWidths]);
 
   const resizeLeftWithKeyboard = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => resizeWithKeyboard('left', event),
@@ -242,7 +291,11 @@ export function WorkspaceLayout({
   const separator = (kind: 'left' | 'right') => (
     <ResizeHandle
       active={dragging === kind}
-      label={t(kind === 'left' ? 'resizeFilePanel' : 'resizeAssistantPanel')}
+      label={
+        kind === 'left' && leftPanelLabel
+          ? leftPanelLabel
+          : t(kind === 'left' ? 'resizeFilePanel' : 'resizeAssistantPanel')
+      }
       minimum={kind === 'left' ? MIN_LEFT_WIDTH : MIN_RIGHT_WIDTH}
       value={kind === 'left' ? widths.left : widths.right}
       onDoubleClick={resetWidths}
@@ -257,16 +310,30 @@ export function WorkspaceLayout({
       className={`${styles.workspace} ${showLeftPanel ? '' : styles.workspaceSimple} ${dragging ? styles.workspaceResizing : ''}`}
       data-testid="workspace-layout"
       style={{
-        gridTemplateColumns: showLeftPanel
-          ? `${widths.left}px ${SPLITTER_WIDTH}px minmax(${MIN_CENTER_WIDTH}px, 1fr) ${SPLITTER_WIDTH}px ${widths.right}px`
-          : `minmax(${MIN_CENTER_WIDTH}px, 1fr) ${SPLITTER_WIDTH}px ${widths.right}px`,
+        gridTemplateColumns: `${leftVisible ? `${widths.left}px ${SPLITTER_WIDTH}px ` : ''}minmax(${MIN_CENTER_WIDTH}px, 1fr)${rightVisible ? ` ${SPLITTER_WIDTH}px ${widths.right}px` : ''}`,
       }}
     >
-      {showLeftPanel ? left : null}
-      {showLeftPanel ? separator('left') : null}
-      {center}
-      {separator('right')}
-      {right}
+      <WorkspacePanelsContext.Provider
+        value={
+          collapsible
+            ? {
+                leftAvailable: showLeftPanel,
+                leftCollapsed,
+                rightCollapsed,
+                toggleLeft: () => setLeftCollapsed((value) => !value),
+                toggleRight: () => setRightCollapsed((value) => !value),
+              }
+            : null
+        }
+      >
+        {showLeftPanel ? (
+          <div style={{ display: leftVisible ? undefined : 'none', minWidth: 0 }}>{left}</div>
+        ) : null}
+        {leftVisible ? separator('left') : null}
+        {center}
+        {rightVisible ? separator('right') : null}
+        <div style={{ display: rightVisible ? undefined : 'none', minWidth: 0 }}>{right}</div>
+      </WorkspacePanelsContext.Provider>
     </div>
   );
 }

@@ -48,7 +48,8 @@ it('keeps an independent tool binding summary compact and hides manual refresh i
       />
     </I18nProvider>
   );
-  expect(await screen.findByRole('button', { name: '刷新关联状态' })).toBeVisible();
+  expect(await screen.findByRole('button', { name: '更多关联操作' })).toBeVisible();
+  expect(screen.queryByRole('button', { name: '刷新关联状态' })).not.toBeInTheDocument();
 });
 
 it('describes a linked target with product-facing current and changed states', async () => {
@@ -79,7 +80,7 @@ it('describes a linked target with product-facing current and changed states', a
       />
     </I18nProvider>
   );
-  expect(await screen.findByText('关联：PRD.md · 正常')).toBeVisible();
+  expect(await screen.findByText('PRD.md · 正常')).toBeVisible();
 
   vi.mocked(sceneToolController.readLink).mockResolvedValue({ ...linked, status: 'changed' });
   rerender(
@@ -92,6 +93,6 @@ it('describes a linked target with product-facing current and changed states', a
       />
     </I18nProvider>
   );
-  expect(await screen.findByText('关联：PRD.md · 已更新')).toBeVisible();
+  expect(await screen.findByText('PRD.md · 已发生变化')).toBeVisible();
   expect(screen.getByRole('button', { name: '重新核对' })).toBeVisible();
 });

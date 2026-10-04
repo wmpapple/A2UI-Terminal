@@ -1,5 +1,8 @@
-import { Button, Checkbox, Input, message, Modal, Space, Tag } from 'antd';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Checkbox, Dropdown, Input, message, Modal, Space, Tag, Tooltip } from 'antd';
+import { MoreOutlined, DownOutlined } from '@ant-design/icons';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
+import { useSelectionToolbarPosition } from './useSelectionToolbarPosition';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type {
   DocumentSnapshot,
@@ -22,6 +25,8 @@ interface Props {
   snapshot: DocumentSnapshot | null;
   selectedText: string;
   targetLabel?: string;
+  floating?: boolean;
+  editorRegion?: RefObject<HTMLElement | null>;
   onApplied: (application: ReviewApplication) => void | Promise<void>;
 }
 
@@ -60,8 +65,13 @@ export function SelectionAssistant({
   selectedText,
   targetLabel,
   onApplied,
+  floating = false,
+  editorRegion,
 }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const zh = locale === 'zh-CN';
+  const [customOpen, setCustomOpen] = useState(false);
+  const { toolbar, position } = useSelectionToolbarPosition(editorRegion, selectedText, floating);
   const runtimeMode = useAppStore((state) => state.runtimeMode);
   const activeProviderId = useAppStore((state) => state.activeProviderId);
   const [customInstruction, setCustomInstruction] = useState('');
@@ -225,11 +235,33 @@ export function SelectionAssistant({
     await generate(action, instruction, true);
   };
 
-  return (
-    <section className={styles.assistant} aria-label={t('selectionAssistant')}>
+  const content = (
+    <section
+      ref={toolbar}
+      className={`${styles.assistant} ${floating ? styles.floating : ''}`}
+      style={
+        floating
+          ? {
+              position: 'fixed',
+              left: position?.left,
+              top: position?.top,
+              width: position?.width,
+              visibility: position ? 'visible' : 'hidden',
+            }
+          : undefined
+      }
+      aria-label={t('selectionAssistant')}
+      onMouseDown={(event) => {
+        if (
+          floating &&
+          !(event.target instanceof Element && event.target.closest('input, textarea'))
+        )
+          event.preventDefault();
+      }}
+    >
       <div className={styles.actions}>
-        <Tag className={styles.selectionBadge}>{selectedText.length} 个字符</Tag>
-        {actions.map(([action, label]) => (
+        {!floating && <Tag className={styles.selectionBadge}>{selectedText.length} 个字符</Tag>}
+        {(floating ? actions.slice(0, 3) : actions).map(([action, label]) => (
           <Button
             key={action}
             type="text"
@@ -238,36 +270,86 @@ export function SelectionAssistant({
             disabled={working || Boolean(currentProposal)}
             onClick={() => void generate(action, '')}
           >
-            {label}
+            {zh ? label : action}
           </Button>
         ))}
-        <div className={styles.customControl}>
-          <Input
-            size="small"
-            variant="borderless"
-            className={styles.customInput}
-            value={customInstruction}
-            maxLength={500}
-            aria-label="自定义选区修改"
-            placeholder="例如：改成更适合客户阅读的表达"
-            onChange={(event) => setCustomInstruction(event.target.value)}
-            disabled={working || Boolean(currentProposal)}
-            onPressEnter={(event) => {
-              if (event.nativeEvent.isComposing || event.keyCode === 229) return;
-              event.preventDefault();
-              void generate('custom');
-            }}
-          />
-          <Button
-            type="text"
-            size="small"
-            disabled={!customInstruction.trim() || working || Boolean(currentProposal)}
-            loading={working}
-            onClick={() => void generate('custom')}
-          >
-            修改
-          </Button>
-        </div>
+        {floating && (
+          <>
+            <Dropdown
+              trigger={['click']}
+              menu={{
+                items: actions
+                  .slice(3, 5)
+                  .map(([key, label]) => ({ key, label: zh ? label : key })),
+                onClick: ({ key }) => void generate(key as InlineEditAction, ''),
+              }}
+            >
+              <Button
+                type="text"
+                size="small"
+                disabled={working || Boolean(currentProposal)}
+                icon={<DownOutlined />}
+              >
+                {zh ? '改语气' : 'Tone'}
+              </Button>
+            </Dropdown>
+            <Dropdown
+              trigger={['click']}
+              menu={{
+                items: [
+                  ...actions.slice(5).map(([key, label]) => ({ key, label: zh ? label : key })),
+                  { key: 'custom', label: zh ? '自定义指令' : 'Custom instruction' },
+                ],
+                onClick: ({ key }) =>
+                  key === 'custom'
+                    ? setCustomOpen((open) => !open)
+                    : void generate(key as InlineEditAction, ''),
+              }}
+            >
+              <Button
+                type="text"
+                size="small"
+                disabled={working || Boolean(currentProposal)}
+                aria-label={zh ? '更多选区操作' : 'More selection actions'}
+                icon={<MoreOutlined />}
+              />
+            </Dropdown>
+            <Tooltip
+              title={zh ? `${selectedText.length} 个字符` : `${selectedText.length} characters`}
+            >
+              <span className={styles.selectionCount}>{selectedText.length}</span>
+            </Tooltip>
+          </>
+        )}
+        {(!floating || customOpen) && (
+          <div className={styles.customControl}>
+            <Input
+              size="small"
+              variant="borderless"
+              className={styles.customInput}
+              value={customInstruction}
+              maxLength={500}
+              aria-label="自定义选区修改"
+              placeholder="例如：改成更适合客户阅读的表达"
+              onChange={(event) => setCustomInstruction(event.target.value)}
+              disabled={working || Boolean(currentProposal)}
+              onPressEnter={(event) => {
+                if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+                event.preventDefault();
+                void generate('custom');
+              }}
+            />
+            <Button
+              type="text"
+              size="small"
+              disabled={!customInstruction.trim() || working || Boolean(currentProposal)}
+              loading={working}
+              onClick={() => void generate('custom')}
+            >
+              修改
+            </Button>
+          </div>
+        )}
       </div>
 
       {currentProposal ? (
@@ -336,4 +418,5 @@ export function SelectionAssistant({
       </Modal>
     </section>
   );
+  return floating ? createPortal(content, document.body) : content;
 }

@@ -34,6 +34,18 @@ const templateLabel = (id: string, zh: boolean) => {
   return labels[id]?.[zh ? 0 : 1] ?? (zh ? '个人模板' : 'Personal template');
 };
 
+const suggestedPublicationTitle = (toolTitle: string, templateId: string, zh: boolean) => {
+  const names: Record<string, [string, string]> = {
+    publish: ['发布检查结果', 'Publication check result'],
+    interview: ['采访记录', 'Interview record'],
+    review: ['文档审核报告', 'Document review report'],
+    tasks: ['任务执行报告', 'Task progress report'],
+    collect: ['信息收集结果', 'Collected information'],
+  };
+  const resultName = names[templateId]?.[zh ? 0 : 1] ?? (zh ? '工具成果' : 'Tool result');
+  return toolTitle === templateLabel(templateId, zh) ? resultName : `${toolTitle} · ${resultName}`;
+};
+
 export function SceneToolWorkbench({
   resultId,
   onOpenResult,
@@ -53,6 +65,7 @@ export function SceneToolWorkbench({
   const zh = locale === 'zh-CN';
   const state = useSceneToolStore((s) => s.entries[resultId]);
   const [exportOpen, setExportOpen] = useState(false);
+  const [publicationName, setPublicationName] = useState<string | null>(null);
   const [templateName, setTemplateName] = useState<string | null>(null);
   const [renameName, setRenameName] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
@@ -114,11 +127,14 @@ export function SceneToolWorkbench({
     return () => window.clearTimeout(timer);
   }, [onRequestedActionHandled, requestedAction, resultId, view]);
 
-  const publish = async () => {
+  const publish = async (title?: string) => {
     setBusy(true);
     setError(null);
     try {
-      if (await sceneTools.publish(resultId)) await useResultStore.getState().loadResults();
+      if (await sceneTools.publish(resultId, title)) {
+        setPublicationName(null);
+        await useResultStore.getState().loadResults();
+      }
     } finally {
       setBusy(false);
     }
@@ -180,11 +196,6 @@ export function SceneToolWorkbench({
               <Button type="link" onClick={() => onOpenResult(publication.resultId)}>
                 {zh ? '查看成果' : 'View result'}
               </Button>
-              {!publicationSynced ? (
-                <span className={styles.publicationPending}>
-                  {zh ? '● 工具有更新，成果未同步' : '● Tool changes are not synced'}
-                </span>
-              ) : null}
             </div>
           ) : null}
 
@@ -195,25 +206,38 @@ export function SceneToolWorkbench({
             </span>
             <div className={styles.primaryActions}>
               {publicationSynced ? (
-                <span className={styles.syncedButton} role="status">
+                <span className={styles.syncedStatus} role="status">
                   <CheckCircleFilled />
-                  {zh ? '已同步' : 'Synced'}
+                  {zh ? '已同步到成果' : 'Synced to result'} · Rev {publication!.revisionNumber}
                 </span>
               ) : (
-                <Button
-                  type="primary"
-                  disabled={busy || state.saving || state.conflict}
-                  loading={busy}
-                  onClick={() => void publish()}
-                >
-                  {!publication
-                    ? zh
-                      ? '保存为成果'
-                      : 'Save as result'
-                    : zh
-                      ? '更新成果'
-                      : 'Update result'}
-                </Button>
+                <>
+                  {publication ? (
+                    <span className={styles.publicationPending} role="status">
+                      {zh ? '● 工具内容有更新' : '● Tool content changed'}
+                    </span>
+                  ) : null}
+                  <Button
+                    type="primary"
+                    disabled={busy || state.saving || state.conflict}
+                    loading={busy}
+                    onClick={() =>
+                      publication
+                        ? void publish()
+                        : setPublicationName(
+                            suggestedPublicationTitle(view.result.title, view.templateId, zh)
+                          )
+                    }
+                  >
+                    {!publication
+                      ? zh
+                        ? '保存为成果'
+                        : 'Save as result'
+                      : zh
+                        ? '更新成果'
+                        : 'Update result'}
+                  </Button>
+                </>
               )}
               <Button
                 disabled={busy || state.saving || state.conflict}
@@ -300,6 +324,27 @@ export function SceneToolWorkbench({
       {exportOpen && document?.result.id === resultId ? (
         <ExportResultModal document={document} onClose={() => setExportOpen(false)} />
       ) : null}
+
+      <Modal
+        title={zh ? '保存为成果' : 'Save as result'}
+        open={publicationName !== null}
+        confirmLoading={busy}
+        okText={zh ? '保存为成果' : 'Save result'}
+        okButtonProps={{ disabled: !publicationName?.trim() }}
+        onCancel={() => {
+          if (!busy) setPublicationName(null);
+        }}
+        onOk={() => {
+          if (publicationName?.trim() && !busy) void publish(publicationName.trim());
+        }}
+      >
+        <Input
+          aria-label={zh ? '成果名称' : 'Result name'}
+          value={publicationName ?? ''}
+          maxLength={160}
+          onChange={(event) => setPublicationName(event.target.value)}
+        />
+      </Modal>
 
       <Modal
         title={zh ? '保存为个人模板' : 'Save as template'}

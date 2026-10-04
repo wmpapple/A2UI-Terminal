@@ -1,4 +1,4 @@
-import { Alert, message } from 'antd';
+import { Alert } from 'antd';
 import { useRef, useState, type RefObject } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { useAppStore } from '../../../stores/useAppStore';
@@ -10,9 +10,15 @@ import { ChatComposer } from './ChatComposer';
 import { ChatMessageList } from './ChatMessageList';
 import styles from './ChatPanel.module.css';
 import { AssistantProgress } from './AssistantProgress';
+import { DocumentAssistantContext } from './DocumentAssistantContext';
+import { ToolAssistantContext } from './ToolAssistantContext';
+import { addDroppedContextFiles } from '../addDroppedContextFiles';
+import { useToolLinkedMaterial } from '../useToolLinkedMaterial';
+import { useSceneToolStore } from '../../sceneTools/sceneToolStore';
 
 interface ChatPanelProps {
   professionalTools?: boolean;
+  toolId?: string | null;
 }
 
 export function ChatPanel(props: ChatPanelProps) {
@@ -30,6 +36,7 @@ export function ChatPanel(props: ChatPanelProps) {
 
 function ChatSessionPanel({
   professionalTools = true,
+  toolId,
   historyButtonRef,
 }: ChatPanelProps & { historyButtonRef: RefObject<HTMLButtonElement | null> }) {
   const { t } = useI18n();
@@ -49,25 +56,34 @@ function ChatSessionPanel({
   const stopChat = useAppStore((state) => state.stopChat);
   const addFileToContext = useAppStore((state) => state.addFileToContext);
   const addFile = useAppStore((state) => state.addFile);
-  const context = useChatContextFlow();
-
-  const addDroppedFiles = async (fileList: FileList) => {
-    const supported = /\.(txt|md|json|ts|tsx|js|jsx|py|ya?ml|css|html|xml|toml|ini|sql|sh|ps1)$/i;
-    for (const file of Array.from(fileList)) {
-      if (!supported.test(file.name) || file.size > 2 * 1024 * 1024) {
-        message.warning(`${file.name}: ${t('unsupportedFile')}`);
-        continue;
+  const toolEntry = useSceneToolStore((state) => (toolId ? state.entries[toolId] : undefined));
+  const toolTitle = toolEntry?.view?.result.title ?? toolId ?? '';
+  const toolMode = toolId !== undefined;
+  const { link, material } = useToolLinkedMaterial(toolId);
+  const inlineContext = toolMode
+    ? {
+        id: toolId ?? 'no-tool',
+        title: toolTitle,
+        content: toolEntry?.view
+          ? JSON.stringify({ tool: toolTitle, fields: toolEntry.data }, null, 2)
+          : '',
       }
-      const path = `uploads/${file.name}`;
-      addFile({
-        path,
-        name: file.name,
-        language: file.name.split('.').pop() ?? 'text',
-        content: await file.text(),
-      });
-      addFileToContext(context.activeSessionId, path);
-    }
-  };
+    : undefined;
+  const context = useChatContextFlow(inlineContext);
+  const linkedMaterialSelected =
+    material?.kind === 'projectFile'
+      ? context.effectiveContext.projectFiles.includes(material.id)
+      : material?.kind === 'documentSource'
+        ? (context.effectiveContext.documentSourceIds ?? []).includes(material.id)
+        : false;
+  const hasSelectedMaterial =
+    linkedMaterialSelected ||
+    context.effectiveContext.projectFiles.length > 0 ||
+    (context.effectiveContext.documentSourceIds?.length ?? 0) > 0 ||
+    (context.effectiveContext.personalKnowledgeIds?.length ?? 0) > 0 ||
+    (context.effectiveContext.contextPackIds?.length ?? 0) > 0;
+  const fileSelection = useAppStore((state) => state.selectedText);
+  const selectedText = inlineContext?.content ?? fileSelection;
 
   return (
     <aside className={styles.panel} aria-label={t('assistant')}>
@@ -79,7 +95,11 @@ function ChatSessionPanel({
         busy={Boolean(chatRequestId)}
         professionalTools={professionalTools}
         onNewSession={() => void createSession()}
-        targetLabel={context.activePath || (useAppStore.getState().workspace?.name ?? 'Workspace')}
+        targetLabel={
+          toolMode
+            ? toolTitle || 'My Tools'
+            : context.activePath || (useAppStore.getState().workspace?.name ?? 'Workspace')
+        }
       />
       <ChatHistoryDrawer
         open={historyOpen}
@@ -105,33 +125,75 @@ function ChatSessionPanel({
           )}
         />
       )}
-      <ChatMessageList
-        messages={context.activeSession?.messages ?? []}
-        requestActive={Boolean(chatRequestId)}
-        reviewAvailable={Boolean(pendingDiff)}
-        onOpenReview={() => setCenterView('diff')}
-        onOpenSurface={(messageId, failed) => {
-          if (failed) {
-            const inspection = a2uiInspections.find((item) => item.messageId === messageId);
-            if (inspection) {
-              setActiveInspection(inspection.id);
-              return;
+      {!context.activeSession?.messages.length && !chatRequestId ? (
+        toolId !== undefined ? (
+          <ToolAssistantContext
+            toolId={toolId ?? null}
+            title={toolTitle}
+            hasData={Boolean(toolEntry?.view)}
+            linkedTitle={link?.targetTitle ?? null}
+            linkedIsDocument={link?.binding.type === 'document'}
+            linkedMaterial={material}
+            linkedMaterialSelected={linkedMaterialSelected}
+            hasSelectedMaterial={hasSelectedMaterial}
+            selection={context.effectiveContext}
+            onOpenContext={context.openContext}
+            onToggleLinkedMaterial={() => {
+              if (material) context.toggleLinkedMaterial(material);
+            }}
+            onTask={context.updatePrompt}
+          />
+        ) : (
+          <DocumentAssistantContext
+            activePath={context.activePath}
+            selectedText={selectedText}
+            selection={context.effectiveContext}
+            onOpenContext={context.openContext}
+            onTask={context.updatePrompt}
+          />
+        )
+      ) : (
+        <ChatMessageList
+          messages={context.activeSession?.messages ?? []}
+          requestActive={Boolean(chatRequestId)}
+          reviewAvailable={Boolean(pendingDiff)}
+          onOpenReview={() => setCenterView('diff')}
+          onOpenSurface={(messageId, failed) => {
+            if (failed) {
+              const inspection = a2uiInspections.find((item) => item.messageId === messageId);
+              if (inspection) {
+                setActiveInspection(inspection.id);
+                return;
+              }
+            } else {
+              const surface = a2uiSurfaces.find((item) => item.messageId === messageId);
+              if (surface) {
+                setActiveSurface(surface.surfaceId);
+                return;
+              }
             }
-          } else {
-            const surface = a2uiSurfaces.find((item) => item.messageId === messageId);
-            if (surface) {
-              setActiveSurface(surface.surfaceId);
-              return;
-            }
-          }
-          setCenterView('surface');
-        }}
-        onRetry={context.retryMessage}
-      />
+            setCenterView('surface');
+          }}
+          onRetry={context.retryMessage}
+        />
+      )}
       <ChatComposer
+        placeholder={t(toolMode ? 'askToolPlaceholder' : 'askPlaceholder')}
+        compactContext
+        additionalMaterialCount={
+          (context.effectiveContext.documentSourceIds?.length ?? 0) +
+          (context.effectiveContext.contextPackIds?.length ?? 0) +
+          (context.effectiveContext.personalKnowledgeIds?.length ?? 0)
+        }
+        recentMessagesIncluded={
+          context.effectiveContext.recentMessages && Boolean(context.activeSession?.messages.length)
+        }
+        showSuggestions={false}
+        selectionIncluded={context.effectiveContext.selection && Boolean(selectedText.trim())}
+        selectionLabel={toolMode ? toolTitle : undefined}
         prompt={context.prompt}
-        activePath={context.activePath}
-        projectFiles={context.savedContext?.projectFiles ?? []}
+        activePath={context.effectiveContext.currentFile ? context.activePath : ''}
+        projectFiles={context.effectiveContext.projectFiles}
         processingLocation={context.processingLocation}
         hasReviewedContext={context.hasReviewedContext}
         contextReviewed={context.contextReviewed}
@@ -142,11 +204,25 @@ function ChatSessionPanel({
         onOpenContext={context.openContext}
         onSend={() => context.requestSend()}
         onStop={() => void stopChat()}
-        onDropFiles={(files) => void addDroppedFiles(files)}
+        onDropFiles={
+          toolMode
+            ? undefined
+            : (files) =>
+                void addDroppedContextFiles(
+                  files,
+                  context.activeSessionId,
+                  addFile,
+                  addFileToContext,
+                  t('unsupportedFile')
+                )
+        }
       />
       {context.contextOpen && (
         <ContextSelector
           open
+          inlineContext={
+            inlineContext ? { label: toolTitle, content: inlineContext.content } : undefined
+          }
           prompt={context.prompt}
           initialSelection={context.effectiveContext}
           confirmText={context.contextIntent === 'review' ? t('saveContextSelection') : undefined}

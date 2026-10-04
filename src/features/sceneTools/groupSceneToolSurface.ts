@@ -107,7 +107,7 @@ export const groupSceneToolSurface = (
     ...surface,
     root: {
       ...surface.root,
-      children: [...(title ? [title] : []), ...groups, ...(summary ? [summary] : [])],
+      children: [...groups, ...(summary ? [summary] : [])],
     },
   };
 };

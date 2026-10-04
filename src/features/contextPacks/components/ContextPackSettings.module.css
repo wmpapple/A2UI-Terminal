@@ -1,0 +1,191 @@
+.contextSection {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.heading h2,
+.heading h3 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 17px;
+}
+.heading h3 {
+  font-size: 15px;
+}
+.heading > span,
+.intro {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.intro {
+  margin: -6px 0 4px;
+}
+.kpiHeading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.kpiHelp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: help;
+}
+.authorizationNotice:global(.ant-alert) {
+  border: 0;
+  background: var(--surface-subtle);
+}
+.createCard {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.createCard h3 {
+  margin: 0 0 2px;
+  color: var(--text-strong);
+  font-size: 16px;
+}
+.stepLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 600;
+}
+.stepLabel span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+}
+.sourceSelectors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.sourceSelectors > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.sourceSelectors label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.sourceSelectors :global(.ant-select) {
+  width: 100%;
+}
+.selectedSources {
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+.selectedSources strong {
+  font-size: 13px;
+}
+.selectedSources p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.selectedSources ul {
+  display: grid;
+  gap: 2px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.selectedSources li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 2px 0;
+  font-size: 13px;
+}
+.selectedSources li span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.createFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.createFooter span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.managedList {
+  display: grid;
+  gap: 0;
+}
+.managedList > span {
+  padding: 14px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.managedItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.managedItem > div {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+}
+.managedItem strong,
+.managedItem span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.managedItem span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.workspaceSources {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+.workspaceSources summary {
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.workspaceSources > p {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+@media (max-width: 680px) {
+  .sourceSelectors { grid-template-columns: 1fr; }
+  .createFooter { align-items: stretch; flex-direction: column; }
+  .managedItem { flex-wrap: wrap; }
+}

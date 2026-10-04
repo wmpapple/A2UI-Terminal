@@ -20,6 +20,7 @@ import styles from './ContextSelector.module.css';
 import { KnowledgePicker } from '../../knowledge/KnowledgePicker';
 
 interface Props {
+  inlineContext?: { label: string; content: string };
   open: boolean;
   prompt: string;
   initialSelection: ContextSelection;
@@ -42,6 +43,7 @@ interface Props {
 }
 
 export function ContextSelector({
+  inlineContext,
   open,
   prompt,
   initialSelection,
@@ -62,8 +64,10 @@ export function ContextSelector({
   const files = useAppStore((state) => state.files);
   const sessions = useAppStore((state) => state.sessions);
   const activeSessionId = useAppStore((state) => state.activeSessionId);
-  const activePath = useAppStore((state) => state.activePath);
-  const selectedText = useAppStore((state) => state.selectedText);
+  const filePath = useAppStore((state) => state.activePath);
+  const fileSelection = useAppStore((state) => state.selectedText);
+  const activePath = inlineContext ? '' : filePath;
+  const selectedText = inlineContext?.content ?? fileSelection;
   const workspace = useAppStore((state) => state.workspace);
   const documentSources = useImportStore((state) => state.sources).filter(
     (source) => source.workspaceId === workspace?.id
@@ -96,8 +100,9 @@ export function ContextSelector({
         selectedText,
         recentMessages,
         prompt,
+        selectionLabel: inlineContext?.label,
       }),
-    [activePath, files, prompt, recentMessages, selectedText, selection]
+    [activePath, files, inlineContext?.label, prompt, recentMessages, selectedText, selection]
   );
   const selectedAuthorizedSources = useMemo(() => {
     const selectedIds = new Set(selection.documentSourceIds ?? []);
@@ -183,7 +188,7 @@ export function ContextSelector({
             checked={selection.selection}
             onChange={(event) => setFlag('selection', event.target.checked)}
           >
-            {t('selection')}{' '}
+            {inlineContext?.label ?? t('selection')}{' '}
             <Tag color={selectedText.length > 0 ? 'green' : 'default'}>
               {selectedText.length > 0 ? `${selectedText.length} chars` : t('noSelection')}
             </Tag>

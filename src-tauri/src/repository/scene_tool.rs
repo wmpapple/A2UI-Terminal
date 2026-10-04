@@ -31,7 +31,7 @@ pub fn publication(storage: &Storage, id: &str) -> Result<Option<Publication>, A
         Ok(db.query_row(
             "SELECT published.id,published.current_revision_id,published.title,
                     (SELECT COUNT(*) FROM document_versions v WHERE v.workspace_id=published.workspace_id AND v.relative_path=published.storage_ref),
-                    CASE WHEN surface.state_json=published.managed_state_json AND source.title=published.title THEN 1 ELSE 0 END
+                    CASE WHEN surface.state_json=published.managed_state_json THEN 1 ELSE 0 END
              FROM scene_tool_instances tool
              JOIN results source ON source.id=tool.tool_result_id
              JOIN a2ui_surfaces surface ON surface.id=source.a2ui_surface_row_id
@@ -80,6 +80,7 @@ pub fn publish(
     row: &A2uiSurfaceRow,
     snapshot: &SurfaceToolSnapshot,
     expected_revision: Option<&str>,
+    title: Option<&str>,
 ) -> Result<(), AppError> {
     storage.with_transaction(|db| {
         let (live, published): (String, Option<String>) = db.query_row("SELECT s.state_json,t.published_result_id FROM scene_tool_instances t JOIN results r ON r.id=t.tool_result_id JOIN a2ui_surfaces s ON s.id=r.a2ui_surface_row_id WHERE t.tool_result_id=?1", [&result.summary.id], |r| Ok((r.get(0)?,r.get(1)?)))?;
@@ -94,9 +95,9 @@ pub fn publish(
         let revision = Uuid::new_v4().to_string();
         db.execute("INSERT INTO document_versions(id,workspace_id,relative_path,content,content_hash,expires_at,version_kind,source,summary) VALUES(?1,?2,?3,?4,?5,datetime('now','+30 days'),'snapshot','patch','手动保存场景工具成果')",params![revision,row.workspace_id,reference,snapshot.content.as_bytes(),snapshot.content_hash])?;
         if published.is_some() {
-            db.execute("UPDATE results SET title=?2,managed_state_json=?3,current_revision_id=?4,updated_at=CURRENT_TIMESTAMP WHERE id=?1",params![id,result.summary.title,row.state_json,revision])?;
+            db.execute("UPDATE results SET title=COALESCE(?2,title),managed_state_json=?3,current_revision_id=?4,updated_at=CURRENT_TIMESTAMP WHERE id=?1",params![id,title,row.state_json,revision])?;
         } else {
-            db.execute("INSERT INTO results(id,workspace_id,result_type,title,status,storage_kind,storage_ref,source_kind,source_ref,current_revision_id,managed_state_json) VALUES(?1,?2,'tool',?3,'ready','managed_local',?4,'a2ui_surface',?5,?6,?7)",params![id,row.workspace_id,result.summary.title,reference,format!("scene-snapshot-{id}"),revision,row.state_json])?;
+            db.execute("INSERT INTO results(id,workspace_id,result_type,title,status,storage_kind,storage_ref,source_kind,source_ref,current_revision_id,managed_state_json) VALUES(?1,?2,'tool',?3,'ready','managed_local',?4,'a2ui_surface',?5,?6,?7)",params![id,row.workspace_id,title.unwrap_or(&result.summary.title),reference,format!("scene-snapshot-{id}"),revision,row.state_json])?;
             db.execute("UPDATE scene_tool_instances SET published_result_id=?2 WHERE tool_result_id=?1",params![result.summary.id,id])?;
         }
         Ok(())

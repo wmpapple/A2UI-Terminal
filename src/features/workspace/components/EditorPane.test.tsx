@@ -10,6 +10,7 @@ import { EditorPane } from './EditorPane';
 import type { SourceEditorPort } from '../../selection/editorAdapter';
 
 const togglePreviewMock = vi.hoisted(() => vi.fn());
+const togglePreviewOnlyMock = vi.hoisted(() => vi.fn());
 const editorLifecycleMock = vi.hoisted(() => ({
   nextMountId: 0,
   changeCallbacks: new Map<number, (value: string) => void>(),
@@ -36,6 +37,7 @@ vi.mock('md-editor-rt', async () => {
       ref,
       () => ({
         togglePreview: togglePreviewMock,
+        togglePreviewOnly: togglePreviewOnlyMock,
         getEditorView: () => ({
           state: {
             doc: { toString: () => modelValue },
@@ -78,6 +80,7 @@ describe('EditorPane modes', () => {
   beforeEach(() => {
     vi.useRealTimers();
     togglePreviewMock.mockClear();
+    togglePreviewOnlyMock.mockClear();
     editorLifecycleMock.changeCallbacks.clear();
     useAppStore.setState({
       workspace: {
@@ -105,7 +108,20 @@ describe('EditorPane modes', () => {
     );
     await screen.findByTestId('markdown-editor');
     expect(onEditorPort.mock.calls.at(-1)?.[0]?.read()).toMatchObject({ start: 0, end: 2 });
-    fireEvent.click(screen.getByRole('button', { name: '开启预览' }));
+    fireEvent.click(screen.getByRole('radio', { name: '分屏' }));
+    expect(onEditorPort.mock.calls.at(-1)?.[0]?.read()).toMatchObject({ start: 0, end: 2 });
+    const preview = document.createElement('div');
+    preview.className = 'md-editor-preview-wrapper';
+    preview.textContent = 'Rendered preview';
+    document.body.append(preview);
+    try {
+      document.getSelection()?.selectAllChildren(preview);
+      expect(onEditorPort.mock.calls.at(-1)?.[0]?.read()).toBeNull();
+    } finally {
+      document.getSelection()?.removeAllRanges();
+      preview.remove();
+    }
+    fireEvent.click(screen.getByRole('radio', { name: '预览' }));
     expect(onEditorPort.mock.calls.at(-1)?.[0]?.read()).toBeNull();
   });
 
@@ -304,37 +320,36 @@ describe('EditorPane modes', () => {
     const editor = await screen.findByTestId('markdown-editor');
     expect(editor).toHaveAttribute('data-language', 'zh-CN');
     expect(editor).toHaveAttribute('data-preview', 'false');
-    expect(screen.getByRole('button', { name: '开启预览' })).toHaveAttribute(
-      'aria-pressed',
-      'false'
-    );
+    expect(screen.getAllByRole('radio', { name: '编辑' }).at(-1)).toBeChecked();
 
-    fireEvent.click(screen.getByRole('button', { name: '开启预览' }));
+    fireEvent.click(screen.getByRole('radio', { name: '预览' }));
     expect(editor).toHaveAttribute('data-preview', 'true');
     expect(togglePreviewMock).toHaveBeenLastCalledWith(true);
-    expect(screen.getByRole('button', { name: '关闭预览' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
+    expect(screen.getByRole('radio', { name: '预览' })).toBeChecked();
+    expect(togglePreviewOnlyMock).toHaveBeenLastCalledWith(true);
 
-    fireEvent.click(screen.getByRole('button', { name: '关闭预览' }));
+    fireEvent.click(screen.getAllByRole('radio', { name: '编辑' }).at(-1)!);
     expect(editor).toHaveAttribute('data-preview', 'false');
     expect(togglePreviewMock).toHaveBeenLastCalledWith(false);
-    fireEvent.click(screen.getByRole('button', { name: '开启预览' }));
+    fireEvent.click(screen.getByRole('radio', { name: '分屏' }));
     expect(editor).toHaveAttribute('data-preview', 'true');
+    expect(togglePreviewOnlyMock).toHaveBeenLastCalledWith(false);
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(editor).toHaveAttribute('data-preview', 'false');
-    fireEvent.click(screen.getByRole('button', { name: '开启预览' }));
+    fireEvent.click(screen.getByRole('radio', { name: '预览' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Switch to English' }));
     expect(editor).toHaveAttribute('data-language', 'en-US');
-    expect(screen.getByRole('button', { name: 'Hide preview' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Preview' })).toBeChecked();
 
     act(() => useAppStore.getState().openFile('src/experiment.ts'));
     expect(screen.queryByTestId('markdown-editor')).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'src/experiment.ts' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Hide preview' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Preview' })).not.toBeInTheDocument();
+    act(() => useAppStore.getState().openFile('README.md'));
+    await screen.findByTestId('markdown-editor');
+    expect(togglePreviewOnlyMock).toHaveBeenLastCalledWith(true);
   });
 
   it('captures code editor selections for the selection assistant context', () => {

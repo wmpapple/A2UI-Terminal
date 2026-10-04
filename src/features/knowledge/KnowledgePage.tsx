@@ -1,17 +1,65 @@
 import { LocatorUpgrade } from '../citation/LocatorUpgrade';
-import { InfoNotice } from '../../shared/components/InfoNotice';
-import { Alert, Button, Checkbox, Empty, Input, Modal, Select, Space, Spin, Tabs, Tag } from 'antd';
+import {
+  FileTextOutlined,
+  InfoCircleOutlined,
+  MoreOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Drawer,
+  Dropdown,
+  Empty,
+  Input,
+  Modal,
+  Select,
+  Spin,
+  Tabs,
+  Tag,
+  Tooltip,
+} from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../app/i18n/useI18n';
 import { isWebMock } from '../../shared/platform/runtime';
 import type { ImportBatch, ImportDropOutcome } from '../../shared/types/domain';
 import type { KnowledgeDocument, KnowledgeSource } from '../../shared/types/knowledge';
+import type { ContextSelection } from '../../shared/types/domain';
 import { errorDetails } from '../../stores/support';
+import { useAppStore } from '../../stores/useAppStore';
 import { importController } from '../imports/importController';
 import { useImportDropTarget } from '../imports/useImportDropTarget';
 import { knowledgeController as api } from './knowledgeController';
 import styles from './KnowledgePage.module.css';
 import { ContextPackSettings } from '../contextPacks/components/ContextPackSettings';
+
+const sourceDate = (value: string, locale: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const today = new Date();
+  return date.toDateString() === today.toDateString()
+    ? locale === 'zh-CN'
+      ? '今天'
+      : 'Today'
+    : new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' }).format(
+        date
+      );
+};
+
+const sourceStatus = (status: KnowledgeSource['status'], zh: boolean) =>
+  status === 'ready'
+    ? zh
+      ? '可检索'
+      : 'Searchable'
+    : status === 'deleting'
+      ? zh
+        ? '待清理'
+        : 'Pending cleanup'
+      : zh
+        ? '不可用'
+        : 'Unavailable';
 
 export function KnowledgePage() {
   const { locale } = useI18n();
@@ -27,10 +75,10 @@ export function KnowledgePage() {
   return (
     <section className={styles.page} aria-label={zh ? '资料库' : 'Library'}>
       <h1>{zh ? '资料库' : 'Library'}</h1>
-      <p>
+      <p className={styles.pageSubtitle}>
         {zh
-          ? '保存资料，再按用途组成资料包。资料包只引用已有资料，不重复保存正文。'
-          : 'Save sources and group them by purpose. Packs reference sources without duplicating content.'}
+          ? '保存并复用你的长期资料'
+          : 'Keep and reuse your long-term sources'}
       </p>
       <LocatorUpgrade />
       <Tabs
@@ -43,7 +91,7 @@ export function KnowledgePage() {
         items={[
           {
             key: 'sources',
-            label: zh ? '全部资料' : 'All sources',
+            label: zh ? '我的资料' : 'My sources',
             children: <KnowledgeSources />,
           },
           { key: 'packs', label: zh ? '资料包' : 'Packs', children: <ContextPackSettings /> },
@@ -56,6 +104,8 @@ export function KnowledgePage() {
 function KnowledgeSources() {
   const { locale } = useI18n();
   const zh = locale === 'zh-CN';
+  const currentWorkspace = useAppStore((state) => state.workspace);
+  const activeSessionId = useAppStore((state) => state.activeSessionId);
   const [items, setItems] = useState<KnowledgeSource[]>([]);
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState<number | null>(null);
@@ -64,6 +114,8 @@ function KnowledgeSources() {
   const [batch, setBatch] = useState<ImportBatch | null>(null);
   const [accepted, setAccepted] = useState<string[]>([]);
   const [preview, setPreview] = useState<KnowledgeDocument | null>(null);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [deleting, setDeleting] = useState<KnowledgeSource | null>(null);
@@ -71,6 +123,7 @@ function KnowledgeSources() {
   const [refresh, setRefresh] = useState(0);
   const generation = useRef({ value: 0 });
   const previewRequest = useRef({ value: 0 });
+  const mockImportInput = useRef<HTMLInputElement>(null);
   const report = useCallback((e: unknown) => setError(errorDetails(e).message), []);
   const receive = useCallback((outcome: ImportDropOutcome) => {
     if (outcome.batch) {
@@ -115,7 +168,20 @@ function KnowledgeSources() {
       setBusy(false);
     }
   };
-  const open = async (id: string) => {
+  const chooseSources = () => {
+    if (isWebMock()) {
+      mockImportInput.current?.click();
+      return;
+    }
+    void perform(async () => {
+      const selected = await importController.select();
+      if (selected) {
+        setBatch(selected);
+        setAccepted([]);
+      }
+    });
+  };
+  const open = async (id: string, expandPreview = false) => {
     const ticket = ++previewRequest.current.value;
     try {
       const d = await api.get(id);
@@ -123,8 +189,12 @@ function KnowledgeSources() {
       setPreview(d);
       setTitle(d.source.title);
       setTags(d.source.tags);
+      setPreviewExpanded(expandPreview);
+      setEditing(false);
+      return true;
     } catch (e) {
       if (ticket === previewRequest.current.value) report(e);
+      return false;
     }
   };
   useEffect(() => {
@@ -138,6 +208,8 @@ function KnowledgeSources() {
             setPreview(d);
             setTitle(d.source.title);
             setTags(d.source.tags);
+            setPreviewExpanded(true);
+            setEditing(false);
           }
         })
         .catch((e) => {
@@ -148,24 +220,36 @@ function KnowledgeSources() {
     };
   }, [report]);
 
+  const useForCurrentTask = () => {
+    if (!preview) return;
+    const state = useAppStore.getState();
+    if (!state.workspace || !state.activeSessionId) return;
+    const current: ContextSelection = state.contextBySession[state.activeSessionId] ?? {
+      selection: false,
+      currentFile: false,
+      recentMessages: false,
+      recentMessageCount: 3,
+      projectFiles: [],
+    };
+    state.setSessionContext(state.activeSessionId, {
+      ...current,
+      personalKnowledgeIds: [
+        ...new Set([...(current.personalKnowledgeIds ?? []), preview.source.id]),
+      ],
+    });
+    state.setSessionContextReviewKey(state.activeSessionId, 'library-selection-needs-review');
+    window.location.hash = '/workbench';
+  };
+
   return (
     <section
-      className={styles.page}
+      className={styles.sourcesSection}
       ref={dropRef}
       aria-label={zh ? '个人资料库' : 'Personal library'}
     >
-      <InfoNotice
-        type="info"
-        showIcon
-        title={zh ? '本地保存，可跨工作区复用' : 'Saved locally, available across workspaces'}
-        description={
-          zh
-            ? '导入不会发送给 AI。使用资料时仍需选择并确认发送范围。支持 TXT、MD、DOCX、PDF、CSV、XLSX；扫描 PDF 暂不支持 OCR。'
-            : 'Import does not send data to AI. Select and confirm sources before each send. TXT, MD, DOCX, PDF, CSV and XLSX; scanned PDFs require OCR, which is not supported.'
-        }
-      />
-      <Space wrap>
+      <div className={styles.sourceToolbar}>
         <Input.Search
+          className={styles.sourceSearch}
           aria-label={zh ? '搜索资料库' : 'Search library'}
           placeholder={zh ? '标题、标签或正文' : 'Title, tags or content'}
           maxLength={200}
@@ -179,13 +263,16 @@ function KnowledgeSources() {
           allowClear
         />
         {isWebMock() ? (
-          <label>
-            {zh ? '选择文本（Web Mock）' : 'Select text (Web Mock)'}
+          <label className={styles.mockImport}>
+            <PlusOutlined aria-hidden="true" />
+            {zh ? '导入资料' : 'Import sources'}
             <input
               type="file"
+              ref={mockImportInput}
               accept=".txt,.md"
               multiple
               disabled={busy}
+              aria-label={zh ? '导入资料' : 'Import sources'}
               onChange={(e) => {
                 setMockFiles(Array.from(e.target.files ?? []));
                 e.target.value = '';
@@ -194,57 +281,106 @@ function KnowledgeSources() {
           </label>
         ) : (
           <Button
+            type="primary"
+            icon={<PlusOutlined />}
             disabled={busy}
-            onClick={() =>
-              void perform(async () => {
-                const b = await importController.select();
-                if (b) {
-                  setBatch(b);
-                  setAccepted([]);
-                }
-              })
-            }
+            onClick={chooseSources}
           >
-            {zh ? '导入资料 / 拖入文件' : 'Import / drop files'}
+            {zh ? '导入资料' : 'Import sources'}
           </Button>
         )}
-        <Button disabled={busy} onClick={() => setRefresh((n) => n + 1)}>
-          {zh ? '刷新' : 'Refresh'}
-        </Button>
-      </Space>
+        <Tooltip title={zh ? '刷新资料列表' : 'Refresh sources'}>
+          <Button
+            aria-label={zh ? '刷新资料列表' : 'Refresh sources'}
+            icon={<ReloadOutlined />}
+            disabled={busy}
+            onClick={() => setRefresh((n) => n + 1)}
+          />
+        </Tooltip>
+      </div>
+      <div className={styles.privacyHint}>
+        <InfoCircleOutlined aria-hidden="true" />
+        <span>
+          {zh
+            ? '本地保存 · 导入不会自动发送给 AI'
+            : 'Saved locally · Import never sends to AI automatically'}
+        </span>
+        <Tooltip
+          title={
+            zh
+              ? '使用资料时仍需选择并确认发送范围。支持 TXT、MD、DOCX、PDF、CSV、XLSX；扫描 PDF 暂不支持 OCR。'
+              : 'Select and confirm the send scope before AI use. TXT, MD, DOCX, PDF, CSV and XLSX are supported; scanned PDFs need OCR.'
+          }
+        >
+          <Button type="link" size="small" aria-label={zh ? '了解更多' : 'Learn more'}>
+            {zh ? '了解更多' : 'Learn more'}
+          </Button>
+        </Tooltip>
+      </div>
       {error && <Alert type="error" showIcon title={error} />}
       {busy && <Spin />}
       {!busy && items.length === 0 && (
-        <Empty
-          description={
-            zh
-              ? '暂无资料，导入后即可在不同工作区使用'
-              : 'Import sources to reuse them across workspaces'
-          }
-        />
+        <div className={styles.emptySources}>
+          <Empty
+            description={zh ? '还没有资料' : 'No sources yet'}
+          />
+          <p>
+            {zh
+              ? '导入后可以跨工作区复用，使用前仍会由你确认发送范围。'
+              : 'Reuse imported sources across workspaces. You still confirm what AI can receive.'}
+          </p>
+          <Button type="primary" icon={<PlusOutlined />} onClick={chooseSources}>
+            {zh ? '导入资料' : 'Import sources'}
+          </Button>
+        </div>
       )}
       <ul className={styles.list}>
         {items.map((item) => (
-          <li key={item.id}>
-            <div>
-              <Button
-                type="link"
-                disabled={item.status !== 'ready'}
-                onClick={() => void open(item.id)}
-              >
+          <li key={item.id} className={styles.sourceRow}>
+            <FileTextOutlined className={styles.sourceIcon} aria-hidden="true" />
+            <div className={styles.sourceIdentity}>
+              <Button type="link" disabled={item.status !== 'ready'} onClick={() => void open(item.id)}>
                 {item.title}
               </Button>
-              <Tag>{item.format.toUpperCase()}</Tag>
-              {item.tags.map((tag) => (
-                <Tag key={tag}>{tag}</Tag>
-              ))}
-              {item.status !== 'ready' && (
-                <Tag color="warning">{zh ? '不可用 / 待清理' : item.status}</Tag>
+              <span className={styles.sourceMeta}>
+                {item.format.toUpperCase()} · {sourceDate(item.updatedAt, locale)} ·{' '}
+                {zh ? '个人资料库' : 'Personal library'} · {sourceStatus(item.status, zh)}
+              </span>
+              {item.tags.length > 0 && (
+                <span className={styles.sourceTags}>
+                  {item.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
+                </span>
               )}
             </div>
-            <Button danger disabled={busy} onClick={() => setDeleting(item)}>
-              {zh ? '删除' : 'Delete'}
-            </Button>
+            <div className={styles.sourceActions}>
+              <Button disabled={item.status !== 'ready'} onClick={() => void open(item.id, true)}>
+                {zh ? '预览' : 'Preview'}
+              </Button>
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  items: [
+                    { key: 'details', label: zh ? '查看详情' : 'View details', disabled: item.status !== 'ready' },
+                    { key: 'rename', label: zh ? '重命名' : 'Rename', disabled: item.status !== 'ready' },
+                    { key: 'tags', label: zh ? '管理标签' : 'Manage tags', disabled: item.status !== 'ready' },
+                    { type: 'divider' },
+                    { key: 'delete', label: zh ? '从资料库删除' : 'Delete from library', danger: true },
+                  ],
+                  onClick: ({ key }) => {
+                    if (key === 'delete') setDeleting(item);
+                    else void open(item.id).then((loaded) => {
+                      if (loaded && (key === 'rename' || key === 'tags')) setEditing(true);
+                    });
+                  },
+                }}
+              >
+                <Button
+                  aria-label={`${zh ? '资料操作' : 'Source actions'}：${item.title}`}
+                  icon={<MoreOutlined />}
+                  disabled={busy}
+                />
+              </Dropdown>
+            </div>
           </li>
         ))}
       </ul>
@@ -339,45 +475,88 @@ function KnowledgeSources() {
           <p key={i}>{f.name}</p>
         ))}
       </Modal>
-      <Modal
+      <Drawer
         open={Boolean(preview)}
-        cancelText={zh ? '取消' : 'Cancel'}
-        width={800}
-        title={zh ? '资料预览与管理' : 'Preview and manage'}
-        confirmLoading={busy}
-        okText={zh ? '保存名称和标签' : 'Save title and tags'}
-        onCancel={() => {
+        size={440}
+        title={zh ? '资料详情' : 'Source details'}
+        onClose={() => {
           previewRequest.current.value++;
           setPreview(null);
         }}
-        onOk={() =>
-          void perform(async () => {
-            if (preview) await api.edit({ id: preview.source.id, title, tags });
-            setPreview(null);
-          })
-        }
       >
-        <Input
-          aria-label={zh ? '资料名称' : 'Source title'}
-          value={title}
-          maxLength={160}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <Select
-          mode="tags"
-          aria-label={zh ? '标签' : 'Tags'}
-          value={tags}
-          onChange={setTags}
-          className={styles.tags}
-          maxCount={20}
-        />
-        <p>
-          {zh
-            ? '只读提取正文；引用支持页、段落、行或表格行列定位，无法可靠定位时会明确提示。更新内容请删除旧副本后重新导入，旧引用将显示来源不可用。'
-            : 'Read-only extracted text with page, paragraph, line or table locations where available. Updating a source requires reimport; old citations will show the source as unavailable.'}
-        </p>
-        <pre className={styles.preview}>{preview?.parsed.blocks.map((b) => b.text).join('\n')}</pre>
-      </Modal>
+        {preview && (
+          <div className={styles.details}>
+            <div className={styles.detailTitle}>
+              <FileTextOutlined aria-hidden="true" />
+              <strong>{preview.source.title}</strong>
+            </div>
+            <dl className={styles.detailFacts}>
+              <dt>{zh ? '类型' : 'Type'}</dt><dd>{preview.source.format.toUpperCase()}</dd>
+              <dt>{zh ? '来源' : 'Source'}</dt><dd>{zh ? '个人资料库' : 'Personal library'}</dd>
+              <dt>{zh ? '原文件' : 'Original file'}</dt><dd>{preview.source.originalName}</dd>
+              <dt>{zh ? '导入时间' : 'Imported'}</dt><dd>{sourceDate(preview.source.createdAt, locale)}</dd>
+              <dt>{zh ? '更新时间' : 'Updated'}</dt><dd>{sourceDate(preview.source.updatedAt, locale)}</dd>
+              <dt>{zh ? '状态' : 'Status'}</dt><dd>{sourceStatus(preview.source.status, zh)}</dd>
+              <dt>{zh ? '标签' : 'Tags'}</dt>
+              <dd>{preview.source.tags.length ? preview.source.tags.map((tag) => <Tag key={tag}>{tag}</Tag>) : (zh ? '暂无标签' : 'No tags')}</dd>
+            </dl>
+            <div className={styles.detailActions}>
+              <Button
+                aria-label={previewExpanded ? (zh ? '收起预览' : 'Hide preview') : (zh ? '预览' : 'Preview')}
+                onClick={() => setPreviewExpanded((value) => !value)}
+              >
+                {previewExpanded ? (zh ? '收起预览' : 'Hide preview') : (zh ? '预览' : 'Preview')}
+              </Button>
+              <Tooltip title={!currentWorkspace || !activeSessionId ? (zh ? '请先打开工作区会话' : 'Open a workspace conversation first') : undefined}>
+                <Button disabled={!currentWorkspace || !activeSessionId} onClick={useForCurrentTask}>
+                  {zh ? '用于当前任务' : 'Use in current task'}
+                </Button>
+              </Tooltip>
+              <Button onClick={() => setEditing((value) => !value)}>
+                {zh ? '管理名称和标签' : 'Manage title and tags'}
+              </Button>
+            </div>
+            {editing && (
+              <div className={styles.detailEditor}>
+                <Input
+                  aria-label={zh ? '资料名称' : 'Source title'}
+                  value={title}
+                  maxLength={160}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+                <Select
+                  mode="tags"
+                  aria-label={zh ? '标签' : 'Tags'}
+                  value={tags}
+                  onChange={setTags}
+                  className={styles.tags}
+                  maxCount={20}
+                />
+                <Button
+                  type="primary"
+                  loading={busy}
+                  disabled={!title.trim()}
+                  onClick={() =>
+                    void perform(async () => {
+                      await api.edit({ id: preview.source.id, title, tags });
+                      setPreview(null);
+                    })
+                  }
+                >
+                  {zh ? '保存名称和标签' : 'Save title and tags'}
+                </Button>
+              </div>
+            )}
+            {previewExpanded && (
+              <div className={styles.previewSection}>
+                <h3>{zh ? '提取正文预览' : 'Extracted text preview'}</h3>
+                <p>{zh ? '预览仅显示本地提取内容，不会发送给 AI。' : 'This local preview is not sent to AI.'}</p>
+                <pre className={styles.preview}>{preview.parsed.blocks.map((b) => b.text).join('\n')}</pre>
+              </div>
+            )}
+          </div>
+        )}
+      </Drawer>
       <Modal
         open={Boolean(deleting)}
         okText={zh ? '确认删除' : 'Confirm delete'}

@@ -117,9 +117,11 @@ function BlockEditor({
 export function StructuredDocumentPanel({
   snapshot,
   onApplied,
+  compact = false,
 }: {
   snapshot: DocumentSnapshot | null;
   onApplied: (application: ReviewApplication) => void | Promise<void>;
+  compact?: boolean;
 }) {
   const { locale } = useI18n();
   const zh = locale === 'zh-CN';
@@ -219,8 +221,15 @@ export function StructuredDocumentPanel({
   const afterId = view?.document.blocks.at(-1)?.id ?? null;
   return (
     <>
-      <Button block disabled={dirty} onClick={() => setOpen(true)}>
-        {say('结构化编辑', 'Structured editor')}
+      <Button
+        block={!compact}
+        size={compact ? 'small' : 'middle'}
+        type={compact ? 'text' : 'default'}
+        aria-label={say('结构化编辑', 'Structured editor')}
+        disabled={dirty}
+        onClick={() => setOpen(true)}
+      >
+        {compact ? say('结构', 'Structure') : say('结构化编辑', 'Structured editor')}
       </Button>
       <Drawer
         title={say('结构化文档', 'Structured document')}

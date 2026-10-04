@@ -3,6 +3,36 @@
   background: var(--panel);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
 }
+.floating {
+  z-index: 1000;
+  max-height: min(420px, 70vh);
+  padding: 5px 8px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 18px #00000020;
+}
+.floating .actions {
+  gap: 3px;
+}
+.floating .chip {
+  border-radius: 4px;
+}
+.floating .customControl {
+  flex-basis: 100%;
+  max-width: none;
+  border-radius: 6px;
+}
+.floating .proposal {
+  padding: 10px;
+  border-radius: 6px;
+}
+.selectionCount {
+  margin-left: 4px;
+  padding: 0 5px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
 .actions {
   display: flex;
   align-items: center;

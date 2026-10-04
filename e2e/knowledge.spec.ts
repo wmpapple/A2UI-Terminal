@@ -1,5 +1,46 @@
 import { expect, test } from '@playwright/test';
 
+test('keeps library controls usable at a narrow viewport', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('a2ui.onboarding-complete.v1', 'true'));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/#/knowledge');
+  const library = page.getByRole('region', { name: '资料库', exact: true });
+  await expect(library.getByRole('heading', { name: '资料库' })).toBeVisible();
+  await expect(library.getByText('还没有资料')).toBeVisible();
+  const bounds = await library.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(390);
+  await page.getByRole('tab', { name: '资料包' }).click();
+  await expect(library.getByRole('tab', { name: '资料包' })).toBeVisible();
+});
+
+test('using a library source prepares context but still requires send review', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('a2ui.onboarding-complete.v1', 'true'));
+  await page.goto('/#/knowledge');
+  await page.getByRole('tab', { name: '资料包' }).click();
+  await page.getByRole('button', { name: '选择工作区' }).click();
+  await page.getByRole('tab', { name: '我的资料' }).click();
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'task-source.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('Task source evidence'),
+  });
+  await page.getByRole('dialog').getByRole('button', { name: '确认导入' }).click();
+  await page.getByRole('button', { name: 'task-source.txt', exact: true }).click();
+  await page.getByRole('dialog', { name: '资料详情' }).getByRole('button', { name: '用于当前任务' }).click();
+  await expect(page).toHaveURL(/#\/workbench$/);
+  await expect(page.getByRole('dialog', { name: '发送前确认上下文' })).toHaveCount(0);
+  await page.getByPlaceholder('描述你希望对当前文档做出的修改…').fill('总结资料');
+  await page.getByRole('button', { name: '发送', exact: true }).click();
+  const review = page.getByRole('dialog', { name: '发送前确认上下文' });
+  await expect(review).toBeVisible();
+  await expect(
+    review.locator('.ant-select-selection-item').filter({ hasText: 'task-source.txt' })
+  ).toBeVisible();
+  await review.getByRole('button', { name: '生成发送清单' }).click();
+  await expect(review.getByText(/task-source.txt · \d+ chars/)).toBeVisible();
+});
+
 test('unified library groups personal sources, expands a pack and preserves sources on pack deletion', async ({
   page,
 }) => {
@@ -29,7 +70,7 @@ test('unified library groups personal sources, expands a pack and preserves sour
   );
   const nav = page.getByRole('navigation', { name: '主导航' });
   await nav.getByRole('button', { name: /工作台$/ }).click();
-  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('根据宣传资料总结预算');
+  await page.getByPlaceholder('描述你希望对当前文档做出的修改…').fill('根据宣传资料总结预算');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '发送前确认上下文' });
   await dialog.getByRole('checkbox', { name: /宣传资料/ }).check();
@@ -47,9 +88,10 @@ test('unified library groups personal sources, expands a pack and preserves sour
   await manager.getByTestId('delete-context-pack').click();
   await page.getByRole('button', { name: '删除资料包', exact: true }).last().click();
   await expect(manager.getByTestId('context-pack-item')).toHaveCount(0);
-  await page.getByRole('tab', { name: '全部资料', exact: true }).click();
+  await page.getByRole('tab', { name: '我的资料', exact: true }).click();
   await page.getByRole('button', { name: 'pack-evidence.txt', exact: true }).click();
-  await expect(page.getByRole('dialog')).toContainText('Pack evidence budget 420');
+  await page.getByRole('dialog', { name: '资料详情' }).getByRole('button', { name: '预览', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: '资料详情' })).toContainText('Pack evidence budget 420');
 });
 
 test('personal library confirms import, persists, edits metadata, searches and deletes a copy', async ({
@@ -72,8 +114,10 @@ test('personal library confirms import, persists, edits metadata, searches and d
   await expect(page.getByRole('button', { name: 'library-note.md', exact: true })).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'library-note.md', exact: true }).click();
-  dialog = page.getByRole('dialog');
+  dialog = page.getByRole('dialog', { name: '资料详情' });
+  await dialog.getByRole('button', { name: '预览', exact: true }).click();
   await expect(dialog).toContainText('Knowledge evidence 420');
+  await dialog.getByRole('button', { name: '管理名称和标签' }).click();
   await dialog.getByRole('textbox', { name: '资料名称' }).fill('Launch reference');
   await dialog.getByRole('button', { name: '保存名称和标签' }).click();
   await expect(page.getByRole('button', { name: 'Launch reference', exact: true })).toBeVisible();
@@ -89,15 +133,14 @@ test('personal library confirms import, persists, edits metadata, searches and d
   await expect(page.getByText('Launch reference', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '预览资料', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Knowledge evidence 420');
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: /取\s*消/ })
-    .click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
   await page
     .getByRole('navigation', { name: '主导航' })
     .getByRole('button', { name: '资料库', exact: true })
     .click();
-  await page.getByRole('button', { name: /删\s*除/ }).click();
+  await page.getByRole('button', { name: '资料操作：Launch reference' }).click();
+  await page.getByRole('menuitem', { name: '从资料库删除' }).click();
   await page.getByRole('dialog').getByRole('button', { name: '确认删除' }).click();
   await expect(page.getByRole('button', { name: 'Launch reference', exact: true })).toHaveCount(0);
   await page.reload();
@@ -125,7 +168,7 @@ test('personal sources require an explicit manifest and are not remembered for t
     .getByRole('navigation', { name: '主导航' })
     .getByRole('button', { name: /工作台$/ })
     .click();
-  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('总结这份个人资料');
+  await page.getByPlaceholder('描述你希望对当前文档做出的修改…').fill('总结这份个人资料');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '发送前确认上下文' });
   await dialog.getByRole('combobox', { name: '选择个人资料' }).click();

@@ -127,6 +127,7 @@ fn manual_publication_is_separate_durable_and_conflict_checked() {
                 result_id: v.result.summary.id.clone(),
                 base_hash: v.state_hash.clone(),
                 expected_revision: v.publication.as_ref().map(|p| p.revision_id.clone()),
+                title: if v.publication.is_none() { Some("资料收集结果".into()) } else { None },
             },
         )
     };
@@ -134,6 +135,7 @@ fn manual_publication_is_separate_durable_and_conflict_checked() {
     let first_publication = published.publication.as_ref().unwrap();
     let id = first_publication.result_id.clone();
     assert_eq!(first_publication.revision_number, 1);
+    assert_eq!(first_publication.title, "资料收集结果");
     assert!(first_publication.synced);
     let initial = result::read_document(&storage, dir.path(), &id).unwrap();
     assert!(!initial.editable);
@@ -167,12 +169,12 @@ fn manual_publication_is_separate_durable_and_conflict_checked() {
         },
     )
     .unwrap();
-    assert!(!renamed.publication.as_ref().unwrap().synced);
+    assert!(renamed.publication.as_ref().unwrap().synced);
     let updated = publish(&storage, &renamed).unwrap();
     assert_eq!(updated.publication.as_ref().unwrap().revision_number, 3);
     assert_eq!(
         updated.publication.as_ref().unwrap().title,
-        "第二版资料收集"
+        "资料收集结果"
     );
     assert!(updated.publication.as_ref().unwrap().synced);
     assert!(result::read_document(&storage, dir.path(), &id)

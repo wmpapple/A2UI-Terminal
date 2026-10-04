@@ -37,6 +37,7 @@ describe('groupSceneToolSurface', () => {
   it('groups existing interview fields without changing their ids or actions', () => {
     const grouped = groupSceneToolSurface(surface, 'interview', true);
     const groups = grouped.root.children.filter((node) => node.id.startsWith('scene-group-'));
+    expect(grouped.root.children.some((node) => node.id === 'title')).toBe(false);
     expect(groups.map((node) => node.children[0].props.text)).toEqual(['基本信息', '背景与经历']);
     expect(groups[1].children[1]).toMatchObject({
       id: 'item0_answer',

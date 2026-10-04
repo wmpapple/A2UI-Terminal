@@ -1,5 +1,5 @@
-import { FileOutlined, LinkOutlined } from '@ant-design/icons';
-import { Alert, Button, Collapse, Modal, Popconfirm, Space } from 'antd';
+import { EllipsisOutlined, FileOutlined, LinkOutlined, WarningOutlined } from '@ant-design/icons';
+import { Alert, Button, Collapse, Dropdown, Modal, Popconfirm, Space } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../app/i18n/useI18n';
 import type { SceneLinkView, ToolBinding } from '../../shared/types/sceneTool';
@@ -88,6 +88,7 @@ export function ToolBindingPanel({
     setError('');
     try {
       const next = await operation();
+      window.dispatchEvent(new Event('scene-tool-list-changed'));
       if (active.current) {
         setView(next);
         setSelecting(false);
@@ -127,7 +128,7 @@ export function ToolBindingPanel({
     unavailable: zh ? '已失效' : 'Unavailable',
     unsaved: zh ? '有未保存修改' : 'Has unsaved changes',
   };
-  const warning = safeStatus && ['changed', 'unavailable', 'unsaved'].includes(safeStatus);
+  const warning = safeStatus && ['unavailable', 'unsaved'].includes(safeStatus);
   const canConfirm = Boolean(
     !dirty &&
     !busy &&
@@ -157,12 +158,22 @@ export function ToolBindingPanel({
     >
       <div className={styles.linkSummaryRow}>
         <span className={styles.linkIdentity}>
-          {view?.link ? <FileOutlined /> : <LinkOutlined />}
+          {safeStatus === 'changed' ? (
+            <WarningOutlined />
+          ) : view?.link ? (
+            <FileOutlined />
+          ) : (
+            <LinkOutlined />
+          )}
           <strong className={styles.bindingStatusText}>
             {view?.link
-              ? `${zh ? '关联：' : 'Linked: '}${view.link.targetTitle} · ${
+              ? `${view.link.targetTitle} · ${
                   safeStatus && safeStatus !== 'unbound'
-                    ? compactStatusText[safeStatus]
+                    ? safeStatus === 'changed'
+                      ? zh
+                        ? '已发生变化'
+                        : 'Changed'
+                      : compactStatusText[safeStatus]
                     : zh
                       ? '状态未知'
                       : 'Unknown'
@@ -181,48 +192,49 @@ export function ToolBindingPanel({
               {zh ? '查看对象' : 'View target'}
             </Button>
           ) : null}
+          {safeStatus === 'changed' ? (
+            <Popconfirm
+              title={
+                zh
+                  ? '确认已对照当前对象版本重新核对本工具记录？'
+                  : 'Confirm these entries were reviewed against the current target?'
+              }
+              onConfirm={() =>
+                change(() =>
+                  api.confirmLink({
+                    toolResultId,
+                    version: view!.link!.version,
+                    targetHash: view!.currentHash!,
+                    targetRevisionId: view!.currentRevisionId,
+                    toolStateHash: view!.toolStateHash,
+                  })
+                )
+              }
+            >
+              <Button disabled={!canConfirm} loading={busy}>
+                {zh ? '重新核对' : 'Review again'}
+              </Button>
+            </Popconfirm>
+          ) : null}
           {professional ? (
-            <Button disabled={busy} onClick={() => void refresh()}>
-              {zh ? '刷新关联状态' : 'Refresh link status'}
-            </Button>
+            <Dropdown
+              menu={{
+                items: [{ key: 'refresh', label: zh ? '刷新关联状态' : 'Refresh link status' }],
+                onClick: () => void refresh(),
+              }}
+            >
+              <Button
+                type="text"
+                icon={<EllipsisOutlined />}
+                aria-label={zh ? '更多关联操作' : 'More link actions'}
+              />
+            </Dropdown>
           ) : null}
         </Space>
       </div>
 
       {error ? <Alert type="error" showIcon title={error} /> : null}
-      {warning ? (
-        <Alert
-          type="warning"
-          showIcon
-          title={statusText[safeStatus!]}
-          action={
-            safeStatus === 'changed' ? (
-              <Popconfirm
-                title={
-                  zh
-                    ? '确认已对照当前对象版本重新核对本工具记录？'
-                    : 'Confirm these entries were reviewed against the current target?'
-                }
-                onConfirm={() =>
-                  change(() =>
-                    api.confirmLink({
-                      toolResultId,
-                      version: view!.link!.version,
-                      targetHash: view!.currentHash!,
-                      targetRevisionId: view!.currentRevisionId,
-                      toolStateHash: view!.toolStateHash,
-                    })
-                  )
-                }
-              >
-                <Button type="primary" disabled={!canConfirm} loading={busy}>
-                  {zh ? '重新核对' : 'Review again'}
-                </Button>
-              </Popconfirm>
-            ) : undefined
-          }
-        />
-      ) : null}
+      {warning ? <Alert type="warning" showIcon title={statusText[safeStatus!]} /> : null}
 
       {view?.link ? (
         <Collapse

@@ -39,6 +39,11 @@ import {
 } from './shellPreferences';
 import { useReducedMotion, useSystemTheme } from './useSystemTheme';
 import { WorkspaceLayout } from './WorkspaceLayout';
+import { WorkItemTabs } from './WorkItemTabs';
+import { WorkspacePanelControls } from './WorkspacePanelControls';
+import { sceneTools, useSceneToolStore } from '../features/sceneTools/sceneToolStore';
+import { useResultStore } from '../features/results/resultStore';
+import type { WorkItem } from '../shared/types/workItem';
 import { WorkbenchAppearance } from './WorkbenchAppearance';
 
 import { lazyFeature } from './lazyFeature';
@@ -123,8 +128,21 @@ export function AppShell() {
   const [experienceMode, setExperienceMode] = useState(readExperienceMode);
   const [route, setRoute] = useState(() => routeFromHash(window.location.hash));
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
-  const [workbenchTab, setWorkbenchTab] = useState<'files' | 'tools'>('files');
+  const [resourceView, setResourceView] = useState<'files' | 'tools'>('files');
+  const [activeWorkItemType, setActiveWorkItemType] = useState<'document' | 'tool' | 'result'>(
+    'document'
+  );
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
+  const [openedToolIds, setOpenedToolIds] = useState<string[]>([]);
+  const toolEntries = useSceneToolStore((state) => state.entries);
+  const files = useAppStore((state) => state.files);
+  const openPaths = useAppStore((state) => state.openPaths);
+  const activePath = useAppStore((state) => state.activePath);
+  const dirtyPaths = useAppStore((state) => state.dirtyPaths);
+  const openFile = useAppStore((state) => state.openFile);
+  const closeFile = useAppStore((state) => state.closeFile);
+  const resultDocument = useResultStore((state) => state.activeDocument);
+  const resultSaveStatus = useResultStore((state) => state.saveStatus);
   const [pendingToolAction, setPendingToolAction] = useState<{
     id: string;
     action: 'rename' | 'binding' | 'template';
@@ -134,6 +152,12 @@ export function AppShell() {
   const mainContentRef = useRef<HTMLDivElement>(null);
   const initialRouteRef = useRef(true);
   const professional = experienceMode === 'professional';
+  const leftPanelLabels: [string, string] | undefined =
+    resourceView === 'tools'
+      ? locale === 'zh-CN'
+        ? ['收起工具栏', '展开工具栏']
+        : ['Collapse tools panel', 'Expand tools panel']
+      : undefined;
 
   useEffect(() => {
     void initializeWorkspace();
@@ -189,16 +213,63 @@ export function AppShell() {
   };
 
   const openWorkbench = (resultId?: string) => {
-    setWorkbenchTab('files');
-    setActiveResultId(resultId ?? null);
+    if (resultId) setActiveResultId(resultId);
+    setActiveWorkItemType(resultId ? 'result' : 'document');
     openRoute('workbench');
   };
 
   const openTool = (id: string) => {
     setActiveToolId(id);
-    setWorkbenchTab('tools');
+    setOpenedToolIds((current) => (current.includes(id) ? current : [...current, id]));
+    setActiveWorkItemType('tool');
     openRoute('workbench');
   };
+
+  const closeTool = (id: string) => {
+    setOpenedToolIds((current) => current.filter((item) => item !== id));
+    if (activeToolId === id) {
+      const nextTool = openedToolIds.filter((item) => item !== id).at(-1) ?? null;
+      setActiveToolId(nextTool);
+      if (!nextTool) setActiveWorkItemType(activeResultId ? 'result' : 'document');
+    }
+  };
+
+  const toolItems: WorkItem[] = openedToolIds.map((id) => ({
+    id,
+    type: 'tool',
+    title: toolEntries[id]?.view?.result.title ?? (locale === 'zh-CN' ? '工具' : 'Tool'),
+    status: toolEntries[id]?.conflict ? 'conflict' : toolEntries[id]?.dirty ? 'dirty' : 'saved',
+  }));
+  const workItems: WorkItem[] = [
+    ...openPaths.map((path): WorkItem => ({
+      id: path,
+      type: 'document',
+      title: files.find((file) => file.path === path)?.name ?? path.split('/').at(-1) ?? path,
+      status: dirtyPaths.includes(path) ? 'dirty' : 'saved',
+    })),
+    ...toolItems,
+    ...(activeResultId
+      ? [
+          {
+            id: activeResultId,
+            type: 'result' as const,
+            title:
+              resultDocument?.result.id === activeResultId
+                ? resultDocument.result.title
+                : locale === 'zh-CN'
+                  ? '成果'
+                  : 'Result',
+            status: resultSaveStatus === 'dirty' ? ('dirty' as const) : ('saved' as const),
+          },
+        ]
+      : []),
+  ];
+  const activeWorkItemId =
+    activeWorkItemType === 'tool'
+      ? activeToolId
+      : activeWorkItemType === 'result'
+        ? activeResultId
+        : activePath;
 
   const openResult = (resultId: string) => {
     startPerformanceMeasurement('requestFeedback');
@@ -207,7 +278,7 @@ export function AppShell() {
   };
 
   const confirmWorkspaceFileOpen = async (_path: string, name: string) => {
-    if (!activeResultId) return true;
+    if (activeWorkItemType !== 'result' || !activeResultId) return true;
     const { useResultStore } = await import('../features/results/resultStore');
     const resultState = useResultStore.getState();
     const hasUnsavedChanges = Boolean(
@@ -235,6 +306,92 @@ export function AppShell() {
     return true;
   };
 
+  const closeWorkItem = async (item: WorkItem) => {
+    if (item.type === 'document') {
+      closeFile(item.id);
+      return;
+    }
+    if (item.type === 'tool') {
+      const entry = useSceneToolStore.getState().entries[item.id];
+      if (entry?.conflict) {
+        void messageApi.error(
+          locale === 'zh-CN' ? '请先解决工具保存冲突' : 'Resolve the tool save conflict first'
+        );
+        return;
+      }
+      if ((entry?.dirty || entry?.saving) && !(await sceneTools.save(item.id))) {
+        void messageApi.error(
+          useSceneToolStore.getState().entries[item.id]?.error ??
+            (locale === 'zh-CN'
+              ? '工具保存失败，标签仍保持打开'
+              : 'Tool save failed; tab remains open')
+        );
+        return;
+      }
+      closeTool(item.id);
+      return;
+    }
+    if (item.type === 'result') {
+      const resultState = useResultStore.getState();
+      if (resultState.saving || resultState.saveStatus === 'saving') {
+        void messageApi.info(
+          locale === 'zh-CN' ? '正在保存成果，请稍后关闭' : 'Result is saving; please wait'
+        );
+        return;
+      }
+      const hasChanges =
+        resultState.activeDocument?.result.id === item.id &&
+        resultState.draftContent !== resultState.activeDocument.content;
+      if (
+        hasChanges &&
+        (resultState.saveStatus === 'conflict' || resultState.saveStatus === 'error')
+      ) {
+        void messageApi.error(
+          locale === 'zh-CN' ? '请先解决成果保存问题' : 'Resolve the result save issue first'
+        );
+        return;
+      }
+      if (hasChanges && resultState.saveStatus === 'dirty') {
+        const confirmed = await modalApi.confirm({
+          title: locale === 'zh-CN' ? '保存并关闭成果？' : 'Save and close result?',
+          content:
+            locale === 'zh-CN' ? '当前成果有未保存的修改。' : 'This result has unsaved changes.',
+          okText: locale === 'zh-CN' ? '保存并关闭' : 'Save and close',
+          cancelText: t('cancel'),
+          centered: true,
+        });
+        if (!confirmed) return;
+        resultState.clearError();
+        await resultState.persistDraft();
+        if (useResultStore.getState().error) {
+          void messageApi.error(useResultStore.getState().error);
+          return;
+        }
+      }
+      setActiveResultId(null);
+      setActiveWorkItemType('document');
+    }
+  };
+
+  const workItemTabs = (
+    <WorkItemTabs
+      items={workItems}
+      activeId={activeWorkItemId}
+      onSelect={(item) => {
+        if (item.type === 'tool') openTool(item.id);
+        else if (item.type === 'result') openResult(item.id);
+        else if (item.type === 'document') {
+          void confirmWorkspaceFileOpen(item.id, item.title).then((allowed) => {
+            if (!allowed) return;
+            openWorkbench();
+            openFile(item.id);
+          });
+        }
+      }}
+      onClose={(item) => void closeWorkItem(item)}
+    />
+  );
+
   const undoCreatedResult = async (review: ResultAppliedReview) => {
     const undone = await undoLastPatch(review);
     if (!undone) {
@@ -242,6 +399,7 @@ export function AppShell() {
       return;
     }
     setActiveResultId(null);
+    setActiveWorkItemType('document');
     openRoute('results');
     void messageApi.success(t('undoReviewSuccess'));
   };
@@ -270,84 +428,103 @@ export function AppShell() {
       <ResultsPage onOpenResult={openResult} />
     ) : route === 'workbench' ? (
       <WorkbenchAppearance>
-        <div
-          className={styles.workbenchTabs}
-          role="tablist"
-          aria-label={locale === 'zh-CN' ? '工作台内容' : 'Workbench contents'}
-        >
-          {(['files', 'tools'] as const).map((tab) => (
-            <Button
-              key={tab}
-              role="tab"
-              aria-selected={workbenchTab === tab}
-              type={workbenchTab === tab ? 'primary' : 'text'}
-              onClick={() => setWorkbenchTab(tab)}
-            >
-              {tab === 'files'
-                ? locale === 'zh-CN'
-                  ? '文件'
-                  : 'Files'
-                : locale === 'zh-CN'
-                  ? '我的工具'
-                  : 'My Tools'}
-            </Button>
-          ))}
-        </div>
-        {workbenchTab === 'tools' ? (
-          <div className={styles.toolsWorkspace}>
-            <aside className={styles.toolsSidebar}>
-              <MySceneTools
-                activeId={activeToolId}
-                onOpenResult={openTool}
-                onCreate={() => openRoute('templates')}
-                onManage={(id, action) => {
-                  openTool(id);
-                  setPendingToolAction({ id, action });
-                }}
-                onDeleted={(id) => {
-                  if (activeToolId === id) setActiveToolId(null);
-                  if (pendingToolAction?.id === id) setPendingToolAction(null);
-                }}
-              />
-            </aside>
-            <div className={styles.toolContent}>
-              {activeToolId ? (
-                <SceneToolWorkbench
-                  key={activeToolId}
-                  resultId={activeToolId}
-                  onOpenResult={openResult}
-                  professional={professional}
-                  requestedAction={
-                    pendingToolAction?.id === activeToolId ? pendingToolAction.action : null
-                  }
-                  onRequestedActionHandled={() => setPendingToolAction(null)}
-                  onDeleted={(id) => {
-                    if (activeToolId === id) setActiveToolId(null);
-                    if (pendingToolAction?.id === id) setPendingToolAction(null);
-                  }}
-                />
-              ) : (
-                <Empty
-                  description={
-                    locale === 'zh-CN'
-                      ? '选择一个工具继续使用，或从模板创建。'
-                      : 'Select a tool or create one from a template.'
-                  }
-                />
-              )}
+        <WorkspaceLayout
+          collapsible={activeWorkItemType !== 'result'}
+          showLeftPanel
+          leftPanelLabel={
+            resourceView === 'tools'
+              ? locale === 'zh-CN'
+                ? '调整工具栏宽度'
+                : 'Resize tools panel'
+              : undefined
+          }
+          left={
+            <div className={styles.resourceSidebar}>
+              <div
+                className={styles.workbenchTabs}
+                role="tablist"
+                aria-label={locale === 'zh-CN' ? '左侧资源视图' : 'Sidebar resources'}
+              >
+                {(['files', 'tools'] as const).map((tab) => (
+                  <Button
+                    key={tab}
+                    role="tab"
+                    aria-selected={resourceView === tab}
+                    type={resourceView === tab ? 'primary' : 'text'}
+                    onClick={() => setResourceView(tab)}
+                  >
+                    {tab === 'files'
+                      ? locale === 'zh-CN'
+                        ? '文件'
+                        : 'Files'
+                      : locale === 'zh-CN'
+                        ? '我的工具'
+                        : 'My Tools'}
+                  </Button>
+                ))}
+              </div>
+              <div className={styles.resourceContent}>
+                {resourceView === 'tools' ? (
+                  <div className={styles.toolsSidebar}>
+                    <MySceneTools
+                      activeId={activeWorkItemType === 'tool' ? activeToolId : null}
+                      onOpenResult={openTool}
+                      onCreate={() => openRoute('templates')}
+                      onManage={(id, action) => {
+                        openTool(id);
+                        setPendingToolAction({ id, action });
+                      }}
+                      onDeleted={(id) => {
+                        closeTool(id);
+                        if (pendingToolAction?.id === id) setPendingToolAction(null);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <WorkspaceSidebar
+                    highlightActiveFile={activeWorkItemType === 'document'}
+                    onBeforeOpenFile={confirmWorkspaceFileOpen}
+                    onActivateWorkspace={() => setActiveWorkItemType('document')}
+                  />
+                )}
+              </div>
             </div>
-          </div>
-        ) : (
-          <WorkspaceLayout
-            showLeftPanel={professional}
-            left={
-              <WorkspaceSidebar
-                onBeforeOpenFile={confirmWorkspaceFileOpen}
-                onActivateWorkspace={() => setActiveResultId(null)}
-              />
-            }
-            center={
-              activeResultId ? (
+          }
+          center={
+            activeWorkItemType === 'tool' ? (
+              <div className={styles.toolContent}>
+                <div className={styles.workItemBar}>
+                  {workItemTabs}
+                  <WorkspacePanelControls leftLabels={leftPanelLabels} />
+                </div>
+                {activeToolId ? (
+                  <SceneToolWorkbench
+                    key={activeToolId}
+                    resultId={activeToolId}
+                    onOpenResult={openResult}
+                    professional={professional}
+                    requestedAction={
+                      pendingToolAction?.id === activeToolId ? pendingToolAction.action : null
+                    }
+                    onRequestedActionHandled={() => setPendingToolAction(null)}
+                    onDeleted={(id) => {
+                      closeTool(id);
+                      if (pendingToolAction?.id === id) setPendingToolAction(null);
+                    }}
+                  />
+                ) : (
+                  <Empty
+                    description={
+                      locale === 'zh-CN'
+                        ? '选择一个工具继续使用，或从模板创建。'
+                        : 'Select a tool or create one from a template.'
+                    }
+                  />
+                )}
+              </div>
+            ) : activeWorkItemType === 'result' && activeResultId ? (
+              <div className={styles.toolContent}>
+                {workItemTabs}
                 <ResultWorkbench
                   key={activeResultId}
                   resultId={activeResultId}
@@ -358,34 +535,40 @@ export function AppShell() {
                   reviewUndoError={patchError}
                   onUndoReview={(review) => void undoCreatedResult(review)}
                 />
-              ) : (
-                <EditorPane
-                  showInspector={professional}
-                  showSimpleFileActions={!professional}
-                  onOpenResult={openResult}
-                  onOpenTool={openTool}
-                />
-              )
-            }
-            right={
-              activeResultId ? (
-                <ResultAssistantPanel
-                  key={`assistant:${activeResultId}`}
-                  resultId={activeResultId}
-                  onOpenResult={openResult}
-                />
-              ) : (
-                <ChatPanel professionalTools={professional} />
-              )
-            }
-          />
-        )}
+              </div>
+            ) : (
+              <EditorPane
+                workItemTabs={workItemTabs}
+                leftPanelLabels={leftPanelLabels}
+                showInspector={professional}
+                showSimpleFileActions={!professional}
+                onOpenResult={openResult}
+                onOpenTool={openTool}
+              />
+            )
+          }
+          right={
+            activeWorkItemType === 'result' && activeResultId ? (
+              <ResultAssistantPanel
+                key={`assistant:${activeResultId}`}
+                resultId={activeResultId}
+                onOpenResult={openResult}
+              />
+            ) : (
+              <ChatPanel
+                key={activeWorkItemType === 'tool' ? `tool:${activeToolId ?? 'empty'}` : 'file'}
+                professionalTools={professional}
+                toolId={activeWorkItemType === 'tool' ? activeToolId : undefined}
+              />
+            )
+          }
+        />
       </WorkbenchAppearance>
     ) : route === 'templates' ? (
       <PersonalSurfaceTemplates
         onOpened={() => openWorkbench()}
         onOpenMyTools={() => {
-          setWorkbenchTab('tools');
+          setResourceView('tools');
           openRoute('workbench');
         }}
         onOpenResult={openTool}

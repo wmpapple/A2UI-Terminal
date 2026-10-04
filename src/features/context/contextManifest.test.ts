@@ -18,6 +18,34 @@ const cloudProvider: ProviderConfig = {
 };
 
 describe('context manifest input', () => {
+  it('sends a tool snapshot only as an explicitly selected inline candidate', () => {
+    const input = buildContextManifestInput({
+      workspaceId: 'workspace',
+      sessionId: 'session',
+      providerId: 'openai',
+      prompt: 'Check gaps',
+      selection: {
+        selection: true,
+        currentFile: false,
+        recentMessages: false,
+        recentMessageCount: 3,
+        projectFiles: [],
+      },
+      files: [
+        { path: 'paper.md', name: 'paper.md', language: 'markdown', content: 'Private source' },
+      ],
+      documentSources: [],
+      activePath: '',
+      selectedText: '{"tool":"Review","fields":{"topic":"NLP"}}',
+      selectionLabel: 'Review',
+    });
+    expect(input.candidates.filter((candidate) => candidate.selected)).toEqual([
+      expect.objectContaining({ kind: 'selection', label: 'Review', sourceId: undefined }),
+    ]);
+    expect(input.candidates.find((candidate) => candidate.label === 'paper.md')?.selected).toBe(
+      false
+    );
+  });
   it('carries opaque authorization references and explicit selection decisions', () => {
     const table = {
       id: 'table-source',

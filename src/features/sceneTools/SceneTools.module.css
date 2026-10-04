@@ -227,6 +227,8 @@
   white-space: pre-wrap;
 }
 .page {
+  flex: 1;
+  min-height: 0;
   height: 100%;
   overflow: auto;
   padding: 20px;
@@ -244,8 +246,8 @@
   color: var(--muted);
 }
 .publicationPending {
-  flex-basis: 100%;
   color: #ad4e00;
+  font-size: 12px;
 }
 .actionBar {
   padding: 12px 0;
@@ -272,28 +274,29 @@
 .autosaveStatus[data-tone='error'] {
   color: #cf1322;
 }
-.syncedButton {
+.syncedStatus {
   display: inline-flex;
   align-items: center;
-  height: 32px;
-  padding: 0 15px;
-  color: #237804;
-  border: 1px solid #b7eb8f;
-  border-radius: 8px;
-  background: #f6ffed;
+  color: #328042;
+  font-size: 12px;
   gap: 6px;
 }
 .formArea {
   padding-top: 4px;
 }
-.sceneSurface {
+.sceneSurface.sceneSurface {
+  min-height: 0;
   padding: 0;
   background: transparent;
 }
 .sceneSurface :global([data-a2ui-node^='scene-group-']) {
-  padding-top: 24px;
-  margin-top: 12px;
+  padding-top: 20px;
+  margin-top: 8px;
   border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+}
+.sceneSurface :global([data-a2ui-node^='scene-group-'] fieldset) {
+  padding: 0;
+  border: 0;
 }
 .sceneSurface :global([data-a2ui-node^='scene-heading-']) {
   color: var(--text-strong);

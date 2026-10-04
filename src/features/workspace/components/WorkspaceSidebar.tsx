@@ -18,11 +18,16 @@ const iconFor = (path: string) =>
   path.endsWith('.md') ? <FileMarkdownOutlined /> : <FileTextOutlined />;
 
 interface Props {
+  highlightActiveFile?: boolean;
   onActivateWorkspace?: () => void;
   onBeforeOpenFile?: (path: string, name: string) => boolean | Promise<boolean>;
 }
 
-export function WorkspaceSidebar({ onActivateWorkspace, onBeforeOpenFile }: Props) {
+export function WorkspaceSidebar({
+  highlightActiveFile = true,
+  onActivateWorkspace,
+  onBeforeOpenFile,
+}: Props) {
   const { t } = useI18n();
   const runtimeMode = useAppStore((state) => state.runtimeMode);
   const workspace = useAppStore((state) => state.workspace);
@@ -198,10 +203,10 @@ export function WorkspaceSidebar({ onActivateWorkspace, onBeforeOpenFile }: Prop
                 <button
                   type="button"
                   role="treeitem"
-                  aria-selected={activePath === file.path}
+                  aria-selected={highlightActiveFile && activePath === file.path}
                   aria-disabled={!file.readable}
                   disabled={!file.readable}
-                  className={`${styles.file} ${activePath === file.path ? styles.active : ''}`}
+                  className={`${styles.file} ${highlightActiveFile && activePath === file.path ? styles.active : ''}`}
                   onClick={() => void activateWorkspaceFile(file.path, file.name)}
                 >
                   {iconFor(file.path)}

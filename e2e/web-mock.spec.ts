@@ -128,10 +128,15 @@ test('defaults to the simple navigation shell and persists professional mode', a
 
   await navigation.getByRole('button', { name: /工作台$/ }).click();
   await page.getByRole('tab', { name: '我的工具', exact: true }).click();
-  await expect(page.getByTestId('workspace-layout')).toHaveCount(0);
+  await expect(page.getByTestId('workspace-layout')).toBeVisible();
+  await expect(page.getByRole('tab', { name: '我的工具', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true'
+  );
+  await expect(page.getByRole('region', { name: '当前文档', exact: true })).toBeVisible();
   await page.getByRole('tab', { name: '文件', exact: true }).click();
   await expect(page.getByTestId('workspace-layout')).toBeVisible();
-  await expect(page.getByRole('complementary', { name: '项目文件' })).toHaveCount(0);
+  await expect(page.getByRole('complementary', { name: '项目文件' })).toBeVisible();
   await expect(page.getByText('协议 Inspector')).toHaveCount(0);
   // The unified model picker is available in both modes; endpoint/key setup
   // remains confined to professional settings.
@@ -170,7 +175,7 @@ test('defaults to the simple navigation shell and persists professional mode', a
 
 test('completes context review and renders a trusted A2UI surface', async ({ page }) => {
   await openProfessionalWorkbench(page);
-  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('Create an A2UI form');
+  await page.getByPlaceholder('描述你希望对当前文档做出的修改…').fill('Create an A2UI form');
   await page.getByRole('button', { name: '发送', exact: true }).click();
 
   const review = page.getByRole('dialog', { name: '发送前确认上下文' });
@@ -182,7 +187,7 @@ test('completes context review and renders a trusted A2UI surface', async ({ pag
   await expect(page.getByText('协议 Inspector')).toBeVisible();
   await expect(page.getByText('Research profile')).toBeVisible();
 
-  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('Create another A2UI form');
+  await page.getByPlaceholder('描述你希望对当前文档做出的修改…').fill('Create another A2UI form');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect(review).toBeHidden();
   await expect(page.getByText('Create another A2UI form', { exact: true })).toBeVisible();
@@ -200,7 +205,9 @@ test('completes context review and renders a trusted A2UI surface', async ({ pag
   await expect(page.getByText('协议 Inspector')).toHaveCount(0);
 
   await page.getByRole('button', { name: '关闭' }).click();
-  await expect(page.getByRole('radio', { name: '编辑器' })).toBeChecked();
+  await expect(
+    page.getByTestId('workspace-mode').getByRole('radio', { name: '编辑', exact: true })
+  ).toBeChecked();
   await expect(page.getByText('Research profile')).toHaveCount(0);
 
   await page.getByText('交互成果', { exact: true }).click();
@@ -223,13 +230,15 @@ test('completes context review and renders a trusted A2UI surface', async ({ pag
     .getByRole('button', { name: /永久删除/ })
     .last()
     .click();
-  await expect(page.getByRole('radio', { name: '编辑器' })).toBeChecked();
+  await expect(
+    page.getByTestId('workspace-mode').getByRole('radio', { name: '编辑', exact: true })
+  ).toBeChecked();
   await expect(page.getByText('Research profile')).toHaveCount(0);
 });
 
 test('keeps file changes behind review before applying the Web Mock patch', async ({ page }) => {
   await openProfessionalWorkbench(page);
-  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('Update the sample count');
+  await page.getByPlaceholder('描述你希望对当前文档做出的修改…').fill('Update the sample count');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   const contextReview = page.getByRole('dialog', { name: '发送前确认上下文' });
   await contextReview.getByRole('button', { name: '生成发送清单' }).click();
@@ -238,7 +247,9 @@ test('keeps file changes behind review before applying the Web Mock patch', asyn
   await expect(page.getByRole('region', { name: '审阅中心' })).toBeVisible();
   await expect(page.getByText('已通过 Rust 校验')).toBeVisible();
   await page.getByRole('button', { name: /应用已选修改/ }).click();
-  await expect(page.getByRole('radio', { name: '编辑器' })).toBeChecked();
+  await expect(
+    page.getByTestId('workspace-mode').getByRole('radio', { name: '编辑', exact: true })
+  ).toBeChecked();
   await expect(page.getByRole('button', { name: /撤销上次审阅修改/ })).toBeVisible();
 });
 
@@ -270,7 +281,7 @@ test('routes selection edits through review with inline accept and undo', async 
 
 test('keeps AI-created travel documents behind a complete create-file review', async ({ page }) => {
   await openProfessionalWorkbench(page);
-  const composer = page.getByPlaceholder('描述你希望对当前文件做出的修改…');
+  const composer = page.getByPlaceholder('描述你希望对当前文档做出的修改…');
   const send = page.getByRole('button', { name: '发送', exact: true });
 
   await composer.fill('生成一份杭州三日游文档');
@@ -539,7 +550,7 @@ test('remembers context packs, expands them for confirmation, and revokes refere
 
   const navigation = page.getByRole('navigation', { name: '主导航' });
   await navigation.getByRole('button', { name: /工作台/ }).click();
-  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('仅本次分析销售表');
+  await page.getByPlaceholder('描述你希望对当前文档做出的修改…').fill('仅本次分析销售表');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   const oneTimeReview = page.getByRole('dialog', { name: '发送前确认上下文' });
   await oneTimeReview.getByRole('checkbox', { name: /sales.xlsx/ }).click();
@@ -548,7 +559,7 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   await oneTimeReview.getByRole('button', { name: '确认并发送' }).click();
   await expect(oneTimeReview).toBeHidden();
 
-  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('再次分析销售表');
+  await page.getByPlaceholder('描述你希望对当前文档做出的修改…').fill('再次分析销售表');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect(oneTimeReview).toBeHidden();
   await expect(page.getByText('再次分析销售表', { exact: true })).toBeVisible();
@@ -574,7 +585,7 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   const savedContext = page.getByRole('dialog', { name: '发送前确认上下文' });
   await savedContext.getByRole('checkbox', { name: /季度数据/ }).click();
   await savedContext.getByRole('button', { name: '保存上下文' }).click();
-  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('总结季度数据');
+  await page.getByPlaceholder('描述你希望对当前文档做出的修改…').fill('总结季度数据');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   const review = page.getByRole('dialog', { name: '发送前确认上下文' });
   await expect(review.getByRole('checkbox', { name: /季度数据/ })).toBeChecked();
@@ -583,7 +594,7 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   await review.getByRole('button', { name: '确认并发送' }).click();
   await expect(review).toBeHidden();
 
-  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('继续总结季度数据');
+  await page.getByPlaceholder('描述你希望对当前文档做出的修改…').fill('继续总结季度数据');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect(review).toBeHidden();
   await expect(page.getByText('继续总结季度数据', { exact: true })).toBeVisible();

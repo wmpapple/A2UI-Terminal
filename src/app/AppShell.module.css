@@ -6,39 +6,58 @@
   overflow: hidden;
   background: var(--canvas);
 }
+.resourceSidebar {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
 .workbenchTabs {
   display: flex;
   flex: none;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 4px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
+  background: var(--surface-subtle);
 }
-.toolsWorkspace {
-  display: grid;
-  grid-template-columns: minmax(260px, 290px) minmax(0, 1fr);
+.workbenchTabs :global(.ant-btn) {
+  flex: 1;
+  min-width: 0;
+  padding-inline: 4px;
+}
+.resourceContent {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.toolsSidebar {
+  height: 100%;
+  overflow: auto;
+  padding: 16px;
+}
+.toolContent {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+.toolContent > :last-child {
   flex: 1;
   min-height: 0;
 }
-.toolsSidebar {
-  min-height: 0;
-  overflow: auto;
-  padding: 16px;
-  border-right: 1px solid var(--border);
-}
-.toolContent {
+.workItemBar {
+  display: flex;
+  flex: none;
+  align-items: center;
   min-width: 0;
-  min-height: 0;
-  overflow: auto;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-subtle);
 }
-@media (max-width: 760px) {
-  .toolsWorkspace {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-  }
-  .toolsSidebar {
-    max-height: 180px;
-    border-bottom: 1px solid var(--border);
-  }
+.workItemBar > :first-child {
+  flex: 1;
+  min-width: 0;
+  border-bottom: 0;
 }
 .skipLink {
   position: absolute;

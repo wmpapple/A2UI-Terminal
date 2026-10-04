@@ -2,6 +2,9 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../app/i18n/I18nProvider';
 import { createMockA2ui } from '../../../shared/mock/workspace';
+import type { SceneLinkView, SceneToolView } from '../../../shared/types/sceneTool';
+import { useSceneToolStore } from '../../sceneTools/sceneToolStore';
+import { sceneToolController } from '../../sceneTools/sceneToolController';
 import { useAppStore } from '../../../stores/useAppStore';
 import { chatController } from '../chatController';
 import { ChatPanel } from './ChatPanel';
@@ -62,6 +65,151 @@ beforeEach(() => {
 });
 
 describe('ChatPanel patch presentation', () => {
+  it('shows linked material but never selects it for AI merely because it is bound', async () => {
+    useAppStore.setState({
+      sessions: [{ id: 'session', title: 'test', messages: [] }],
+      chatRequestId: null,
+      workspace: { id: 'workspace', name: 'Test', kind: 'directory', available: true },
+      files: [
+        {
+          path: 'paper.pdf',
+          name: 'paper.pdf',
+          language: 'text',
+          content: 'Paper content',
+          sourceId: 'paper-source',
+        },
+      ],
+    });
+    const view: SceneToolView = {
+      result: { id: 'tool', title: '论文评审器' } as SceneToolView['result'],
+      templateId: 'review',
+      stateHash: 'hash',
+      surface: { ...createMockA2ui().surface, surfaceId: 'tool-surface', data: {} },
+    };
+    useSceneToolStore.setState({
+      entries: {
+        tool: { view, data: {}, dirty: false, saving: false, conflict: false, error: null },
+      },
+    });
+    vi.spyOn(sceneToolController, 'readLink').mockResolvedValue({
+      link: {
+        targetTitle: 'paper.pdf',
+        binding: {
+          type: 'document',
+          target: { kind: 'workspace_file', workspaceId: 'workspace', sourceId: 'paper-source' },
+        },
+      },
+    } as SceneLinkView);
+    render(
+      <I18nProvider>
+        <ChatPanel toolId="tool" />
+      </I18nProvider>
+    );
+    const linked = await screen.findByRole('checkbox', { name: '关联文档 paper.pdf' });
+    expect(linked).not.toBeChecked();
+    expect(screen.getByRole('button', { name: '根据资料补全' })).toBeDisabled();
+    fireEvent.click(linked);
+    expect(linked).toBeChecked();
+    expect(screen.getByRole('button', { name: '根据资料补全' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '上下文' })).toHaveTextContent('1 项资料');
+  });
+  it('shows a tool context without inheriting the active document or sending on a quick task', () => {
+    const sendChat = vi.fn();
+    useAppStore.setState({
+      sessions: [{ id: 'session', title: 'test', messages: [] }],
+      chatRequestId: null,
+      activePath: 'paper.md',
+      files: [
+        { path: 'paper.md', name: 'paper.md', language: 'markdown', content: 'Private source' },
+      ],
+      sendChat,
+    });
+    const view: SceneToolView = {
+      result: { id: 'tool', title: '论文评审器' } as SceneToolView['result'],
+      templateId: 'review',
+      stateHash: 'hash',
+      surface: { ...createMockA2ui().surface, surfaceId: 'tool-surface', data: {} },
+    };
+    useSceneToolStore.setState({
+      entries: {
+        tool: {
+          view,
+          data: { topic: 'NLP' },
+          dirty: true,
+          saving: false,
+          conflict: false,
+          error: null,
+        },
+      },
+    });
+    render(
+      <I18nProvider>
+        <ChatPanel toolId="tool" />
+      </I18nProvider>
+    );
+    expect(screen.getByRole('checkbox', { name: '当前工具' })).toBeChecked();
+    expect(screen.getByPlaceholderText('描述你希望 AI 如何帮助填写或检查当前工具…')).toBeVisible();
+    expect(screen.getByRole('button', { name: '上下文' })).toHaveTextContent('论文评审器');
+    expect(screen.getByRole('button', { name: '上下文' })).not.toHaveTextContent('当前文档');
+    fireEvent.click(screen.getByRole('button', { name: '检查遗漏' }));
+    expect(screen.getByRole('textbox')).toHaveValue(
+      '请检查当前工具的已填内容，指出遗漏和待核实项。'
+    );
+    expect(sendChat).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '发送' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(sendChat).not.toHaveBeenCalled();
+  });
+  it('shows document context and fills quick tasks without sending or granting selection consent', () => {
+    const sendChat = vi.fn();
+    useAppStore.setState({
+      sessions: [{ id: 'session', title: 'test', messages: [] }],
+      chatRequestId: null,
+      activePath: 'docs/sample.md',
+      files: [
+        { path: 'docs/sample.md', name: 'sample.md', language: 'markdown', content: '# Sample' },
+      ],
+      selectedText: 'Sample',
+      sendChat,
+    });
+    render(
+      <I18nProvider>
+        <ChatPanel />
+      </I18nProvider>
+    );
+    expect(screen.getByText('sample.md')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: '当前文档' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: '当前选区' })).not.toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: '生成提纲' }));
+    expect(screen.getByRole('textbox')).toHaveValue('根据当前文档生成提纲');
+    expect(sendChat).not.toHaveBeenCalled();
+    expect(useAppStore.getState().contextBySession.session).toBeUndefined();
+  });
+
+  it('does not claim the current file is included when excluded from context', () => {
+    useAppStore.setState({
+      sessions: [{ id: 'session', title: 'test', messages: [] }],
+      chatRequestId: null,
+      activePath: 'private.md',
+      contextBySession: {
+        session: {
+          currentFile: false,
+          selection: false,
+          recentMessages: false,
+          recentMessageCount: 0,
+          projectFiles: [],
+        },
+      },
+    });
+    render(
+      <I18nProvider>
+        <ChatPanel />
+      </I18nProvider>
+    );
+    expect(screen.getByRole('checkbox', { name: '当前文档' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: '上下文' })).toHaveTextContent('未选择资料');
+  });
+
   it('restores drafts after unmount and isolates the same session ID in different workspaces', () => {
     useAppStore.setState({
       workspace: { id: 'draft-a', name: 'A', kind: 'directory', available: true },
@@ -492,7 +640,7 @@ describe('ChatPanel patch presentation', () => {
       </I18nProvider>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('描述你希望对当前文件做出的修改…'), {
+    fireEvent.change(screen.getByPlaceholderText('描述你希望对当前文档做出的修改…'), {
       target: { value: 'Summarize this document' },
     });
     fireEvent.click(screen.getByRole('button', { name: /发送$/ }));
@@ -523,7 +671,7 @@ describe('ChatPanel patch presentation', () => {
       </I18nProvider>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('描述你希望对当前文件做出的修改…'), {
+    fireEvent.change(screen.getByPlaceholderText('描述你希望对当前文档做出的修改…'), {
       target: { value: 'Continue with the same context' },
     });
     fireEvent.click(screen.getByRole('button', { name: /发送$/ }));
@@ -616,7 +764,7 @@ describe('ChatPanel patch presentation', () => {
     );
     await waitFor(() => expect(screen.getByText('本会话已沿用')).toBeVisible());
 
-    fireEvent.change(screen.getByPlaceholderText('描述你希望对当前文件做出的修改…'), {
+    fireEvent.change(screen.getByPlaceholderText('描述你希望对当前文档做出的修改…'), {
       target: { value: 'Continue with the original file' },
     });
     fireEvent.click(screen.getByRole('button', { name: /发送$/ }));
@@ -625,7 +773,7 @@ describe('ChatPanel patch presentation', () => {
 
     act(() => useAppStore.setState({ activePath: 'notes/second.md' }));
     await waitFor(() => expect(screen.getByText('发送范围有变化')).toBeVisible());
-    fireEvent.change(screen.getByPlaceholderText('描述你希望对当前文件做出的修改…'), {
+    fireEvent.change(screen.getByPlaceholderText('描述你希望对当前文档做出的修改…'), {
       target: { value: 'Use the second file' },
     });
     fireEvent.click(screen.getByRole('button', { name: /发送$/ }));
@@ -679,7 +827,7 @@ describe('ChatPanel patch presentation', () => {
         <ChatPanel />
       </I18nProvider>
     );
-    fireEvent.change(screen.getByPlaceholderText('描述你希望对当前文件做出的修改…'), {
+    fireEvent.change(screen.getByPlaceholderText('描述你希望对当前文档做出的修改…'), {
       target: { value: 'Continue safely' },
     });
     fireEvent.click(screen.getByRole('button', { name: /发送$/ }));
@@ -772,7 +920,7 @@ describe('ChatPanel patch presentation', () => {
         <ChatPanel />
       </I18nProvider>
     );
-    const input = screen.getByPlaceholderText('描述你希望对当前文件做出的修改…');
+    const input = screen.getByPlaceholderText('描述你希望对当前文档做出的修改…');
     fireEvent.change(input, { target: { value: 'First profile request' } });
     fireEvent.click(screen.getByRole('button', { name: /发送$/ }));
     await waitFor(() =>
@@ -868,7 +1016,7 @@ describe('ChatPanel patch presentation', () => {
         <ChatPanel />
       </I18nProvider>
     );
-    const input = screen.getByPlaceholderText('描述你希望对当前文件做出的修改…');
+    const input = screen.getByPlaceholderText('描述你希望对当前文档做出的修改…');
     fireEvent.change(input, { target: { value: 'Original prompt' } });
     fireEvent.click(screen.getByRole('button', { name: /发送$/ }));
     expect(await screen.findByText(/本次清单包含可能的敏感信息/)).toBeVisible();

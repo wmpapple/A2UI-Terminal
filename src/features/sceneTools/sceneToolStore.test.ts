@@ -55,6 +55,12 @@ describe('scene persistence', () => {
     expect(publish).not.toHaveBeenCalled();
     expect(useSceneToolStore.getState().entries.scene.data.name).toBe('retained');
   });
+  it('passes a distinct title only on explicit publication', async () => {
+    await sceneTools.load('scene');
+    const publish = vi.spyOn(desktopGateway, 'publishSceneTool').mockResolvedValue(view('base'));
+    expect(await sceneTools.publish('scene', '信息收集结果')).toBe(true);
+    expect(publish).toHaveBeenCalledWith(expect.objectContaining({ title: '信息收集结果' }));
+  });
   it('coalesces loads and retains unsaved input when navigating back', async () => {
     await Promise.all([sceneTools.load('scene'), sceneTools.load('scene')]);
     sceneTools.change('scene', 'name', '离开页面前输入');

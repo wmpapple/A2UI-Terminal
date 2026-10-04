@@ -55,6 +55,7 @@ pub struct PublishSceneTool {
     pub result_id: String,
     pub base_hash: String,
     pub expected_revision: Option<String>,
+    pub title: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -107,6 +108,7 @@ pub fn list_items(storage: &Storage) -> Result<Vec<SceneToolListItem>, AppError>
 
 pub fn publish(storage: &Storage, input: PublishSceneTool) -> Result<SceneToolView, AppError> {
     let (result, row) = resolve(storage, &input.result_id)?;
+    let title = input.title.as_deref().map(validate_title).transpose()?;
     if super::result::content_hash(row.state_json.as_bytes()) != input.base_hash {
         return Err(AppError::FileConflict);
     }
@@ -118,6 +120,7 @@ pub fn publish(storage: &Storage, input: PublishSceneTool) -> Result<SceneToolVi
         &row,
         &snapshot,
         input.expected_revision.as_deref(),
+        title,
     )?;
     read(storage, &input.result_id)
 }

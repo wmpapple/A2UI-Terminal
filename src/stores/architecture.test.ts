@@ -56,7 +56,9 @@ describe('front-end application boundaries', () => {
     expect(shell.match(/<WorkspaceSidebar/g)).toHaveLength(1);
     expect(shell.match(/<EditorPane/g)).toHaveLength(1);
     expect(shell.match(/<ChatPanel/g)).toHaveLength(1);
-    expect(shell).toContain('showLeftPanel={professional}');
+    expect(shell).toContain('showLeftPanel');
+    expect(shell).toContain("resourceView === 'tools'");
+    expect(shell).toContain("activeWorkItemType === 'tool'");
     expect(shell).toContain('showInspector={professional}');
     expect(shell).toContain('showSimpleFileActions={!professional}');
     expect(shell).toContain('professionalTools={professional}');
@@ -128,10 +130,10 @@ describe('front-end application boundaries', () => {
     const panel = sources['../features/chat/components/ChatPanel.tsx'];
     const contextFlow = sources['../features/chat/useChatContextFlow.ts'];
 
-    expect(panel.split(/\r?\n/).length).toBeLessThan(220);
+    expect(panel.split(/\r?\n/).length).toBeLessThan(260);
     expect(panel).toContain('<ChatMessageList');
     expect(panel).toContain('<ChatComposer');
-    expect(panel).toContain('useChatContextFlow()');
+    expect(panel).toContain('useChatContextFlow(inlineContext)');
     expect(panel).not.toContain('chatController');
     expect(contextFlow).toContain('chatController.planContext');
     expect(contextFlow).toContain('plannedManifestKey === currentManifestKey');

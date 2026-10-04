@@ -25,7 +25,7 @@ const errorMessage = (error: unknown) =>
   error && typeof error === 'object' && 'message' in error ? String(error.message) : String(error);
 
 export const sceneTools = {
-  async publish(id: string): Promise<boolean> {
+  async publish(id: string, title?: string): Promise<boolean> {
     if (!(await sceneTools.save(id))) return false;
     const current = entry(id);
     if (!current.view) return false;
@@ -34,6 +34,7 @@ export const sceneTools = {
         resultId: id,
         baseHash: current.view.stateHash,
         expectedRevision: current.view.publication?.revisionId ?? null,
+        ...(title ? { title } : {}),
       });
       update(id, { view });
       window.dispatchEvent(new Event('scene-tool-list-changed'));

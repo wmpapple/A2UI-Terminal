@@ -11,12 +11,18 @@ export function KnowledgePicker({
   purpose = 'send',
   maxCount = 20,
   disabled = false,
+  hideLabel = false,
+  placeholder,
+  onSourceChosen,
 }: {
   value: string[];
   onChange: (ids: string[]) => void;
   purpose?: 'send' | 'pack' | 'profile';
   maxCount?: number;
   disabled?: boolean;
+  hideLabel?: boolean;
+  placeholder?: string;
+  onSourceChosen?: (source: KnowledgeSource) => void;
 }) {
   const { locale } = useI18n();
   const zh = locale === 'zh-CN';
@@ -54,7 +60,7 @@ export function KnowledgePicker({
   }, [query]);
   return (
     <div>
-      <p>
+      {!hideLabel && <p>
         {purpose === 'profile'
           ? zh
             ? '从个人资料中选择范文（仅保存引用）'
@@ -66,15 +72,22 @@ export function KnowledgePicker({
             : zh
               ? '个人资料（仅本次选择，发送前确认）'
               : 'Personal library (select for this request, confirm before sending)'}
-      </p>
+      </p>}
       <Select
         disabled={disabled}
         mode="multiple"
         maxCount={maxCount}
         style={{ width: '100%' }}
         aria-label={zh ? '选择个人资料' : 'Select personal sources'}
+        placeholder={placeholder}
         value={value}
-        onChange={onChange}
+        onChange={(ids) => {
+          onChange(ids);
+          ids.forEach((id) => {
+            const source = items.find((item) => item.id === id);
+            if (source) onSourceChosen?.(source);
+          });
+        }}
         showSearch={{ filterOption: false, onSearch: setQuery }}
         loading={busy}
         options={items

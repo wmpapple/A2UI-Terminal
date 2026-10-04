@@ -6,6 +6,7 @@ import type { ProcessingLocation } from '../../../shared/types/domain';
 import styles from './ChatPanel.module.css';
 
 interface ChatComposerProps {
+  placeholder?: string;
   prompt: string;
   activePath: string;
   projectFiles: string[];
@@ -26,9 +27,16 @@ interface ChatComposerProps {
   contextSummary?: ReactNode;
   contextStatusLabel?: string;
   maxLength?: number;
+  compactContext?: boolean;
+  selectionIncluded?: boolean;
+  selectionLabel?: string;
+  additionalMaterialCount?: number;
+  recentMessagesIncluded?: boolean;
+  showSuggestions?: boolean;
 }
 
 export function ChatComposer({
+  placeholder,
   prompt,
   activePath,
   projectFiles,
@@ -49,6 +57,12 @@ export function ChatComposer({
   contextSummary,
   contextStatusLabel,
   maxLength,
+  compactContext = false,
+  selectionIncluded = false,
+  selectionLabel,
+  additionalMaterialCount = 0,
+  recentMessagesIncluded = false,
+  showSuggestions = true,
 }: ChatComposerProps) {
   const { t } = useI18n();
   const [dragging, setDragging] = useState(false);
@@ -77,7 +91,7 @@ export function ChatComposer({
         onDropFiles?.(event.dataTransfer.files);
       }}
     >
-      {!prompt && !requestActive && !manifestLoading && (
+      {showSuggestions && !prompt && !requestActive && !manifestLoading && (
         <div className={styles.promptSuggestions}>
           {(['suggestSummary', 'suggestImprove', 'suggestExplain'] as const).map((key) => (
             <Button
@@ -140,35 +154,77 @@ export function ChatComposer({
             }
           }}
         />
-        <div className={styles.contextBar}>
-          <Button
-            type="text"
-            size="small"
-            aria-label={t(hasReviewedContext ? 'modifySendList' : 'context')}
-            icon={<AppstoreOutlined />}
-            onClick={onOpenContext}
-          >
-            {t(hasReviewedContext ? 'modifySendList' : 'context')}
-          </Button>
-          {activePath && <Tag title={activePath}>{activePath}</Tag>}
-          {projectFiles.map((path) => (
-            <Tag key={path} title={path}>
-              {path}
+        {compactContext ? (
+          <div className={styles.contextSummary}>
+            <Button
+              size="small"
+              type="text"
+              icon={<AppstoreOutlined />}
+              aria-label={t(hasReviewedContext ? 'modifySendList' : 'context')}
+              title={[activePath, ...projectFiles].filter(Boolean).join('\n')}
+              onClick={onOpenContext}
+            >
+              {t('context')}：
+              {[
+                activePath ? t('currentDocument') : '',
+                selectionIncluded ? (selectionLabel ?? t('currentSelection')) : '',
+                projectFiles.length + additionalMaterialCount
+                  ? `${projectFiles.length + additionalMaterialCount} ${t('contextMaterialUnit')}`
+                  : '',
+                recentMessagesIncluded ? t('recentMessages') : '',
+              ]
+                .filter(Boolean)
+                .join(' · ') || t('noContextSelected')}
+            </Button>
+            <span>
+              {t('processingMethod')}：
+              <span>
+                {t(processingLocation === 'local' ? 'localProcessing' : 'cloudProcessing')}
+              </span>{' '}
+              ·{' '}
+              <span>
+                {contextStatusLabel ??
+                  t(
+                    contextReviewed
+                      ? 'contextSaved'
+                      : hasReviewedContext
+                        ? 'contextChanged'
+                        : 'contextRequired'
+                  )}
+              </span>
+            </span>
+          </div>
+        ) : (
+          <div className={styles.contextBar}>
+            <Button
+              type="text"
+              size="small"
+              aria-label={t(hasReviewedContext ? 'modifySendList' : 'context')}
+              icon={<AppstoreOutlined />}
+              onClick={onOpenContext}
+            >
+              {t(hasReviewedContext ? 'modifySendList' : 'context')}
+            </Button>
+            {activePath && <Tag title={activePath}>{activePath}</Tag>}
+            {projectFiles.map((path) => (
+              <Tag key={path} title={path}>
+                {path}
+              </Tag>
+            ))}
+            <Tag>
+              {contextStatusLabel ??
+                t(
+                  contextReviewed
+                    ? 'contextSaved'
+                    : hasReviewedContext
+                      ? 'contextChanged'
+                      : 'contextRequired'
+                )}
             </Tag>
-          ))}
-          <Tag>
-            {contextStatusLabel ??
-              t(
-                contextReviewed
-                  ? 'contextSaved'
-                  : hasReviewedContext
-                    ? 'contextChanged'
-                    : 'contextRequired'
-              )}
-          </Tag>
-          <Tag>{t(processingLocation === 'local' ? 'localProcessing' : 'cloudProcessing')}</Tag>
-          {contextSummary}
-        </div>
+            <Tag>{t(processingLocation === 'local' ? 'localProcessing' : 'cloudProcessing')}</Tag>
+            {contextSummary}
+          </div>
+        )}
         <Input.TextArea
           ref={input}
           variant="borderless"
@@ -176,10 +232,10 @@ export function ChatComposer({
           maxLength={maxLength}
           readOnly={manifestLoading || (readOnlyWhileActive && requestActive)}
           onChange={(event) => onPromptChange(event.target.value)}
-          placeholder={t('askPlaceholder')}
+          placeholder={placeholder ?? t('askPlaceholder')}
           rows={3}
           title={t('chatInputResizeHint')}
-          aria-label={promptLabel ?? t('askPlaceholder')}
+          aria-label={promptLabel ?? placeholder ?? t('askPlaceholder')}
           aria-describedby="chat-send-shortcut"
           onCompositionStart={() => {
             composing.current = true;

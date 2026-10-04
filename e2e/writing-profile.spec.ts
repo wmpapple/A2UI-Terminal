@@ -33,7 +33,7 @@ test('the global writing profile appears in the reviewed send manifest', async (
     .getByRole('navigation', { name: '主导航' })
     .getByRole('button', { name: /工作台$/ })
     .click();
-  await page.getByPlaceholder('描述你希望对当前文件做出的修改…').fill('写一段产品说明');
+  await page.getByPlaceholder('描述你希望对当前文档做出的修改…').fill('写一段产品说明');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '发送前确认上下文' });
   await dialog.getByRole('button', { name: '生成发送清单' }).click();

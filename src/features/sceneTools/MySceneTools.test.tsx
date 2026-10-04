@@ -38,7 +38,7 @@ const rows = [
 it('shows searchable two-line identities and filters tools', async () => {
   useAppStore.setState({ runtimeMode: 'desktop' });
   vi.spyOn(sceneToolController, 'list').mockResolvedValue(rows);
-  const { container } = render(
+  const { container, rerender } = render(
     <I18nProvider>
       <MySceneTools onOpenResult={vi.fn()} activeId="linked" />
     </I18nProvider>
@@ -62,6 +62,13 @@ it('shows searchable two-line identities and filters tools', async () => {
   });
   expect(screen.getAllByRole('button', { name: '发布检查表' })).toHaveLength(1);
   expect(screen.getByText(/PRD.md/)).toBeVisible();
+
+  rerender(
+    <I18nProvider>
+      <MySceneTools onOpenResult={vi.fn()} activeId={null} />
+    </I18nProvider>
+  );
+  expect(container.querySelector('[data-active="true"]')).toBeNull();
 });
 
 it('shows a pending result when the published tool has newer local changes', async () => {
