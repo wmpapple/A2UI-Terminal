@@ -13,7 +13,7 @@ const openProfessionalWorkbench = async (page: import('@playwright/test').Page) 
   await skipOnboarding(page);
   const navigation = page.getByRole('navigation', { name: '主导航' });
   await navigation.getByRole('button', { name: /设置$/ }).click();
-  await page.getByText('专业模式', { exact: true }).click();
+  await page.getByRole('combobox', { name: '界面模式' }).selectOption('professional');
   await navigation.getByRole('button', { name: /工作台$/ }).click();
   await expect(page.getByTestId('workspace-layout')).toBeVisible();
 };
@@ -119,7 +119,7 @@ test('defaults to the simple navigation shell and persists professional mode', a
   await expect(page.getByText('协议 Inspector')).toHaveCount(0);
 
   const navigation = page.getByRole('navigation', { name: '主导航' });
-  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await navigation.getByRole('button', { name: /成果与协作$/ }).click();
   await expect(page.getByRole('heading', { name: '我的成果' })).toBeVisible();
   await navigation.getByRole('button', { name: /模板$/ }).click();
   await expect(page.getByRole('heading', { name: '模板', exact: true })).toBeVisible();
@@ -138,8 +138,8 @@ test('defaults to the simple navigation shell and persists professional mode', a
   await expect(page.getByTestId('workspace-layout')).toBeVisible();
   await expect(page.getByRole('complementary', { name: '项目文件' })).toBeVisible();
   await expect(page.getByText('协议 Inspector')).toHaveCount(0);
-  // The unified model picker is available in both modes; endpoint/key setup
-  // remains confined to professional settings.
+  // The model picker is available in both modes; endpoint and key fields stay
+  // inside the model configuration dialog.
   await expect(page.getByRole('combobox', { name: 'AI 模型', exact: true })).toBeVisible();
   await expect(page.getByText('Endpoint', { exact: true })).toHaveCount(0);
   await expect(page.getByText('API Key', { exact: true })).toHaveCount(0);
@@ -150,12 +150,19 @@ test('defaults to the simple navigation shell and persists professional mode', a
 
   await navigation.getByRole('button', { name: /设置$/ }).click();
   await expect(page.getByRole('heading', { name: '设置' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Provider 高级设置/ })).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: '设置分类' })).toBeVisible();
   await expect(page.getByText('Endpoint', { exact: true })).toHaveCount(0);
   await expect(page.getByText('API Key', { exact: true })).toHaveCount(0);
-
-  await page.getByText('专业模式', { exact: true }).click();
-  await expect(page.getByRole('button', { name: /Provider 高级设置/ })).toBeVisible();
+  await page.getByRole('button', { name: 'AI 与模型' }).click();
+  await expect(page.getByRole('heading', { name: 'AI 与模型' })).toBeVisible();
+  await page.getByRole('button', { name: /配置 AI|配置模型/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Provider 设置' })).toBeVisible();
+  await page
+    .getByRole('dialog', { name: 'Provider 设置' })
+    .getByRole('button', { name: 'Close' })
+    .click();
+  await page.getByRole('button', { name: '常规' }).click();
+  await page.getByRole('combobox', { name: '界面模式' }).selectOption('professional');
   await navigation.getByRole('button', { name: /工作台$/ }).click();
   await expect(page.getByRole('complementary', { name: '项目文件' })).toBeVisible();
   await expect(page.getByRole('main')).toBeVisible();
@@ -306,12 +313,18 @@ test('keeps AI-created travel documents behind a complete create-file review', a
   await expect(review).toBeVisible();
   await review.getByRole('button', { name: /应用已选修改/ }).click();
   await expect(page.getByLabel('成果预览')).toBeVisible();
-  await expect(page.getByRole('heading', { name: '杭州三日游' })).toBeVisible();
-  await expect(page.getByText(/保存在“我的成果”/)).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: '成果工作区' })
+      .getByRole('heading', { name: '杭州三日游', level: 2 })
+  ).toBeVisible();
+  await expect(page.getByText('来源：我的成果')).toBeVisible();
   await expect(page.getByText('杭州三日游.md', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: /查看我的成果/ }).click();
+  await page.getByRole('button', { name: '更多成果操作' }).click();
+  await page.getByRole('button', { name: /打开成果列表/ }).click();
   const reopened = page.getByRole('article').filter({ hasText: '杭州三日游' });
   await reopened.getByRole('button', { name: /继续处理/ }).click();
+  await page.getByText('审阅', { exact: true }).click();
   await expect(page.getByRole('button', { name: /撤销上次审阅修改/ })).toBeVisible();
   await page.getByRole('button', { name: /撤销上次审阅修改/ }).click();
   await expect(page).toHaveURL(/#\/results$/);
@@ -330,29 +343,32 @@ test('creates, saves, versions, copies, and reopens a text Result without chat',
   await create.getByRole('button', { name: '创建并打开' }).click();
 
   await expect(page).toHaveURL(/#\/workbench$/);
-  await expect(page.getByRole('heading', { name: 'S1.5 验收记录' })).toBeVisible();
-  await page.getByRole('button', { name: '上下文', exact: true }).click();
   await expect(
-    page.getByRole('checkbox', { name: '本次发送当前成果的已保存正文' })
-  ).not.toBeChecked();
-  await page
-    .getByRole('dialog', { name: '本次发送范围' })
-    .getByRole('button', { name: /^关\s*闭$/ })
-    .click();
+    page
+      .getByRole('region', { name: '成果工作区' })
+      .getByRole('heading', { name: 'S1.5 验收记录', level: 2 })
+  ).toBeVisible();
+  await expect(page.getByText('AI 暂不可用')).toBeVisible();
+  await expect(page.getByRole('button', { name: '去设置' })).toBeVisible();
   await page.getByText('编辑', { exact: true }).click();
   const editor = page.getByRole('textbox', { name: '成果编辑器' });
   await editor.fill('# S1.5 验收记录\n\n成果正文已保存。');
   await expect(page.getByText('有未保存修改')).toBeVisible();
   await expect(page.getByText('已保存', { exact: true })).toBeVisible({ timeout: 5000 });
 
+  await page.getByRole('button', { name: '更多成果操作' }).click();
   await page.getByRole('button', { name: /历史版本/ }).click();
   await expect(page.getByText('创建成果')).toBeVisible();
-  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: /另存副本/ }).click();
-  await expect(page.getByText('S1.5 验收记录 - 副本', { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: '成果工作区' })
+      .getByRole('heading', { name: 'S1.5 验收记录 - 副本', level: 2 })
+  ).toBeVisible();
 
   const navigation = page.getByRole('navigation', { name: '主导航' });
-  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await navigation.getByRole('button', { name: /成果与协作$/ }).click();
   await expect(page.getByText('S1.5 验收记录', { exact: true })).toBeVisible();
   await expect(page.getByText('S1.5 验收记录 - 副本', { exact: true })).toBeVisible();
   const original = page.getByRole('article').filter({ hasText: 'S1.5 验收记录' }).last();
@@ -361,6 +377,27 @@ test('creates, saves, versions, copies, and reopens a text Result without chat',
   await expect(page.getByRole('textbox', { name: '成果编辑器' })).toHaveValue(
     '# S1.5 验收记录\n\n成果正文已保存。'
   );
+});
+
+test('preserves a numeric Result title across the workbench and results list', async ({ page }) => {
+  await skipOnboarding(page);
+  await page.getByRole('button', { name: '新建成果' }).click();
+  const create = page.getByRole('dialog', { name: '新建成果' });
+  await create.getByLabel('成果标题').fill('2');
+  await create.getByLabel('本地文件名').fill('legacy.md');
+  await create.getByRole('button', { name: '创建并打开' }).click();
+
+  await expect(page.getByRole('heading', { name: '2', level: 2 })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '2' })).toBeVisible();
+  await expect(page.getByText('当前成果：2')).toBeVisible();
+
+  await page.getByRole('button', { name: '更多成果操作' }).click();
+  await page.getByRole('button', { name: /打开成果列表/ }).click();
+  const result = page.getByRole('article').filter({ has: page.getByText('2', { exact: true }) });
+  await expect(result).toBeVisible();
+  await result.getByRole('button', { name: /继续处理/ }).click();
+  await expect(page.getByRole('heading', { name: '2', level: 2 })).toBeVisible();
+  await expect(page.getByLabel('成果预览')).toHaveText('2');
 });
 
 test('exports the saved Result through an explicitly labelled Web Mock dialog', async ({
@@ -374,6 +411,7 @@ test('exports the saved Result through an explicitly labelled Web Mock dialog', 
   await create.getByRole('button', { name: '创建并打开' }).click();
   await page.getByText('编辑', { exact: true }).click();
   await page.getByRole('textbox', { name: '成果编辑器' }).fill('# 中文导出\n\n当前版本');
+  await page.getByText('阅读', { exact: true }).click();
   await page.getByRole('button', { name: /导出$/ }).click();
   const modal = page.getByRole('dialog', { name: '导出', exact: true });
   await expect(modal.getByText(/Web Mock 仅演示/)).toBeVisible();
@@ -381,6 +419,7 @@ test('exports the saved Result through an explicitly labelled Web Mock dialog', 
   await expect(modal.getByText('导出演示完成（未创建文件）')).toBeVisible();
   await expect(modal.getByText('result.pdf', { exact: true })).toBeVisible();
   await modal.getByRole('button', { name: /^关\s*闭$/ }).click();
+  await page.getByText('编辑', { exact: true }).click();
   await expect(page.getByRole('textbox', { name: '成果编辑器' })).toHaveValue(
     '# 中文导出\n\n当前版本'
   );
@@ -406,13 +445,13 @@ test('creates and reopens typed spreadsheet, checklist, form, and tool Result ad
   await expect(page.getByText('已保存', { exact: true })).toBeVisible({ timeout: 5000 });
 
   const navigation = page.getByRole('navigation', { name: '主导航' });
-  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await navigation.getByRole('button', { name: /成果与协作$/ }).click();
   const spreadsheet = page.getByRole('article').filter({ hasText: '季度数据' });
   await expect(spreadsheet.getByText('表格', { exact: true })).toBeVisible();
   await spreadsheet.getByRole('button', { name: /继续处理/ }).click();
   await expect(page.getByLabel('表格预览')).toContainText('一月');
 
-  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await navigation.getByRole('button', { name: /成果与协作$/ }).click();
   await page.getByRole('button', { name: '新建成果' }).click();
   create = page.getByRole('dialog', { name: '新建成果' });
   await create.getByLabel('成果标题').fill('发布清单');
@@ -428,7 +467,7 @@ test('creates and reopens typed spreadsheet, checklist, form, and tool Result ad
   await expect(page.getByText('有未保存修改')).toBeVisible();
   await expect(page.getByText('已保存', { exact: true })).toBeVisible({ timeout: 5000 });
 
-  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await navigation.getByRole('button', { name: /成果与协作$/ }).click();
   await page.getByRole('button', { name: '新建成果' }).click();
   create = page.getByRole('dialog', { name: '新建成果' });
   await create.getByLabel('成果标题').fill('报名表单');
@@ -448,7 +487,7 @@ test('creates and reopens typed spreadsheet, checklist, form, and tool Result ad
     Math.abs(checkboxBox!.y + checkboxBox!.height / 2 - (labelBox!.y + labelBox!.height / 2))
   ).toBeLessThanOrEqual(2);
 
-  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await navigation.getByRole('button', { name: /成果与协作$/ }).click();
   await page.getByRole('button', { name: '新建成果' }).click();
   create = page.getByRole('dialog', { name: '新建成果' });
   await create.getByLabel('成果标题').fill('安全小工具');
@@ -463,7 +502,7 @@ test('creates and reopens typed spreadsheet, checklist, form, and tool Result ad
   await expect(page.getByText('有未保存修改')).toBeVisible();
   await expect(page.getByText('已保存', { exact: true })).toBeVisible({ timeout: 5000 });
 
-  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await navigation.getByRole('button', { name: /成果与协作$/ }).click();
   const tool = page.getByRole('article').filter({ hasText: '安全小工具' });
   await expect(tool.getByText('小工具', { exact: true })).toBeVisible();
   await tool.getByRole('button', { name: /继续处理/ }).click();
@@ -569,6 +608,7 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   await oneTimeReview.getByRole('button', { name: 'Close' }).click();
 
   await navigation.getByRole('button', { name: /设置$/ }).click();
+  await page.getByRole('button', { name: '隐私与数据' }).click();
   await page.getByRole('button', { name: '前往资料库管理资料与资料包' }).click();
   const manager = page.getByTestId('context-pack-settings');
   await expect(manager).toBeVisible();
@@ -600,6 +640,7 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   await expect(page.getByText('继续总结季度数据', { exact: true })).toBeVisible();
 
   await navigation.getByRole('button', { name: /设置$/ }).click();
+  await page.getByRole('button', { name: '隐私与数据' }).click();
   await page.getByRole('button', { name: '前往资料库管理资料与资料包' }).click();
   const rememberedPack = page.getByTestId('context-pack-item').filter({ hasText: '季度数据' });
   await rememberedPack.getByTestId('delete-context-pack').click();

@@ -2,12 +2,13 @@ import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { userFacingError } from '../../../shared/errors/userFacingError';
 import {
   HistoryOutlined,
+  FileOutlined,
   MoreOutlined,
   PaperClipOutlined,
   SaveOutlined,
   UndoOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Empty, Popover, Segmented, Space, Spin, Tag, Tooltip } from 'antd';
+import { Alert, Button, Empty, Popover, Segmented, Space, Spin, Tooltip } from 'antd';
 import {
   lazy,
   Suspense,
@@ -38,6 +39,7 @@ import styles from './EditorPane.module.css';
 import { CodeEditor } from './CodeEditor';
 import { WorkspacePanelControls } from '../../../app/WorkspacePanelControls';
 import { WorkItemTabs } from '../../../app/WorkItemTabs';
+import { WorkItemHeader, WorkItemNavigation } from '../../../app/WorkItemFrame';
 import {
   codeMirrorSelection,
   textHash,
@@ -365,104 +367,6 @@ export function EditorPane({
 
   return (
     <main className={styles.pane}>
-      <header className={styles.fileHeader}>
-        <div className={styles.fileIdentity}>
-          <h1 title={activePath}>
-            {activeFile?.name || activePath.split('/').at(-1) || t('editor')}
-          </h1>
-          {activeFile && (
-            <div className={styles.fileMetadata}>
-              <Tag className={styles.saveStatus} data-tone={saveColor}>
-                {isExtractedDocument ? t('readOnlyDocument') : saveLabel}
-              </Tag>
-              <span>{isMarkdown ? 'Markdown' : activeFile.language}</span>
-              <span>
-                {t(chatRequestId ? 'aiGenerating' : pendingDiff ? 'aiPendingReview' : 'aiIdle')}
-              </span>
-            </div>
-          )}
-        </div>
-        <div className={styles.panelControls}>
-          <WorkspacePanelControls leftLabels={leftPanelLabels} />
-        </div>
-      </header>
-      <div className={styles.toolbar}>
-        <Segmented
-          data-testid="workspace-mode"
-          value={centerView}
-          onChange={(value) => setCenterView(value as CenterView)}
-          options={[
-            { label: t('editMode'), value: 'editor' },
-            { label: t('reviewMode'), value: 'diff' },
-            ...(showInspector ? [{ label: t('surface'), value: 'surface' }] : []),
-          ]}
-        />
-        <div className={styles.toolbarActions}>
-          <Popover trigger="click" placement="bottomRight" content={<WorkbenchAppearanceControl />}>
-            <Tooltip title={t('quickControls')}>
-              <Button
-                type="text"
-                size="small"
-                aria-label={t('quickControls')}
-                icon={<MoreOutlined />}
-              />
-            </Tooltip>
-          </Popover>
-          {showSimpleFileActions ? (
-            <Button
-              size="small"
-              type="primary"
-              icon={<PaperClipOutlined />}
-              loading={workspaceLoading}
-              onClick={() => void selectContextFiles()}
-            >
-              {t('chooseFiles')}
-            </Button>
-          ) : null}
-          {lastPatchApplication || lastReviewApplication ? (
-            <Button
-              size="small"
-              icon={<UndoOutlined />}
-              loading={patchApplying}
-              onClick={() => void undoLastPatch()}
-            >
-              {t('undoPatch')}
-            </Button>
-          ) : null}
-          {activeFile && dirtyPaths.includes(activeFile.path) ? (
-            <Button
-              size="small"
-              icon={<SaveOutlined />}
-              loading={activeSaveStatus === 'saving'}
-              onClick={() => void saveFileToDisk(activeFile.path)}
-            >
-              {t('saveNow')}
-            </Button>
-          ) : null}
-          {runtimeMode === 'desktop' && activeFile && !isExtractedDocument ? (
-            <Button
-              size="small"
-              icon={<HistoryOutlined />}
-              aria-label={t('versionHistory')}
-              onClick={() => setVersionHistoryOpen(true)}
-            >
-              {t('versionHistory')}
-            </Button>
-          ) : null}
-        </div>
-      </div>
-      {showSimpleFileActions && workspaceError ? (
-        <Alert
-          closable
-          type="error"
-          showIcon
-          title={userFacingError(workspaceError, locale)}
-          onClose={clearWorkspaceError}
-        />
-      ) : null}
-      {patchError && centerView !== 'diff' ? (
-        <Alert type="error" showIcon title={userFacingError(patchError, locale)} />
-      ) : null}
       {workItemTabs ?? (
         <WorkItemTabs
           items={openPaths.map((path) => ({
@@ -476,6 +380,66 @@ export function EditorPane({
           onClose={(item) => closeFile(item.id)}
         />
       )}
+      <WorkItemHeader
+        icon={<FileOutlined />}
+        title={activeFile?.name || activePath.split('/').at(-1) || t('editor')}
+        type={`${locale === 'zh-CN' ? '文件' : 'File'} · ${isMarkdown ? 'Markdown' : activeFile?.language?.toUpperCase() ?? ''}`}
+        status={activeFile ? (isExtractedDocument ? t('readOnlyDocument') : saveLabel) : undefined}
+        tone={saveColor === 'green' ? 'success' : saveColor === 'red' ? 'danger' : 'warning'}
+        details={activeFile ? t(chatRequestId ? 'aiGenerating' : pendingDiff ? 'aiPendingReview' : 'aiIdle') : undefined}
+        actions={<WorkspacePanelControls leftLabels={leftPanelLabels} />}
+      />
+      <WorkItemNavigation actions={
+        <div className={styles.toolbarActions}>
+          <Popover trigger="click" placement="bottomRight" content={<WorkbenchAppearanceControl />}>
+            <Tooltip title={t('quickControls')}>
+              <Button
+                type="text"
+                size="small"
+                aria-label={t('quickControls')}
+                icon={<MoreOutlined />}
+              />
+            </Tooltip>
+          </Popover>
+          {showSimpleFileActions ? (
+            <Button size="small" type="primary" icon={<PaperClipOutlined />} loading={workspaceLoading} onClick={() => void selectContextFiles()}>
+              {t('chooseFiles')}
+            </Button>
+          ) : null}
+          {lastPatchApplication || lastReviewApplication ? (
+            <Button size="small" icon={<UndoOutlined />} loading={patchApplying} onClick={() => void undoLastPatch()}>{t('undoPatch')}</Button>
+          ) : null}
+          {activeFile && dirtyPaths.includes(activeFile.path) ? (
+            <Button size="small" icon={<SaveOutlined />} loading={activeSaveStatus === 'saving'} onClick={() => void saveFileToDisk(activeFile.path)}>{t('saveNow')}</Button>
+          ) : null}
+          {runtimeMode === 'desktop' && activeFile && !isExtractedDocument ? (
+            <Button size="small" icon={<HistoryOutlined />} aria-label={t('versionHistory')} onClick={() => setVersionHistoryOpen(true)}>{t('versionHistory')}</Button>
+          ) : null}
+        </div>
+      }>
+        <Segmented
+          data-testid="workspace-mode"
+          value={centerView}
+          onChange={(value) => setCenterView(value as CenterView)}
+          options={[
+            { label: isExtractedDocument ? (locale === 'zh-CN' ? '阅读' : 'Read') : t('editMode'), value: 'editor' },
+            { label: t('reviewMode'), value: 'diff' },
+            ...(showInspector ? [{ label: locale === 'zh-CN' ? '交互视图' : 'Interactive view', value: 'surface' }] : []),
+          ]}
+        />
+      </WorkItemNavigation>
+      {showSimpleFileActions && workspaceError ? (
+        <Alert
+          closable
+          type="error"
+          showIcon
+          title={userFacingError(workspaceError, locale)}
+          onClose={clearWorkspaceError}
+        />
+      ) : null}
+      {patchError && centerView !== 'diff' ? (
+        <Alert type="error" showIcon title={userFacingError(patchError, locale)} />
+      ) : null}
       {centerView === 'editor' && activeFile?.editable !== false && !previewOnly ? (
         <SelectionAssistant
           floating

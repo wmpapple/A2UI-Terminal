@@ -15,7 +15,7 @@ test('pins results before recent items and keeps the state when returning to the
   await create.getByLabel('本地文件名').fill('pin-check.md');
   await create.getByRole('button', { name: '创建并打开' }).click();
   await expect(create).toHaveCount(0);
-  await nav.getByRole('button', { name: '成果', exact: true }).click();
+  await nav.getByRole('button', { name: '成果与协作', exact: true }).click();
   await expect(cards.first().locator('strong')).toHaveText('置顶操作验收');
 
   await page.getByRole('button', { name: `置顶成果: ${olderTitle}`, exact: true }).click();
@@ -25,7 +25,7 @@ test('pins results before recent items and keeps the state when returning to the
   ).toHaveAttribute('aria-pressed', 'true');
 
   await nav.getByRole('button', { name: '模板', exact: true }).click();
-  await nav.getByRole('button', { name: '成果', exact: true }).click();
+  await nav.getByRole('button', { name: '成果与协作', exact: true }).click();
   await expect(cards.first().locator('strong')).toHaveText(olderTitle);
   await page.getByRole('button', { name: `取消置顶: ${olderTitle}`, exact: true }).click();
   await expect(cards.first().locator('strong')).toHaveText('置顶操作验收');
@@ -38,7 +38,7 @@ test('result deletion and chat history controls work from their lists', async ({
   await page.addInitScript(() => localStorage.setItem('a2ui.onboarding-complete.v1', 'true'));
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: '主导航' });
-  await nav.getByRole('button', { name: '成果', exact: true }).click();
+  await nav.getByRole('button', { name: '成果与协作', exact: true }).click();
   const cards = page.getByRole('article');
   await expect(cards.first()).toBeVisible();
   const count = await cards.count();

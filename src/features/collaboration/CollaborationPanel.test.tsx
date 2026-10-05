@@ -21,6 +21,7 @@ const snapshot: DocumentSnapshot = {
 };
 const overview: CollaborationOverview = {
   identity: { id: 'i', displayName: '小林' },
+  pendingCount: 1,
   shares: [],
   inbox: [{ id: 'p', title: '报告', kind: 'share', status: 'received', createdAt: '2026-09-30' }],
 };

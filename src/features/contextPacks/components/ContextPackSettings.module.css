@@ -1,6 +1,6 @@
 .contextSection {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
 }
 .heading {
@@ -23,9 +23,18 @@
   color: var(--text-muted);
   font-size: 13px;
 }
-.intro {
-  margin: -6px 0 4px;
+.heading > .workspaceScope {
+  font-size: 12px;
+  max-width: min(50%, 320px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+.intro {
+  margin: -8px 0 0;
+}
+.scopeNote { margin: -12px 0 0; color: var(--text-muted); font-size: 12px; }
+.packActions { display: flex; align-items: center; justify-content: flex-start; }
 .kpiHeading {
   display: flex;
   align-items: center;
@@ -48,11 +57,8 @@
 }
 .createCard {
   display: grid;
-  gap: 12px;
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel);
+  gap: 16px;
+  padding: 4px 0 24px;
 }
 .createCard h3 {
   margin: 0 0 2px;
@@ -83,25 +89,76 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
-.sourceSelectors > div {
-  display: grid;
-  gap: 6px;
+.pickerTrigger:global(.ant-btn) {
+  width: 100%;
   min-width: 0;
+  justify-content: flex-start;
+  border-color: transparent;
+  background: var(--surface-subtle);
+  box-shadow: none;
+  color: var(--text-strong);
 }
-.sourceSelectors label {
+.pickerTrigger:global(.ant-btn:hover) { border-color: var(--accent); background: var(--accent-soft); }
+.pickerPanel {
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+  max-width: 100%;
+}
+.pickerHeading,
+.pickerFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pickerHeading strong {
+  color: var(--text-strong);
+  font-size: 13px;
+}
+.pickerHeading span {
   color: var(--text-muted);
   font-size: 12px;
 }
-.sourceSelectors :global(.ant-select) {
+.pickerChoices {
+  display: grid;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.pickerChoices :global(.ant-checkbox-wrapper) {
+  display: flex;
+  align-items: flex-start;
   width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 6px;
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+.pickerChoices :global(.ant-checkbox-wrapper:hover) {
+  background: var(--surface-subtle);
+}
+.pickerEmpty {
+  padding: 16px 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.pickerFooter {
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 .selectedSources {
   padding-top: 12px;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--border);
 }
 .selectedSources strong {
   font-size: 13px;
 }
+.selectedHeading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.selectedHeading span { color: var(--text-muted); font-size: 12px; }
 .selectedSources p {
   margin: 6px 0 0;
   color: var(--text-muted);
@@ -123,6 +180,8 @@
   padding: 2px 0;
   font-size: 13px;
 }
+.selectedSources li > :first-child { flex: none; color: var(--text-muted); }
+.selectedSources li > :global(.ant-btn) { flex: none; margin-left: auto; }
 .selectedSources li span {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -130,10 +189,12 @@
 .createFooter {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 12px;
 }
 .createFooter span {
+  flex-basis: 100%;
   color: var(--text-muted);
   font-size: 12px;
 }
@@ -146,14 +207,65 @@
   color: var(--text-muted);
   font-size: 13px;
 }
+.emptyPacks {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 38px 16px;
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 3px 18px #18233409;
+  text-align: center;
+}
+.emptyPacks > :first-child { color: var(--accent); font-size: 24px; }
+.emptyPacks strong {
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+}
+.emptyPacks span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
 .managedItem {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   min-width: 0;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 2px 12px #1823340a;
 }
+.managedList { gap: 8px; }
+.packList { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 12px; }
+.packList > .emptyPacks { grid-column: 1 / -1; }
+.packList > .managedItem {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px 12px;
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+.managedItem > .packIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 18px;
+}
+.managedItem > .packBody { gap: 6px; }
+.packBody strong { font-size: 15px; }
+.managedItem > .packItemActions { display: flex; flex: none; align-items: center; gap: 2px; }
+.packList .packItemActions { grid-column: 1 / -1; padding-top: 6px; border-top: 1px solid var(--border); }
+.packList .packUpdated { margin-right: auto; }
+.packDetails { display: grid; gap: 4px; margin: 8px 0 0; padding: 10px 0 0 16px; color: var(--text-muted); border-top: 1px solid var(--border); font-size: 12px; }
+.packDetails li { overflow-wrap: anywhere; }
 .managedItem > div {
   display: grid;
   flex: 1;
@@ -171,21 +283,25 @@
   font-size: 12px;
 }
 .workspaceSources {
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-subtle);
+  margin-top: 6px;
+  padding-top: 4px;
 }
 .workspaceSources summary {
+  padding: 6px 0;
   color: var(--text-muted);
   font-size: 13px;
+  font-weight: 400;
   cursor: pointer;
 }
+.workspaceSources summary::marker { color: color-mix(in srgb, var(--text-muted) 75%, var(--panel)); }
 .workspaceSources > p {
   color: var(--text-muted);
   font-size: 12px;
 }
 @media (max-width: 680px) {
   .sourceSelectors { grid-template-columns: 1fr; }
-  .createFooter { align-items: stretch; flex-direction: column; }
+  .createFooter { align-items: stretch; }
+  .createFooter span { flex-basis: 100%; }
   .managedItem { flex-wrap: wrap; }
+  .packList .packItemActions { margin-left: 0; }
 }

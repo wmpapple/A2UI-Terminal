@@ -1,6 +1,21 @@
 .section {
   display: grid;
-  gap: 16px;
+  gap: 20px;
+}
+
+.groupTitle {
+  margin: 8px 0 -12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-strong);
+  font-size: 15px;
+}
+
+.group {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
 }
 
 .scopeHeader,
@@ -27,10 +42,13 @@
 }
 
 .preview {
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-subtle);
+  padding: 18px 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.previewButton {
+  width: fit-content;
+  padding-left: 0;
 }
 
 .preview pre {

@@ -91,6 +91,10 @@ it('shows autosave and publication as explicit states without duplicate navigati
   expect(screen.queryByRole('button', { name: /已同步到成果/ })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: '我的成果' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: '保存填写' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('radio', { name: '关联与核对' }));
+  expect(screen.queryByText(/已关联成果：/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('radio', { name: '成果' }));
+  expect(screen.getByText(/已关联成果：/)).toHaveTextContent('王教授访谈报告 · Rev 2');
 
   act(() => {
     useSceneToolStore.setState({

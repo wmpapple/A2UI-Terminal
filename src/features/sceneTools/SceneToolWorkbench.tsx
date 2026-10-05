@@ -4,11 +4,13 @@ import {
   EllipsisOutlined,
   ExclamationCircleFilled,
   LoadingOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Dropdown, Input, Modal, Popconfirm, Spin } from 'antd';
+import { Alert, Button, Dropdown, Input, Modal, Popconfirm, Segmented, Spin } from 'antd';
 import type { MenuProps } from 'antd';
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../app/i18n/useI18n';
+import { WorkItemHeader, WorkItemNavigation } from '../../app/WorkItemFrame';
 import { findA2uiNode } from '../../stores/support';
 import type { ResultDocument } from '../../shared/types/domain';
 import { a2uiController } from '../a2ui/a2uiController';
@@ -73,6 +75,7 @@ export function SceneToolWorkbench({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [document, setDocument] = useState<ResultDocument | null>(null);
+  const [panel, setPanel] = useState<'fill' | 'binding' | 'result'>('fill');
 
   useEffect(() => {
     void sceneTools.load(resultId);
@@ -152,8 +155,11 @@ export function SceneToolWorkbench({
     if (!view) return;
     if (key === 'template') setTemplateName(view.result.title);
     if (key === 'rename') setRenameName(view.result.title);
-    if (key === 'binding')
-      window.dispatchEvent(new CustomEvent('scene-tool-change-binding', { detail: resultId }));
+    if (key === 'binding') {
+      setPanel('binding');
+      window.setTimeout(() =>
+        window.dispatchEvent(new CustomEvent('scene-tool-change-binding', { detail: resultId })), 0);
+    }
     if (key === 'reset') setResetOpen(true);
     if (key === 'delete') setDeleteOpen(true);
   };
@@ -163,47 +169,14 @@ export function SceneToolWorkbench({
       {!view && !state?.error ? <Spin /> : null}
       {view ? (
         <div className={styles.body}>
-          <header className={styles.toolHeader}>
-            <div>
-              <h1>{view.result.title}</h1>
-              <p>
-                {zh ? '场景工具 · 来自「' : 'Scene tool · From “'}
-                {templateLabel(view.templateId, zh)}
-                {zh ? '」模板' : '” template'}
-              </p>
-            </div>
-          </header>
-
-          <ToolBindingPanel
-            key={resultId}
-            toolResultId={resultId}
-            toolStateHash={view.stateHash}
-            dirty={Boolean(state.dirty || state.saving || exportOpen)}
-            professional={professional}
-            onOpenDocument={(id) => {
-              void sceneTools.save(resultId).then((saved) => {
-                if (saved) onOpenResult(id);
-              });
-            }}
+          <WorkItemHeader
+            icon={<ToolOutlined />}
+            title={view.result.title}
+            type={`${zh ? '场景工具 · 来自' : 'Scene tool · From'} ${templateLabel(view.templateId, zh)}`}
+            status={autosave.text}
+            tone={autosave.tone === 'saved' ? 'success' : autosave.tone === 'error' ? 'danger' : 'warning'}
           />
-
-          {publication ? (
-            <div className={styles.publicationRelation}>
-              <span>
-                {zh ? '已关联成果：' : 'Linked result: '}
-                <strong>{publication.title}</strong> · Rev {publication.revisionNumber}
-              </span>
-              <Button type="link" onClick={() => onOpenResult(publication.resultId)}>
-                {zh ? '查看成果' : 'View result'}
-              </Button>
-            </div>
-          ) : null}
-
-          <div className={styles.actionBar}>
-            <span className={styles.autosaveStatus} data-tone={autosave.tone} role="status">
-              {autosave.icon}
-              {autosave.text}
-            </span>
+          <WorkItemNavigation actions={
             <div className={styles.primaryActions}>
               {publicationSynced ? (
                 <span className={styles.syncedStatus} role="status">
@@ -270,7 +243,51 @@ export function SceneToolWorkbench({
                 />
               </Dropdown>
             </div>
-          </div>
+          }>
+            <Segmented
+              value={panel}
+              onChange={(value) => setPanel(value as 'fill' | 'binding' | 'result')}
+              options={[
+                { label: zh ? '填写' : 'Fill', value: 'fill' },
+                { label: zh ? '关联与核对' : 'Links & review', value: 'binding' },
+                { label: zh ? '成果' : 'Result', value: 'result' },
+              ]}
+            />
+          </WorkItemNavigation>
+
+          {(panel === 'fill' || panel === 'binding') && (
+            <div className={styles.toolSection}>
+              <ToolBindingPanel
+                key={resultId}
+                toolResultId={resultId}
+                toolStateHash={view.stateHash}
+                dirty={Boolean(state.dirty || state.saving || exportOpen)}
+                professional={professional}
+                onOpenDocument={(id) => {
+                  void sceneTools.save(resultId).then((saved) => {
+                    if (saved) onOpenResult(id);
+                  });
+                }}
+              />
+            </div>
+          )}
+          {(panel === 'result' || (panel === 'fill' && publication)) && (
+            <div className={styles.toolSection}>
+              {publication ? (
+                <div className={styles.publicationRelation}>
+                  <span>
+                    {zh ? '已关联成果：' : 'Linked result: '}
+                    <strong>{publication.title}</strong> · Rev {publication.revisionNumber}
+                  </span>
+                  <Button type="link" onClick={() => onOpenResult(publication.resultId)}>
+                    {zh ? '查看成果' : 'View result'}
+                  </Button>
+                </div>
+              ) : panel === 'result' ? (
+                <p className={styles.publicationRelation}>{zh ? '尚未保存为成果' : 'No saved result yet'}</p>
+              ) : null}
+            </div>
+          )}
 
           {state?.error ? (
             <Alert
@@ -299,7 +316,7 @@ export function SceneToolWorkbench({
             <Alert type="error" showIcon title={error} closable onClose={() => setError(null)} />
           ) : null}
 
-          <div className={styles.formArea}>
+          {panel === 'fill' && <div className={styles.formArea}>
             <A2uiRuntime
               locale={locale}
               className={styles.sceneSurface}
@@ -317,7 +334,7 @@ export function SceneToolWorkbench({
                   );
               }}
             />
-          </div>
+          </div>}
         </div>
       ) : null}
 

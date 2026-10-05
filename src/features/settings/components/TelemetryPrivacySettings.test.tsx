@@ -30,17 +30,16 @@ describe('TelemetryPrivacySettings', () => {
     getDictionary.mockReset().mockResolvedValue(telemetry.dictionary);
   });
 
-  it('is opt-in, invites only after the core loop, and exposes fields before enabling', async () => {
+  it('is opt-in and exposes collected fields before enabling', async () => {
     render(
       <I18nProvider>
         <TelemetryPrivacySettings />
       </I18nProvider>
     );
 
-    expect(await screen.findByText('你已经完成了一次成果闭环')).toBeInTheDocument();
-    const toggle = screen.getByRole('switch', { name: '帮助改进产品' });
+    const toggle = await screen.findByRole('switch', { name: '帮助改进产品' });
     expect(toggle).not.toBeChecked();
-    expect(screen.getByText(/当前版本没有配置上传接收端/)).toBeInTheDocument();
+    expect(screen.queryByText('任务完成率')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /查看将发送的数据/ }));
     await waitFor(() => expect(getDictionary).toHaveBeenCalledOnce());
@@ -71,17 +70,18 @@ describe('TelemetryPrivacySettings', () => {
     expect(screen.queryByText(/100\.0%/)).not.toBeInTheDocument();
   });
 
-  it('allows the invitation to be dismissed without enabling collection', async () => {
-    setSettings.mockResolvedValueOnce({
+  it('keeps empty KPI tiles hidden when collection is enabled without samples', async () => {
+    getSettings.mockResolvedValueOnce({
       ...telemetry.settings,
-      invitationDismissed: true,
+      enabled: true,
+      kpis: telemetry.settings.kpis.map((kpi) => ({ ...kpi, numerator: 0, denominator: 0 })),
     });
     render(
       <I18nProvider>
         <TelemetryPrivacySettings />
       </I18nProvider>
     );
-    fireEvent.click(await screen.findByRole('button', { name: '暂不开启' }));
-    await waitFor(() => expect(setSettings).toHaveBeenCalledWith(false, true));
+    expect(await screen.findByText(/暂无足够本地样本/)).toBeVisible();
+    expect(screen.queryByText('任务完成率')).not.toBeInTheDocument();
   });
 });

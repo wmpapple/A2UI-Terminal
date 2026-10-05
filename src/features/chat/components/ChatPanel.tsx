@@ -15,10 +15,21 @@ import { ToolAssistantContext } from './ToolAssistantContext';
 import { addDroppedContextFiles } from '../addDroppedContextFiles';
 import { useToolLinkedMaterial } from '../useToolLinkedMaterial';
 import { useSceneToolStore } from '../../sceneTools/sceneToolStore';
+import type { WritingProject, WritingSection } from '../../../shared/types/writingProject';
+import { ProjectAssistantContext } from './ProjectAssistantContext';
+import { openAssistantSurface } from '../openAssistantSurface';
+import {
+  hasSelectedMaterial,
+  assistantTargetLabel,
+  projectInlineContext,
+  toolInlineContext,
+} from '../inlineAssistantContext';
 
 interface ChatPanelProps {
   professionalTools?: boolean;
   toolId?: string | null;
+  project?: WritingProject | null;
+  projectSection?: WritingSection | null;
 }
 
 export function ChatPanel(props: ChatPanelProps) {
@@ -37,6 +48,8 @@ export function ChatPanel(props: ChatPanelProps) {
 function ChatSessionPanel({
   professionalTools = true,
   toolId,
+  project,
+  projectSection,
   historyButtonRef,
 }: ChatPanelProps & { historyButtonRef: RefObject<HTMLButtonElement | null> }) {
   const { t } = useI18n();
@@ -45,10 +58,6 @@ function ChatSessionPanel({
   const chatRequestId = useAppStore((state) => state.chatRequestId);
   const pendingDiff = useAppStore((state) => state.pendingDiff);
   const setCenterView = useAppStore((state) => state.setCenterView);
-  const a2uiSurfaces = useAppStore((state) => state.a2uiSurfaces);
-  const a2uiInspections = useAppStore((state) => state.a2uiInspections);
-  const setActiveSurface = useAppStore((state) => state.setActiveSurface);
-  const setActiveInspection = useAppStore((state) => state.setActiveInspection);
   const createSession = useAppStore((state) => state.createSession);
   const selectSession = useAppStore((state) => state.selectSession);
   const deleteSession = useAppStore((state) => state.deleteSession);
@@ -59,31 +68,17 @@ function ChatSessionPanel({
   const toolEntry = useSceneToolStore((state) => (toolId ? state.entries[toolId] : undefined));
   const toolTitle = toolEntry?.view?.result.title ?? toolId ?? '';
   const toolMode = toolId !== undefined;
+  const projectMode = project !== undefined;
   const { link, material } = useToolLinkedMaterial(toolId);
-  const inlineContext = toolMode
-    ? {
-        id: toolId ?? 'no-tool',
-        title: toolTitle,
-        content: toolEntry?.view
-          ? JSON.stringify({ tool: toolTitle, fields: toolEntry.data }, null, 2)
-          : '',
-      }
-    : undefined;
+  const inlineContext = projectMode
+    ? projectInlineContext(project, projectSection)
+    : toolMode
+      ? toolInlineContext(toolId, toolTitle, toolEntry)
+      : undefined;
   const context = useChatContextFlow(inlineContext);
-  const linkedMaterialSelected =
-    material?.kind === 'projectFile'
-      ? context.effectiveContext.projectFiles.includes(material.id)
-      : material?.kind === 'documentSource'
-        ? (context.effectiveContext.documentSourceIds ?? []).includes(material.id)
-        : false;
-  const hasSelectedMaterial =
-    linkedMaterialSelected ||
-    context.effectiveContext.projectFiles.length > 0 ||
-    (context.effectiveContext.documentSourceIds?.length ?? 0) > 0 ||
-    (context.effectiveContext.personalKnowledgeIds?.length ?? 0) > 0 ||
-    (context.effectiveContext.contextPackIds?.length ?? 0) > 0;
+  const materialSelection = hasSelectedMaterial(context.effectiveContext, material);
   const fileSelection = useAppStore((state) => state.selectedText);
-  const selectedText = inlineContext?.content ?? fileSelection;
+  const selectedText = inlineContext?.content ?? (projectMode ? '' : fileSelection);
 
   return (
     <aside className={styles.panel} aria-label={t('assistant')}>
@@ -95,11 +90,15 @@ function ChatSessionPanel({
         busy={Boolean(chatRequestId)}
         professionalTools={professionalTools}
         onNewSession={() => void createSession()}
-        targetLabel={
-          toolMode
-            ? toolTitle || 'My Tools'
-            : context.activePath || (useAppStore.getState().workspace?.name ?? 'Workspace')
-        }
+        targetLabel={assistantTargetLabel(
+          project,
+          projectSection,
+          toolMode,
+          toolTitle,
+          context.activePath,
+          useAppStore.getState().workspace?.name ?? 'Workspace',
+          t('assistant')
+        )}
       />
       <ChatHistoryDrawer
         open={historyOpen}
@@ -126,7 +125,15 @@ function ChatSessionPanel({
         />
       )}
       {!context.activeSession?.messages.length && !chatRequestId ? (
-        toolId !== undefined ? (
+        projectMode ? (
+          <ProjectAssistantContext
+            project={project ?? null}
+            section={projectSection ?? null}
+            selection={context.effectiveContext}
+            onOpenContext={context.openContext}
+            onTask={context.updatePrompt}
+          />
+        ) : toolId !== undefined ? (
           <ToolAssistantContext
             toolId={toolId ?? null}
             title={toolTitle}
@@ -134,8 +141,8 @@ function ChatSessionPanel({
             linkedTitle={link?.targetTitle ?? null}
             linkedIsDocument={link?.binding.type === 'document'}
             linkedMaterial={material}
-            linkedMaterialSelected={linkedMaterialSelected}
-            hasSelectedMaterial={hasSelectedMaterial}
+            linkedMaterialSelected={materialSelection.linkedSelected}
+            hasSelectedMaterial={materialSelection.anySelected}
             selection={context.effectiveContext}
             onOpenContext={context.openContext}
             onToggleLinkedMaterial={() => {
@@ -158,70 +165,72 @@ function ChatSessionPanel({
           requestActive={Boolean(chatRequestId)}
           reviewAvailable={Boolean(pendingDiff)}
           onOpenReview={() => setCenterView('diff')}
-          onOpenSurface={(messageId, failed) => {
-            if (failed) {
-              const inspection = a2uiInspections.find((item) => item.messageId === messageId);
-              if (inspection) {
-                setActiveInspection(inspection.id);
-                return;
-              }
-            } else {
-              const surface = a2uiSurfaces.find((item) => item.messageId === messageId);
-              if (surface) {
-                setActiveSurface(surface.surfaceId);
-                return;
-              }
-            }
-            setCenterView('surface');
-          }}
+          onOpenSurface={openAssistantSurface}
           onRetry={context.retryMessage}
         />
       )}
-      <ChatComposer
-        placeholder={t(toolMode ? 'askToolPlaceholder' : 'askPlaceholder')}
-        compactContext
-        additionalMaterialCount={
-          (context.effectiveContext.documentSourceIds?.length ?? 0) +
-          (context.effectiveContext.contextPackIds?.length ?? 0) +
-          (context.effectiveContext.personalKnowledgeIds?.length ?? 0)
-        }
-        recentMessagesIncluded={
-          context.effectiveContext.recentMessages && Boolean(context.activeSession?.messages.length)
-        }
-        showSuggestions={false}
-        selectionIncluded={context.effectiveContext.selection && Boolean(selectedText.trim())}
-        selectionLabel={toolMode ? toolTitle : undefined}
-        prompt={context.prompt}
-        activePath={context.effectiveContext.currentFile ? context.activePath : ''}
-        projectFiles={context.effectiveContext.projectFiles}
-        processingLocation={context.processingLocation}
-        hasReviewedContext={context.hasReviewedContext}
-        contextReviewed={context.contextReviewed}
-        requestActive={Boolean(chatRequestId)}
-        manifestLoading={context.manifestLoading}
-        contextOpen={context.contextOpen}
-        onPromptChange={context.updatePrompt}
-        onOpenContext={context.openContext}
-        onSend={() => context.requestSend()}
-        onStop={() => void stopChat()}
-        onDropFiles={
-          toolMode
-            ? undefined
-            : (files) =>
-                void addDroppedContextFiles(
-                  files,
-                  context.activeSessionId,
-                  addFile,
-                  addFileToContext,
-                  t('unsupportedFile')
-                )
-        }
-      />
+      {(!projectMode || project) && (
+        <ChatComposer
+          placeholder={
+            projectMode
+              ? project
+                ? '描述你希望 AI 如何完善当前项目…'
+                : '先设置项目目标，再开始与 AI 协作…'
+              : t(toolMode ? 'askToolPlaceholder' : 'askPlaceholder')
+          }
+          compactContext
+          additionalMaterialCount={
+            (context.effectiveContext.documentSourceIds?.length ?? 0) +
+            (context.effectiveContext.contextPackIds?.length ?? 0) +
+            (context.effectiveContext.personalKnowledgeIds?.length ?? 0)
+          }
+          recentMessagesIncluded={
+            context.effectiveContext.recentMessages &&
+            Boolean(context.activeSession?.messages.length)
+          }
+          showSuggestions={false}
+          selectionIncluded={context.effectiveContext.selection && Boolean(selectedText.trim())}
+          selectionLabel={
+            projectMode
+              ? (projectSection?.title ?? project?.config.title)
+              : toolMode
+                ? toolTitle
+                : undefined
+          }
+          prompt={context.prompt}
+          activePath={context.effectiveContext.currentFile ? context.activePath : ''}
+          projectFiles={context.effectiveContext.projectFiles}
+          processingLocation={context.processingLocation}
+          hasReviewedContext={context.hasReviewedContext}
+          contextReviewed={context.contextReviewed}
+          requestActive={Boolean(chatRequestId)}
+          manifestLoading={context.manifestLoading}
+          contextOpen={context.contextOpen}
+          onPromptChange={context.updatePrompt}
+          onOpenContext={context.openContext}
+          onSend={() => context.requestSend()}
+          onStop={() => void stopChat()}
+          onDropFiles={
+            toolMode || projectMode
+              ? undefined
+              : (files) =>
+                  void addDroppedContextFiles(
+                    files,
+                    context.activeSessionId,
+                    addFile,
+                    addFileToContext,
+                    t('unsupportedFile')
+                  )
+          }
+        />
+      )}
       {context.contextOpen && (
         <ContextSelector
           open
           inlineContext={
-            inlineContext ? { label: toolTitle, content: inlineContext.content } : undefined
+            inlineContext
+              ? { label: inlineContext.title, content: inlineContext.content }
+              : undefined
           }
           prompt={context.prompt}
           initialSelection={context.effectiveContext}

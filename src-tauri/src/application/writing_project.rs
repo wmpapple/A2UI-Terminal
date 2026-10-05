@@ -4,7 +4,7 @@ use crate::{
         self, ChatRequest, ContextCandidate, ContextManifest, ContextManifestInput,
         ContextSourceKind, ProviderConfig, ProviderMessage,
     },
-    domain::{review::*, writing_project::*},
+    domain::{result::SaveResultDocumentInput, review::*, writing_project::*},
     error::AppError,
     repository::{citation, provider::ProviderRepository, writing_project as repo},
     state::AppState,
@@ -44,7 +44,7 @@ fn editable(state: &AppState, p: &WritingProject, revision: i64) -> Result<(), A
     if p.revision != revision {
         return Err(AppError::FileConflict);
     }
-    if p.final_review_id.is_some() {
+    if p.final_review_id.is_some() && p.result_id.is_none() {
         return Err(invalid("项目已进入成果合成，请打开成果继续编辑"));
     }
     if repo::runs(&state.storage, &p.id)?
@@ -102,6 +102,9 @@ pub fn save(state: &AppState, input: SaveProjectInput) -> Result<WritingProject,
             sections: vec![],
             final_review_id: None,
             result_id: None,
+            published_revision: None,
+            published_result_hash: None,
+            updated_at: None,
         };
         repo::create(&state.storage, &p)?;
         p
@@ -578,72 +581,107 @@ pub fn delete(state: &AppState, id: &str) -> Result<(), AppError> {
     repo::delete(&state.storage, id)
 }
 
+fn assemble(state: &AppState, p: &WritingProject) -> Result<(String, String), AppError> {
+    let combined_request = Uuid::new_v4().to_string();
+    let mut content = format!("# {}\n\n", p.config.title);
+    let mut bindings = Vec::new();
+    let mut next = 1;
+    for section in &p.sections {
+        let request = section.request_id.as_deref().ok_or(AppError::StateUnavailable)?;
+        let known = citation::sources(&state.storage, request)?
+            .into_iter()
+            .map(|source| source.key)
+            .collect::<HashSet<_>>();
+        let mut mapping = HashMap::new();
+        for key in super::citation::keys(&section.content) {
+            if known.contains(&key) {
+                let alias = format!("S{next}");
+                next += 1;
+                bindings.push((request.to_owned(), key.clone(), alias.clone()));
+                mapping.insert(key, alias);
+            }
+        }
+        let mut rewritten = String::new();
+        let mut rest = section.content.as_str();
+        while let Some(start) = rest.find('[') {
+            rewritten.push_str(&rest[..start]);
+            rest = &rest[start..];
+            if let Some(end) = rest.find(']') {
+                let key = &rest[1..end];
+                if let Some(alias) = mapping.get(key) {
+                    rewritten.push_str(&format!("[{alias}]"));
+                    rest = &rest[end + 1..];
+                    continue;
+                }
+                if key.starts_with('S')
+                    && key[1..].chars().all(|c| c.is_ascii_digit())
+                    && !key[1..].is_empty()
+                {
+                    rewritten.push_str(&format!("[来源待核对：{key}]"));
+                    rest = &rest[end + 1..];
+                    continue;
+                }
+            }
+            rewritten.push('[');
+            rest = &rest[1..];
+        }
+        rewritten.push_str(rest);
+        content.push_str(&format!("## {}\n\n{}\n\n", section.title, rewritten.trim()));
+    }
+    citation::combine_requests(&state.storage, &combined_request, &p.workspace_id, &bindings)?;
+    Ok((content, combined_request))
+}
+
 pub fn finalize(state: &AppState, id: &str, revision: i64) -> Result<String, AppError> {
     let _guard = state
         .writing_guard
         .lock()
         .map_err(|_| AppError::StateUnavailable)?;
     let mut p = repo::get(&state.storage, id)?;
-    if let Some(id) = p.result_id {
-        return Ok(id);
+    if let Some(result_id) = p.result_id.clone() {
+        if p.published_revision == Some(p.revision) {
+            return Ok(result_id);
+        }
+        editable(state, &p, revision)?;
+        if !p.outline_confirmed || p.sections.is_empty() || p.sections.iter().any(|s| !s.accepted) {
+            return Err(invalid("请先审阅接受每个章节"));
+        }
+        let current = super::result::read_document(&state.storage, &state.managed_results_dir, &result_id)?;
+        if state.storage.result_draft(&result_id)?.is_some() {
+            return Err(AppError::FileConflict);
+        }
+        if p.published_result_hash.as_deref().is_some_and(|hash| hash != current.content_hash) {
+            return Err(AppError::FileConflict);
+        }
+        let (content, combined_request) = assemble(state, &p)?;
+        let updated = super::result::save_document(
+            &state.storage,
+            &state.managed_results_dir,
+            SaveResultDocumentInput {
+                result_id: result_id.clone(),
+                content,
+                base_hash: current.content_hash,
+            },
+        )?;
+        citation::bind_output(
+            &state.storage,
+            "result",
+            &result_id,
+            &updated.content_hash,
+            updated.result.summary.current_revision_id.as_deref(),
+            &combined_request,
+        )?;
+        p.published_revision = Some(p.revision + 1);
+        p.published_result_hash = Some(updated.content_hash);
+        repo::save(&state.storage, &mut p)?;
+        return Ok(result_id);
     }
     if p.final_review_id.is_none() {
         editable(state, &p, revision)?;
         if !p.outline_confirmed || p.sections.is_empty() || p.sections.iter().any(|s| !s.accepted) {
             return Err(invalid("请先审阅接受每个章节"));
         }
-        let combined_request = Uuid::new_v4().to_string();
-        let mut content = format!("# {}\n\n", p.config.title);
-        let mut bindings = Vec::new();
-        let mut next = 1;
-        for s in &p.sections {
-            let request = s.request_id.as_deref().ok_or(AppError::StateUnavailable)?;
-            let known = citation::sources(&state.storage, request)?
-                .into_iter()
-                .map(|s| s.key)
-                .collect::<HashSet<_>>();
-            let mut mapping = HashMap::new();
-            for key in super::citation::keys(&s.content) {
-                if known.contains(&key) {
-                    let alias = format!("S{next}");
-                    next += 1;
-                    bindings.push((request.to_owned(), key.clone(), alias.clone()));
-                    mapping.insert(key, alias);
-                }
-            }
-            let mut rewritten = String::new();
-            let mut rest = s.content.as_str();
-            while let Some(start) = rest.find('[') {
-                rewritten.push_str(&rest[..start]);
-                rest = &rest[start..];
-                if let Some(end) = rest.find(']') {
-                    let key = &rest[1..end];
-                    if let Some(alias) = mapping.get(key) {
-                        rewritten.push_str(&format!("[{alias}]"));
-                        rest = &rest[end + 1..];
-                        continue;
-                    }
-                    if key.starts_with('S')
-                        && key[1..].chars().all(|c| c.is_ascii_digit())
-                        && !key[1..].is_empty()
-                    {
-                        rewritten.push_str(&format!("[来源待核对：{key}]"));
-                        rest = &rest[end + 1..];
-                        continue;
-                    }
-                }
-                rewritten.push('[');
-                rest = &rest[1..];
-            }
-            rewritten.push_str(rest);
-            content.push_str(&format!("## {}\n\n{}\n\n", s.title, rewritten.trim()));
-        }
-        citation::combine_requests(
-            &state.storage,
-            &combined_request,
-            &p.workspace_id,
-            &bindings,
-        )?;
+        let (content, combined_request) = assemble(state, &p)?;
         let file_name = format!("longform-{}.md", &p.id[..8]);
         let raw=serde_json::json!({"version":"1.0","type":"create_file","workspaceId":p.workspace_id,"summary":"合成长文成果","title":p.config.title,"fileName":file_name,"format":"markdown","content":content,"reason":"用户逐章审阅接受后合成","risk":"high"}).to_string();
         let review = super::review::create_file(
@@ -695,6 +733,8 @@ pub fn finalize(state: &AppState, id: &str, revision: i64) -> Result<String, App
     let document = output.result.ok_or(AppError::StateUnavailable)?;
     let result_id = document.result.summary.id;
     p.result_id = Some(result_id.clone());
+    p.published_revision = Some(p.revision + 1);
+    p.published_result_hash = Some(document.content_hash);
     repo::save(&state.storage, &mut p)?;
     Ok(result_id)
 }

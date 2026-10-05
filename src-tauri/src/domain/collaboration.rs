@@ -76,6 +76,10 @@ pub struct CollaborationItem {
     pub kind: String,
     pub status: String,
     pub created_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sender_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub permission: Option<SharePermission>,
 }
 
 #[derive(Debug, Serialize)]
@@ -84,6 +88,7 @@ pub struct CollaborationOverview {
     pub identity: LocalIdentity,
     pub shares: Vec<CollaborationItem>,
     pub inbox: Vec<CollaborationItem>,
+    pub pending_count: u64,
 }
 
 #[derive(Debug, Serialize)]

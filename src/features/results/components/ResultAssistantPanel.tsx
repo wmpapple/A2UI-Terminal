@@ -7,9 +7,11 @@ import { GenerationPanel } from '../../generation/GenerationPanel';
 export function ResultAssistantPanel({
   resultId,
   onOpenResult,
+  onOpenSettings,
 }: {
   resultId: string;
   onOpenResult: (id: string) => void;
+  onOpenSettings?: () => void;
 }) {
   const { locale } = useI18n();
   const document = useResultStore((s) => s.activeDocument);
@@ -44,6 +46,7 @@ export function ResultAssistantPanel({
       targetTitle={document.result.title}
       workspaceId={document.result.workspaceId}
       blocked={status !== 'saved' || Boolean(document.recoveryDraft)}
+      onOpenSettings={onOpenSettings}
       onApplied={(id) => {
         if (id === resultId) void open(id);
         else onOpenResult(id);

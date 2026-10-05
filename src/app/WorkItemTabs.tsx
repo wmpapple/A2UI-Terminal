@@ -5,6 +5,7 @@ import {
   ToolOutlined,
   FileDoneOutlined,
   LayoutOutlined,
+  BookOutlined,
 } from '@ant-design/icons';
 import { Button } from 'antd';
 import type { WorkItem, WorkItemType } from '../shared/types/workItem';
@@ -13,6 +14,8 @@ import styles from './WorkItemTabs.module.css';
 const icons: Record<WorkItemType, React.ReactNode> = {
   document: <FileTextOutlined />,
   tool: <ToolOutlined />,
+  project: <BookOutlined />,
+  'project-section': <FileTextOutlined />,
   result: <FileDoneOutlined />,
   canvas: <LayoutOutlined />,
 };

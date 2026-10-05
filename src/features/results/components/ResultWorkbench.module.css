@@ -11,7 +11,6 @@
   border-right: 1px solid var(--border);
 }
 
-.toolbar,
 .assistantHeader,
 .actions {
   display: flex;
@@ -19,45 +18,76 @@
 }
 
 .toolbar {
-  justify-content: space-between;
+  display: grid;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 16px 20px 12px;
   border-bottom: 1px solid var(--border);
 }
 
 .identity {
-  min-width: 150px;
+  min-width: 0;
 }
 
-.identity strong,
-.identity span {
+.identity h2,
+.identityKind {
   display: block;
 }
 
-.identity strong {
-  overflow: hidden;
+.identity h2 {
+  margin: 4px 0 5px;
   color: var(--text-strong);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 20px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
-.identity span {
-  margin-top: 2px;
+.identityKind {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.identity :global(.ant-btn-link) {
-  height: auto;
-  margin-top: 2px;
-  padding: 0;
-  font-size: 11px;
+.identityMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.identityMeta :global(.ant-tag) {
+  margin: 0;
 }
 
+.modeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  min-width: 0;
+}
+.modeRow :global(.ant-segmented) {
+  flex: none;
+}
 .actions {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 6px;
+}
+.advancedActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.advancedActions[hidden] {
+  display: none;
+}
+.advancedActions :global(.ant-btn) {
+  white-space: nowrap;
 }
 
 .formatToolbar {
@@ -331,8 +361,7 @@
 
 @media (max-width: 1000px) {
   .toolbar {
-    align-items: flex-start;
-    flex-direction: column;
+    padding: 12px 14px;
   }
   .actions {
     justify-content: flex-start;

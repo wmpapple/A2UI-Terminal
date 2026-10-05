@@ -1,15 +1,30 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { useState } from 'react';
 import { I18nProvider } from './i18n/I18nProvider';
 import { useAppStore } from '../stores/useAppStore';
 import { SettingsPage } from './SettingsPage';
 
 vi.mock('../features/settings/components/SystemSettings', () => ({
-  SystemSettings: () => <div>safe system settings</div>,
+  SystemSettings: ({ view, professional }: { view: string; professional?: boolean }) => (
+    <div>{`system:${view}:${professional}`}</div>
+  ),
+}));
+vi.mock('../features/settings/components/WritingProfileSettings', () => ({
+  WritingProfileSettings: () => {
+    const [draft, setDraft] = useState('');
+    return (
+      <input
+        aria-label="writing-profile-draft"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+      />
+    );
+  },
 }));
 
-describe('SettingsPage experience modes', () => {
-  it('keeps Provider technical settings out of simple mode', () => {
+describe('SettingsPage categories', () => {
+  it('keeps one active category and offers model configuration in simple mode', () => {
     useAppStore.setState({
       processingOptions: {
         activeProviderId: 'custom',
@@ -19,57 +34,58 @@ describe('SettingsPage experience modes', () => {
         availableLocalProviders: 1,
         probeCompleted: true,
       },
-      localProviderProbes: [
-        {
-          id: 'custom',
-          kind: 'custom',
-          status: 'available',
-          endpoint: 'http://localhost:7777/v1',
-          models: ['private-model-id'],
-          latencyMs: 12,
-          failureCode: null,
-        },
-      ],
-      localProbeLoading: false,
-      localProbeError: null,
+      activeProviderId: 'custom',
     });
-    const onModeChange = vi.fn();
-    const onOpenProviderSettings = vi.fn();
+    const openProvider = vi.fn();
     render(
       <I18nProvider>
         <SettingsPage
           experienceMode="simple"
-          onExperienceModeChange={onModeChange}
-          onOpenProviderSettings={onOpenProviderSettings}
+          onExperienceModeChange={vi.fn()}
+          onOpenProviderSettings={openProvider}
         />
       </I18nProvider>
     );
 
-    expect(screen.getByText(/默认隐藏项目文件/)).toBeInTheDocument();
-    expect(screen.queryByText(/Endpoint/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/API Key/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/localhost:7777/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/private-model-id/)).not.toBeInTheDocument();
-    expect(screen.getByText('当前使用本机模型，服务可用')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Provider 高级设置/ })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('专业模式', { exact: true }));
-    expect(onModeChange).toHaveBeenCalledWith('professional');
+    expect(screen.getByRole('heading', { name: '常规' })).toBeVisible();
+    expect(screen.getByRole('combobox', { name: '界面模式' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'AI 与模型' }));
+    expect(screen.getByRole('heading', { name: 'AI 与模型' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: '界面模式' })).not.toBeInTheDocument();
+    expect(screen.getByText('OpenAI-Compatible')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: '配置模型' }));
+    expect(openProvider).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: '写作偏好' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'writing-profile-draft' }), {
+      target: { value: '未保存的规则' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '更新与诊断' }));
+    expect(screen.getByText('system:updates:false')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: '隐私与数据' }));
+    expect(screen.getByText('system:privacy:undefined')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: '写作偏好' }));
+    expect(screen.getByRole('textbox', { name: 'writing-profile-draft' })).toHaveValue(
+      '未保存的规则'
+    );
   });
 
-  it('offers the existing advanced Provider settings only in professional mode', () => {
-    const onOpenProviderSettings = vi.fn();
+  it('shows professional mode details and updates the shared mode preference', () => {
+    const onModeChange = vi.fn();
     render(
       <I18nProvider>
         <SettingsPage
           experienceMode="professional"
-          onExperienceModeChange={vi.fn()}
-          onOpenProviderSettings={onOpenProviderSettings}
+          onExperienceModeChange={onModeChange}
+          onOpenProviderSettings={vi.fn()}
         />
       </I18nProvider>
     );
-
-    fireEvent.click(screen.getByRole('button', { name: /Provider 高级设置/ }));
-    expect(onOpenProviderSettings).toHaveBeenCalledOnce();
+    expect(screen.getByText(/Provider、高级参数/)).toBeVisible();
+    fireEvent.change(screen.getByRole('combobox', { name: '界面模式' }), {
+      target: { value: 'simple' },
+    });
+    expect(onModeChange).toHaveBeenCalledWith('simple');
+    fireEvent.click(screen.getByRole('button', { name: '更新与诊断' }));
+    expect(screen.getByText('system:updates:true')).toBeVisible();
   });
 });

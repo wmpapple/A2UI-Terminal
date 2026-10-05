@@ -111,6 +111,9 @@ pub fn revoke(storage: &Storage, id: &str) -> Result<(), AppError> {
 pub fn inbox(storage: &Storage, id: &str) -> Result<InboxDetail, AppError> {
     repo::inbox(storage, id)
 }
+pub fn mark_handled(storage: &Storage, id: &str) -> Result<(), AppError> {
+    repo::mark_handled(storage, id)
+}
 pub fn import_bytes(storage: &Storage, bytes: &[u8]) -> Result<String, AppError> {
     if bytes.len() > MAX_PACKAGE_BYTES {
         return Err(AppError::FileTooLarge);

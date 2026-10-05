@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../app/i18n/I18nProvider';
+import { useAppStore } from '../../../stores/useAppStore';
 import type { ResultDocument } from '../../../shared/types/domain';
 import { resultInitialState, useResultStore } from '../resultStore';
 import { ResultAssistantPanel } from './ResultAssistantPanel';
@@ -36,6 +37,7 @@ const document: ResultDocument = {
 describe('ResultWorkbench', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    useAppStore.setState({ providerConfigs: [], activeProviderId: '' });
     useResultStore.setState({
       ...resultInitialState,
       activeDocument: document,
@@ -94,6 +96,7 @@ describe('ResultWorkbench', () => {
         <ResultWorkbench resultId="result-1" onDuplicated={vi.fn()} onOpenResults={vi.fn()} />
       </I18nProvider>
     );
+    fireEvent.click(screen.getByText('编辑'));
     fireEvent.click(screen.getByRole('button', { name: /查看修改/ }));
     const dialog = within(screen.getByRole('dialog', { name: '查看修改' }));
     await waitFor(() => expect(dialog.getByText(document.content.trim())).toBeVisible());
@@ -128,6 +131,7 @@ describe('ResultWorkbench', () => {
         <ResultWorkbench resultId="result-1" onDuplicated={vi.fn()} onOpenResults={vi.fn()} />
       </I18nProvider>
     );
+    fireEvent.click(screen.getByText('编辑'));
     fireEvent.click(screen.getByRole('button', { name: /查看修改/ }));
     const dialog = within(screen.getByRole('dialog', { name: '查看修改' }));
     await waitFor(() => expect(dialog.getByText('修改前的正文')).toBeVisible());
@@ -142,6 +146,7 @@ describe('ResultWorkbench', () => {
         <ResultWorkbench resultId="result-1" onDuplicated={vi.fn()} onOpenResults={vi.fn()} />
       </I18nProvider>
     );
+    fireEvent.click(screen.getByText('编辑'));
     fireEvent.click(screen.getByRole('button', { name: /查看修改/ }));
     const dialog = within(screen.getByRole('dialog', { name: '查看修改' }));
     await waitFor(() =>
@@ -163,18 +168,23 @@ describe('ResultWorkbench', () => {
     expect(screen.getAllByText('可重开成果')).not.toHaveLength(0);
     expect(screen.getByLabelText('成果预览')).toHaveTextContent('可重开成果');
     expect(screen.queryByText('# 可重开成果')).not.toBeInTheDocument();
-    expect(screen.getByText(/保存在“我的成果”/)).toBeVisible();
-    for (const action of ['保存', '查看修改', '撤销', '历史版本', '另存副本', '导出']) {
+    expect(screen.getByText('来源：我的成果')).toBeVisible();
+    for (const action of ['历史版本', '导出']) {
       expect(screen.getByRole('button', { name: new RegExp(action) })).toBeVisible();
     }
+    expect(screen.queryByRole('button', { name: /查看修改/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByText('编辑'));
+    for (const action of ['保存', '查看修改', '撤销']) {
+      expect(screen.getByRole('button', { name: new RegExp(action) })).toBeVisible();
+    }
+    expect(screen.queryByRole('button', { name: /导出/ })).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole('textbox', { name: '成果编辑器' }), {
       target: { value: '新内容' },
     });
     expect(updateDraft).toHaveBeenCalledWith('新内容');
   });
 
-  it('opens My Results from the managed-location link', () => {
+  it('keeps the results list link in secondary actions', () => {
     const onOpenResults = vi.fn();
     render(
       <I18nProvider>
@@ -182,8 +192,21 @@ describe('ResultWorkbench', () => {
       </I18nProvider>
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /查看我的成果/ }));
+    fireEvent.click(screen.getByRole('button', { name: '更多成果操作' }));
+    fireEvent.click(screen.getByRole('button', { name: /打开成果列表/ }));
     expect(onOpenResults).toHaveBeenCalledOnce();
+  });
+
+  it('shows an intentionally numeric result title unchanged', () => {
+    useResultStore.setState({
+      activeDocument: { ...document, result: { ...document.result, title: '2' } },
+    });
+    render(
+      <I18nProvider>
+        <ResultWorkbench resultId="result-1" onDuplicated={vi.fn()} onOpenResults={vi.fn()} />
+      </I18nProvider>
+    );
+    expect(screen.getByRole('heading', { name: '2' })).toBeVisible();
   });
 
   it('allows revision-bound export for a portable A2UI tool result', () => {
@@ -227,6 +250,7 @@ describe('ResultWorkbench', () => {
       </I18nProvider>
     );
 
+    fireEvent.click(screen.getByText('审阅'));
     fireEvent.click(screen.getByRole('button', { name: /撤销上次审阅修改/ }));
     expect(onUndoReview).toHaveBeenCalledWith(appliedReview);
     expect(screen.getByTestId('review-undo-error')).toHaveTextContent(
@@ -235,6 +259,21 @@ describe('ResultWorkbench', () => {
   });
 
   it('states that AI context is not sent automatically', () => {
+    useAppStore.setState({
+      providerConfigs: [
+        {
+          id: 'cloud',
+          kind: 'custom',
+          endpoint: 'https://api.example.invalid/v1',
+          model: 'test-model',
+          temperature: 0.2,
+          proxyUrl: null,
+          configured: true,
+          active: true,
+        },
+      ],
+      activeProviderId: 'cloud',
+    });
     render(
       <I18nProvider>
         <ResultAssistantPanel resultId="result-1" onOpenResult={vi.fn()} />
@@ -244,5 +283,24 @@ describe('ResultWorkbench', () => {
     expect(
       screen.getByRole('checkbox', { name: '本次发送当前成果的已保存正文' })
     ).not.toBeChecked();
+  });
+
+  it('shows one model setup blocker instead of the normal prompt when AI is unavailable', () => {
+    const onOpenSettings = vi.fn();
+    render(
+      <I18nProvider>
+        <ResultAssistantPanel
+          resultId="result-1"
+          onOpenResult={vi.fn()}
+          onOpenSettings={onOpenSettings}
+        />
+      </I18nProvider>
+    );
+    expect(screen.getByText('AI 暂不可用')).toBeVisible();
+    expect(screen.getByText('当前成果不会自动发送给 AI')).toBeVisible();
+    expect(screen.queryByText('你想怎样完善这份成果？')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '选择本地模型' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '去设置' }));
+    expect(onOpenSettings).toHaveBeenCalledOnce();
   });
 });

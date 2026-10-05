@@ -21,15 +21,23 @@
 .header {
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 32px;
+  margin-bottom: 20px;
 }
 
 .header h1 {
   margin: 0;
   color: var(--text-strong);
   font-size: 30px;
-  letter-spacing: -0.025em;
 }
+.pageTabs { display: flex; align-items: center; gap: 24px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.pageTabs button { display: inline-flex; align-items: center; gap: 7px; padding: 10px 2px 13px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text); font-size: 14px; cursor: pointer; }
+.pageTabs button.activeTab { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
+.inboxBadge { min-width: 18px; padding: 1px 5px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); font-size: 11px; text-align: center; }
+.resultToolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.resultToolbar :global(.ant-input-affix-wrapper) { max-width: 440px; }
+.resultFilters { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 20px; }
+.resultFilters button { border: 0; border-radius: 4px; padding: 6px 11px; background: transparent; color: var(--text-muted); cursor: pointer; }
+.resultFilters button.activeFilter { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 
 .header p {
   margin: 8px 0 0;
@@ -218,6 +226,8 @@
   }
 }
 @media (max-width: 600px) {
+  .resultToolbar { align-items: stretch; flex-direction: column; }
+  .resultToolbar .createButton { align-self: flex-start; }
   .header {
     align-items: flex-start;
     flex-direction: column;

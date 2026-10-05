@@ -33,7 +33,12 @@ const PENDING_CONTEXT_PACK_REVIEW = 'pending-context-pack-manifest';
 
 type ContextIntent = 'review' | 'send';
 
-export function useChatContextFlow(inlineContext?: { id: string; title: string; content: string }) {
+export function useChatContextFlow(inlineContext?: {
+  id: string;
+  title: string;
+  content: string;
+  selection?: ContextSelection;
+}) {
   const { t } = useI18n();
   const sessions = useAppStore((state) => state.sessions);
   const activeSessionId = useAppStore((state) => state.activeSessionId);
@@ -51,6 +56,7 @@ export function useChatContextFlow(inlineContext?: { id: string; title: string; 
   const contextReviewKeyBySession = useAppStore((state) => state.contextReviewKeyBySession);
   const setSessionContext = useAppStore((state) => state.setSessionContext);
   const [toolSelection, setToolSelection] = useState<ContextSelection | null>(null);
+  useEffect(() => setToolSelection(null), [inlineContext?.id]);
   const setSessionContextReviewKey = useAppStore((state) => state.setSessionContextReviewKey);
   const sendChat = useAppStore((state) => state.sendChat);
   const documentSources = useImportStore((state) => state.sources);
@@ -93,7 +99,13 @@ export function useChatContextFlow(inlineContext?: { id: string; title: string; 
       normalizeContextSelection(
         savedContext ??
           (inlineContext
-            ? { ...defaultContext, currentFile: false, selection: true, recentMessages: false }
+            ? {
+                ...defaultContext,
+                currentFile: false,
+                selection: true,
+                recentMessages: false,
+                ...inlineContext.selection,
+              }
             : defaultContext),
         selectedText
       ),

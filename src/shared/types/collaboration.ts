@@ -30,11 +30,14 @@ export interface CollaborationItem {
   kind: string;
   status: string;
   createdAt: string;
+  senderName?: string;
+  permission?: SharePermission;
 }
 export interface CollaborationOverview {
   identity: LocalIdentity;
   shares: CollaborationItem[];
   inbox: CollaborationItem[];
+  pendingCount: number;
 }
 export interface InboxDetail {
   package: CollaborationPackage;

@@ -1,5 +1,5 @@
 import { Alert, Button, Checkbox, Drawer, Empty, Input, Modal, Select, Space, Tag } from 'antd';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../app/i18n/useI18n';
 import { InfoNotice } from '../../shared/components/InfoNotice';
 import { userFacingError } from '../../shared/errors/userFacingError';
@@ -16,11 +16,21 @@ import { reviewController } from '../diff/reviewController';
 import { collaborationController as api } from './collaborationController';
 import styles from './CollaborationPanel.module.css';
 
-export function CollaborationPanel({ snapshot }: { snapshot?: DocumentSnapshot }) {
+export function CollaborationPanel({
+  snapshot,
+  inboxId,
+  onClose,
+  onChanged,
+}: {
+  snapshot?: DocumentSnapshot;
+  inboxId?: string;
+  onClose?: () => void;
+  onChanged?: () => Promise<void>;
+}) {
   const { locale } = useI18n();
   const say = (cn: string, en: string) => (locale === 'zh-CN' ? cn : en);
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(Boolean(inboxId));
+  const [busy, setBusy] = useState(Boolean(inboxId));
   const inFlight = useRef(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -42,27 +52,31 @@ export function CollaborationPanel({ snapshot }: { snapshot?: DocumentSnapshot }
       hasProposal !== (detail?.reply?.proposedContent != null) ||
       (hasProposal && draft !== (detail?.reply?.proposedContent ?? share.content)));
 
-  async function run(action: () => Promise<void>) {
-    if (inFlight.current) return;
-    inFlight.current = true;
-    setBusy(true);
-    setError('');
-    setNotice('');
-    try {
-      await action();
-    } catch (e) {
-      setError(userFacingError(e, locale));
-    } finally {
-      inFlight.current = false;
-      setBusy(false);
-    }
-  }
-  async function refresh() {
+  const run = useCallback(
+    async (action: () => Promise<void>) => {
+      if (inFlight.current) return;
+      inFlight.current = true;
+      setBusy(true);
+      setError('');
+      setNotice('');
+      try {
+        await action();
+      } catch (e) {
+        setError(userFacingError(e, locale));
+      } finally {
+        inFlight.current = false;
+        setBusy(false);
+      }
+    },
+    [locale]
+  );
+  const refresh = useCallback(async () => {
     const next = await api.overview(resultId);
     setData(next);
     setName(next.identity.displayName);
-  }
-  async function select(id: string) {
+    await onChanged?.();
+  }, [resultId, onChanged]);
+  const select = useCallback(async (id: string) => {
     const next = await api.inbox(id);
     setDetail(next);
     setComments(next.reply?.comments ?? '');
@@ -71,7 +85,33 @@ export function CollaborationPanel({ snapshot }: { snapshot?: DocumentSnapshot }
       next.reply?.proposedContent ??
         (next.package.kind === 'share' ? next.package.payload.content : '')
     );
-  }
+  }, []);
+  useEffect(() => {
+    if (!inboxId) return;
+    let active = true;
+    void Promise.all([api.overview(resultId), api.inbox(inboxId)])
+      .then(([nextOverview, nextDetail]) => {
+        if (!active) return;
+        setData(nextOverview);
+        setName(nextOverview.identity.displayName);
+        setDetail(nextDetail);
+        setComments(nextDetail.reply?.comments ?? '');
+        setHasProposal(nextDetail.reply?.proposedContent != null);
+        setDraft(
+          nextDetail.reply?.proposedContent ??
+            (nextDetail.package.kind === 'share' ? nextDetail.package.payload.content : '')
+        );
+      })
+      .catch((cause) => {
+        if (active) setError(userFacingError(cause, locale));
+      })
+      .finally(() => {
+        if (active) setBusy(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [inboxId, locale, resultId]);
   function navigate(action: () => void) {
     if (busy) return;
     if (!dirty) {
@@ -128,6 +168,7 @@ export function CollaborationPanel({ snapshot }: { snapshot?: DocumentSnapshot }
     setUndoable(review);
     setReview(null);
     await reloadResult(review);
+    await onChanged?.();
     setNotice(say('修改已应用，可以撤销。', 'Changes applied. Undo is available.'));
   }
   async function withFreshShare<T>(action: () => Promise<T>): Promise<T> {
@@ -147,77 +188,88 @@ export function CollaborationPanel({ snapshot }: { snapshot?: DocumentSnapshot }
   }
   return (
     <>
-      <Button
-        onClick={() => {
-          setOpen(true);
-          void run(refresh);
-        }}
-      >
-        {snapshot ? say('协作审阅', 'Collaborate') : say('协作收件箱', 'Collaboration inbox')}
-      </Button>
+      {!inboxId && (
+        <Button
+          onClick={() => {
+            setOpen(true);
+            void run(refresh);
+          }}
+        >
+          {snapshot ? say('协作审阅', 'Collaborate') : say('协作收件箱', 'Collaboration inbox')}
+        </Button>
+      )}
       <Drawer
-        title={say('本地协作', 'Local collaboration')}
+        title={
+          inboxId ? say('协作内容', 'Collaboration item') : say('本地协作', 'Local collaboration')
+        }
         open={open}
         size={680}
         onClose={() =>
           navigate(() => {
             setOpen(false);
             setDetail(null);
+            onClose?.();
           })
         }
         maskClosable={!busy}
       >
         <div className={styles.panel} aria-busy={busy}>
-          <InfoNotice
-            showIcon
-            title={say(
-              '导出的是明文成果快照，请自行交给审阅者。姓名由对方填写，未经身份验证；撤销分享只能阻止本机继续导入或应用，不能收回已交出的文件。',
-              'Packages contain a plain text snapshot. Deliver them yourself. Names are self-reported. Revoking blocks local use of feedback; it cannot recall delivered files.'
-            )}
-          />
+          {!inboxId && (
+            <InfoNotice
+              showIcon
+              title={say(
+                '导出的是明文成果快照，请自行交给审阅者。姓名由对方填写，未经身份验证；撤销分享只能阻止本机继续导入或应用，不能收回已交出的文件。',
+                'Packages contain a plain text snapshot. Deliver them yourself. Names are self-reported. Revoking blocks local use of feedback; it cannot recall delivered files.'
+              )}
+            />
+          )}
           {error && (
             <Alert type="error" showIcon closable title={error} onClose={() => setError('')} />
           )}
           {notice && <p role="status">{notice}</p>}
-          <label>
-            {say('我的协作署名', 'My display name')}
-            <Input
-              value={name}
-              maxLength={80}
-              disabled={busy}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-          <Space wrap>
-            <Button
-              disabled={busy || !name.trim() || name === data?.identity.displayName}
-              onClick={() =>
-                void run(async () => {
-                  await api.rename(name);
-                  await refresh();
-                })
-              }
-            >
-              {say('保存署名', 'Save name')}
-            </Button>
-            <Button
-              disabled={busy}
-              onClick={() =>
-                navigate(
-                  () =>
+          {!inboxId && (
+            <>
+              <label>
+                {say('我的协作署名', 'My display name')}
+                <Input
+                  value={name}
+                  maxLength={80}
+                  disabled={busy}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </label>
+              <Space wrap>
+                <Button
+                  disabled={busy || !name.trim() || name === data?.identity.displayName}
+                  onClick={() =>
                     void run(async () => {
-                      const id = await api.import();
-                      if (id) {
-                        await refresh();
-                        await select(id);
-                      }
+                      await api.rename(name);
+                      await refresh();
                     })
-                )
-              }
-            >
-              {say('导入协作包', 'Import package')}
-            </Button>
-          </Space>
+                  }
+                >
+                  {say('保存署名', 'Save name')}
+                </Button>
+                <Button
+                  disabled={busy}
+                  onClick={() =>
+                    navigate(
+                      () =>
+                        void run(async () => {
+                          const id = await api.import();
+                          if (id) {
+                            await refresh();
+                            await select(id);
+                          }
+                        })
+                    )
+                  }
+                >
+                  {say('导入协作包', 'Import package')}
+                </Button>
+              </Space>
+            </>
+          )}
           {snapshot && (
             <section>
               <h3>{say('分享当前成果', 'Share this result')}</h3>
@@ -268,74 +320,78 @@ export function CollaborationPanel({ snapshot }: { snapshot?: DocumentSnapshot }
               )}
             </section>
           )}
-          <section>
-            <h3>{say('已创建的分享（最近 100 条）', 'Issued shares (latest 100)')}</h3>
-            {data?.shares.map((item) => (
-              <div key={item.id} className={styles.row}>
-                <span>
-                  {item.title} · {item.createdAt}{' '}
-                  <Tag>
-                    {item.status === 'active' ? say('有效', 'Active') : say('已撤销', 'Revoked')}
-                  </Tag>
-                </span>
-                <Space>
+          {!inboxId && (
+            <section>
+              <h3>{say('已创建的分享（最近 100 条）', 'Issued shares (latest 100)')}</h3>
+              {data?.shares.map((item) => (
+                <div key={item.id} className={styles.row}>
+                  <span>
+                    {item.title} · {item.createdAt}{' '}
+                    <Tag>
+                      {item.status === 'active' ? say('有效', 'Active') : say('已撤销', 'Revoked')}
+                    </Tag>
+                  </span>
+                  <Space>
+                    <Button
+                      disabled={busy || item.status !== 'active'}
+                      onClick={() =>
+                        void run(async () => {
+                          if (await api.export(item.id, false))
+                            setNotice(say('分享包已导出。', 'Share exported.'));
+                        })
+                      }
+                    >
+                      {say('导出', 'Export')}
+                    </Button>
+                    <Button
+                      disabled={busy || item.status !== 'active'}
+                      onClick={() =>
+                        Modal.confirm({
+                          title: say('撤销此分享？', 'Revoke this share?'),
+                          content: say(
+                            '此分享的返回意见和待接受修改将不能再应用。已导出的文件仍可被阅读。',
+                            'Future feedback and pending changes will be blocked. Exported copies remain readable.'
+                          ),
+                          okText: say('撤销分享', 'Revoke'),
+                          cancelText: say('取消', 'Cancel'),
+                          onOk: () =>
+                            run(async () => {
+                              await api.revoke(item.id);
+                              await refresh();
+                            }),
+                        })
+                      }
+                    >
+                      {say('撤销分享', 'Revoke')}
+                    </Button>
+                  </Space>
+                </div>
+              ))}
+            </section>
+          )}
+          {!inboxId && (
+            <section>
+              <h3>{say('收到的分享与意见（最近 100 条）', 'Received packages (latest 100)')}</h3>
+              {data && !data.inbox.length && (
+                <Empty description={say('尚未导入协作包', 'No packages imported')} />
+              )}
+              {data?.inbox.map((item) => (
+                <div key={item.id} className={styles.row}>
+                  <span>
+                    {item.title} ·{' '}
+                    {item.kind === 'share' ? say('分享', 'Share') : say('意见', 'Feedback')} ·{' '}
+                    {item.createdAt}
+                  </span>
                   <Button
-                    disabled={busy || item.status !== 'active'}
-                    onClick={() =>
-                      void run(async () => {
-                        if (await api.export(item.id, false))
-                          setNotice(say('分享包已导出。', 'Share exported.'));
-                      })
-                    }
+                    disabled={busy}
+                    onClick={() => navigate(() => void run(() => select(item.id)))}
                   >
-                    {say('导出', 'Export')}
+                    {say('查看', 'Open')}
                   </Button>
-                  <Button
-                    disabled={busy || item.status !== 'active'}
-                    onClick={() =>
-                      Modal.confirm({
-                        title: say('撤销此分享？', 'Revoke this share?'),
-                        content: say(
-                          '此分享的返回意见和待接受修改将不能再应用。已导出的文件仍可被阅读。',
-                          'Future feedback and pending changes will be blocked. Exported copies remain readable.'
-                        ),
-                        okText: say('撤销分享', 'Revoke'),
-                        cancelText: say('取消', 'Cancel'),
-                        onOk: () =>
-                          run(async () => {
-                            await api.revoke(item.id);
-                            await refresh();
-                          }),
-                      })
-                    }
-                  >
-                    {say('撤销分享', 'Revoke')}
-                  </Button>
-                </Space>
-              </div>
-            ))}
-          </section>
-          <section>
-            <h3>{say('收到的分享与意见（最近 100 条）', 'Received packages (latest 100)')}</h3>
-            {data && !data.inbox.length && (
-              <Empty description={say('尚未导入协作包', 'No packages imported')} />
-            )}
-            {data?.inbox.map((item) => (
-              <div key={item.id} className={styles.row}>
-                <span>
-                  {item.title} ·{' '}
-                  {item.kind === 'share' ? say('分享', 'Share') : say('意见', 'Feedback')} ·{' '}
-                  {item.createdAt}
-                </span>
-                <Button
-                  disabled={busy}
-                  onClick={() => navigate(() => void run(() => select(item.id)))}
-                >
-                  {say('查看', 'Open')}
-                </Button>
-              </div>
-            ))}
-          </section>
+                </div>
+              ))}
+            </section>
+          )}
           {share && (
             <section key={share.id}>
               <h3>{share.title}</h3>
@@ -444,6 +500,7 @@ export function CollaborationPanel({ snapshot }: { snapshot?: DocumentSnapshot }
                   assertSaved(undoable);
                   await reviewController.undoReview(undoable.id, undoable.workspaceId);
                   await reloadResult(undoable);
+                  await onChanged?.();
                   setUndoable(null);
                   setNotice(say('协作修改已撤销。', 'Collaboration changes undone.'));
                 })
@@ -470,6 +527,7 @@ export function CollaborationPanel({ snapshot }: { snapshot?: DocumentSnapshot }
                   void run(async () => {
                     await reviewController.discard(review.workspaceId, review.id);
                     setReview(null);
+                    await onChanged?.();
                   });
               }}
             >

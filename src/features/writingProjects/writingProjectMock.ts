@@ -8,7 +8,7 @@ import type {
   AcceptSectionInput,
 } from '../../shared/types/writingProject';
 import { createWebMockManifest } from '../context/contextManifest';
-import { createWebMockReviewResult } from '../../shared/mock/home';
+import { createWebMockReviewResult, webMockHomeGateway } from '../../shared/mock/home';
 import { knowledgeController } from '../knowledge/knowledgeController';
 import { writingProfileController } from '../settings/writingProfileController';
 import { importController } from '../imports/importController';
@@ -27,6 +27,7 @@ function get(id: string) {
   return p;
 }
 function save(p: WritingProject) {
+  p.updatedAt = new Date().toISOString();
   const data = read();
   data.projects = data.projects.filter((v) => v.id !== p.id);
   data.projects.unshift(p);
@@ -68,6 +69,8 @@ export const writingProjectMock = {
       sections: [],
       resultId: null,
       finalReviewId: null,
+      publishedRevision: null,
+      publishedResultHash: null,
     });
   },
   async saveWritingOutline(input: SaveOutlineInput) {
@@ -201,7 +204,27 @@ export const writingProjectMock = {
   },
   async finalizeWritingProject(id: string, revision: number) {
     const p = get(id);
-    if (p.resultId) return p.resultId;
+    if (p.resultId) {
+      if (p.publishedRevision === p.revision) return p.resultId;
+      requireRevision(p, revision);
+      if (!p.outlineConfirmed || !p.sections.length || p.sections.some((s) => !s.accepted))
+        throw Error('请先审阅接受每个章节');
+      const current = await webMockHomeGateway.readResultDocument(p.resultId);
+      if (current.recoveryDraft) throw Error('成果有未保存的草稿，请先处理成果草稿');
+      if (p.publishedResultHash && p.publishedResultHash !== current.contentHash)
+        throw Error('成果已在其他位置修改，请先核对成果版本');
+      const updated = await webMockHomeGateway.saveResultDocument(
+        p.resultId,
+        `# ${p.config.title}\n\n` +
+          p.sections.map((s) => `## ${s.title}\n\n${s.content}`).join('\n\n'),
+        current.contentHash
+      );
+      p.revision++;
+      p.publishedRevision = p.revision;
+      p.publishedResultHash = updated.contentHash;
+      save(p);
+      return p.resultId;
+    }
     requireRevision(p, revision);
     if (!p.sections.length || p.sections.some((s) => !s.accepted)) throw Error('请接受全部章节');
     const result = await createWebMockReviewResult({
@@ -217,6 +240,8 @@ export const writingProjectMock = {
     p.resultId = result.result.id;
     p.finalReviewId = p.id;
     p.revision++;
+    p.publishedRevision = p.revision;
+    p.publishedResultHash = result.contentHash;
     save(p);
     return p.resultId;
   },

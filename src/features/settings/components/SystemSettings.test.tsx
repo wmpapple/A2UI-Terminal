@@ -36,7 +36,11 @@ vi.mock('../../../shared/platform/desktop', () => ({
   },
 }));
 
-const updateSnapshot = { phase: 'current' as const, currentVersion: '0.1.9' };
+const updateSnapshot = {
+  phase: 'current' as 'current' | 'unavailable',
+  currentVersion: '0.1.9',
+  error: '',
+};
 vi.mock('../appUpdater', () => ({
   checkForAppUpdate: vi.fn(),
   installPendingUpdate: vi.fn(),
@@ -47,6 +51,8 @@ vi.mock('../appUpdater', () => ({
 describe('SystemSettings', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    updateSnapshot.phase = 'current';
+    updateSnapshot.error = '';
     localStorage.clear();
     sessionStorage.clear();
     clearAllLocalDataMock.mockReset().mockResolvedValue({ cleared: true });
@@ -154,5 +160,46 @@ describe('SystemSettings', () => {
     await act(async () => {
       complete({ cleared: true });
     });
+  });
+
+  it('separates updates from privacy and keeps diagnostics in professional mode', () => {
+    const { rerender } = render(
+      <I18nProvider>
+        <SystemSettings view="updates" professional={false} />
+      </I18nProvider>
+    );
+    expect(screen.getByRole('heading', { name: '应用更新' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: '诊断' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '危险操作' })).not.toBeInTheDocument();
+
+    rerender(
+      <I18nProvider>
+        <SystemSettings view="updates" professional />
+      </I18nProvider>
+    );
+    expect(screen.getByRole('heading', { name: '诊断' })).toBeVisible();
+
+    rerender(
+      <I18nProvider>
+        <SystemSettings view="privacy" />
+      </I18nProvider>
+    );
+    expect(screen.queryByRole('heading', { name: '应用更新' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '本地数据' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: '危险操作' })).toBeVisible();
+  });
+
+  it('hides updater configuration details and unavailable actions', () => {
+    updateSnapshot.phase = 'unavailable';
+    updateSnapshot.error = 'Updater does not have any endpoints set.';
+    render(
+      <I18nProvider>
+        <SystemSettings view="updates" />
+      </I18nProvider>
+    );
+    expect(screen.getByText(/0\.1\.9/)).toBeVisible();
+    expect(screen.queryByText('未配置更新源')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '检查更新' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Updater does not have any endpoints set/)).not.toBeInTheDocument();
   });
 });

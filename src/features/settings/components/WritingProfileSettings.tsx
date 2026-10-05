@@ -2,7 +2,6 @@ import { DeleteOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons';
 import {
   Alert,
   Button,
-  Divider,
   Input,
   Popconfirm,
   Segmented,
@@ -15,7 +14,6 @@ import {
 } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
-import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { formatWritingProfileForDisplay } from '../../../shared/writingProfile';
 import type {
   SaveWritingProfileInput,
@@ -80,6 +78,7 @@ export function WritingProfileSettings({
   const [draft, setDraft] = useState<SaveWritingProfileInput>(() => emptyDraft('global'));
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const profileForScope = useMemo(
     () => (scope === 'global' ? bundle?.global : bundle?.workspace),
@@ -170,7 +169,6 @@ export function WritingProfileSettings({
   return (
     <section className={styles.section} aria-label={zh ? '写作方式设置' : 'Writing profile'}>
       <Segmented
-        block
         value={scope}
         options={[
           { value: 'global', label: zh ? '全局偏好' : 'Global' },
@@ -208,6 +206,7 @@ export function WritingProfileSettings({
           onChange={(enabled) => setDraft((value) => ({ ...value, enabled }))}
         />
       </div>
+      <h3 className={styles.groupTitle}>{zh ? '表达方式' : 'Expression'}</h3>
       <label>
         <strong>{zh ? '写作规则' : 'Writing rules'}</strong>
         <Input.TextArea
@@ -223,7 +222,7 @@ export function WritingProfileSettings({
           onChange={(event) => setDraft((value) => ({ ...value, rules: event.target.value }))}
         />
       </label>
-      <div>
+      <div className={styles.group}>
         <Space wrap>
           <strong>{zh ? '术语表' : 'Terminology'}</strong>
           <Button
@@ -286,19 +285,21 @@ export function WritingProfileSettings({
           ))}
         </div>
       </div>
-      <label>
-        <strong>{zh ? '禁用词' : 'Words to avoid'}</strong>
-        <Select
-          mode="tags"
-          maxCount={50}
-          tokenSeparators={[',', '，']}
-          style={{ width: '100%' }}
-          value={draft.forbiddenWords}
-          placeholder={zh ? '输入后按回车，例如：赋能' : 'Type a word and press Enter'}
-          onChange={(forbiddenWords) => setDraft((value) => ({ ...value, forbiddenWords }))}
-        />
-      </label>
-      <div>
+      <div className={styles.group}>
+        <label>
+          <strong>{zh ? '禁用词' : 'Words to avoid'}</strong>
+          <Select
+            mode="tags"
+            maxCount={50}
+            tokenSeparators={[',', '，']}
+            style={{ width: '100%' }}
+            value={draft.forbiddenWords}
+            placeholder={zh ? '输入后按回车，例如：赋能' : 'Type a word and press Enter'}
+            onChange={(forbiddenWords) => setDraft((value) => ({ ...value, forbiddenWords }))}
+          />
+        </label>
+      </div>
+      <div className={styles.group}>
         <strong>{zh ? '范文引用' : 'Style examples'}</strong>
         <KnowledgePicker
           purpose="profile"
@@ -308,15 +309,11 @@ export function WritingProfileSettings({
             setDraft((value) => ({ ...value, exampleKnowledgeIds }))
           }
         />
-        <InfoNotice
-          type="info"
-          showIcon
-          title={
-            zh
-              ? '这里只保存资料引用；范文正文不会自动发送，生成时仍需在“上下文”中选择并确认。'
-              : 'Only references are saved. Example content is sent only when selected and confirmed for a request.'
-          }
-        />
+        <p className={styles.muted}>
+          {zh
+            ? '只保存资料引用。范文正文仅在任务中选择并确认后发送。'
+            : 'Only references are saved. Example content is sent only when selected and confirmed.'}
+        </p>
       </div>
       <div className={styles.actions}>
         <Button type="primary" icon={<SaveOutlined />} loading={busy} onClick={() => void save()}>
@@ -331,22 +328,12 @@ export function WritingProfileSettings({
           </Button>
         </Popconfirm>
       </div>
-      <Divider />
       <div className={styles.preview}>
         <div className={styles.previewHeader}>
-          <strong>
-            {draftChanged
-              ? zh
-                ? '保存后规则预览'
-                : 'Preview after saving'
-              : zh
-                ? '当前有效规则预览'
-                : 'Effective profile preview'}
-          </strong>
+          <strong>{zh ? '当前生效规则' : 'Effective rules'}</strong>
           <Space wrap>
             {draftChanged && <Tag color="gold">{zh ? '未保存' : 'Unsaved'}</Tag>}
-            <Tag>{preview?.composerVersion}</Tag>
-            <Tag>{preview?.estimatedTokens.toLocaleString()} tokens</Tag>
+            <span className={styles.muted}>{preview?.estimatedTokens.toLocaleString()} tokens</span>
           </Space>
         </div>
         {preview?.enabled ? (
@@ -360,7 +347,20 @@ export function WritingProfileSettings({
                 )
                 .join(' → ')}
             </p>
-            <pre>{formatWritingProfileForDisplay(preview, locale)}</pre>
+            <Button
+              type="link"
+              className={styles.previewButton}
+              onClick={() => setPreviewOpen((open) => !open)}
+            >
+              {previewOpen
+                ? zh
+                  ? '收起最终规则'
+                  : 'Hide final rules'
+                : zh
+                  ? '查看最终规则'
+                  : 'View final rules'}
+            </Button>
+            {previewOpen && <pre>{formatWritingProfileForDisplay(preview, locale)}</pre>}
           </>
         ) : (
           <p className={styles.muted}>

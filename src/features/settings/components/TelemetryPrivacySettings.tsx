@@ -1,10 +1,6 @@
 import { InfoNotice } from '../../../shared/components/InfoNotice';
-import {
-  ExclamationCircleOutlined,
-  EyeOutlined,
-  SafetyCertificateOutlined,
-} from '@ant-design/icons';
-import { Alert, Button, List, Modal, Spin, Switch, Tag, Tooltip, Typography, message } from 'antd';
+import { ExclamationCircleOutlined, EyeOutlined } from '@ant-design/icons';
+import { Button, List, Modal, Spin, Switch, Tag, Tooltip, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { getRuntimeMode } from '../../../shared/platform/runtime';
@@ -73,12 +69,12 @@ export function TelemetryPrivacySettings() {
   };
 
   if (!desktop) {
-    return <InfoNotice type="info" showIcon title={t('telemetryDesktopOnly')} />;
+    return <p className={styles.muted}>{t('telemetryDesktopOnly')}</p>;
   }
 
   if (loading || !settings) return <Spin size="small" />;
 
-  const invite = settings.invitationEligible && !settings.invitationDismissed && !settings.enabled;
+  const hasSamples = settings.kpis.some((kpi) => kpi.denominator > 0 || kpi.numerator > 0);
 
   return (
     <section className={styles.telemetryPanel} aria-label={t('telemetryPrivacyTitle')}>
@@ -97,97 +93,76 @@ export function TelemetryPrivacySettings() {
         />
       </div>
 
-      {invite ? (
-        <InfoNotice
-          type="info"
-          showIcon
-          title={t('telemetryInvitationTitle')}
-          description={t('telemetryInvitationDescription')}
-          action={
-            <div className={styles.telemetryInviteActions}>
-              <Button
-                size="small"
-                type="primary"
-                loading={saving}
-                onClick={() => void update(true, true)}
-              >
-                {t('enableAnonymousMetrics')}
-              </Button>
-              <Button size="small" disabled={saving} onClick={() => void update(false, true)}>
-                {t('notNow')}
-              </Button>
-            </div>
-          }
-        />
-      ) : null}
-
-      {!settings.enabled && settings.invitationDismissed ? (
-        <Typography.Text type="secondary">{t('telemetryInvitationHandled')}</Typography.Text>
-      ) : null}
-
-      <Alert
-        type="success"
-        showIcon
-        icon={<SafetyCertificateOutlined />}
-        title={t(settings.enabled ? 'telemetryLocalCollectionOn' : 'telemetryCollectionOff')}
-        description={t('telemetryNoUpload')}
-      />
-
+      <p className={styles.muted}>{t('telemetryNoUpload')}</p>
       <div className={styles.actions}>
         <Button icon={<EyeOutlined />} onClick={() => void showDictionary()}>
           {t('viewTelemetryData')}
         </Button>
-        <Tag>
-          {t('telemetryLocalEventCount')}: {settings.localEventCount}
-        </Tag>
+        {settings.enabled && (
+          <Tag>
+            {t('telemetryLocalEventCount')}: {settings.localEventCount}
+          </Tag>
+        )}
       </div>
 
-      <div className={styles.kpiPanel}>
-        <div className={styles.kpiHeading}>
-          <strong>{t('telemetryCoreKpis')}</strong>
-          <Tooltip
-            trigger={['hover', 'focus']}
-            placement="top"
-            color="#1e293b"
-            styles={{
-              root: { maxWidth: 'min(420px, calc(100vw - 32px))' },
-              container: {
-                padding: 16,
-                border: '1px solid #334155',
-                borderRadius: 12,
-                boxShadow: '0 12px 32px #0f172a26',
-                color: '#f1f5f9',
-              },
-            }}
-            title={
-              <ul className={styles.kpiExplanation}>
-                <li>{t('telemetryKpiPurpose')}</li>
-                <li>{t('telemetryRateRule')}</li>
-                <li>{t('telemetrySaveRule')}</li>
-                <li>{t('telemetryReviewRule')}</li>
-              </ul>
-            }
-          >
-            <button type="button" className={styles.kpiHelp} aria-label={t('telemetryKpiHelp')}>
-              <ExclamationCircleOutlined aria-hidden="true" />
-            </button>
-          </Tooltip>
-        </div>
-        <div className={styles.kpiGrid}>
-          {settings.kpis.map((kpi) => (
-            <div key={kpi.key}>
-              <span className={styles.kpiLabel}>{t(KPI_LABELS[kpi.key])}</span>
-              <span className={kpi.rateBasisPoints === null ? styles.kpiEmpty : styles.kpiValue}>
-                {kpi.rateBasisPoints === null
-                  ? kpi.numerator > 0
-                    ? `${t('telemetryRecordedCount')}: ${kpi.numerator} · ${t('telemetryMissingBaseline')}`
-                    : t('telemetryNoKpiData')
-                  : `${(kpi.rateBasisPoints / 100).toFixed(1)}% (${kpi.numerator}/${kpi.denominator})`}
-              </span>
+      {settings.enabled && (
+        <div className={styles.kpiPanel}>
+          <div className={styles.kpiHeading}>
+            <strong>{t('telemetryCoreKpis')}</strong>
+            <Tooltip
+              trigger={['hover', 'focus']}
+              placement="top"
+              color="#1e293b"
+              styles={{
+                root: { maxWidth: 'min(420px, calc(100vw - 32px))' },
+                container: {
+                  padding: 16,
+                  border: '1px solid #334155',
+                  borderRadius: 12,
+                  boxShadow: '0 12px 32px #0f172a26',
+                  color: '#f1f5f9',
+                },
+              }}
+              title={
+                <ul className={styles.kpiExplanation}>
+                  <li>{t('telemetryKpiPurpose')}</li>
+                  <li>{t('telemetryRateRule')}</li>
+                  <li>{t('telemetrySaveRule')}</li>
+                  <li>{t('telemetryReviewRule')}</li>
+                </ul>
+              }
+            >
+              <button type="button" className={styles.kpiHelp} aria-label={t('telemetryKpiHelp')}>
+                <ExclamationCircleOutlined aria-hidden="true" />
+              </button>
+            </Tooltip>
+          </div>
+          {hasSamples ? (
+            <div className={styles.kpiGrid}>
+              {settings.kpis.map((kpi) => (
+                <div key={kpi.key}>
+                  <span className={styles.kpiLabel}>{t(KPI_LABELS[kpi.key])}</span>
+                  <span
+                    className={kpi.rateBasisPoints === null ? styles.kpiEmpty : styles.kpiValue}
+                  >
+                    {kpi.rateBasisPoints === null
+                      ? kpi.numerator > 0
+                        ? `${t('telemetryRecordedCount')}: ${kpi.numerator} · ${t('telemetryMissingBaseline')}`
+                        : t('telemetryNoKpiData')
+                      : `${(kpi.rateBasisPoints / 100).toFixed(1)}% (${kpi.numerator}/${kpi.denominator})`}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <p className={styles.muted}>
+              {locale === 'zh-CN'
+                ? '暂无足够本地样本。完成更多任务后会显示指标。'
+                : 'Not enough local samples yet. Metrics appear as you complete more tasks.'}
+            </p>
+          )}
         </div>
-      </div>
+      )}
 
       <Modal
         width={760}

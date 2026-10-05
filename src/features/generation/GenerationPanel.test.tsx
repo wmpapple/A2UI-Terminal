@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../app/i18n/I18nProvider';
+import { useAppStore } from '../../stores/useAppStore';
 import fixture from '../../../contracts/v2/context-manifest.json';
 import type { ChatStreamEvent, ContextManifest } from '../../shared/types/domain';
 import type { GenerationOutput } from '../../shared/types/generation';
@@ -16,6 +17,21 @@ afterEach(() => {
 });
 
 it('keeps the confirmed sources visible while waiting, streaming and stopping without writing', async () => {
+  useAppStore.setState({
+    providerConfigs: [
+      {
+        id: 'siliconflow',
+        kind: 'silicon_flow',
+        endpoint: 'https://example.invalid/v1',
+        model: 'test-model',
+        temperature: 0.2,
+        proxyUrl: null,
+        configured: true,
+        active: true,
+      },
+    ],
+    activeProviderId: 'siliconflow',
+  });
   vi.spyOn(contextPackController, 'list').mockResolvedValue([]);
   const list = vi.spyOn(importController, 'listSources').mockResolvedValue([]);
   vi.spyOn(generationController, 'plan').mockResolvedValue({

@@ -9,7 +9,7 @@ import {
   ToolOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, ConfigProvider, Dropdown, Empty, message, Modal, Tag, theme } from 'antd';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { HomePage } from '../features/home/components/HomePage';
 import { ImportBatchModal } from '../features/imports/components/ImportBatchModal';
@@ -44,6 +44,8 @@ import { WorkspacePanelControls } from './WorkspacePanelControls';
 import { sceneTools, useSceneToolStore } from '../features/sceneTools/sceneToolStore';
 import { useResultStore } from '../features/results/resultStore';
 import type { WorkItem } from '../shared/types/workItem';
+import type { WritingProject } from '../shared/types/writingProject';
+import { ProjectSidebar } from '../features/writingProjects/ProjectSidebar';
 import { WorkbenchAppearance } from './WorkbenchAppearance';
 
 import { lazyFeature } from './lazyFeature';
@@ -126,16 +128,50 @@ export function AppShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(() => !readOnboardingComplete());
   const [experienceMode, setExperienceMode] = useState(readExperienceMode);
-  const [route, setRoute] = useState(() => routeFromHash(window.location.hash));
-  const [activeResultId, setActiveResultId] = useState<string | null>(null);
-  const [resourceView, setResourceView] = useState<'files' | 'tools'>('files');
-  const [activeWorkItemType, setActiveWorkItemType] = useState<'document' | 'tool' | 'result'>(
-    'document'
+  const [route, setRoute] = useState(() =>
+    routeFromHash(window.location.hash) === 'projects'
+      ? 'workbench'
+      : routeFromHash(window.location.hash)
   );
+  const [activeResultId, setActiveResultId] = useState<string | null>(null);
+  const [resourceView, setResourceView] = useState<'files' | 'tools' | 'projects'>(() =>
+    routeFromHash(window.location.hash) === 'projects' ? 'projects' : 'files'
+  );
+  const [activeWorkItemType, setActiveWorkItemType] = useState<
+    'document' | 'tool' | 'project' | 'project-section' | 'result'
+  >(routeFromHash(window.location.hash) === 'projects' ? 'project' : 'document');
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
   const [openedToolIds, setOpenedToolIds] = useState<string[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [openedProjectIds, setOpenedProjectIds] = useState<string[]>([]);
+  const [openedSections, setOpenedSections] = useState<
+    Array<{ projectId: string; sectionId: string }>
+  >([]);
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [creatingProject, setCreatingProject] = useState(
+    () => routeFromHash(window.location.hash) === 'projects'
+  );
+  const [projectItems, setProjectItems] = useState<WritingProject[]>([]);
+  const [projectRefresh, setProjectRefresh] = useState(0);
+  const [projectInitialTab, setProjectInitialTab] = useState('overview');
+  const [dirtyProjectIds, setDirtyProjectIds] = useState<string[]>([]);
+  const onActiveProjectDirty = useCallback(
+    (dirty: boolean) => {
+      const id = activeProjectId ?? 'new-project';
+      setDirtyProjectIds((current) => {
+        if (dirty && !current.includes(id)) return [...current, id];
+        if (!dirty && current.includes(id)) return current.filter((item) => item !== id);
+        return current;
+      });
+    },
+    [activeProjectId]
+  );
   const toolEntries = useSceneToolStore((state) => state.entries);
   const files = useAppStore((state) => state.files);
+  const workspace = useAppStore((state) => state.workspace);
+  const runtimeMode = useAppStore((state) => state.runtimeMode);
+  const projectWorkspaceId =
+    workspace?.id ?? (runtimeMode === 'web-mock' ? 'web-mock-workspace' : null);
   const openPaths = useAppStore((state) => state.openPaths);
   const activePath = useAppStore((state) => state.activePath);
   const dirtyPaths = useAppStore((state) => state.dirtyPaths);
@@ -166,6 +202,24 @@ export function AppShell() {
 
   useEffect(() => scheduleAutomaticUpdateCheck(), []);
   useEffect(() => {
+    if (!projectWorkspaceId || (route !== 'workbench' && route !== 'home')) return;
+    let current = true;
+    void import('../features/writingProjects/writingProjectController').then(
+      ({ writingProjectController }) =>
+        writingProjectController
+          .list(projectWorkspaceId)
+          .then((items) => {
+            if (current) setProjectItems(items);
+          })
+          .catch(() => {
+            if (current) setProjectItems([]);
+          })
+    );
+    return () => {
+      current = false;
+    };
+  }, [projectWorkspaceId, projectRefresh, route]);
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (
         event.isComposing ||
@@ -184,7 +238,16 @@ export function AppShell() {
   }, []);
 
   useEffect(() => {
-    const syncRoute = () => setRoute(routeFromHash(window.location.hash));
+    const syncRoute = () => {
+      const next = routeFromHash(window.location.hash);
+      if (next === 'projects') {
+        setResourceView('projects');
+        setActiveWorkItemType('project');
+        setCreatingProject(true);
+        setRoute('workbench');
+        navigateTo('workbench');
+      } else setRoute(next);
+    };
     window.addEventListener('hashchange', syncRoute);
     return () => window.removeEventListener('hashchange', syncRoute);
   }, []);
@@ -225,6 +288,61 @@ export function AppShell() {
     openRoute('workbench');
   };
 
+  const openProject = (id: string, browseProjects = false) => {
+    if (browseProjects) setResourceView('projects');
+    setProjectInitialTab('overview');
+    setActiveProjectId(id);
+    setOpenedProjectIds((current) => (current.includes(id) ? current : [...current, id]));
+    setCreatingProject(false);
+    setActiveWorkItemType('project');
+    openRoute('workbench');
+  };
+  const openProjectSection = (projectId: string, sectionId: string) => {
+    setActiveProjectId(projectId);
+    setActiveSectionId(sectionId);
+    setOpenedProjectIds((current) =>
+      current.includes(projectId) ? current : [...current, projectId]
+    );
+    setOpenedSections((current) =>
+      current.some((item) => item.projectId === projectId && item.sectionId === sectionId)
+        ? current
+        : [...current, { projectId, sectionId }]
+    );
+    setActiveWorkItemType('project-section');
+    openRoute('workbench');
+  };
+  const startProject = () => {
+    setProjectInitialTab('setup');
+    setResourceView('projects');
+    setActiveProjectId(null);
+    setCreatingProject(true);
+    setActiveWorkItemType('project');
+    openRoute('workbench');
+  };
+  const closeProject = (id: string) => {
+    setDirtyProjectIds((current) => current.filter((item) => item !== id));
+    if (id === 'new-project') setCreatingProject(false);
+    else setOpenedProjectIds((current) => current.filter((item) => item !== id));
+    if (activeWorkItemType === 'project' && (activeProjectId ?? 'new-project') === id) {
+      const nextProject = openedProjectIds.filter((item) => item !== id).at(-1) ?? null;
+      setActiveProjectId(nextProject);
+      setActiveWorkItemType(nextProject ? 'project' : activeResultId ? 'result' : 'document');
+    }
+  };
+  const closeProjectSection = (projectId: string, sectionId: string) => {
+    setOpenedSections((current) =>
+      current.filter((item) => item.projectId !== projectId || item.sectionId !== sectionId)
+    );
+    if (
+      activeWorkItemType === 'project-section' &&
+      activeProjectId === projectId &&
+      activeSectionId === sectionId
+    ) {
+      setActiveSectionId(null);
+      setActiveWorkItemType('project');
+    }
+  };
+
   const closeTool = (id: string) => {
     setOpenedToolIds((current) => current.filter((item) => item !== id));
     if (activeToolId === id) {
@@ -248,6 +366,36 @@ export function AppShell() {
       status: dirtyPaths.includes(path) ? 'dirty' : 'saved',
     })),
     ...toolItems,
+    ...openedProjectIds.map((id): WorkItem => ({
+      id,
+      type: 'project',
+      title:
+        projectItems.find((project) => project.id === id)?.config.title ??
+        (locale === 'zh-CN' ? '长文项目' : 'Project'),
+      status: dirtyProjectIds.includes(id) ? 'dirty' : 'saved',
+    })),
+    ...openedSections.map(({ projectId, sectionId }): WorkItem => ({
+      id: `${projectId}:${sectionId}`,
+      type: 'project-section',
+      title:
+        projectItems
+          .find((project) => project.id === projectId)
+          ?.sections.find((section) => section.id === sectionId)?.title ??
+        (locale === 'zh-CN' ? '项目章节' : 'Project section'),
+      status: 'saved',
+    })),
+    ...(creatingProject
+      ? [
+          {
+            id: 'new-project',
+            type: 'project' as const,
+            title: locale === 'zh-CN' ? '新建长文项目' : 'New writing project',
+            status: dirtyProjectIds.includes('new-project')
+              ? ('dirty' as const)
+              : ('saved' as const),
+          },
+        ]
+      : []),
     ...(activeResultId
       ? [
           {
@@ -267,14 +415,25 @@ export function AppShell() {
   const activeWorkItemId =
     activeWorkItemType === 'tool'
       ? activeToolId
-      : activeWorkItemType === 'result'
-        ? activeResultId
-        : activePath;
+      : activeWorkItemType === 'project'
+        ? (activeProjectId ?? (creatingProject ? 'new-project' : null))
+        : activeWorkItemType === 'project-section' && activeProjectId && activeSectionId
+          ? `${activeProjectId}:${activeSectionId}`
+          : activeWorkItemType === 'result'
+            ? activeResultId
+            : activePath;
 
   const openResult = (resultId: string) => {
     startPerformanceMeasurement('requestFeedback');
     startPerformanceMeasurement('resultOpen');
     openWorkbench(resultId);
+  };
+
+  const openProjectResult = (resultId: string) => {
+    const resultState = useResultStore.getState();
+    if (resultState.activeDocument?.result.id === resultId && resultState.saveStatus === 'saved') {
+      void resultState.openResult(resultId).then(() => openResult(resultId));
+    } else openResult(resultId);
   };
 
   const confirmWorkspaceFileOpen = async (_path: string, name: string) => {
@@ -307,6 +466,30 @@ export function AppShell() {
   };
 
   const closeWorkItem = async (item: WorkItem) => {
+    if (item.type === 'project-section') {
+      const section = openedSections.find(
+        (entry) => `${entry.projectId}:${entry.sectionId}` === item.id
+      );
+      if (section) closeProjectSection(section.projectId, section.sectionId);
+      return;
+    }
+    if (item.type === 'project') {
+      if (dirtyProjectIds.includes(item.id)) {
+        const confirmed = await modalApi.confirm({
+          title: locale === 'zh-CN' ? '关闭未保存的项目视图？' : 'Close unsaved project view?',
+          content:
+            locale === 'zh-CN'
+              ? '未保存的目标或大纲不会写入项目。关闭标签不会删除项目。'
+              : 'Unsaved goal or outline changes will not be saved. Closing the tab does not delete the project.',
+          okText: locale === 'zh-CN' ? '关闭标签' : 'Close tab',
+          cancelText: locale === 'zh-CN' ? '继续编辑' : 'Keep editing',
+          centered: true,
+        });
+        if (!confirmed) return;
+      }
+      closeProject(item.id);
+      return;
+    }
     if (item.type === 'document') {
       closeFile(item.id);
       return;
@@ -379,7 +562,15 @@ export function AppShell() {
       activeId={activeWorkItemId}
       onSelect={(item) => {
         if (item.type === 'tool') openTool(item.id);
-        else if (item.type === 'result') openResult(item.id);
+        else if (item.type === 'project') {
+          if (item.id === 'new-project') startProject();
+          else openProject(item.id);
+        } else if (item.type === 'project-section') {
+          const section = openedSections.find(
+            (entry) => `${entry.projectId}:${entry.sectionId}` === item.id
+          );
+          if (section) openProjectSection(section.projectId, section.sectionId);
+        } else if (item.type === 'result') openResult(item.id);
         else if (item.type === 'document') {
           void confirmWorkspaceFileOpen(item.id, item.title).then((allowed) => {
             if (!allowed) return;
@@ -416,12 +607,20 @@ export function AppShell() {
     { route: 'workbench', label: t('workbenchNavigation'), icon: <ToolOutlined /> },
     { route: 'settings', label: t('settings'), icon: <SettingOutlined /> },
   ];
+  const emptyProjectBrowse =
+    activeWorkItemType === 'document' && !activePath && resourceView === 'projects';
 
   const content =
-    route === 'home' ? (
-      <HomePage onOpenWorkbench={openWorkbench} onOpenGuide={() => setOnboardingOpen(true)} />
-    ) : route === 'projects' ? (
-      <WritingProjectsPage onOpenResult={openResult} />
+    route === 'projects' ? (
+      <div />
+    ) : route === 'home' ? (
+      <HomePage
+        onOpenWorkbench={openWorkbench}
+        onOpenGuide={() => setOnboardingOpen(true)}
+        onStartProject={startProject}
+        onOpenProject={(id) => openProject(id, true)}
+        recentProject={projectItems[0] ?? null}
+      />
     ) : route === 'knowledge' ? (
       <KnowledgePage />
     ) : route === 'results' ? (
@@ -445,7 +644,7 @@ export function AppShell() {
                 role="tablist"
                 aria-label={locale === 'zh-CN' ? '左侧资源视图' : 'Sidebar resources'}
               >
-                {(['files', 'tools'] as const).map((tab) => (
+                {(['files', 'tools', 'projects'] as const).map((tab) => (
                   <Button
                     key={tab}
                     role="tab"
@@ -457,14 +656,29 @@ export function AppShell() {
                       ? locale === 'zh-CN'
                         ? '文件'
                         : 'Files'
-                      : locale === 'zh-CN'
-                        ? '我的工具'
-                        : 'My Tools'}
+                      : tab === 'tools'
+                        ? locale === 'zh-CN'
+                          ? '我的工具'
+                          : 'My Tools'
+                        : locale === 'zh-CN'
+                          ? '项目'
+                          : 'Projects'}
                   </Button>
                 ))}
               </div>
               <div className={styles.resourceContent}>
-                {resourceView === 'tools' ? (
+                {resourceView === 'projects' ? (
+                  <ProjectSidebar
+                    projects={projectItems}
+                    activeId={
+                      activeWorkItemType === 'project' || activeWorkItemType === 'project-section'
+                        ? activeProjectId
+                        : null
+                    }
+                    onOpen={openProject}
+                    onCreate={startProject}
+                  />
+                ) : resourceView === 'tools' ? (
                   <div className={styles.toolsSidebar}>
                     <MySceneTools
                       activeId={activeWorkItemType === 'tool' ? activeToolId : null}
@@ -483,6 +697,15 @@ export function AppShell() {
                 ) : (
                   <WorkspaceSidebar
                     highlightActiveFile={activeWorkItemType === 'document'}
+                    currentResultTitle={
+                      activeWorkItemType === 'result'
+                        ? resultDocument?.result.id === activeResultId
+                          ? resultDocument.result.title
+                          : locale === 'zh-CN'
+                            ? '成果'
+                            : 'Result'
+                        : undefined
+                    }
                     onBeforeOpenFile={confirmWorkspaceFileOpen}
                     onActivateWorkspace={() => setActiveWorkItemType('document')}
                   />
@@ -491,7 +714,43 @@ export function AppShell() {
             </div>
           }
           center={
-            activeWorkItemType === 'tool' ? (
+            activeWorkItemType === 'project' || activeWorkItemType === 'project-section' ? (
+              <div className={styles.toolContent}>
+                <div className={styles.workItemBar}>
+                  {workItemTabs}
+                  <WorkspacePanelControls leftLabels={leftPanelLabels} />
+                </div>
+                <WritingProjectsPage
+                  key={`${activeProjectId ?? 'new-project'}:${activeWorkItemType === 'project-section' ? activeSectionId : 'project'}`}
+                  embedded
+                  projectId={activeProjectId}
+                  chapterId={activeWorkItemType === 'project-section' ? activeSectionId : null}
+                  initialTab={projectInitialTab}
+                  professional={professional}
+                  onOpenSection={(sectionId) =>
+                    activeProjectId && openProjectSection(activeProjectId, sectionId)
+                  }
+                  onOpenProject={() => activeProjectId && openProject(activeProjectId)}
+                  onOpenSettings={() => openRoute('settings')}
+                  onProjectCreated={(id) => {
+                    setDirtyProjectIds((current) =>
+                      current.filter((item) => item !== 'new-project')
+                    );
+                    openProject(id);
+                    setProjectInitialTab('outline');
+                    setProjectRefresh((value) => value + 1);
+                  }}
+                  onProjectChanged={() => setProjectRefresh((value) => value + 1)}
+                  onDirtyChange={onActiveProjectDirty}
+                  onProjectDeleted={(id) => {
+                    setOpenedSections((current) => current.filter((item) => item.projectId !== id));
+                    closeProject(id);
+                    setProjectRefresh((value) => value + 1);
+                  }}
+                  onOpenResult={openProjectResult}
+                />
+              </div>
+            ) : activeWorkItemType === 'tool' ? (
               <div className={styles.toolContent}>
                 <div className={styles.workItemBar}>
                   {workItemTabs}
@@ -536,6 +795,21 @@ export function AppShell() {
                   onUndoReview={(review) => void undoCreatedResult(review)}
                 />
               </div>
+            ) : emptyProjectBrowse ? (
+              <div className={styles.toolContent}>
+                <div className={styles.workItemBar}>{workItemTabs}</div>
+                <Empty
+                  description={
+                    locale === 'zh-CN'
+                      ? '选择一个项目继续写作，或新建长文项目'
+                      : 'Choose a project or start a writing project'
+                  }
+                >
+                  <Button type="primary" onClick={startProject}>
+                    {locale === 'zh-CN' ? '新建项目' : 'New project'}
+                  </Button>
+                </Empty>
+              </div>
             ) : (
               <EditorPane
                 workItemTabs={workItemTabs}
@@ -553,12 +827,51 @@ export function AppShell() {
                 key={`assistant:${activeResultId}`}
                 resultId={activeResultId}
                 onOpenResult={openResult}
+                onOpenSettings={() => openRoute('settings')}
               />
+            ) : (activeWorkItemType === 'project' && !activeProjectId) || emptyProjectBrowse ? (
+              <aside
+                className={styles.projectSetupAssistant}
+                aria-label={locale === 'zh-CN' ? '项目 AI 协作' : 'Project AI collaboration'}
+              >
+                <h2>{locale === 'zh-CN' ? 'AI 助手' : 'AI assistant'}</h2>
+                <p>
+                  {locale === 'zh-CN'
+                    ? emptyProjectBrowse
+                      ? '选择或新建项目后，AI 会跟随当前项目。'
+                      : '先完成项目目标与资料设置，再启用 AI 协作。'
+                    : emptyProjectBrowse
+                      ? 'Choose or create a project to work with AI.'
+                      : 'Finish project setup to enable AI collaboration.'}
+                </p>
+              </aside>
             ) : (
               <ChatPanel
-                key={activeWorkItemType === 'tool' ? `tool:${activeToolId ?? 'empty'}` : 'file'}
+                key={
+                  activeWorkItemType === 'tool'
+                    ? `tool:${activeToolId ?? 'empty'}`
+                    : activeWorkItemType === 'project' || activeWorkItemType === 'project-section'
+                      ? `project:${activeProjectId ?? 'new'}:${activeSectionId ?? 'overview'}`
+                      : emptyProjectBrowse
+                        ? 'project:empty'
+                        : 'file'
+                }
                 professionalTools={professional}
                 toolId={activeWorkItemType === 'tool' ? activeToolId : undefined}
+                project={
+                  activeWorkItemType === 'project' ||
+                  activeWorkItemType === 'project-section' ||
+                  emptyProjectBrowse
+                    ? (projectItems.find((item) => item.id === activeProjectId) ?? null)
+                    : undefined
+                }
+                projectSection={
+                  activeWorkItemType === 'project-section'
+                    ? (projectItems
+                        .find((item) => item.id === activeProjectId)
+                        ?.sections.find((section) => section.id === activeSectionId) ?? null)
+                    : undefined
+                }
               />
             )
           }
@@ -709,9 +1022,9 @@ export function AppShell() {
             <ImportBatchModal onConfirmed={acceptImportedSelection} />
           </>
         ) : null}
-        {professional && settingsOpen && (
+        {settingsOpen && (
           <ProviderSettings
-            open={professional && settingsOpen}
+            open={settingsOpen}
             includeSystemSettings={false}
             onClose={() => setSettingsOpen(false)}
           />

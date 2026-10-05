@@ -4,6 +4,19 @@ import { resetWebMockHomeGateway, webMockHomeGateway } from './home';
 describe('Web Mock home gateway', () => {
   beforeEach(() => resetWebMockHomeGateway());
 
+  it('preserves an intentionally numeric result title', async () => {
+    const created = await webMockHomeGateway.createTextResult({
+      title: '2',
+      fileName: 'legacy.md',
+      type: 'document',
+      format: 'markdown',
+    });
+    expect(created.result.title).toBe('2');
+    expect((await webMockHomeGateway.readResultDocument(created.result.id)).result.title).toBe(
+      '2'
+    );
+  });
+
   it('keeps pin metadata across reads and saves and restores recency order when unpinned', async () => {
     const [older] = await webMockHomeGateway.listResults();
     const recent = await webMockHomeGateway.createTextResult({

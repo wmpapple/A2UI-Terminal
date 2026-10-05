@@ -1,30 +1,32 @@
 use crate::{domain::writing_project::*, error::AppError, storage::Storage};
 use rusqlite::{params, OptionalExtension};
 
-fn decode(json: &str) -> Result<WritingProject, AppError> {
-    serde_json::from_str(json).map_err(|_| AppError::StateUnavailable)
+fn decode(json: &str, updated_at: String) -> Result<WritingProject, AppError> {
+    let mut project: WritingProject = serde_json::from_str(json).map_err(|_| AppError::StateUnavailable)?;
+    project.updated_at = Some(updated_at);
+    Ok(project)
 }
 pub fn get(storage: &Storage, id: &str) -> Result<WritingProject, AppError> {
-    let json = storage
+    let row = storage
         .with_read(|db| {
             Ok(db
                 .query_row(
-                    "SELECT payload_json FROM writing_projects WHERE id=?1",
+                    "SELECT payload_json, updated_at FROM writing_projects WHERE id=?1",
                     [id],
-                    |r| r.get::<_, String>(0),
+                    |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)),
                 )
                 .optional()?)
         })?
         .ok_or_else(|| AppError::InvalidInput("长文项目不存在或工作区已移除".into()))?;
-    decode(&json)
+    decode(&row.0, row.1)
 }
 pub fn list(storage: &Storage, workspace: &str) -> Result<Vec<WritingProject>, AppError> {
     let rows = storage.with_read(|db| {
-        let mut s=db.prepare("SELECT payload_json FROM writing_projects WHERE workspace_id=?1 ORDER BY updated_at DESC,rowid DESC LIMIT 100")?;
-        let rows=s.query_map([workspace],|r|r.get::<_,String>(0))?.collect::<Result<Vec<_>,_>>()?;
+        let mut s=db.prepare("SELECT payload_json, updated_at FROM writing_projects WHERE workspace_id=?1 ORDER BY updated_at DESC,rowid DESC LIMIT 100")?;
+        let rows=s.query_map([workspace],|r|Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?)))?.collect::<Result<Vec<_>,_>>()?;
         Ok(rows)
     })?;
-    rows.iter().map(|j| decode(j)).collect()
+    rows.into_iter().map(|(json, updated_at)| decode(&json, updated_at)).collect()
 }
 pub fn create(storage: &Storage, project: &WritingProject) -> Result<(), AppError> {
     let json = serde_json::to_string(project).map_err(|_| AppError::StateUnavailable)?;

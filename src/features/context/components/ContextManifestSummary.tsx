@@ -10,11 +10,13 @@ export function ContextManifestSummary({
   onClearIndex,
   indexClearing = false,
   compact = false,
+  emptySourcesLabel,
 }: {
   manifest: ContextManifest;
   onClearIndex?: () => void;
   indexClearing?: boolean;
   compact?: boolean;
+  emptySourcesLabel?: string;
 }) {
   const { locale, t } = useI18n();
   return (
@@ -70,7 +72,7 @@ export function ContextManifestSummary({
       <strong>{t('includedSources')}</strong>
       <div className={styles.manifestList}>
         {manifest.includedSources.length === 0 ? (
-          <Tag>{t('noFileContext')}</Tag>
+          <Tag>{emptySourcesLabel ?? t('noFileContext')}</Tag>
         ) : (
           manifest.includedSources.map((source) => (
             <Tag color="green" key={`${source.kind}:${source.label}`}>

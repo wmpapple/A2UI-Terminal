@@ -231,15 +231,14 @@
   min-height: 0;
   height: 100%;
   overflow: auto;
-  padding: 20px;
+  padding: 0;
 }
-.toolHeader h1 {
-  margin: 0 0 4px;
-  font-size: 24px;
-}
-.toolHeader p {
-  margin: 0;
-  color: var(--muted);
+.toolSection,
+.formArea {
+  max-width: 948px;
+  margin: 0 auto;
+  padding: 16px 24px 0;
+  box-sizing: border-box;
 }
 .publicationRelation {
   padding: 8px 0;
@@ -282,7 +281,7 @@
   gap: 6px;
 }
 .formArea {
-  padding-top: 4px;
+  padding-top: 16px;
 }
 .sceneSurface.sceneSurface {
   min-height: 0;
@@ -316,8 +315,7 @@
   min-width: 150px;
 }
 .body {
-  max-width: 900px;
-  margin: 20px auto;
+  min-width: 0;
 }
 .myToolsPanel h2 {
   display: flex;

@@ -41,6 +41,10 @@ pub fn collaboration_inbox(
     service::inbox(&state.storage, &id)
 }
 #[tauri::command]
+pub fn collaboration_mark_handled(state: State<'_, AppState>, id: String) -> Result<(), AppError> {
+    service::mark_handled(&state.storage, &id)
+}
+#[tauri::command]
 pub fn collaboration_feedback(
     state: State<'_, AppState>,
     input: SaveFeedbackInput,

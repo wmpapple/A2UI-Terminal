@@ -19,16 +19,18 @@ const iconFor = (path: string) =>
 
 interface Props {
   highlightActiveFile?: boolean;
+  currentResultTitle?: string;
   onActivateWorkspace?: () => void;
   onBeforeOpenFile?: (path: string, name: string) => boolean | Promise<boolean>;
 }
 
 export function WorkspaceSidebar({
   highlightActiveFile = true,
+  currentResultTitle,
   onActivateWorkspace,
   onBeforeOpenFile,
 }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const runtimeMode = useAppStore((state) => state.runtimeMode);
   const workspace = useAppStore((state) => state.workspace);
   const recentWorkspaces = useAppStore((state) => state.recentWorkspaces);
@@ -68,6 +70,12 @@ export function WorkspaceSidebar({
         </div>
         <Tag className={styles.workspaceBadge}>{isDesktop ? t('realWorkspace') : 'Mock'}</Tag>
       </div>
+      {currentResultTitle && (
+        <div className={styles.currentResultContext}>
+          <span>{locale === 'zh-CN' ? '当前成果' : 'Current result'}</span>
+          <strong title={currentResultTitle}>{currentResultTitle}</strong>
+        </div>
+      )}
       <div className={styles.workspaceActions}>
         <div className={styles.primaryActions}>
           <Button
@@ -168,6 +176,11 @@ export function WorkspaceSidebar({
           }
         />
       ) : null}
+      {currentResultTitle && (
+        <span className={styles.fileSectionLabel}>
+          {locale === 'zh-CN' ? '工作区文件' : 'Workspace files'}
+        </span>
+      )}
       <Input
         allowClear
         value={query}

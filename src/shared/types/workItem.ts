@@ -1,4 +1,5 @@
-export type WorkItemType = 'document' | 'tool' | 'result' | 'canvas';
+export type WorkItemType =
+  'document' | 'tool' | 'project' | 'project-section' | 'result' | 'canvas';
 
 export interface WorkItem {
   id: string;

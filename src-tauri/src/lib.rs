@@ -207,6 +207,7 @@ pub fn run() {
             collaboration_commands::collaboration_share,
             collaboration_commands::collaboration_revoke,
             collaboration_commands::collaboration_inbox,
+            collaboration_commands::collaboration_mark_handled,
             collaboration_commands::collaboration_feedback,
             collaboration_commands::collaboration_propose,
             collaboration_commands::collaboration_import,

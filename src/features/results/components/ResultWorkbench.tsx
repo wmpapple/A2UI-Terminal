@@ -14,6 +14,7 @@ import {
   EyeOutlined,
   FileDoneOutlined,
   HistoryOutlined,
+  MoreOutlined,
   SaveOutlined,
   UndoOutlined,
 } from '@ant-design/icons';
@@ -26,7 +27,6 @@ import type { MessageKey } from '../../../app/i18n/messages';
 import type { FileSaveStatus, ResultAppliedReview } from '../../../shared/types/domain';
 import type { DocumentSnapshot } from '../../../shared/types/document';
 import { finishPerformanceMeasurement } from '../../../shared/performance/performanceBudget';
-import { resultAdapterDefinitions } from '../resultAdapters';
 import { useResultStore } from '../resultStore';
 import { ExportResultModal } from './ExportResultModal';
 import { ResultContentAdapter } from './ResultContentAdapter';
@@ -110,7 +110,8 @@ export function ResultWorkbench({
     },
     [resultId]
   );
-  const [viewMode, setViewMode] = useState<'preview' | 'edit'>('preview');
+  const [viewMode, setViewMode] = useState<'preview' | 'edit' | 'review'>('preview');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [editorPort, setEditorPort] = useState<SourceEditorPort | null>(null);
   const [selectedText, setSelectedText] = useState('');
@@ -212,7 +213,6 @@ export function ResultWorkbench({
       />
     );
   }
-  const adapter = resultAdapterDefinitions[activeDocument.result.type];
   const inlineSnapshot: DocumentSnapshot = {
     target: { kind: 'result', resultId: activeDocument.result.id },
     revisionId: activeDocument.result.currentRevisionId,
@@ -234,91 +234,180 @@ export function ResultWorkbench({
     >
       <header className={styles.toolbar}>
         <div className={styles.identity}>
-          <strong>{activeDocument.result.title}</strong>
-          <span>
-            {t(adapter.labelKey as MessageKey)} · {activeDocument.format.toUpperCase()} ·{' '}
-            {t('managedResultLocation')}
+          <span className={styles.identityKind}>
+            {locale === 'zh-CN' ? '成果' : 'Result'} ·{' '}
+            {activeDocument.format === 'markdown'
+              ? 'Markdown'
+              : activeDocument.format.toUpperCase()}
           </span>
-          <Button type="link" size="small" icon={<FileDoneOutlined />} onClick={onOpenResults}>
-            {t('openMyResults')}
-          </Button>
+          <h2>{activeDocument.result.title}</h2>
+          <div className={styles.identityMeta}>
+            <Tag color={saveColors[saveStatus]} role="status" aria-live="polite">
+              {t(saveStatusKeys[saveStatus])}
+            </Tag>
+            <span>{locale === 'zh-CN' ? '来源：我的成果' : 'Source: My results'}</span>
+          </div>
         </div>
-        <div className={styles.actions}>
+        <div className={styles.modeRow}>
+          <Segmented
+            value={viewMode}
+            aria-label={locale === 'zh-CN' ? '成果模式' : 'Result mode'}
+            onChange={(value) => {
+              setViewMode(value as typeof viewMode);
+              setAdvancedOpen(false);
+            }}
+            options={[
+              {
+                label: locale === 'zh-CN' ? '阅读' : 'Read',
+                value: 'preview',
+                icon: <EyeOutlined />,
+              },
+              ...(activeDocument.editable
+                ? [{ label: t('editResult'), value: 'edit', icon: <EditOutlined /> }]
+                : []),
+              ...(activeDocument.editable && activeDocument.result.type === 'document'
+                ? [
+                    {
+                      label: locale === 'zh-CN' ? '审阅' : 'Review',
+                      value: 'review',
+                      icon: <DiffOutlined />,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+          <div className={styles.actions}>
+            {viewMode === 'edit' && (
+              <>
+                <Button
+                  icon={<SaveOutlined />}
+                  loading={saving}
+                  disabled={!changed}
+                  onClick={() => void save()}
+                >
+                  {t('saveResult')}
+                </Button>
+                <Button icon={<UndoOutlined />} disabled={changed} onClick={() => void undo()}>
+                  {t('undoResult')}
+                </Button>
+                <Button icon={<DiffOutlined />} onClick={() => void showChanges()}>
+                  {t('viewChanges')}
+                </Button>
+              </>
+            )}
+            {viewMode === 'review' && (
+              <>
+                <CriticPanel
+                  compact
+                  snapshot={{ ...inlineSnapshot, editable: activeDocument.editable }}
+                  workspaceId={activeDocument.result.workspaceId}
+                  onApplied={async (application) => {
+                    await resultController.receiveInlineApplication(
+                      activeDocument.result.id,
+                      application,
+                      activeDocument.contentHash
+                    );
+                    await openResult(activeDocument.result.id);
+                    setSelectedText('');
+                  }}
+                />
+                <CollaborationPanel
+                  key={resultId}
+                  snapshot={{ ...inlineSnapshot, editable: activeDocument.editable }}
+                />
+                <Button icon={<DiffOutlined />} onClick={() => void showChanges()}>
+                  {t('viewChanges')}
+                </Button>
+                {appliedReview && onUndoReview && (
+                  <Button
+                    icon={<UndoOutlined />}
+                    loading={reviewUndoing}
+                    onClick={() => onUndoReview(appliedReview)}
+                  >
+                    {t('undoPatch')}
+                  </Button>
+                )}
+              </>
+            )}
+            {viewMode === 'preview' && (
+              <>
+                <Button
+                  icon={<DownloadOutlined />}
+                  disabled={activeDocument.result.currentRevisionId === null}
+                  onClick={() => setExportOpen(true)}
+                >
+                  {t('exportResult')}
+                </Button>
+                <Button icon={<HistoryOutlined />} onClick={showHistory}>
+                  {t('resultHistory')}
+                </Button>
+              </>
+            )}
+            <Button
+              type="text"
+              icon={<MoreOutlined />}
+              aria-label={locale === 'zh-CN' ? '更多成果操作' : 'More result actions'}
+              title={locale === 'zh-CN' ? '更多成果操作' : 'More result actions'}
+              aria-expanded={advancedOpen}
+              onClick={() => setAdvancedOpen((value) => !value)}
+            />
+          </div>
+        </div>
+        <div className={styles.advancedActions} hidden={!advancedOpen}>
           <WorkbenchAppearanceControl />
-          {activeDocument.editable && activeDocument.result.type === 'document' && (
-            <CollaborationPanel
-              key={resultId}
+          <BoundSceneTools
+            compact
+            binding={
+              activeDocument.result.type === 'document'
+                ? { type: 'document', target: { kind: 'result', resultId } }
+                : { type: 'result', targetId: resultId }
+            }
+            dirty={saveStatus !== 'saved' || changed || Boolean(activeDocument.recoveryDraft)}
+            onOpenResult={onOpenTool ?? onDuplicated}
+          />
+          {viewMode === 'edit' && activeDocument.result.type === 'document' && (
+            <StructuredDocumentPanel
+              compact
               snapshot={{ ...inlineSnapshot, editable: activeDocument.editable }}
+              onApplied={async (application) => {
+                await resultController.receiveInlineApplication(
+                  activeDocument.result.id,
+                  application,
+                  activeDocument.contentHash
+                );
+                await openResult(activeDocument.result.id);
+                setSelectedText('');
+              }}
             />
           )}
-          {
-            <BoundSceneTools
-              binding={
-                activeDocument.result.type === 'document'
-                  ? { type: 'document', target: { kind: 'result', resultId } }
-                  : { type: 'result', targetId: resultId }
-              }
-              dirty={saveStatus !== 'saved' || changed || Boolean(activeDocument.recoveryDraft)}
-              onOpenResult={onOpenTool ?? onDuplicated}
-            />
-          }
-          {activeDocument.editable ? (
-            <Segmented
-              value={viewMode}
-              onChange={(value) => setViewMode(value as 'preview' | 'edit')}
-              options={[
-                { label: t('previewResult'), value: 'preview', icon: <EyeOutlined /> },
-                { label: t('editResult'), value: 'edit', icon: <EditOutlined /> },
-              ]}
-            />
-          ) : null}
-          <Tag color={saveColors[saveStatus]} role="status" aria-live="polite">
-            {t(saveStatusKeys[saveStatus])}
-          </Tag>
           <Button
-            icon={<SaveOutlined />}
-            loading={saving}
-            disabled={!activeDocument.editable || !changed}
-            onClick={() => void save()}
-          >
-            {t('saveResult')}
-          </Button>
-          <Button icon={<DiffOutlined />} onClick={() => void showChanges()}>
-            {t('viewChanges')}
-          </Button>
-          {appliedReview && onUndoReview ? (
-            <Button
-              icon={<UndoOutlined />}
-              loading={reviewUndoing}
-              onClick={() => onUndoReview(appliedReview)}
-            >
-              {t('undoPatch')}
-            </Button>
-          ) : null}
-          <Button
-            icon={<UndoOutlined />}
-            disabled={!activeDocument.editable || changed}
-            onClick={() => void undo()}
-          >
-            {t('undoResult')}
-          </Button>
-          <Button icon={<HistoryOutlined />} onClick={showHistory}>
-            {t('resultHistory')}
-          </Button>
-          <Button
+            size="small"
+            type="text"
             icon={<CopyOutlined />}
             disabled={!activeDocument.editable}
             onClick={() => void makeCopy()}
           >
             {t('saveAsCopy')}
           </Button>
-          <Button
-            icon={<DownloadOutlined />}
-            disabled={activeDocument.result.currentRevisionId === null}
-            onClick={() => setExportOpen(true)}
-          >
-            {t('exportResult')}
+          <Button size="small" type="text" icon={<FileDoneOutlined />} onClick={onOpenResults}>
+            {locale === 'zh-CN' ? '打开成果列表' : 'Open results list'}
           </Button>
+          {viewMode !== 'preview' && (
+            <>
+              <Button size="small" type="text" icon={<HistoryOutlined />} onClick={showHistory}>
+                {t('resultHistory')}
+              </Button>
+              <Button
+                size="small"
+                type="text"
+                icon={<DownloadOutlined />}
+                disabled={activeDocument.result.currentRevisionId === null}
+                onClick={() => setExportOpen(true)}
+              >
+                {t('exportResult')}
+              </Button>
+            </>
+          )}
         </div>
       </header>
       {reviewUndoError ? (
@@ -374,37 +463,6 @@ export function ResultWorkbench({
           }}
         />
       ) : null}
-      <CriticPanel
-        snapshot={{
-          ...inlineSnapshot,
-          editable: activeDocument.editable && activeDocument.result.type === 'document',
-        }}
-        workspaceId={activeDocument.result.workspaceId}
-        onApplied={async (application) => {
-          await resultController.receiveInlineApplication(
-            activeDocument.result.id,
-            application,
-            activeDocument.contentHash
-          );
-          await openResult(activeDocument.result.id);
-          setSelectedText('');
-        }}
-      />
-      <StructuredDocumentPanel
-        snapshot={{
-          ...inlineSnapshot,
-          editable: activeDocument.editable && activeDocument.result.type === 'document',
-        }}
-        onApplied={async (application) => {
-          await resultController.receiveInlineApplication(
-            activeDocument.result.id,
-            application,
-            activeDocument.contentHash
-          );
-          await openResult(activeDocument.result.id);
-          setSelectedText('');
-        }}
-      />
       <CitationPanel
         key={activeDocument.result.id + draftContent}
         ownerKind="result"
@@ -417,7 +475,7 @@ export function ResultWorkbench({
         format={activeDocument.format}
         content={draftContent}
         editable={activeDocument.editable}
-        viewMode={viewMode}
+        viewMode={viewMode === 'edit' ? 'edit' : 'preview'}
         onChange={updateDraft}
         onSelection={setSelectedText}
         onEditorPort={setEditorPort}

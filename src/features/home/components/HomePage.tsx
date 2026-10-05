@@ -12,6 +12,7 @@ import { RecentResultsList } from './RecentResultsList';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
 import type { ResultStatus, ResultType } from '../../../shared/types/domain';
+import type { WritingProject } from '../../../shared/types/writingProject';
 import {
   finishPerformanceMeasurement,
   startPerformanceMeasurement,
@@ -22,7 +23,6 @@ import { SourceDropZone } from './SourceDropZone';
 import { lazyFeature } from '../../../app/lazyFeature';
 import { AuthorizedSearch } from './AuthorizedSearch';
 import styles from './HomePage.module.css';
-import { navigateTo } from '../../../app/shellPreferences';
 
 const CreateTextResultModal = lazyFeature(async () => {
   const module = await import('../../results/components/CreateTextResultModal');
@@ -32,6 +32,9 @@ const CreateTextResultModal = lazyFeature(async () => {
 interface Props {
   onOpenWorkbench: (resultId?: string) => void;
   onOpenGuide: () => void;
+  onStartProject: () => void;
+  onOpenProject: (id: string) => void;
+  recentProject?: WritingProject | null;
 }
 
 const GenerationPanel = lazyFeature(async () => {
@@ -110,7 +113,13 @@ const typeKeys: Record<ResultType, MessageKey> = {
   tool: 'resultTypeTool',
 };
 
-export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
+export function HomePage({
+  onOpenWorkbench,
+  onOpenGuide,
+  onStartProject,
+  onOpenProject,
+  recentProject,
+}: Props) {
   const { locale, t } = useI18n();
   const workspace = useAppStore((state) => state.workspace);
   const runtimeMode = useAppStore((state) => state.runtimeMode);
@@ -212,11 +221,37 @@ export function HomePage({ onOpenWorkbench, onOpenGuide }: Props) {
               {t('createResult')}
             </Button>
             <Button onClick={onOpenGuide}>{t('replayOnboarding')}</Button>
-            <Button onClick={() => navigateTo('projects')}>
-              {locale === 'zh-CN' ? '长文项目' : 'Writing projects'}
+            <Button onClick={onStartProject}>
+              {locale === 'zh-CN' ? '开始长文项目' : 'Start writing project'}
             </Button>
           </div>
         </div>
+
+        {recentProject && (
+          <section
+            className={styles.recentProject}
+            aria-label={locale === 'zh-CN' ? '继续最近项目' : 'Continue recent project'}
+          >
+            <div>
+              <span>{locale === 'zh-CN' ? '继续最近项目' : 'Continue recent project'}</span>
+              <strong>{recentProject.config.title}</strong>
+              <small>
+                {recentProject.sections.length
+                  ? `${recentProject.sections.filter((section) => section.accepted).length} / ${recentProject.sections.length} ${locale === 'zh-CN' ? '节完成' : 'sections complete'}`
+                  : locale === 'zh-CN'
+                    ? '大纲待确认'
+                    : 'Outline pending'}
+              </small>
+            </div>
+            <Button
+              size="small"
+              icon={<RightOutlined />}
+              onClick={() => onOpenProject(recentProject.id)}
+            >
+              {locale === 'zh-CN' ? '继续' : 'Continue'}
+            </Button>
+          </section>
+        )}
 
         {recoveryStatus &&
         (recoveryStatus.resultDrafts.length > 0 ||

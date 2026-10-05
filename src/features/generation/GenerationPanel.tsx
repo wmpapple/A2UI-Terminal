@@ -34,6 +34,7 @@ interface Props {
   taskId?: string;
   workspaceId: string;
   blocked?: boolean;
+  onOpenSettings?: () => void;
   onApplied: (resultId: string) => void;
 }
 
@@ -43,6 +44,7 @@ export function GenerationPanel({
   taskId,
   workspaceId,
   blocked = false,
+  onOpenSettings,
   onApplied,
 }: Props) {
   const { locale } = useI18n();
@@ -86,6 +88,7 @@ export function GenerationPanel({
   const providerSignature = JSON.stringify(selectedProvider);
   const [plannedProvider, setPlannedProvider] = useState('');
   const busy = phase !== 'idle';
+  const configured = Boolean(selectedProvider?.configured);
   const planValid = plan && plannedProvider === providerSignature && !blocked;
   useLayoutEffect(() => {
     const pane = outputPane.current;
@@ -261,12 +264,12 @@ export function GenerationPanel({
       aria-label={zh ? 'AI 写作' : 'AI writing'}
     >
       <ChatHeader
-        configured={Boolean(selectedProvider?.configured)}
+        configured={configured}
         busy={busy}
         professionalTools={false}
         onProviderChange={invalidate}
         targetLabel={
-          (zh ? '目标：' : 'Target: ') +
+          (resultId ? (zh ? '当前成果：' : 'Current result: ') : zh ? '目标：' : 'Target: ') +
           (targetTitle ??
             sentPlan?.targetTitle ??
             (taskId
@@ -286,7 +289,7 @@ export function GenerationPanel({
           followOutput.current = pane.scrollHeight - pane.scrollTop - pane.clientHeight < 80;
         }}
       >
-        {!sentPlan && (
+        {!sentPlan && configured && (
           <InfoNotice
             showIcon
             title={
@@ -302,7 +305,7 @@ export function GenerationPanel({
           />
         )}
         {isWebMock() && <Tag>Web Mock</Tag>}
-        {blocked && (
+        {configured && blocked && (
           <Alert
             type="warning"
             title={zh ? '请先保存或处理当前成果草稿' : 'Save or resolve the current draft first'}
@@ -314,15 +317,31 @@ export function GenerationPanel({
             title={zh ? '已停止生成，未应用任何修改' : 'Generation stopped; no changes applied'}
           />
         )}
-        {!selectedProvider?.configured && (
-          <Alert
-            type="warning"
-            title={
-              zh
-                ? '请先在设置中配置云端 API Key，或选择本地模型'
-                : 'Configure an API key in Settings or choose a local model'
-            }
-          />
+        {!configured && !busy && (
+          <div className={styles.setupCard} role="status">
+            <strong>{zh ? 'AI 暂不可用' : 'AI is unavailable'}</strong>
+            <p>
+              {zh
+                ? '配置模型后即可继续完善这份成果。'
+                : 'Set up a model to continue working on this result.'}
+            </p>
+            {resultId && (
+              <p className={styles.privacyNote}>
+                {zh ? '当前成果不会自动发送给 AI' : 'This result is not sent to AI automatically.'}
+              </p>
+            )}
+            <div className={styles.setupActions}>
+              <Button
+                type="primary"
+                onClick={() => {
+                  if (onOpenSettings) onOpenSettings();
+                  else window.location.hash = '/settings';
+                }}
+              >
+                {zh ? '去设置' : 'Open settings'}
+              </Button>
+            </div>
+          </div>
         )}
         {sentPlan && (
           <article className={styles.request}>
@@ -349,7 +368,7 @@ export function GenerationPanel({
             <AssistantMarkdown content={text} streaming={phase === 'generating'} />
           </article>
         )}
-        {!sentPlan && !busy && (
+        {!sentPlan && !busy && configured && (
           <div className={styles.welcome}>
             <h3>{zh ? '你想怎样完善这份成果？' : 'How would you like to improve this result?'}</h3>
             <p>
@@ -378,52 +397,54 @@ export function GenerationPanel({
       {phase === 'generating' && (
         <AssistantProgress receiving={Boolean(text)} stopping={stopping} />
       )}
-      <ChatComposer
-        prompt={prompt}
-        promptLabel={zh ? '写作要求' : 'Writing instructions'}
-        activePath={
-          includeResult ? (targetTitle ?? (zh ? '当前成果正文' : 'Current document')) : ''
-        }
-        projectFiles={[]}
-        processingLocation={
-          phase === 'generating' ? (sentPlan?.manifest.processingLocation ?? location) : location
-        }
-        hasReviewedContext={Boolean(sentPlan)}
-        contextReviewed={false}
-        requestActive={phase === 'generating'}
-        manifestLoading={phase === 'planning'}
-        contextOpen={contextOpen || Boolean(planValid)}
-        sendDisabled={busy || blocked || Boolean(review)}
-        readOnlyWhileActive
-        maxLength={10000}
-        contextStatusLabel={
-          phase === 'generating'
-            ? zh
-              ? '已确认发送范围'
-              : 'Confirmed scope'
-            : zh
-              ? '范围变化时确认'
-              : 'Confirm when scope changes'
-        }
-        contextSummary={
-          <Tag>
-            {zh ? '已选资料：' : 'Selected: '}
-            {knowledgeIds.length + documentIds.length + packIds.length + Number(includeResult)}
-          </Tag>
-        }
-        onPromptChange={(value) => {
-          setPrompt(value);
-          invalidate();
-        }}
-        onOpenContext={() => setContextOpen(true)}
-        onSend={() => void planRequest()}
-        onStop={() => {
-          stopped.current = true;
-          setStopping(true);
-          const id = requestId.current;
-          if (id) void api.stop(id).catch((e) => setError(errorDetails(e).message));
-        }}
-      />
+      {(configured || busy) && (
+        <ChatComposer
+          prompt={prompt}
+          promptLabel={zh ? '写作要求' : 'Writing instructions'}
+          activePath={
+            includeResult ? (targetTitle ?? (zh ? '当前成果正文' : 'Current document')) : ''
+          }
+          projectFiles={[]}
+          processingLocation={
+            phase === 'generating' ? (sentPlan?.manifest.processingLocation ?? location) : location
+          }
+          hasReviewedContext={Boolean(sentPlan)}
+          contextReviewed={false}
+          requestActive={phase === 'generating'}
+          manifestLoading={phase === 'planning'}
+          contextOpen={contextOpen || Boolean(planValid)}
+          sendDisabled={busy || blocked || Boolean(review)}
+          readOnlyWhileActive
+          maxLength={10000}
+          contextStatusLabel={
+            phase === 'generating'
+              ? zh
+                ? '已确认发送范围'
+                : 'Confirmed scope'
+              : zh
+                ? '范围变化时确认'
+                : 'Confirm when scope changes'
+          }
+          contextSummary={
+            <Tag>
+              {zh ? '已选资料：' : 'Selected: '}
+              {knowledgeIds.length + documentIds.length + packIds.length + Number(includeResult)}
+            </Tag>
+          }
+          onPromptChange={(value) => {
+            setPrompt(value);
+            invalidate();
+          }}
+          onOpenContext={() => setContextOpen(true)}
+          onSend={() => void planRequest()}
+          onStop={() => {
+            stopped.current = true;
+            setStopping(true);
+            const id = requestId.current;
+            if (id) void api.stop(id).catch((e) => setError(errorDetails(e).message));
+          }}
+        />
+      )}
       <Modal
         open={contextOpen}
         title={zh ? '本次发送范围' : 'Sending scope'}

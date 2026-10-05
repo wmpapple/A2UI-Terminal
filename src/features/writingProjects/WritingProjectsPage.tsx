@@ -3,20 +3,22 @@ import {
   Button,
   Card,
   Checkbox,
+  Dropdown,
   Empty,
   Form,
   Input,
   InputNumber,
   Modal,
-  Popconfirm,
   Progress,
   Select,
   Space,
   Tabs,
   Tag,
 } from 'antd';
+import { BookOutlined, HolderOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../app/i18n/useI18n';
+import { WorkItemHeader, WorkItemNavigation } from '../../app/WorkItemFrame';
 import { useAppStore } from '../../stores/useAppStore';
 import { errorDetails } from '../../stores/support';
 import type { ContextPack, DocumentSource } from '../../shared/types/domain';
@@ -30,10 +32,10 @@ import type {
 import { KnowledgePicker } from '../knowledge/KnowledgePicker';
 import { importController } from '../imports/importController';
 import { contextPackController } from '../contextPacks/contextPackController';
-import { ContextManifestSummary } from '../context/components/ContextManifestSummary';
 import { AssistantMarkdown } from '../chat/components/ChatMessageList';
 import { writingProjectController as api } from './writingProjectController';
 import { SectionReview } from './SectionReview';
+import { WritingSendSummary } from './WritingSendSummary';
 import styles from './WritingProjectsPage.module.css';
 
 const emptyConfig = (): ProjectConfig => ({
@@ -58,7 +60,37 @@ const navigationDrafts = new Map<
   string,
   { id: string | null; config: ProjectConfig; rows: OutlineSection[]; tab: string }
 >();
-export function WritingProjectsPage({ onOpenResult }: { onOpenResult: (id: string) => void }) {
+interface WritingProjectsPageProps {
+  onOpenResult: (id: string) => void;
+  embedded?: boolean;
+  projectId?: string | null;
+  initialTab?: string;
+  onProjectCreated?: (id: string) => void;
+  onProjectChanged?: () => void;
+  onProjectDeleted?: (id: string) => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  chapterId?: string | null;
+  professional?: boolean;
+  onOpenSection?: (sectionId: string) => void;
+  onOpenProject?: () => void;
+  onOpenSettings?: () => void;
+}
+
+export function WritingProjectsPage({
+  onOpenResult,
+  embedded,
+  projectId,
+  initialTab,
+  onProjectCreated,
+  onProjectChanged,
+  onProjectDeleted,
+  onDirtyChange,
+  chapterId,
+  professional,
+  onOpenSection,
+  onOpenProject,
+  onOpenSettings,
+}: WritingProjectsPageProps) {
   const selectedWorkspace = useAppStore((s) => s.workspace);
   const runtime = useAppStore((s) => s.runtimeMode);
   const workspace =
@@ -101,6 +133,18 @@ export function WritingProjectsPage({ onOpenResult }: { onOpenResult: (id: strin
       workspaceId={workspace.id}
       workspaceName={workspace.name}
       onOpenResult={onOpenResult}
+      embedded={embedded}
+      projectId={projectId}
+      initialTab={initialTab}
+      onProjectCreated={onProjectCreated}
+      onProjectChanged={onProjectChanged}
+      onProjectDeleted={onProjectDeleted}
+      onDirtyChange={onDirtyChange}
+      chapterId={chapterId}
+      professional={professional}
+      onOpenSection={onOpenSection}
+      onOpenProject={onOpenProject}
+      onOpenSettings={onOpenSettings}
     />
   );
 }
@@ -108,23 +152,40 @@ function ProjectsWorkspace({
   workspaceId,
   workspaceName,
   onOpenResult,
+  embedded = false,
+  projectId,
+  initialTab,
+  onProjectCreated,
+  onProjectChanged,
+  onProjectDeleted,
+  onDirtyChange,
+  chapterId,
+  professional = false,
+  onOpenSection,
+  onOpenProject,
+  onOpenSettings,
 }: {
   workspaceId: string;
   workspaceName: string;
-  onOpenResult: (id: string) => void;
-}) {
+} & WritingProjectsPageProps) {
   const { locale } = useI18n();
   const say = (cn: string, en: string) => (locale === 'zh-CN' ? cn : en);
   const providers = useAppStore((s) => s.providerConfigs);
+  const runtimeMode = useAppStore((s) => s.runtimeMode);
   const activeProvider = useAppStore((s) => s.activeProviderId);
-  const cached = navigationDrafts.get(workspaceId);
+  const draftKey = `${workspaceId}:${embedded ? (projectId ?? 'new') : 'standalone'}`;
+  const cachedDraft = navigationDrafts.get(draftKey);
+  const cached = chapterId || (embedded && !projectId && cachedDraft?.id) ? undefined : cachedDraft;
+  const hydrateInitial = useRef(Boolean(chapterId) || (embedded && !cached));
   const [projects, setProjects] = useState<WritingProject[]>([]);
-  const [id, setId] = useState<string | null>(cached?.id ?? null);
+  const [id, setId] = useState<string | null>(
+    embedded ? (projectId ?? null) : (cached?.id ?? null)
+  );
   const [view, setView] = useState<ProjectView | null>(null);
   const [config, setConfig] = useState<ProjectConfig>(cached?.config ?? emptyConfig());
   const [rows, setRows] = useState<OutlineSection[]>(cached?.rows ?? []);
-  const [tab, setTab] = useState(cached?.tab ?? 'setup');
-  const [sectionId, setSectionId] = useState('');
+  const [tab, setTab] = useState(chapterId ? 'sections' : (initialTab ?? cached?.tab ?? 'setup'));
+  const [sectionId, setSectionId] = useState(chapterId ?? '');
   const [runId, setRunId] = useState('');
   const [providerId, setProviderId] = useState(activeProvider);
   const [instruction, setInstruction] = useState('');
@@ -133,24 +194,49 @@ function ProjectsWorkspace({
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [plan, setPlan] = useState<WritingPlan | null>(null);
+  const [planSectionId, setPlanSectionId] = useState<string | null>(null);
   const [sensitive, setSensitive] = useState(false);
   const [streamId, setStreamId] = useState<string | null>(null);
+  const [draggedRow, setDraggedRow] = useState<number | null>(null);
   const activeId = useRef(id);
   const pendingPlan = useRef<string | null>(null);
   const epoch = useRef(0);
   const project = view?.project ?? null;
   const runs = view?.runs ?? [];
   const running = runs.find((r) => r.status === 'running');
-  const locked = busy || !!running || !!project?.finalReviewId;
+  const locked = busy || !!running || (!!project?.finalReviewId && !project.resultId);
+  const resultOutdated = !!project?.resultId && project.publishedRevision !== project.revision;
   const configDirty = !!project && JSON.stringify(config) !== JSON.stringify(project.config);
   const outlineDirty = !!project && JSON.stringify(rows) !== JSON.stringify(outlineRows(project));
+  const draftDirty = project
+    ? configDirty || outlineDirty
+    : Boolean(
+        config.title.trim() ||
+        config.goal.trim() ||
+        config.audience.trim() ||
+        config.facts.trim() ||
+        config.terminology.trim() ||
+        config.knowledgeIds.length ||
+        config.documentSourceIds.length ||
+        config.contextPackIds.length ||
+        rows.length
+      );
+  useEffect(() => onDirtyChange?.(draftDirty), [draftDirty, onDirtyChange]);
   const section = project?.sections.find((s) => s.id === sectionId) ?? project?.sections[0];
+  const completedCount = project?.sections.filter((item) => item.accepted).length ?? 0;
+  const stage = !project ? 'setup' : !project.outlineConfirmed ? 'outline' : 'sections';
+  const model = providers.find((item) => item.id === providerId);
+  const modelConfigured = Boolean(model?.configured) || runtimeMode === 'web-mock';
   const sectionRuns = runs.filter((r) => r.sectionId === section?.id);
   const selectedRun = sectionRuns.find((r) => r.id === runId) ?? sectionRuns[0];
   const outlineRun = runs.find((r) => r.sectionId === null && r.status === 'review');
   const updateConfig = <K extends keyof ProjectConfig>(key: K, value: ProjectConfig[K]) =>
     setConfig((c) => ({ ...c, [key]: value }));
-  const refreshList = () => api.list(workspaceId).then(setProjects);
+  const refreshList = () =>
+    api.list(workspaceId).then((items) => {
+      setProjects(items);
+      onProjectChanged?.();
+    });
   const load = async (projectId: string, hydrate = false) => {
     const data = await api.get(projectId);
     if (activeId.current !== projectId) return;
@@ -173,8 +259,8 @@ function ProjectsWorkspace({
     }
   };
   useEffect(() => {
-    navigationDrafts.set(workspaceId, { id, config, rows, tab });
-  }, [workspaceId, id, config, rows, tab]);
+    navigationDrafts.set(draftKey, { id, config, rows, tab });
+  }, [draftKey, id, config, rows, tab]);
   useEffect(() => {
     let mounted = true;
     void Promise.all([
@@ -192,7 +278,9 @@ function ProjectsWorkspace({
         if (mounted) setError(errorDetails(e).message);
       });
     if (activeId.current)
-      void load(activeId.current).catch((e) => setError(errorDetails(e).message));
+      void load(activeId.current, hydrateInitial.current).catch((e) =>
+        setError(errorDetails(e).message)
+      );
     return () => {
       mounted = false;
       // This is an async action generation counter, not a DOM element ref.
@@ -230,12 +318,15 @@ function ProjectsWorkspace({
     }
   };
   const saveProject = async () => {
+    const creating = !id;
     const p = await api.save({ id, workspaceId, revision: project?.revision ?? null, config });
     activeId.current = p.id;
     setId(p.id);
     setView({ project: p, runs });
     setConfig(p.config);
     await refreshList();
+    if (creating) navigationDrafts.delete(draftKey);
+    if (creating) onProjectCreated?.(p.id);
     return p;
   };
   const saveOutline = async (confirmed: boolean) => {
@@ -249,8 +340,7 @@ function ProjectsWorkspace({
     setView({ project: p, runs });
     setRows(outlineRows(p));
     if (confirmed) {
-      setTab('sections');
-      setSectionId(p.sections[0]?.id ?? '');
+      if (p.sections[0]) openChapter(p.sections[0].id);
     }
     await refreshList();
   };
@@ -270,6 +360,7 @@ function ProjectsWorkspace({
     }
     pendingPlan.current = next.id;
     setPlan(next);
+    setPlanSectionId(sectionId);
     setSensitive(false);
   };
   const send = async () => {
@@ -279,6 +370,7 @@ function ProjectsWorkspace({
     await api.confirm(current.id, sensitive);
     pendingPlan.current = null;
     setPlan(null);
+    setPlanSectionId(null);
     setStreamId(current.requestId);
     setInstruction('');
     try {
@@ -298,88 +390,148 @@ function ProjectsWorkspace({
   };
   const updateRow = (index: number, change: Partial<OutlineSection>) =>
     setRows((value) => value.map((row, i) => (i === index ? { ...row, ...change } : row)));
+  const moveRow = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || to >= rows.length) return;
+    setRows((current) => {
+      const next = [...current];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  };
+  const openChapter = (nextId: string) => {
+    if (embedded && onOpenSection) onOpenSection(nextId);
+    else {
+      setSectionId(nextId);
+      setTab('sections');
+    }
+  };
+  const stageLabel = (step: number, title: string, complete: boolean, current: boolean) =>
+    `${step} ${title} ${complete ? '✓' : current ? '●' : '○'}`;
+  const publishResult = () =>
+    work(async () => {
+      if (!project) return;
+      const result = await api.finalize(project.id, project.revision);
+      await load(project.id);
+      await refreshList();
+      onOpenResult(result);
+    });
   return (
-    <main className={styles.page}>
-      <Space align="center" wrap>
-        <h1>{say('长文项目', 'Writing projects')}</h1>
-        <Tag>{workspaceName}</Tag>
-        <Button onClick={() => select(null)} disabled={busy}>
-          {say('新建长文项目', 'New writing project')}
-        </Button>
-      </Space>
-      <p>
-        {say(
-          '确认大纲 → 逐章生成与审阅 → 合成为成果。进度保存在本机，恢复时由你决定继续。',
-          'Confirm an outline, review each section, then assemble a result. Progress is saved locally; you control when to resume.'
-        )}
-      </p>
-      {error && <Alert showIcon type="error" title={error} closable onClose={() => setError('')} />}
-      <div className={styles.layout}>
-        <aside className={styles.sidebar}>
-          <h2>{say('我的长文项目', 'My projects')}</h2>
-          {projects.length === 0 ? (
-            <Empty description={say('还没有长文项目', 'No projects yet')} />
-          ) : (
-            projects.map((p) => (
-              <Button
-                key={p.id}
-                block
-                type={id === p.id ? 'primary' : 'default'}
-                disabled={busy}
-                onClick={() => select(p.id)}
-              >
-                {p.config.title}
-                {p.resultId ? ' ✓' : ''}
-              </Button>
-            ))
+    <main className={`${styles.page} ${embedded ? styles.embedded : ''}`}>
+      {!embedded && (
+        <Space align="center" wrap>
+          <h1>{say('长文项目', 'Writing projects')}</h1>
+          <Tag>{workspaceName}</Tag>
+          <Button onClick={() => select(null)} disabled={busy}>
+            {say('新建长文项目', 'New writing project')}
+          </Button>
+        </Space>
+      )}
+      {!embedded && (
+        <p>
+          {say(
+            '确认大纲 → 逐章生成与审阅 → 合成为成果。进度保存在本机，恢复时由你决定继续。',
+            'Confirm an outline, review each section, then assemble a result. Progress is saved locally; you control when to resume.'
           )}
-        </aside>
-        <div className={styles.content}>
-          {project && (
-            <Card size="small">
-              <Space wrap>
-                <strong>{project.config.title}</strong>
-                <Tag>
-                  {project.resultId
-                    ? say('已合成成果', 'Result created')
-                    : project.outlineConfirmed
-                      ? say('大纲已确认', 'Outline confirmed')
-                      : say('大纲待确认', 'Outline pending')}
-                </Tag>
-                <Popconfirm
-                  title={say(
-                    '删除这个长文项目及章节草稿？已合成的成果会保留。',
-                    'Delete this project and its drafts? Existing results are retained.'
-                  )}
-                  onConfirm={() =>
-                    work(async () => {
-                      await api.delete(project.id);
-                      select(null);
-                      await refreshList();
-                    })
-                  }
+        </p>
+      )}
+      {error && <Alert showIcon type="error" title={error} closable onClose={() => setError('')} />}
+      <div className={`${styles.layout} ${embedded ? styles.embeddedLayout : ''}`}>
+        {!embedded && (
+          <aside className={styles.sidebar}>
+            <h2>{say('我的长文项目', 'My projects')}</h2>
+            {projects.length === 0 ? (
+              <Empty description={say('还没有长文项目', 'No projects yet')} />
+            ) : (
+              projects.map((p) => (
+                <Button
+                  key={p.id}
+                  block
+                  type={id === p.id ? 'primary' : 'default'}
+                  disabled={busy}
+                  onClick={() => select(p.id)}
                 >
-                  <Button danger disabled={!!running || busy}>
-                    {say('删除项目', 'Delete project')}
-                  </Button>
-                </Popconfirm>
-              </Space>
-              <Progress
-                percent={Math.round(
-                  (project.sections.filter((s) => s.accepted).length /
-                    Math.max(1, project.sections.length)) *
-                    100
-                )}
-                format={() =>
-                  `${project.sections.filter((s) => s.accepted).length} / ${project.sections.length} ${say('章已接受', 'accepted')}`
-                }
-              />
-              {project.resultId && (
-                <Button type="primary" onClick={() => onOpenResult(project.resultId!)}>
-                  {say('打开最终成果', 'Open final result')}
+                  {p.config.title}
+                  {p.resultId ? ' ✓' : ''}
                 </Button>
-              )}
-            </Card>
+              ))
+            )}
+          </aside>
+        )}
+        <div className={styles.content}>
+          {embedded && chapterId && project && (
+            <WorkItemHeader
+              icon={<BookOutlined />}
+              title={section?.title}
+              type={say('长文项目章节', 'Writing project section')}
+              status={section?.accepted ? say('已接受', 'Accepted') : say('写作中', 'Writing')}
+              tone={section?.accepted ? 'success' : 'warning'}
+              actions={<Button type="link" onClick={onOpenProject}>{project.config.title}</Button>}
+            />
+          )}
+          {embedded && !chapterId && (
+            <WorkItemHeader
+              icon={<BookOutlined />}
+              title={project?.config.title || config.title || say('新建长文项目', 'New writing project')}
+              type={say('长文项目', 'Writing project')}
+              status={project ? (
+                project.resultId
+                  ? resultOutdated
+                    ? say('内容比成果更新', 'Newer than result')
+                    : say('已有成果', 'Result saved')
+                  : project.outlineConfirmed
+                    ? say('写作中', 'Writing')
+                    : say('大纲待确认', 'Outline pending')
+              ) : say('待设置', 'Setup pending')}
+              tone={project?.resultId && !resultOutdated ? 'success' : 'warning'}
+              details={project?.sections.length ? (
+                <span>{completedCount} / {project.sections.length} {say('节完成', 'sections complete')}</span>
+              ) : undefined}
+              progress={project?.sections.length ? (
+                <Progress percent={Math.round((completedCount / project.sections.length) * 100)} showInfo={false} size="small" />
+              ) : undefined}
+              actions={project ? (
+                <Space size="small">
+                  {project.resultId && <Button size="small" type="link" onClick={() => onOpenResult(project.resultId!)}>{say('查看成果', 'View result')}</Button>}
+                  <Dropdown
+                    menu={{
+                      items: [
+                        {
+                          key: 'delete',
+                          label: say('删除项目', 'Delete project'),
+                          danger: true,
+                          disabled: !!running || busy,
+                          onClick: () =>
+                            Modal.confirm({
+                              title: say(
+                                '删除这个长文项目及章节草稿？已保存的成果会保留。',
+                                'Delete this project and its drafts? Existing results are retained.'
+                              ),
+                              okText: say('删除项目', 'Delete project'),
+                              okButtonProps: { danger: true },
+                              onOk: () =>
+                                work(async () => {
+                                  await api.delete(project.id);
+                                  select(null);
+                                  await refreshList();
+                                  onProjectDeleted?.(project.id);
+                                }),
+                            }),
+                        },
+                      ],
+                    }}
+                    trigger={['click']}
+                  >
+                    <Button
+                      type="text"
+                      icon={<MoreOutlined />}
+                      aria-label={say('项目更多操作', 'More project actions')}
+                      title={say('项目更多操作', 'More project actions')}
+                    />
+                  </Dropdown>
+                </Space>
+              ) : undefined}
+            />
           )}
           {(running || streamId) && (
             <Alert
@@ -404,13 +556,118 @@ function ProjectsWorkspace({
               }
             />
           )}
+          <WorkItemNavigation tabs>
           <Tabs
+            className={chapterId ? styles.chapterTabs : undefined}
             activeKey={tab}
-            onChange={setTab}
+            onChange={(next) => {
+              if (next === 'sections' && embedded && project?.sections.length)
+                openChapter(
+                  project.sections.find((item) => !item.accepted)?.id ?? project.sections[0].id
+                );
+              else setTab(next);
+            }}
             items={[
+              ...(embedded && project
+                ? [
+                    {
+                      key: 'overview',
+                      label: say('概览', 'Overview'),
+                      children: (
+                        <section className={styles.overview}>
+                          <div className={styles.overviewSummary}>
+                            <div>
+                              <span>{say('写作目标', 'Writing goal')}</span>
+                              <p>{project.config.goal}</p>
+                            </div>
+                            <div>
+                              <span>{say('目标读者', 'Audience')}</span>
+                              <p>{project.config.audience || say('未设置', 'Not set')}</p>
+                            </div>
+                            <div>
+                              <span>{say('资料', 'Sources')}</span>
+                              <p>
+                                {project.config.knowledgeIds.length +
+                                  project.config.documentSourceIds.length +
+                                  project.config.contextPackIds.length}{' '}
+                                {say('项已选择', 'selected')}
+                              </p>
+                            </div>
+                          </div>
+                          <h2>{say('章节进度', 'Sections')}</h2>
+                          {project.sections.length ? (
+                            <div className={styles.chapterList}>
+                              {project.sections.map((chapter, index) => (
+                                <button
+                                  type="button"
+                                  key={chapter.id}
+                                  onClick={() => {
+                                    openChapter(chapter.id);
+                                  }}
+                                >
+                                  <span>{String(index + 1).padStart(2, '0')}</span>
+                                  <strong>{chapter.title}</strong>
+                                  <small>
+                                    {chapter.accepted
+                                      ? say('已完成', 'Complete')
+                                      : say('待处理', 'Pending')}
+                                  </small>
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <Empty
+                              image={Empty.PRESENTED_IMAGE_SIMPLE}
+                              description={say(
+                                '先完成大纲，再逐章写作',
+                                'Complete the outline to begin drafting'
+                              )}
+                            />
+                          )}
+                          <Button
+                            type="primary"
+                            onClick={() => {
+                              if (!project.sections.length) setTab('outline');
+                              else {
+                                openChapter(
+                                  project.sections.find((chapter) => !chapter.accepted)?.id ??
+                                    project.sections[0].id
+                                );
+                              }
+                            }}
+                          >
+                            {project.sections.length
+                              ? say('继续写作', 'Continue writing')
+                              : say('编辑大纲', 'Edit outline')}
+                          </Button>
+                          {project.sections.length > 0 &&
+                            project.sections.every((item) => item.accepted) && (
+                              <Button
+                                onClick={() => void publishResult()}
+                                disabled={busy || outlineDirty || configDirty}
+                              >
+                                {project.resultId
+                                  ? resultOutdated
+                                    ? say('更新成果', 'Update result')
+                                    : say('打开关联成果', 'Open linked result')
+                                  : say('保存为成果', 'Save as result')}
+                              </Button>
+                            )}
+                        </section>
+                      ),
+                    },
+                  ]
+                : []),
               {
                 key: 'setup',
-                label: say('1. 目标与资料', '1. Goal and sources'),
+                label: embedded
+                  ? stageLabel(
+                      1,
+                      say('目标与资料', 'Goal and sources'),
+                      Boolean(project),
+                      stage === 'setup'
+                    )
+                  : say('1. 目标与资料', '1. Goal and sources'),
                 children: (
                   <Card>
                     <Form layout="vertical" disabled={locked}>
@@ -512,24 +769,53 @@ function ProjectsWorkspace({
               },
               {
                 key: 'outline',
-                label: say('2. 确认大纲', '2. Outline'),
+                label: embedded
+                  ? stageLabel(
+                      2,
+                      say('大纲', 'Outline'),
+                      Boolean(project?.outlineConfirmed),
+                      stage === 'outline'
+                    )
+                  : say('2. 确认大纲', '2. Outline'),
                 disabled: !project,
                 children: (
                   <Card>
-                    <Space wrap>
-                      <Select
-                        aria-label={say('写作模型服务', 'Writing provider')}
-                        value={providerId}
-                        options={providers.map((p) => ({
-                          value: p.id,
-                          label: `${p.id} · ${p.model}`,
-                        }))}
-                        onChange={setProviderId}
-                        disabled={locked}
-                        style={{ minWidth: 260 }}
+                    <div className={styles.modelLine}>
+                      <Tag>
+                        {say('使用', 'Using')} {model?.model ?? say('当前模型', 'current model')}
+                      </Tag>
+                      {professional && (
+                        <details>
+                          <summary>{say('更换模型', 'Change model')}</summary>
+                          <Select
+                            aria-label={say('写作模型服务', 'Writing provider')}
+                            value={providerId}
+                            options={providers.map((item) => ({
+                              value: item.id,
+                              label: `${item.id} · ${item.model}`,
+                            }))}
+                            onChange={setProviderId}
+                            disabled={locked}
+                            style={{ minWidth: 260 }}
+                          />
+                        </details>
+                      )}
+                    </div>
+                    {!modelConfigured && (
+                      <Alert
+                        className={styles.modelNotice}
+                        type="warning"
+                        title={say('当前模型不可用', 'Current model unavailable')}
+                        action={
+                          <Button size="small" onClick={onOpenSettings}>
+                            {say('去设置', 'Open settings')}
+                          </Button>
+                        }
                       />
+                    )}
+                    <Space wrap className={styles.outlineActions}>
                       <Button
-                        disabled={locked || configDirty}
+                        disabled={locked || configDirty || !modelConfigured}
                         onClick={() => void work(() => prepare(null))}
                       >
                         {say('AI 生成大纲', 'Generate outline with AI')}
@@ -554,9 +840,53 @@ function ProjectsWorkspace({
                       )}
                     </p>
                     {rows.map((row, index) => (
-                      <div className={styles.outlineRow} key={row.id ?? index}>
-                        <strong>{index + 1}</strong>
+                      <div
+                        className={styles.outlineRow}
+                        key={row.id ?? index}
+                        data-dragging={draggedRow === index}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          if (draggedRow !== null) moveRow(draggedRow, index);
+                          setDraggedRow(null);
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className={styles.dragHandle}
+                          draggable={!locked}
+                          title={say(
+                            '拖动排序；Alt 加方向键也可移动',
+                            'Drag to reorder; Alt and arrow keys also move'
+                          )}
+                          aria-label={`${say('调整章节顺序', 'Reorder section')} ${index + 1}`}
+                          onDragStart={() => setDraggedRow(index)}
+                          onDragEnd={() => setDraggedRow(null)}
+                          onKeyDown={(event) => {
+                            if (!event.altKey) return;
+                            if (event.key === 'ArrowUp') {
+                              event.preventDefault();
+                              moveRow(index, index - 1);
+                            }
+                            if (event.key === 'ArrowDown') {
+                              event.preventDefault();
+                              moveRow(index, index + 1);
+                            }
+                          }}
+                        >
+                          <HolderOutlined />
+                        </button>
                         <div>
+                          <div className={styles.outlineRowMeta}>
+                            <strong>{String(index + 1).padStart(2, '0')}</strong>
+                            <Tag>
+                              {project?.sections.find((item) => item.id === row.id)?.accepted
+                                ? say('已接受', 'Accepted')
+                                : project?.sections.find((item) => item.id === row.id)?.content
+                                  ? say('草稿', 'Draft')
+                                  : say('未开始', 'Not started')}
+                            </Tag>
+                          </div>
                           <Input
                             aria-label={`${say('章节标题', 'Section title')} ${index + 1}`}
                             placeholder={say('章节标题', 'Section title')}
@@ -578,6 +908,9 @@ function ProjectsWorkspace({
                           />
                         </div>
                         <Space orientation="vertical">
+                          <span className={styles.fieldLabel}>
+                            {say('目标字数', 'Target words')}
+                          </span>
                           <InputNumber
                             aria-label={`${say('建议字数', 'Target length')} ${index + 1}`}
                             value={row.targetWords}
@@ -592,23 +925,13 @@ function ProjectsWorkspace({
                           >
                             {say('移除章节', 'Remove')}
                           </Button>
-                          <Button
-                            disabled={locked || index === 0}
-                            onClick={() =>
-                              setRows((v) => {
-                                const next = [...v];
-                                [next[index - 1], next[index]] = [next[index], next[index - 1]];
-                                return next;
-                              })
-                            }
-                          >
-                            {say('上移', 'Move up')}
-                          </Button>
                         </Space>
                       </div>
                     ))}
                     <Space wrap>
                       <Button
+                        type="text"
+                        icon={<PlusOutlined />}
                         disabled={locked || rows.length >= 12}
                         onClick={() =>
                           setRows((v) => [
@@ -620,6 +943,7 @@ function ProjectsWorkspace({
                         {say('添加章节', 'Add section')}
                       </Button>
                       <Button
+                        type="text"
                         disabled={locked || !rows.length || configDirty}
                         onClick={() => void work(() => saveOutline(false))}
                       >
@@ -646,10 +970,51 @@ function ProjectsWorkspace({
               },
               {
                 key: 'sections',
-                label: say('3. 章节与成果', '3. Sections and result'),
+                label: embedded
+                  ? stageLabel(
+                      3,
+                      say('正文与审稿', 'Draft and review'),
+                      Boolean(
+                        project?.sections.length && project.sections.every((item) => item.accepted)
+                      ),
+                      stage === 'sections'
+                    )
+                  : say('3. 章节与成果', '3. Sections and result'),
                 disabled: !project?.sections.length,
                 children: (
                   <Card>
+                    <div className={styles.modelLine}>
+                      <Tag>
+                        {say('使用', 'Using')} {model?.model ?? say('当前模型', 'current model')}
+                      </Tag>
+                      {professional && (
+                        <details>
+                          <summary>{say('更换模型', 'Change model')}</summary>
+                          <Select
+                            aria-label={say('章节写作服务', 'Section provider')}
+                            value={providerId}
+                            options={providers.map((item) => ({
+                              value: item.id,
+                              label: `${item.id} · ${item.model}`,
+                            }))}
+                            onChange={setProviderId}
+                            disabled={locked}
+                          />
+                        </details>
+                      )}
+                    </div>
+                    {!modelConfigured && (
+                      <Alert
+                        className={styles.modelNotice}
+                        type="warning"
+                        title={say('当前模型不可用', 'Current model unavailable')}
+                        action={
+                          <Button size="small" onClick={onOpenSettings}>
+                            {say('去设置', 'Open settings')}
+                          </Button>
+                        }
+                      />
+                    )}
                     <Space wrap>
                       <Select
                         aria-label={say('当前章节', 'Current section')}
@@ -659,21 +1024,12 @@ function ProjectsWorkspace({
                           label: `${i + 1}. ${s.title} · ${s.accepted ? say('已接受', 'Accepted') : say('待审阅', 'Pending')}`,
                         }))}
                         onChange={(value) => {
-                          setSectionId(value);
+                          if (chapterId) openChapter(value);
+                          else setSectionId(value);
                           setRunId('');
                         }}
                         style={{ minWidth: 260 }}
                         disabled={busy}
-                      />
-                      <Select
-                        aria-label={say('章节写作服务', 'Section provider')}
-                        value={providerId}
-                        options={providers.map((p) => ({
-                          value: p.id,
-                          label: `${p.id} · ${p.model}`,
-                        }))}
-                        onChange={setProviderId}
-                        disabled={locked}
                       />
                     </Space>
                     {section && (
@@ -697,7 +1053,11 @@ function ProjectsWorkspace({
                           <Button
                             type="primary"
                             disabled={
-                              locked || configDirty || outlineDirty || !project?.outlineConfirmed
+                              locked ||
+                              configDirty ||
+                              outlineDirty ||
+                              !project?.outlineConfirmed ||
+                              !modelConfigured
                             }
                             onClick={() => void work(() => prepare(section.id))}
                           >
@@ -791,51 +1151,47 @@ function ProjectsWorkspace({
                             !project.sections.length ||
                             project.sections.some((s) => !s.accepted)
                           }
-                          onClick={() =>
-                            void work(async () => {
-                              const result = await api.finalize(project.id, project.revision);
-                              await load(project.id);
-                              await refreshList();
-                              onOpenResult(result);
-                            })
-                          }
+                          onClick={() => void publishResult()}
                         >
                           {project.resultId
-                            ? say('打开最终成果', 'Open final result')
-                            : say('合成为最终成果', 'Assemble final result')}
+                            ? resultOutdated
+                              ? say('更新成果', 'Update result')
+                              : say('打开关联成果', 'Open linked result')
+                            : embedded
+                              ? say('保存为成果', 'Save as result')
+                              : say('合成为最终成果', 'Assemble final result')}
                         </Button>
                       </div>
                     )}
                   </Card>
                 ),
               },
-            ]}
+            ].filter((item) => !chapterId || item.key === 'sections')}
           />
+          </WorkItemNavigation>
         </div>
       </div>
       <Modal
         open={!!plan}
-        title={say('确认本次长文发送范围', 'Confirm writing request')}
+        title={say('确认本次 AI 使用范围', 'Confirm AI scope')}
         onCancel={() => {
           if (plan) void api.cancel(plan.id);
           pendingPlan.current = null;
           epoch.current++;
           setPlan(null);
+          setPlanSectionId(null);
         }}
         footer={null}
-        width={720}
+        width={640}
       >
         {plan && (
           <>
-            <ContextManifestSummary manifest={plan.manifest} />
-            <details>
-              <summary>
-                {say('任务、章节与事实摘要', 'Task, section and continuity context')}
-              </summary>
-              <pre style={{ whiteSpace: 'pre-wrap', maxHeight: 280, overflow: 'auto' }}>
-                {plan.prompt}
-              </pre>
-            </details>
+            <WritingSendSummary
+              plan={plan}
+              project={project}
+              section={project?.sections.find((item) => item.id === planSectionId)}
+              professional={professional}
+            />
             {plan.manifest.requiresSensitiveConfirmation && (
               <Checkbox checked={sensitive} onChange={(e) => setSensitive(e.target.checked)}>
                 {say(

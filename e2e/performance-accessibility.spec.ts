@@ -98,7 +98,7 @@ test('measures budgets and completes the core result path with keyboard', async 
 
   const resultsNavigation = page
     .getByRole('navigation', { name: '主导航' })
-    .getByRole('button', { name: /成果$/ });
+    .getByRole('button', { name: /成果与协作$/ });
   await resultsNavigation.focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: '我的成果' })).toBeVisible();
@@ -120,6 +120,7 @@ test('measures budgets and completes the core result path with keyboard', async 
   await page.keyboard.press('Space');
   await expect(page.getByRole('textbox', { name: '成果编辑器' })).toBeVisible();
 
+  await page.getByText('阅读', { exact: true }).click();
   const exportButton = page.getByRole('button', { name: /导出$/ });
   await exportButton.focus();
   await page.keyboard.press('Enter');

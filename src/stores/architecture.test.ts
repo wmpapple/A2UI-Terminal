@@ -62,7 +62,8 @@ describe('front-end application boundaries', () => {
     expect(shell).toContain('showInspector={professional}');
     expect(shell).toContain('showSimpleFileActions={!professional}');
     expect(shell).toContain('professionalTools={professional}');
-    expect(shell).toContain('open={professional && settingsOpen}');
+    expect(shell).toContain('open={settingsOpen}');
+    expect(sources['../app/SettingsPage.tsx']).toContain("{ id: 'ai'");
     expect(sources['../features/settings/components/ProviderSettings.tsx']).toContain(
       '<Form.Item label="Endpoint" required>'
     );

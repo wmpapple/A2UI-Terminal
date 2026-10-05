@@ -435,7 +435,7 @@ fn upgrade_from_28_preserves_legacy_tools_without_inventing_a_binding() {
         Storage::open(&dir.path().join("test.db")).unwrap(),
         result::prepare_managed_results_dir(dir.path()).unwrap(),
     );
-    assert_eq!(state.storage.schema_version().unwrap(), 32);
+    assert_eq!(state.storage.schema_version().unwrap(), 33);
     assert_eq!(links::read(&state, &t).unwrap().status, "unbound");
     assert!(result::list(&state.storage, None, false)
         .unwrap()

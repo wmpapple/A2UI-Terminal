@@ -32,6 +32,9 @@ export interface WritingProject {
   sections: WritingSection[];
   finalReviewId: string | null;
   resultId: string | null;
+  publishedRevision?: number | null;
+  publishedResultHash?: string | null;
+  updatedAt?: string | null;
 }
 export interface WritingRun {
   id: string;

@@ -37,7 +37,12 @@ describe('HomePage', () => {
   it('shows exactly six fixed task categories and Result-based recents', () => {
     render(
       <I18nProvider>
-        <HomePage onOpenWorkbench={vi.fn()} onOpenGuide={vi.fn()} />
+        <HomePage
+          onOpenWorkbench={vi.fn()}
+          onOpenGuide={vi.fn()}
+          onStartProject={vi.fn()}
+          onOpenProject={vi.fn()}
+        />
       </I18nProvider>
     );
 
@@ -65,7 +70,12 @@ describe('HomePage', () => {
     });
     render(
       <I18nProvider>
-        <HomePage onOpenWorkbench={vi.fn()} onOpenGuide={vi.fn()} />
+        <HomePage
+          onOpenWorkbench={vi.fn()}
+          onOpenGuide={vi.fn()}
+          onStartProject={vi.fn()}
+          onOpenProject={vi.fn()}
+        />
       </I18nProvider>
     );
 
@@ -82,7 +92,12 @@ describe('HomePage', () => {
   it('opens the completed table and structured-result capabilities from Home', async () => {
     render(
       <I18nProvider>
-        <HomePage onOpenWorkbench={vi.fn()} onOpenGuide={vi.fn()} />
+        <HomePage
+          onOpenWorkbench={vi.fn()}
+          onOpenGuide={vi.fn()}
+          onStartProject={vi.fn()}
+          onOpenProject={vi.fn()}
+        />
       </I18nProvider>
     );
 
@@ -116,7 +131,12 @@ describe('HomePage', () => {
     });
     render(
       <I18nProvider>
-        <HomePage onOpenWorkbench={onOpenWorkbench} onOpenGuide={vi.fn()} />
+        <HomePage
+          onOpenWorkbench={onOpenWorkbench}
+          onOpenGuide={vi.fn()}
+          onStartProject={vi.fn()}
+          onOpenProject={vi.fn()}
+        />
       </I18nProvider>
     );
 
@@ -155,7 +175,12 @@ describe('HomePage', () => {
     const onOpenWorkbench = vi.fn();
     render(
       <I18nProvider>
-        <HomePage onOpenWorkbench={onOpenWorkbench} onOpenGuide={vi.fn()} />
+        <HomePage
+          onOpenWorkbench={onOpenWorkbench}
+          onOpenGuide={vi.fn()}
+          onStartProject={vi.fn()}
+          onOpenProject={vi.fn()}
+        />
       </I18nProvider>
     );
 

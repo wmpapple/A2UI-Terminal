@@ -55,12 +55,13 @@ it('shows the persisted version, effective snapshot and example authorization bo
     </I18nProvider>
   );
   expect(await screen.findByText('当前设置已保存')).toBeVisible();
-  expect(screen.getByText(/全局偏好：/)).toBeVisible();
+  expect(screen.getByText(/应用层：全局偏好/)).toBeVisible();
   expect(screen.queryByText(/Global Profile:/)).not.toBeInTheDocument();
   expect(screen.queryByText(/版本 3|v3/)).not.toBeInTheDocument();
-  expect(screen.getByText(/范文正文不会自动发送/)).toBeVisible();
-  fireEvent.click(screen.getByRole('button', { name: '关闭提示' }));
-  await waitFor(() => expect(screen.queryByText(/范文正文不会自动发送/)).not.toBeInTheDocument());
+  expect(screen.getByText(/范文正文仅在任务中选择并确认后发送/)).toBeVisible();
+  expect(screen.queryByText(/写作规则：先给结论/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '查看最终规则' }));
+  expect(screen.getByText(/写作规则：先给结论/)).toBeVisible();
 });
 
 it('creates an isolated workspace override without rewriting the global profile', async () => {
@@ -112,10 +113,11 @@ it('previews an enabled draft immediately instead of showing the saved zero-toke
   expect(await screen.findByText('0 tokens')).toBeVisible();
   fireEvent.click(screen.getByRole('switch'));
 
-  expect(screen.getByText('保存后规则预览')).toBeVisible();
+  expect(screen.getByText('当前生效规则')).toBeVisible();
   expect(screen.getByText('未保存')).toBeVisible();
   expect(screen.queryByText('0 tokens')).not.toBeInTheDocument();
-  expect(screen.getByText(/全局偏好：/)).toBeVisible();
+  expect(screen.getByText(/应用层：全局偏好/)).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: '查看最终规则' }));
   expect(screen.getByText(/写作规则：先给结论/)).toBeVisible();
   expect(screen.getByText(/推荐术语：/)).toBeVisible();
   expect(screen.getByText(/避免使用：赋能/)).toBeVisible();

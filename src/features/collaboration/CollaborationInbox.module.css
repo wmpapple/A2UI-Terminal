@@ -1,0 +1,120 @@
+.inbox {
+  display: grid;
+  gap: 18px;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.toolbar :global(.ant-input-affix-wrapper) {
+  max-width: 440px;
+}
+.scopeNote {
+  margin: -8px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.filters {
+  display: flex;
+  gap: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.filters button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 1px 11px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.filters button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.count {
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-subtle);
+  color: inherit;
+  font-size: 11px;
+  text-align: center;
+}
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 2px 12px #1823340a;
+}
+.item + .item {
+  margin-top: 10px;
+}
+.itemContent {
+  min-width: 0;
+}
+.itemTitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.itemTitle strong {
+  overflow-wrap: anywhere;
+  color: var(--text-strong);
+}
+.itemTitle :global(.ant-tag) {
+  margin: 0;
+}
+.item p {
+  margin: 3px 0;
+  color: var(--text);
+  font-size: 13px;
+}
+.item time {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.empty {
+  padding: 42px 16px;
+  border-radius: 8px;
+  background: var(--panel);
+}
+.empty :global(.ant-empty-image) {
+  height: 40px;
+  font-size: 28px;
+  color: var(--text-muted);
+}
+.loading {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+}
+@media (max-width: 600px) {
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .toolbar :global(.ant-input-affix-wrapper) {
+    max-width: none;
+  }
+  .item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

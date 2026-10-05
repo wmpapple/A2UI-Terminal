@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
   const navigation = page.getByRole('navigation', { name: '主导航' });
   await navigation.getByRole('button', { name: /设置$/ }).click();
-  await page.getByText('专业模式', { exact: true }).click();
+  await page.getByRole('combobox', { name: '界面模式' }).selectOption('professional');
   await navigation.getByRole('button', { name: /工作台$/ }).click();
   await expect(page.getByTestId('workspace-layout')).toBeVisible();
   await expect(page.getByRole('region', { name: '当前文档', exact: true })).toBeVisible();

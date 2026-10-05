@@ -1,4 +1,3 @@
-import { InfoNotice } from '../../../shared/components/InfoNotice';
 import {
   CloudDownloadOutlined,
   DeleteOutlined,
@@ -6,7 +5,7 @@ import {
   ReloadOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Divider, Input, Modal, Progress, Tag, message } from 'antd';
+import { Alert, Button, Input, Modal, Progress, Tag, message } from 'antd';
 import { useState, useSyncExternalStore } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { clearWebviewLocalData, scheduleApplicationReload } from '../../../app/localData';
@@ -23,8 +22,14 @@ import { TelemetryPrivacySettings } from './TelemetryPrivacySettings';
 
 const CLEAR_CONFIRMATION = 'DELETE_ALL_LOCAL_DATA';
 
-export function SystemSettings() {
-  const { t } = useI18n();
+interface Props {
+  view?: 'all' | 'updates' | 'privacy';
+  professional?: boolean;
+}
+
+export function SystemSettings({ view = 'all', professional = true }: Props) {
+  const { t, locale } = useI18n();
+  const zh = locale === 'zh-CN';
   const update = useSyncExternalStore(subscribeToUpdates, getUpdateSnapshot, getUpdateSnapshot);
   const isDesktop = getRuntimeMode() === 'desktop';
   const [clearOpen, setClearOpen] = useState(false);
@@ -58,86 +63,115 @@ export function SystemSettings() {
     }
   };
 
-  const updateColor =
-    update.phase === 'available'
-      ? 'green'
-      : update.phase === 'error'
-        ? 'red'
-        : update.phase === 'unavailable'
-          ? 'default'
-          : 'blue';
-
+  const updateSourceMissing =
+    update.phase === 'unavailable' ||
+    /endpoints? (set|configured)|endpoints?:? none/i.test(update.error ?? '');
   return (
     <section className={styles.section} aria-label={t('systemSettings')}>
-      <div className={styles.heading}>
-        <h3>{t('updatesAndPrivacy')}</h3>
-        <Tag className={styles.updateStatus} data-tone={updateColor}>
-          {t(`update_${update.phase}`)}
-        </Tag>
-      </div>
-      {!isDesktop ? (
-        <InfoNotice type="info" showIcon title={t('desktopManagementOnly')} />
-      ) : (
+      {view !== 'privacy' && (
         <>
-          {update.error ? <Alert type="warning" showIcon title={update.error} /> : null}
-          {update.currentVersion ? (
-            <span>
-              {t('currentVersion')}: {update.currentVersion}
-              {update.nextVersion ? ` → ${update.nextVersion}` : ''}
-            </span>
-          ) : null}
-          {update.notes ? <p className={styles.notes}>{update.notes}</p> : null}
-          {update.phase === 'downloading' ? (
-            <Progress percent={update.progress} status="active" />
-          ) : null}
-          <div className={styles.actions}>
-            <Button
-              icon={<ReloadOutlined />}
-              loading={update.phase === 'checking'}
-              onClick={() => void checkForAppUpdate()}
-            >
-              {t('checkUpdates')}
-            </Button>
-            {update.phase === 'available' ? (
-              <Button
-                type="primary"
-                icon={<CloudDownloadOutlined />}
-                onClick={() => void installPendingUpdate()}
-              >
-                {t('installUpdate')}
-              </Button>
-            ) : null}
-            <Button
-              icon={<FileProtectOutlined />}
-              loading={exporting}
-              onClick={() => void exportDiagnostics()}
-            >
-              {t('exportDiagnostics')}
-            </Button>
-          </div>
-          <InfoNotice type="info" showIcon title={t('diagnosticsPrivacy')} />
-          <section className={styles.dangerZone} aria-labelledby="clear-data-zone-title">
-            <div className={styles.dangerHeading}>
-              <ExclamationCircleOutlined aria-hidden="true" />
-              <h4 id="clear-data-zone-title">{t('clearDataDangerTitle')}</h4>
+          <section className={styles.group} aria-labelledby="app-update-heading">
+            <div className={styles.heading}>
+              <h3 id="app-update-heading">{zh ? '应用更新' : 'App updates'}</h3>
+              {!updateSourceMissing && (
+                <Tag color={update.phase === 'available' ? 'success' : 'default'}>
+                  {t(`update_${update.phase}`)}
+                </Tag>
+              )}
             </div>
-            <p>{t('clearDataDangerDescription')}</p>
-            <Button danger icon={<DeleteOutlined />} onClick={() => setClearOpen(true)}>
-              {t('clearAllLocalData')}
-            </Button>
+            <p className={styles.muted}>
+              {t('currentVersion')}:{' '}
+              {update.currentVersion || (zh ? '检查后显示' : 'Shown after checking')}
+              {update.nextVersion ? ` → ${update.nextVersion}` : ''}
+            </p>
+            {!isDesktop ? (
+              <p className={styles.muted}>{t('desktopManagementOnly')}</p>
+            ) : (
+              <>
+                {!updateSourceMissing && update.error && (
+                  <p className={styles.muted} role="status">{update.error}</p>
+                )}
+                {update.notes && <p className={styles.notes}>{update.notes}</p>}
+                {update.phase === 'downloading' && (
+                  <Progress percent={update.progress} status="active" />
+                )}
+                {!updateSourceMissing && (
+                  <div className={styles.actions}>
+                    <Button
+                      icon={<ReloadOutlined />}
+                      loading={update.phase === 'checking'}
+                      onClick={() => void checkForAppUpdate()}
+                    >
+                      {t('checkUpdates')}
+                    </Button>
+                    {update.phase === 'available' && (
+                      <Button
+                        type="primary"
+                        icon={<CloudDownloadOutlined />}
+                        onClick={() => void installPendingUpdate()}
+                      >
+                        {t('installUpdate')}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
           </section>
+          {professional && isDesktop && (
+            <section className={styles.group} aria-labelledby="diagnostics-heading">
+              <h3 id="diagnostics-heading">{zh ? '诊断' : 'Diagnostics'}</h3>
+              <p className={styles.muted}>{t('diagnosticsPrivacy')}</p>
+              <Button
+                icon={<FileProtectOutlined />}
+                loading={exporting}
+                onClick={() => void exportDiagnostics()}
+              >
+                {t('exportDiagnostics')}
+              </Button>
+            </section>
+          )}
         </>
       )}
-      <Divider />
-      <TelemetryPrivacySettings />
-      <Divider />
-      <Button
-        onClick={() => {
-          window.location.hash = '/knowledge?tab=packs';
-        }}
-      >
-        {t('manageLibraryPacks')}
-      </Button>
+      {view !== 'updates' && (
+        <>
+          <section className={styles.group} aria-labelledby="local-data-heading">
+            <h3 id="local-data-heading">{zh ? '本地数据' : 'Local data'}</h3>
+            <p className={styles.muted}>
+              {zh
+                ? '资料库、成果、工具状态、写作偏好和历史记录保存在本机。'
+                : 'Library, results, tool state, writing profiles and history are stored locally.'}
+            </p>
+            <Button
+              type="link"
+              className={styles.link}
+              onClick={() => {
+                window.location.hash = '/knowledge?tab=packs';
+              }}
+            >
+              {t('manageLibraryPacks')}
+            </Button>
+          </section>
+          <TelemetryPrivacySettings />
+          {isDesktop && (
+            <section className={styles.dangerZone} aria-labelledby="clear-data-zone-title">
+              <div className={styles.dangerHeading}>
+                <ExclamationCircleOutlined aria-hidden="true" />
+                <h3 id="clear-data-zone-title">{zh ? '危险操作' : 'Danger zone'}</h3>
+              </div>
+              <strong>{t('clearAllLocalData')}</strong>
+              <p>
+                {zh
+                  ? '将永久删除资料库、成果、工具状态、写作偏好和本地历史；不会删除工作区原始文件。'
+                  : 'Permanently deletes your library, results, tool state, writing profiles and local history. Original workspace files are preserved.'}
+              </p>
+              <Button danger icon={<DeleteOutlined />} onClick={() => setClearOpen(true)}>
+                {t('clearAllLocalData')}
+              </Button>
+            </section>
+          )}
+        </>
+      )}
       <Modal
         open={clearOpen}
         title={t('clearAllLocalData')}

@@ -16,6 +16,7 @@ test('document critic: local rules, retained ignore, confirmed review and accept
   const text = '# M7 审稿\n\n预算 420 元，尚未批准。';
   await editor.fill(text);
   await expect(page.getByText('已保存', { exact: true })).toBeVisible();
+  await page.getByText('审阅', { exact: true }).click();
   await page.getByRole('button', { name: '文档审稿', exact: true }).click();
   const drawer = page.getByRole('dialog', { name: '文档审稿', exact: true });
   await expect(drawer.getByText('数字来源待核对')).toBeVisible();
@@ -28,13 +29,14 @@ test('document critic: local rules, retained ignore, confirmed review and accept
   await drawer.getByRole('button', { name: 'Close' }).click();
   await page
     .getByRole('navigation', { name: '主导航' })
-    .getByRole('button', { name: '成果', exact: true })
+    .getByRole('button', { name: '成果与协作', exact: true })
     .click();
   await page
     .getByRole('article')
     .filter({ hasText: 'M7 审稿' })
     .getByRole('button', { name: /继续处理/ })
     .click();
+  await page.getByText('审阅', { exact: true }).click();
   await page.getByRole('button', { name: '文档审稿', exact: true }).click();
   await drawer.getByRole('checkbox', { name: '显示已忽略提示' }).check();
   await expect(drawer.getByRole('button', { name: '让 AI 修改' })).toBeDisabled();

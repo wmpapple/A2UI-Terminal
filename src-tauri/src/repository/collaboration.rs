@@ -113,6 +113,14 @@ pub fn save_reply(storage: &Storage, id: &str, reply: &FeedbackPackage) -> Resul
         audit(db, "feedback_saved", id)
     })
 }
+pub fn mark_handled(storage: &Storage, id: &str) -> Result<(), AppError> {
+    storage.with_transaction(|db| {
+        if db.execute("UPDATE collaboration_inbox SET handled_at=CURRENT_TIMESTAMP WHERE id=?1 AND handled_at IS NULL", [id])? != 1 {
+            return Err(AppError::InvalidInput("收件记录不存在或已处理".into()));
+        }
+        audit(db, "inbox_handled", id)
+    })
+}
 pub fn review_id(storage: &Storage, id: &str) -> Result<Option<String>, AppError> {
     storage.with_read(|db| {
         Ok(db
@@ -152,21 +160,36 @@ pub fn overview(
     result_id: Option<&str>,
 ) -> Result<CollaborationOverview, AppError> {
     let identity = identity(storage)?;
-    let (shares,inbox)=storage.with_read(|db| {
+    let (shares,inbox,pending_count)=storage.with_read(|db| {
+        let pending_count: i64=db.query_row("SELECT COUNT(*) FROM collaboration_inbox i LEFT JOIN collaboration_reviews cr ON cr.inbox_id=i.id LEFT JOIN review_requests rr ON rr.id=cr.review_id WHERE i.handled_at IS NULL AND i.reply_json IS NULL AND (rr.status IS NULL OR rr.status NOT IN ('applied','rejected'))",[],|r|r.get(0))?;
         let mut q=db.prepare("SELECT s.id,r.title,s.status,s.created_at FROM collaboration_shares s JOIN results r ON r.id=s.result_id WHERE (?1 IS NULL OR s.result_id=?1) ORDER BY s.rowid DESC LIMIT 100")?;
-        let shares=q.query_map([result_id],|r|Ok(CollaborationItem{id:r.get(0)?,title:r.get(1)?,kind:"issued".into(),status:r.get(2)?,created_at:r.get(3)?}))?.collect::<Result<Vec<_>,_>>()?;
-        let mut q=db.prepare("SELECT id,kind,package_json,reply_json IS NOT NULL,created_at FROM collaboration_inbox ORDER BY rowid DESC LIMIT 100")?;
-        let rows=q.query_map([],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,bool>(3)?,r.get::<_,String>(4)?)))?.collect::<Result<Vec<_>,_>>()?;
-        let inbox=rows.into_iter().map(|(id,kind,json,reply,created_at)|{
+        let shares=q.query_map([result_id],|r|Ok(CollaborationItem{id:r.get(0)?,title:r.get(1)?,kind:"issued".into(),status:r.get(2)?,created_at:r.get(3)?,sender_name:None,permission:None}))?.collect::<Result<Vec<_>,_>>()?;
+        let mut q=db.prepare("SELECT i.id,i.kind,i.package_json,i.reply_json IS NOT NULL,i.created_at,rr.status,i.handled_at IS NOT NULL FROM collaboration_inbox i LEFT JOIN collaboration_reviews cr ON cr.inbox_id=i.id LEFT JOIN review_requests rr ON rr.id=cr.review_id ORDER BY i.rowid DESC LIMIT 100")?;
+        let rows=q.query_map([],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,bool>(3)?,r.get::<_,String>(4)?,r.get::<_,Option<String>>(5)?,r.get::<_,bool>(6)?)))?.collect::<Result<Vec<_>,_>>()?;
+        let inbox=rows.into_iter().map(|(id,kind,json,reply,created_at,review_status,handled)|{
             let p:CollaborationPackage=serde_json::from_str(&json).map_err(|_|AppError::StateUnavailable)?;
-            let title=match p {CollaborationPackage::Share(s)=>s.title,CollaborationPackage::Feedback(f)=>format!("{} · 审阅意见",f.reviewer_name)};
-            Ok(CollaborationItem{id,title,kind,status:if reply{"replied"}else{"received"}.into(),created_at})
+            let (title,sender_name,permission)=match p {
+                CollaborationPackage::Share(s)=>(s.title,Some(s.sender_name),Some(s.permission)),
+                CollaborationPackage::Feedback(f)=>{
+                    let title=db.query_row("SELECT r.title FROM collaboration_shares s JOIN results r ON r.id=s.result_id WHERE s.id=?1",[&f.share_id],|r|r.get::<_,String>(0)).optional()?.unwrap_or_else(||format!("{} · 审阅意见",f.reviewer_name));
+                    (title,Some(f.reviewer_name),None)
+                },
+            };
+            let status=match review_status.as_deref() {
+                Some("applied")=>"applied",
+                Some("rejected")=>"rejected",
+                _ if reply=>"replied",
+                _ if handled=>"handled",
+                _=>"received",
+            };
+            Ok(CollaborationItem{id,title,kind,status:status.into(),created_at,sender_name,permission})
         }).collect::<Result<Vec<_>,AppError>>()?;
-        Ok((shares,inbox))
+        Ok((shares,inbox,pending_count))
     })?;
     Ok(CollaborationOverview {
         identity,
         shares,
         inbox,
+        pending_count: pending_count as u64,
     })
 }

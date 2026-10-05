@@ -44,6 +44,12 @@ pub struct WritingProject {
     pub sections: Vec<WritingSection>,
     pub final_review_id: Option<String>,
     pub result_id: Option<String>,
+    #[serde(default)]
+    pub published_revision: Option<i64>,
+    #[serde(default)]
+    pub published_result_hash: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -6,6 +6,7 @@ export const collaborationController = {
   share: (input: CreateShareInput) => desktopGateway.collaborationShare(input),
   revoke: (id: string) => desktopGateway.collaborationRevoke(id),
   inbox: (id: string) => desktopGateway.collaborationInbox(id),
+  markHandled: (id: string) => desktopGateway.collaborationMarkHandled(id),
   feedback: (input: SaveFeedbackInput) => desktopGateway.collaborationFeedback(input),
   propose: (id: string) => desktopGateway.collaborationPropose(id),
   import: () => desktopGateway.collaborationImport(),

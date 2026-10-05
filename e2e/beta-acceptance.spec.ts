@@ -45,6 +45,7 @@ const saveAndExportDocument = async (page: Page, content: string) => {
   await page.getByRole('textbox', { name: '成果编辑器' }).fill(content);
   await expect(page.getByText('有未保存修改')).toBeVisible();
   await expect(page.getByText('已保存', { exact: true })).toBeVisible({ timeout: 5_000 });
+  await page.getByText('阅读', { exact: true }).click();
   await page.getByRole('button', { name: /导出$/ }).click();
   const exportDialog = page.getByRole('dialog', { name: '导出', exact: true });
   await expect(exportDialog.getByText(/Web Mock 仅演示/)).toBeVisible();
@@ -73,7 +74,11 @@ test('office user completes, saves, and exports meeting minutes within the 90 se
   await task.getByRole('button', { name: '创建结构草稿' }).click();
   await expect(task.getByText('本地结构草稿已创建')).toBeVisible();
   await task.getByRole('button', { name: /去工作台继续/ }).click();
-  await expect(page.getByRole('heading', { name: '会议纪要 - Beta 发布例会' })).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: '成果工作区' })
+      .getByRole('heading', { name: '会议纪要 - Beta 发布例会', level: 2 })
+  ).toBeVisible();
 
   await saveAndExportDocument(
     page,
@@ -105,7 +110,11 @@ test('knowledge user completes, saves, and exports the document-summary scenario
   await task.getByRole('button', { name: '创建结构草稿' }).click();
   await expect(task.getByText('本地结构草稿已创建')).toBeVisible();
   await task.getByRole('button', { name: /去工作台继续/ }).click();
-  await expect(page.getByRole('heading', { name: '文档总结' })).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: '成果工作区' })
+      .getByRole('heading', { name: '文档总结', level: 2 })
+  ).toBeVisible();
 
   await saveAndExportDocument(
     page,
@@ -177,7 +186,7 @@ test('a duplicate-name failure keeps the existing result and allows a safe retry
   await expect(page.getByRole('heading', { name: 'Beta 冲突基线' })).toBeVisible();
 
   const navigation = page.getByRole('navigation', { name: '主导航' });
-  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await navigation.getByRole('button', { name: /成果与协作$/ }).click();
   await page.getByRole('button', { name: '新建成果' }).click();
   create = page.getByRole('dialog', { name: '新建成果' });
   title = create.getByLabel('成果标题');
@@ -192,7 +201,7 @@ test('a duplicate-name failure keeps the existing result and allows a safe retry
   await fileName.fill('beta-retry.md');
   await create.getByRole('button', { name: '创建并打开' }).click();
   await expect(page.getByRole('heading', { name: 'Beta 安全重试' })).toBeVisible();
-  await navigation.getByRole('button', { name: /成果$/ }).click();
+  await navigation.getByRole('button', { name: /成果与协作$/ }).click();
   await expect(page.getByText('Beta 冲突基线', { exact: true })).toBeVisible();
   await expect(page.getByText('Beta 安全重试', { exact: true })).toBeVisible();
 });

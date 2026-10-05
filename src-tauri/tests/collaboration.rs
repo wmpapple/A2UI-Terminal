@@ -127,6 +127,17 @@ fn two_installations_roundtrip_requires_accept_and_supports_undo() {
     );
     app::rename(&peer.storage, "审阅者小林").unwrap();
     let s = share(&owner, &id, SharePermission::Review);
+    let peer_share = app::import_bytes(
+        &peer.storage,
+        &app::export_package(&owner.storage, &s.id, false).unwrap(),
+    )
+    .unwrap();
+    let imported = app::overview(&peer.storage, None).unwrap();
+    assert_eq!(imported.pending_count, 1);
+    let item = imported.inbox.iter().find(|item| item.id == peer_share).unwrap();
+    assert_eq!(item.status, "received");
+    assert_eq!(item.permission, Some(SharePermission::Review));
+    assert_eq!(item.sender_name.as_deref(), Some(s.sender_name.as_str()));
     let original = text(&owner, &id);
     let f = feedback(
         &owner,
@@ -135,6 +146,14 @@ fn two_installations_roundtrip_requires_accept_and_supports_undo() {
         Some("# 预算\n\n当前预算 420 元，仍未批准。🙂"),
     );
     assert_eq!(text(&owner, &id), original);
+    let replied = app::overview(&peer.storage, None).unwrap();
+    assert_eq!(replied.inbox[0].status, "replied");
+    assert_eq!(replied.pending_count, 0);
+    assert_eq!(app::overview(&owner.storage, None).unwrap().inbox[0].title, "协作测试");
+    assert_eq!(
+        app::overview(&owner.storage, None).unwrap().inbox[0].status,
+        "received"
+    );
     let r = app::propose(&owner.storage, &owner.managed_results_dir, &f).unwrap();
     assert_eq!(
         r.id,
@@ -146,6 +165,11 @@ fn two_installations_roundtrip_requires_accept_and_supports_undo() {
     accept(&owner, &r);
     review::apply(&owner.storage, &owner.managed_results_dir, input(&r)).unwrap();
     assert!(text(&owner, &id).contains("仍未批准"));
+    assert_eq!(
+        app::overview(&owner.storage, None).unwrap().inbox[0].status,
+        "applied"
+    );
+    assert_eq!(app::overview(&owner.storage, None).unwrap().pending_count, 0);
     // Repeated apply is idempotent; revocation cannot prevent the owner undoing their edit.
     review::apply(&owner.storage, &owner.managed_results_dir, input(&r)).unwrap();
     app::revoke(&owner.storage, &s.id).unwrap();
@@ -156,13 +180,17 @@ fn two_installations_roundtrip_requires_accept_and_supports_undo() {
 #[test]
 fn comments_only_and_read_only_never_create_writes() {
     let (_a, owner, id) = setup();
-    let (_b, peer, _) = setup();
+    let (_b, peer, peer_id) = setup();
     let s = share(&owner, &id, SharePermission::Read);
-    app::import_bytes(
+    let read_id = app::import_bytes(
         &peer.storage,
         &app::export_package(&owner.storage, &s.id, false).unwrap(),
     )
     .unwrap();
+    app::mark_handled(&peer.storage, &read_id).unwrap();
+    assert_eq!(app::overview(&peer.storage, None).unwrap().inbox[0].status, "handled");
+    assert_eq!(app::overview(&peer.storage, None).unwrap().pending_count, 0);
+    assert_eq!(text(&peer, &peer_id), "# 预算\n\n预算 420 元，尚未批准。🙂");
     assert!(app::save_feedback(
         &peer.storage,
         SaveFeedbackInput {
@@ -176,6 +204,21 @@ fn comments_only_and_read_only_never_create_writes() {
     let f = feedback(&owner, &peer, &s, None);
     assert!(app::propose(&owner.storage, &owner.managed_results_dir, &f).is_err());
     assert_eq!(text(&owner, &id), s.content);
+}
+
+#[test]
+fn rejected_feedback_leaves_the_result_unchanged_and_clears_pending_count() {
+    let (_a, owner, id) = setup();
+    let (_b, peer, _) = setup();
+    let s = share(&owner, &id, SharePermission::Review);
+    let original = text(&owner, &id);
+    let feedback_id = feedback(&owner, &peer, &s, Some("建议修改稿"));
+    let proposal = app::propose(&owner.storage, &owner.managed_results_dir, &feedback_id).unwrap();
+    review::discard(&owner.storage, &proposal.workspace_id, &proposal.id).unwrap();
+    let overview = app::overview(&owner.storage, None).unwrap();
+    assert_eq!(overview.inbox[0].status, "rejected");
+    assert_eq!(overview.pending_count, 0);
+    assert_eq!(text(&owner, &id), original);
 }
 
 #[test]
@@ -280,7 +323,7 @@ fn migration_backfills_ownership_without_changing_existing_results() {
         Storage::open(&dir.path().join("test.db")).unwrap(),
         result::prepare_managed_results_dir(dir.path()).unwrap(),
     );
-    assert_eq!(state.storage.schema_version().unwrap(), 32);
+    assert_eq!(state.storage.schema_version().unwrap(), 33);
     assert_eq!(text(&state, &id), original);
     let s = share(&state, &id, SharePermission::Review);
     assert_eq!(s.content, original);

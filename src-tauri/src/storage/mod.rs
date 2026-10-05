@@ -11,7 +11,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 32;
+const SCHEMA_VERSION: i64 = 33;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -93,6 +93,10 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (
         32,
         include_str!("../../migrations/0032_local_collaboration.sql"),
+    ),
+    (
+        33,
+        include_str!("../../migrations/0033_collaboration_inbox_handled.sql"),
     ),
 ];
 

@@ -150,6 +150,10 @@ export const desktopApi = {
     requireDesktop();
     return invoke<import('../types/collaboration').InboxDetail>('collaboration_inbox', { id });
   },
+  async collaborationMarkHandled(id: string) {
+    requireDesktop();
+    return invoke<void>('collaboration_mark_handled', { id });
+  },
   async collaborationFeedback(input: import('../types/collaboration').SaveFeedbackInput) {
     requireDesktop();
     return invoke<import('../types/collaboration').FeedbackPackage>('collaboration_feedback', {
