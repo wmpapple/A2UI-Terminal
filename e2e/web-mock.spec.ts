@@ -198,6 +198,13 @@ test('completes context review and renders a trusted A2UI surface', async ({ pag
   await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect(review).toBeHidden();
   await expect(page.getByText('Create another A2UI form', { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole('log', { name: '对话记录' })
+      .locator('article')
+      .last()
+      .getByRole('button', { name: '打开 Surface' })
+  ).toBeVisible();
 
   await page.getByRole('button', { name: '关闭' }).click();
   await expect(
