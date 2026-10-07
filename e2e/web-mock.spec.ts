@@ -199,25 +199,13 @@ test('completes context review and renders a trusted A2UI surface', async ({ pag
   await expect(review).toBeHidden();
   await expect(page.getByText('Create another A2UI form', { exact: true })).toBeVisible();
 
-  await page
-    .getByRole('navigation', { name: '主导航' })
-    .getByRole('button', { name: /设置$/ })
-    .click();
-  await page.getByText('简单模式', { exact: true }).click();
-  await page
-    .getByRole('navigation', { name: '主导航' })
-    .getByRole('button', { name: /工作台$/ })
-    .click();
-  await expect(page.getByText('Research profile')).toBeVisible();
-  await expect(page.getByText('协议 Inspector')).toHaveCount(0);
-
   await page.getByRole('button', { name: '关闭' }).click();
   await expect(
     page.getByTestId('workspace-mode').getByRole('radio', { name: '编辑', exact: true })
   ).toBeChecked();
   await expect(page.getByText('Research profile')).toHaveCount(0);
 
-  await page.getByText('交互成果', { exact: true }).click();
+  await page.getByRole('button', { name: '打开 Surface' }).last().click();
   await expect(page.getByText('Research profile')).toBeVisible();
 
   await page
@@ -241,6 +229,20 @@ test('completes context review and renders a trusted A2UI surface', async ({ pag
     page.getByTestId('workspace-mode').getByRole('radio', { name: '编辑', exact: true })
   ).toBeChecked();
   await expect(page.getByText('Research profile')).toHaveCount(0);
+
+  await page
+    .getByRole('navigation', { name: '主导航' })
+    .getByRole('button', { name: /设置$/ })
+    .click();
+  await page.getByRole('combobox', { name: '界面模式' }).selectOption('simple');
+  await page
+    .getByRole('navigation', { name: '主导航' })
+    .getByRole('button', { name: /工作台$/ })
+    .click();
+  await expect(page.getByText('协议 Inspector')).toHaveCount(0);
+  await expect(
+    page.getByText('Mock A2UI Surface is ready for the trusted runtime.').first()
+  ).toBeVisible();
 });
 
 test('keeps file changes behind review before applying the Web Mock patch', async ({ page }) => {
@@ -612,10 +614,14 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   await page.getByRole('button', { name: '前往资料库管理资料与资料包' }).click();
   const manager = page.getByTestId('context-pack-settings');
   await expect(manager).toBeVisible();
-  await manager.getByTestId('context-pack-name').fill('季度数据');
-  await manager.getByTestId('context-pack-sources').click();
-  await page.getByText('sales.xlsx', { exact: true }).last().click();
-  await manager.getByTestId('create-context-pack').click();
+  await manager.getByRole('button', { name: '新建资料包' }).click();
+  const createPack = page.getByRole('dialog', { name: '新建资料包' });
+  await createPack.getByTestId('context-pack-name').fill('季度数据');
+  await createPack.getByRole('button', { name: '添加工作区资料' }).click();
+  const sourcePicker = page.getByRole('group', { name: '添加工作区资料' });
+  await sourcePicker.getByRole('checkbox', { name: 'sales.xlsx' }).check();
+  await sourcePicker.getByRole('button', { name: '完成' }).click();
+  await createPack.getByTestId('create-context-pack').click();
 
   const pack = manager.getByTestId('context-pack-item').filter({ hasText: '季度数据' });
   await expect(pack).toContainText('sales.xlsx');
@@ -643,23 +649,33 @@ test('remembers context packs, expands them for confirmation, and revokes refere
   await page.getByRole('button', { name: '隐私与数据' }).click();
   await page.getByRole('button', { name: '前往资料库管理资料与资料包' }).click();
   const rememberedPack = page.getByTestId('context-pack-item').filter({ hasText: '季度数据' });
-  await rememberedPack.getByTestId('delete-context-pack').click();
-  await page.getByRole('button', { name: '删除资料包' }).last().click();
+  await rememberedPack.getByTestId('pack-actions').click();
+  await page.getByRole('menuitem', { name: '删除资料包' }).click();
+  await page
+    .getByRole('dialog', { name: '删除资料包“季度数据”？' })
+    .getByRole('button', { name: '删除资料包' })
+    .click();
   await expect(rememberedPack).toHaveCount(0);
 
+  await manager.locator('details > summary').click();
   const source = page.getByTestId('authorized-source-item').filter({ hasText: 'sales.xlsx' });
   await expect(source).toBeVisible();
 
-  await manager.getByTestId('context-pack-name').fill('待撤销数据');
-  await manager.getByTestId('context-pack-sources').click();
-  await page.getByText('sales.xlsx', { exact: true }).last().click();
-  await manager.getByTestId('create-context-pack').click();
+  await manager.getByRole('button', { name: '新建资料包' }).click();
+  const createRevokedPack = page.getByRole('dialog', { name: '新建资料包' });
+  await createRevokedPack.getByTestId('context-pack-name').fill('待撤销数据');
+  await createRevokedPack.getByRole('button', { name: '添加工作区资料' }).click();
+  const revokedSourcePicker = page.getByRole('group', { name: '添加工作区资料' });
+  await revokedSourcePicker.getByRole('checkbox', { name: 'sales.xlsx' }).check();
+  await revokedSourcePicker.getByRole('button', { name: '完成' }).click();
+  await createRevokedPack.getByTestId('create-context-pack').click();
   await expect(
     page.getByTestId('context-pack-item').filter({ hasText: '待撤销数据' })
   ).toBeVisible();
 
   await source.getByTestId('revoke-authorized-source').click();
-  await page.getByRole('button', { name: '取消授权' }).click();
+  await page.getByRole('menuitem', { name: '从当前工作区移除' }).click();
+  await page.getByRole('button', { name: '从工作区移除' }).click();
   await expect(source).toHaveCount(0);
   await expect(page.getByTestId('context-pack-item').filter({ hasText: '待撤销数据' })).toHaveCount(
     0

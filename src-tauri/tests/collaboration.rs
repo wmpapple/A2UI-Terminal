@@ -134,7 +134,11 @@ fn two_installations_roundtrip_requires_accept_and_supports_undo() {
     .unwrap();
     let imported = app::overview(&peer.storage, None).unwrap();
     assert_eq!(imported.pending_count, 1);
-    let item = imported.inbox.iter().find(|item| item.id == peer_share).unwrap();
+    let item = imported
+        .inbox
+        .iter()
+        .find(|item| item.id == peer_share)
+        .unwrap();
     assert_eq!(item.status, "received");
     assert_eq!(item.permission, Some(SharePermission::Review));
     assert_eq!(item.sender_name.as_deref(), Some(s.sender_name.as_str()));
@@ -149,7 +153,10 @@ fn two_installations_roundtrip_requires_accept_and_supports_undo() {
     let replied = app::overview(&peer.storage, None).unwrap();
     assert_eq!(replied.inbox[0].status, "replied");
     assert_eq!(replied.pending_count, 0);
-    assert_eq!(app::overview(&owner.storage, None).unwrap().inbox[0].title, "协作测试");
+    assert_eq!(
+        app::overview(&owner.storage, None).unwrap().inbox[0].title,
+        "协作测试"
+    );
     assert_eq!(
         app::overview(&owner.storage, None).unwrap().inbox[0].status,
         "received"
@@ -169,7 +176,10 @@ fn two_installations_roundtrip_requires_accept_and_supports_undo() {
         app::overview(&owner.storage, None).unwrap().inbox[0].status,
         "applied"
     );
-    assert_eq!(app::overview(&owner.storage, None).unwrap().pending_count, 0);
+    assert_eq!(
+        app::overview(&owner.storage, None).unwrap().pending_count,
+        0
+    );
     // Repeated apply is idempotent; revocation cannot prevent the owner undoing their edit.
     review::apply(&owner.storage, &owner.managed_results_dir, input(&r)).unwrap();
     app::revoke(&owner.storage, &s.id).unwrap();
@@ -188,7 +198,10 @@ fn comments_only_and_read_only_never_create_writes() {
     )
     .unwrap();
     app::mark_handled(&peer.storage, &read_id).unwrap();
-    assert_eq!(app::overview(&peer.storage, None).unwrap().inbox[0].status, "handled");
+    assert_eq!(
+        app::overview(&peer.storage, None).unwrap().inbox[0].status,
+        "handled"
+    );
     assert_eq!(app::overview(&peer.storage, None).unwrap().pending_count, 0);
     assert_eq!(text(&peer, &peer_id), "# 预算\n\n预算 420 元，尚未批准。🙂");
     assert!(app::save_feedback(
@@ -317,13 +330,13 @@ fn migration_backfills_ownership_without_changing_existing_results() {
     let original = text(&state, &id);
     drop(state);
     let db = rusqlite::Connection::open(dir.path().join("test.db")).unwrap();
-    db.execute_batch("DROP TRIGGER result_local_owner; DROP TABLE collaboration_reviews; DROP TABLE collaboration_inbox; DROP TABLE collaboration_shares; DROP TABLE collaboration_audit; DROP TABLE result_ownership; DROP TABLE collaboration_identity; PRAGMA user_version=31;").unwrap();
+    db.execute_batch("DROP TRIGGER result_local_owner; DROP TABLE collaboration_reviews; DROP TABLE collaboration_inbox; DROP TABLE collaboration_shares; DROP TABLE collaboration_audit; DROP TABLE result_ownership; DROP TABLE collaboration_identity; DROP TABLE canvases; PRAGMA user_version=31;").unwrap();
     drop(db);
     let state = AppState::new(
         Storage::open(&dir.path().join("test.db")).unwrap(),
         result::prepare_managed_results_dir(dir.path()).unwrap(),
     );
-    assert_eq!(state.storage.schema_version().unwrap(), 33);
+    assert_eq!(state.storage.schema_version().unwrap(), 35);
     assert_eq!(text(&state, &id), original);
     let s = share(&state, &id, SharePermission::Review);
     assert_eq!(s.content, original);

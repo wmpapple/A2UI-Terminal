@@ -72,7 +72,9 @@ it('previews trusted extracted text and saves title and tags without editing the
   expect(within(details).getByRole('region', { name: '基本信息' })).toHaveTextContent('note.md');
   expect(within(details).getByRole('region', { name: '状态信息' })).toHaveTextContent('索引状态');
   expect(within(details).getByRole('region', { name: '标签信息' })).toHaveTextContent('暂无标签');
-  expect(within(details).getByRole('button', { name: '用于当前任务' })).toHaveClass('ant-btn-primary');
+  expect(within(details).getByRole('button', { name: '用于当前任务' })).toHaveClass(
+    'ant-btn-primary'
+  );
   fireEvent.click(within(details).getByRole('button', { name: /预\s*览/ }));
   await waitFor(() => expect(screen.getByText('Original immutable body')).toBeVisible());
   fireEvent.click(within(details).getByRole('button', { name: '添加标签' }));
@@ -92,9 +94,16 @@ it('previews trusted extracted text and saves title and tags without editing the
 it('opens local preview from the source menu', async () => {
   vi.mocked(knowledgeController.get).mockResolvedValue({
     source,
-    parsed: { blocks: [{ id: 'b1', text: 'Local evidence', locator: { kind: 'unavailable' } }], warnings: [] },
+    parsed: {
+      blocks: [{ id: 'b1', text: 'Local evidence', locator: { kind: 'unavailable' } }],
+      warnings: [],
+    },
   });
-  render(<I18nProvider><KnowledgePage /></I18nProvider>);
+  render(
+    <I18nProvider>
+      <KnowledgePage />
+    </I18nProvider>
+  );
   fireEvent.click(await screen.findByRole('button', { name: '资料操作：Library note' }));
   fireEvent.click(await screen.findByRole('menuitem', { name: '预览' }));
   const details = await screen.findByRole('dialog', { name: '资料详情' });
@@ -130,7 +139,9 @@ it('uses a scannable source list with file metadata', async () => {
     </I18nProvider>
   );
   await screen.findByRole('button', { name: 'Library note' });
-  expect(screen.getByRole('button', { name: 'Library note' }).closest('li')).toHaveTextContent('Markdown');
+  expect(screen.getByRole('button', { name: 'Library note' }).closest('li')).toHaveTextContent(
+    'Markdown'
+  );
   expect(screen.getByText('NLP')).toBeVisible();
   expect(screen.getByText('可检索')).toBeVisible();
   expect(screen.queryByRole('group', { name: '资料类型' })).not.toBeInTheDocument();
@@ -180,12 +191,20 @@ it('shows type filters for ten sources and allows returning to the full list', a
   vi.mocked(knowledgeController.list).mockResolvedValue({
     items: [
       source,
-      ...Array.from({ length: 8 }, (_, index) => ({ ...source, id: `note-${index}`, title: `Note ${index}` })),
+      ...Array.from({ length: 8 }, (_, index) => ({
+        ...source,
+        id: `note-${index}`,
+        title: `Note ${index}`,
+      })),
       { ...source, id: 'pdf-1', title: 'paper.pdf', format: 'pdf' },
     ],
     nextCursor: null,
   });
-  render(<I18nProvider><KnowledgePage /></I18nProvider>);
+  render(
+    <I18nProvider>
+      <KnowledgePage />
+    </I18nProvider>
+  );
   await screen.findByRole('button', { name: 'paper.pdf' });
   fireEvent.click(screen.getByRole('button', { name: 'PDF', pressed: false }));
   expect(screen.getByRole('button', { name: 'paper.pdf' })).toBeVisible();
@@ -217,9 +236,19 @@ it('requires deletion confirmation and exposes cleanup failure instead of claimi
 
 it('removes only a matching workspace authorization from the source menu', async () => {
   const authorized: DocumentSource = {
-    id: 'authorized-1', workspaceId: 'workspace-1', name: 'note.md', extension: 'md',
-    kind: 'text', capability: 'read_only_text', mimeType: 'text/markdown', sizeBytes: 100,
-    contentHash: source.rawHash, editable: false, warnings: [], table: null, image: null,
+    id: 'authorized-1',
+    workspaceId: 'workspace-1',
+    name: 'note.md',
+    extension: 'md',
+    kind: 'text',
+    capability: 'read_only_text',
+    mimeType: 'text/markdown',
+    sizeBytes: 100,
+    contentHash: source.rawHash,
+    editable: false,
+    warnings: [],
+    table: null,
+    image: null,
   };
   const revokeSource = vi.fn().mockResolvedValue(true);
   const forgetAuthorizedSource = vi.fn();
@@ -228,14 +257,24 @@ it('removes only a matching workspace authorization from the source menu', async
     forgetAuthorizedSource,
   });
   useImportStore.setState({
-    sources: [authorized], error: null, loadSources: vi.fn().mockResolvedValue(undefined),
+    sources: [authorized],
+    error: null,
+    loadSources: vi.fn().mockResolvedValue(undefined),
     revokeSource,
   });
-  render(<I18nProvider><KnowledgePage /></I18nProvider>);
+  render(
+    <I18nProvider>
+      <KnowledgePage />
+    </I18nProvider>
+  );
   fireEvent.click(await screen.findByRole('button', { name: '资料操作：Library note' }));
   fireEvent.click(await screen.findByRole('menuitem', { name: '从当前工作区移除' }));
   const confirmation = await screen.findByRole('dialog', { name: /从当前工作区移除/ });
-  await waitFor(() => expect(within(confirmation).getByText('只取消当前工作区的授权；个人资料库中的副本和原文件不会删除。')).toBeVisible());
+  await waitFor(() =>
+    expect(
+      within(confirmation).getByText('只取消当前工作区的授权；个人资料库中的副本和原文件不会删除。')
+    ).toBeVisible()
+  );
   expect(knowledgeController.delete).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: '从工作区移除' }));
   await waitFor(() => expect(revokeSource).toHaveBeenCalledWith('workspace-1', 'authorized-1'));
@@ -244,8 +283,15 @@ it('removes only a matching workspace authorization from the source menu', async
 });
 
 it('keeps destructive source actions behind the detail drawer menu and confirmation', async () => {
-  vi.mocked(knowledgeController.get).mockResolvedValue({ source, parsed: { blocks: [], warnings: [] } });
-  render(<I18nProvider><KnowledgePage /></I18nProvider>);
+  vi.mocked(knowledgeController.get).mockResolvedValue({
+    source,
+    parsed: { blocks: [], warnings: [] },
+  });
+  render(
+    <I18nProvider>
+      <KnowledgePage />
+    </I18nProvider>
+  );
   fireEvent.click(await screen.findByRole('button', { name: 'Library note' }));
   const details = await screen.findByRole('dialog', { name: '资料详情' });
   fireEvent.click(within(details).getByRole('button', { name: '更多资料操作' }));

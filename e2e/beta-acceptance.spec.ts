@@ -183,7 +183,7 @@ test('a duplicate-name failure keeps the existing result and allows a safe retry
   await fileName.fill('beta-conflict.md');
   await expect(fileName).toHaveValue('beta-conflict.md');
   await create.getByRole('button', { name: '创建并打开' }).click();
-  await expect(page.getByRole('heading', { name: 'Beta 冲突基线' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Beta 冲突基线', level: 2 })).toBeVisible();
 
   const navigation = page.getByRole('navigation', { name: '主导航' });
   await navigation.getByRole('button', { name: /成果与协作$/ }).click();
@@ -200,7 +200,7 @@ test('a duplicate-name failure keeps the existing result and allows a safe retry
 
   await fileName.fill('beta-retry.md');
   await create.getByRole('button', { name: '创建并打开' }).click();
-  await expect(page.getByRole('heading', { name: 'Beta 安全重试' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Beta 安全重试', level: 2 })).toBeVisible();
   await navigation.getByRole('button', { name: /成果与协作$/ }).click();
   await expect(page.getByText('Beta 冲突基线', { exact: true })).toBeVisible();
   await expect(page.getByText('Beta 安全重试', { exact: true })).toBeVisible();

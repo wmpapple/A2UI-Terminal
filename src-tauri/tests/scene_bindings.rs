@@ -17,7 +17,7 @@ use a2ui_terminal_lib::{
 use links::{ConfirmSceneLink, SetSceneLink, ToolBinding};
 use serde_json::json;
 fn remove_collaboration_schema_for_legacy_fixture(db: &rusqlite::Connection) {
-    db.execute_batch("DROP TRIGGER result_local_owner; DROP TABLE collaboration_reviews; DROP TABLE collaboration_inbox; DROP TABLE collaboration_shares; DROP TABLE collaboration_audit; DROP TABLE result_ownership; DROP TABLE collaboration_identity;").unwrap();
+    db.execute_batch("DROP TRIGGER result_local_owner; DROP TABLE collaboration_reviews; DROP TABLE collaboration_inbox; DROP TABLE collaboration_shares; DROP TABLE collaboration_audit; DROP TABLE result_ownership; DROP TABLE collaboration_identity; DROP TABLE canvases;").unwrap();
 }
 fn setup() -> (tempfile::TempDir, AppState) {
     let dir = tempfile::tempdir().unwrap();
@@ -435,7 +435,7 @@ fn upgrade_from_28_preserves_legacy_tools_without_inventing_a_binding() {
         Storage::open(&dir.path().join("test.db")).unwrap(),
         result::prepare_managed_results_dir(dir.path()).unwrap(),
     );
-    assert_eq!(state.storage.schema_version().unwrap(), 33);
+    assert_eq!(state.storage.schema_version().unwrap(), 35);
     assert_eq!(links::read(&state, &t).unwrap().status, "unbound");
     assert!(result::list(&state.storage, None, false)
         .unwrap()

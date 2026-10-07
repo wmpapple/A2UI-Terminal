@@ -587,7 +587,10 @@ fn assemble(state: &AppState, p: &WritingProject) -> Result<(String, String), Ap
     let mut bindings = Vec::new();
     let mut next = 1;
     for section in &p.sections {
-        let request = section.request_id.as_deref().ok_or(AppError::StateUnavailable)?;
+        let request = section
+            .request_id
+            .as_deref()
+            .ok_or(AppError::StateUnavailable)?;
         let known = citation::sources(&state.storage, request)?
             .into_iter()
             .map(|source| source.key)
@@ -628,7 +631,12 @@ fn assemble(state: &AppState, p: &WritingProject) -> Result<(String, String), Ap
         rewritten.push_str(rest);
         content.push_str(&format!("## {}\n\n{}\n\n", section.title, rewritten.trim()));
     }
-    citation::combine_requests(&state.storage, &combined_request, &p.workspace_id, &bindings)?;
+    citation::combine_requests(
+        &state.storage,
+        &combined_request,
+        &p.workspace_id,
+        &bindings,
+    )?;
     Ok((content, combined_request))
 }
 
@@ -646,11 +654,15 @@ pub fn finalize(state: &AppState, id: &str, revision: i64) -> Result<String, App
         if !p.outline_confirmed || p.sections.is_empty() || p.sections.iter().any(|s| !s.accepted) {
             return Err(invalid("请先审阅接受每个章节"));
         }
-        let current = super::result::read_document(&state.storage, &state.managed_results_dir, &result_id)?;
+        let current =
+            super::result::read_document(&state.storage, &state.managed_results_dir, &result_id)?;
         if state.storage.result_draft(&result_id)?.is_some() {
             return Err(AppError::FileConflict);
         }
-        if p.published_result_hash.as_deref().is_some_and(|hash| hash != current.content_hash) {
+        if p.published_result_hash
+            .as_deref()
+            .is_some_and(|hash| hash != current.content_hash)
+        {
             return Err(AppError::FileConflict);
         }
         let (content, combined_request) = assemble(state, &p)?;

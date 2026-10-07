@@ -157,8 +157,11 @@ export function SceneToolWorkbench({
     if (key === 'rename') setRenameName(view.result.title);
     if (key === 'binding') {
       setPanel('binding');
-      window.setTimeout(() =>
-        window.dispatchEvent(new CustomEvent('scene-tool-change-binding', { detail: resultId })), 0);
+      window.setTimeout(
+        () =>
+          window.dispatchEvent(new CustomEvent('scene-tool-change-binding', { detail: resultId })),
+        0
+      );
     }
     if (key === 'reset') setResetOpen(true);
     if (key === 'delete') setDeleteOpen(true);
@@ -174,76 +177,84 @@ export function SceneToolWorkbench({
             title={view.result.title}
             type={`${zh ? '场景工具 · 来自' : 'Scene tool · From'} ${templateLabel(view.templateId, zh)}`}
             status={autosave.text}
-            tone={autosave.tone === 'saved' ? 'success' : autosave.tone === 'error' ? 'danger' : 'warning'}
+            tone={
+              autosave.tone === 'saved'
+                ? 'success'
+                : autosave.tone === 'error'
+                  ? 'danger'
+                  : 'warning'
+            }
           />
-          <WorkItemNavigation actions={
-            <div className={styles.primaryActions}>
-              {publicationSynced ? (
-                <span className={styles.syncedStatus} role="status">
-                  <CheckCircleFilled />
-                  {zh ? '已同步到成果' : 'Synced to result'} · Rev {publication!.revisionNumber}
-                </span>
-              ) : (
-                <>
-                  {publication ? (
-                    <span className={styles.publicationPending} role="status">
-                      {zh ? '● 工具内容有更新' : '● Tool content changed'}
-                    </span>
-                  ) : null}
-                  <Button
-                    type="primary"
-                    disabled={busy || state.saving || state.conflict}
-                    loading={busy}
-                    onClick={() =>
-                      publication
-                        ? void publish()
-                        : setPublicationName(
-                            suggestedPublicationTitle(view.result.title, view.templateId, zh)
-                          )
-                    }
-                  >
-                    {!publication
-                      ? zh
-                        ? '保存为成果'
-                        : 'Save as result'
-                      : zh
-                        ? '更新成果'
-                        : 'Update result'}
-                  </Button>
-                </>
-              )}
-              <Button
-                disabled={busy || state.saving || state.conflict}
-                onClick={async () => {
-                  setBusy(true);
-                  setError(null);
-                  try {
-                    if (await sceneTools.save(resultId)) {
-                      setDocument(await resultController.open(resultId));
-                      setExportOpen(true);
-                    }
-                  } catch (reason) {
-                    setError(
-                      reason && typeof reason === 'object' && 'message' in reason
-                        ? String(reason.message)
-                        : String(reason)
-                    );
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                {zh ? '导出' : 'Export'}
-              </Button>
-              <Dropdown menu={{ items: menuItems, onClick: selectMenu }} trigger={['click']}>
+          <WorkItemNavigation
+            actions={
+              <div className={styles.primaryActions}>
+                {publicationSynced ? (
+                  <span className={styles.syncedStatus} role="status">
+                    <CheckCircleFilled />
+                    {zh ? '已同步到成果' : 'Synced to result'} · Rev {publication!.revisionNumber}
+                  </span>
+                ) : (
+                  <>
+                    {publication ? (
+                      <span className={styles.publicationPending} role="status">
+                        {zh ? '● 工具内容有更新' : '● Tool content changed'}
+                      </span>
+                    ) : null}
+                    <Button
+                      type="primary"
+                      disabled={busy || state.saving || state.conflict}
+                      loading={busy}
+                      onClick={() =>
+                        publication
+                          ? void publish()
+                          : setPublicationName(
+                              suggestedPublicationTitle(view.result.title, view.templateId, zh)
+                            )
+                      }
+                    >
+                      {!publication
+                        ? zh
+                          ? '保存为成果'
+                          : 'Save as result'
+                        : zh
+                          ? '更新成果'
+                          : 'Update result'}
+                    </Button>
+                  </>
+                )}
                 <Button
-                  aria-label={zh ? '更多工具操作' : 'More tool actions'}
-                  icon={<EllipsisOutlined />}
-                  disabled={busy}
-                />
-              </Dropdown>
-            </div>
-          }>
+                  disabled={busy || state.saving || state.conflict}
+                  onClick={async () => {
+                    setBusy(true);
+                    setError(null);
+                    try {
+                      if (await sceneTools.save(resultId)) {
+                        setDocument(await resultController.open(resultId));
+                        setExportOpen(true);
+                      }
+                    } catch (reason) {
+                      setError(
+                        reason && typeof reason === 'object' && 'message' in reason
+                          ? String(reason.message)
+                          : String(reason)
+                      );
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  {zh ? '导出' : 'Export'}
+                </Button>
+                <Dropdown menu={{ items: menuItems, onClick: selectMenu }} trigger={['click']}>
+                  <Button
+                    aria-label={zh ? '更多工具操作' : 'More tool actions'}
+                    icon={<EllipsisOutlined />}
+                    disabled={busy}
+                  />
+                </Dropdown>
+              </div>
+            }
+          >
             <Segmented
               value={panel}
               onChange={(value) => setPanel(value as 'fill' | 'binding' | 'result')}
@@ -284,7 +295,9 @@ export function SceneToolWorkbench({
                   </Button>
                 </div>
               ) : panel === 'result' ? (
-                <p className={styles.publicationRelation}>{zh ? '尚未保存为成果' : 'No saved result yet'}</p>
+                <p className={styles.publicationRelation}>
+                  {zh ? '尚未保存为成果' : 'No saved result yet'}
+                </p>
               ) : null}
             </div>
           )}
@@ -316,25 +329,27 @@ export function SceneToolWorkbench({
             <Alert type="error" showIcon title={error} closable onClose={() => setError(null)} />
           ) : null}
 
-          {panel === 'fill' && <div className={styles.formArea}>
-            <A2uiRuntime
-              locale={locale}
-              className={styles.sceneSurface}
-              surface={{ ...groupedSurface!, data: state.data }}
-              disabled={exportOpen || busy}
-              onAction={(id, event, value) => {
-                const action = findA2uiNode(view.surface.root, id)?.actions[event];
-                if (action?.type === 'set_state' && action.target)
-                  sceneTools.change(resultId, action.target, value);
-                else
-                  setError(
-                    zh
-                      ? '此处仅支持本机填写。文件修改请使用工作区中的审阅流程。'
-                      : 'Only local input is available here. Use the workspace review flow for file changes.'
-                  );
-              }}
-            />
-          </div>}
+          {panel === 'fill' && (
+            <div className={styles.formArea}>
+              <A2uiRuntime
+                locale={locale}
+                className={styles.sceneSurface}
+                surface={{ ...groupedSurface!, data: state.data }}
+                disabled={exportOpen || busy}
+                onAction={(id, event, value) => {
+                  const action = findA2uiNode(view.surface.root, id)?.actions[event];
+                  if (action?.type === 'set_state' && action.target)
+                    sceneTools.change(resultId, action.target, value);
+                  else
+                    setError(
+                      zh
+                        ? '此处仅支持本机填写。文件修改请使用工作区中的审阅流程。'
+                        : 'Only local input is available here. Use the workspace review flow for file changes.'
+                    );
+                }}
+              />
+            </div>
+          )}
         </div>
       ) : null}
 

@@ -98,8 +98,14 @@ const MIGRATIONS: &[(i64, &str)] = &[
         33,
         include_str!("../../migrations/0033_collaboration_inbox_handled.sql"),
     ),
-    (34, include_str!("../../migrations/0034_legacy_canvases.sql")),
-    (35, include_str!("../../migrations/0035_spatial_canvases.sql")),
+    (
+        34,
+        include_str!("../../migrations/0034_legacy_canvases.sql"),
+    ),
+    (
+        35,
+        include_str!("../../migrations/0035_spatial_canvases.sql"),
+    ),
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -4294,7 +4300,9 @@ impl Storage {
             )?;
             if has_canvas && !handled_at {
                 let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
-                tx.execute_batch(include_str!("../../migrations/0033_collaboration_inbox_handled.sql"))?;
+                tx.execute_batch(include_str!(
+                    "../../migrations/0033_collaboration_inbox_handled.sql"
+                ))?;
                 if version == 33 {
                     tx.execute_batch(include_str!("../../migrations/0035_spatial_canvases.sql"))?;
                 }
@@ -4566,23 +4574,37 @@ mod tests {
     fn upgrades_canvas_preview_databases_without_losing_canvases() {
         for old_version in [33, 34] {
             let directory = tempfile::tempdir().unwrap();
-            let path = directory.path().join(format!("preview-{old_version}.sqlite3"));
+            let path = directory
+                .path()
+                .join(format!("preview-{old_version}.sqlite3"));
             let mut connection = Connection::open(&path).unwrap();
             Storage::configure(&connection).unwrap();
             Storage::migrate_to(&mut connection, 32, MIGRATIONS).unwrap();
-            connection.execute_batch(include_str!("../../migrations/0034_legacy_canvases.sql")).unwrap();
+            connection
+                .execute_batch(include_str!("../../migrations/0034_legacy_canvases.sql"))
+                .unwrap();
             if old_version == 34 {
-                connection.execute_batch(include_str!("../../migrations/0035_spatial_canvases.sql")).unwrap();
+                connection
+                    .execute_batch(include_str!("../../migrations/0035_spatial_canvases.sql"))
+                    .unwrap();
             }
             connection.execute_batch("INSERT INTO workspaces(id,name,root_path) VALUES ('workspace-canvas','Canvas','C:\\canvas'); INSERT INTO canvases(id,title,binding_json,blocks_json) VALUES ('canvas-old','Old canvas','{\"type\":\"none\"}','[]');").unwrap();
-            connection.pragma_update(None, "user_version", old_version).unwrap();
+            connection
+                .pragma_update(None, "user_version", old_version)
+                .unwrap();
             drop(connection);
 
             let storage = Storage::open(&path).unwrap();
             assert_eq!(storage.schema_version().unwrap(), SCHEMA_VERSION);
             assert!(storage.table_exists("canvases").unwrap());
             let connection = storage.connection.lock().unwrap();
-            let title: String = connection.query_row("SELECT title FROM canvases WHERE id='canvas-old'", [], |row| row.get(0)).unwrap();
+            let title: String = connection
+                .query_row(
+                    "SELECT title FROM canvases WHERE id='canvas-old'",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
             let handled_at: i64 = connection.query_row("SELECT COUNT(*) FROM pragma_table_info('collaboration_inbox') WHERE name='handled_at'", [], |row| row.get(0)).unwrap();
             assert_eq!(title, "Old canvas");
             assert_eq!(handled_at, 1);

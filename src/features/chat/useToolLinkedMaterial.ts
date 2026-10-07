@@ -7,7 +7,9 @@ import { sceneToolController } from '../sceneTools/sceneToolController';
 export type LinkedMaterial = { kind: 'projectFile' | 'documentSource'; id: string; title: string };
 
 export function useToolLinkedMaterial(toolId?: string | null) {
-  const [loaded, setLoaded] = useState<{ toolId: string; link: SceneDocumentLink | null } | null>(null);
+  const [loaded, setLoaded] = useState<{ toolId: string; link: SceneDocumentLink | null } | null>(
+    null
+  );
   const workspaceId = useAppStore((state) => state.workspace?.id);
   const files = useAppStore((state) => state.files);
   const sources = useImportStore((state) => state.sources);

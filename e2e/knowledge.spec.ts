@@ -7,14 +7,18 @@ test('keeps library controls usable at a narrow viewport', async ({ page }) => {
   const library = page.getByRole('region', { name: '资料库', exact: true });
   await expect(library.getByRole('heading', { name: '资料库' })).toBeVisible();
   await expect(library.getByText('还没有资料')).toBeVisible();
-  expect((await library.getByTestId('knowledge-empty').boundingBox())?.height ?? 0).toBeLessThanOrEqual(220);
+  expect(
+    (await library.getByTestId('knowledge-empty').boundingBox())?.height ?? 0
+  ).toBeLessThanOrEqual(220);
   const bounds = await library.boundingBox();
   expect(bounds).not.toBeNull();
   expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(390);
   await page.getByRole('tab', { name: '资料包' }).click();
   await expect(library.getByRole('tab', { name: '资料包' })).toBeVisible();
   await page.getByRole('button', { name: '选择工作区' }).click();
-  expect((await library.getByTestId('pack-empty').boundingBox())?.height ?? 0).toBeLessThanOrEqual(190);
+  expect((await library.getByTestId('pack-empty').boundingBox())?.height ?? 0).toBeLessThanOrEqual(
+    190
+  );
   await page.getByRole('button', { name: '新建资料包' }).click();
   await page.getByRole('button', { name: '添加个人资料' }).click();
   const picker = page.getByRole('group', { name: '添加个人资料' });
@@ -38,7 +42,10 @@ test('using a library source prepares context but still requires send review', a
   });
   await page.getByRole('dialog').getByRole('button', { name: '确认导入' }).click();
   await page.getByRole('button', { name: 'task-source.txt', exact: true }).click();
-  await page.getByRole('dialog', { name: '资料详情' }).getByRole('button', { name: '用于当前任务' }).click();
+  await page
+    .getByRole('dialog', { name: '资料详情' })
+    .getByRole('button', { name: '用于当前任务' })
+    .click();
   await expect(page).toHaveURL(/#\/workbench$/);
   await expect(page.getByRole('dialog', { name: '发送前确认上下文' })).toHaveCount(0);
   await page.getByPlaceholder('描述你希望对当前文档做出的修改…').fill('总结资料');
@@ -107,8 +114,13 @@ test('unified library groups personal sources, expands a pack and preserves sour
   await expect(manager.getByTestId('context-pack-item')).toHaveCount(0);
   await page.getByRole('tab', { name: '我的资料', exact: true }).click();
   await page.getByRole('button', { name: 'pack-evidence.txt', exact: true }).click();
-  await page.getByRole('dialog', { name: '资料详情' }).getByRole('button', { name: '预览', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: '资料详情' })).toContainText('Pack evidence budget 420');
+  await page
+    .getByRole('dialog', { name: '资料详情' })
+    .getByRole('button', { name: '预览', exact: true })
+    .click();
+  await expect(page.getByRole('dialog', { name: '资料详情' })).toContainText(
+    'Pack evidence budget 420'
+  );
 });
 
 test('personal library confirms import, persists, edits metadata, searches and deletes a copy', async ({
@@ -134,7 +146,10 @@ test('personal library confirms import, persists, edits metadata, searches and d
   await page.locator('input[type=file]').setInputFiles(file);
   await page.getByRole('dialog').getByRole('button', { name: '确认导入' }).click();
   await expect(page.getByRole('button', { name: 'library-note.md', exact: true })).toBeVisible();
-  const sourceRow = page.getByRole('region', { name: '个人资料库' }).getByRole('listitem').filter({ hasText: 'library-note.md' });
+  const sourceRow = page
+    .getByRole('region', { name: '个人资料库' })
+    .getByRole('listitem')
+    .filter({ hasText: 'library-note.md' });
   await expect(sourceRow).toContainText('Markdown');
   await expect(sourceRow).toContainText('可检索');
   expect((await sourceRow.boundingBox())?.height ?? 0).toBeLessThan(120);
@@ -176,7 +191,9 @@ test('personal library confirms import, persists, edits metadata, searches and d
   await expect(page.getByRole('button', { name: 'Launch reference', exact: true })).toHaveCount(0);
 });
 
-test('source details fit a narrow viewport and keep deletion behind confirmation', async ({ page }) => {
+test('source details fit a narrow viewport and keep deletion behind confirmation', async ({
+  page,
+}) => {
   await page.addInitScript(() => localStorage.setItem('a2ui.onboarding-complete.v1', 'true'));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/knowledge');
@@ -190,15 +207,19 @@ test('source details fit a narrow viewport and keep deletion behind confirmation
   const details = page.getByRole('dialog', { name: '资料详情' });
   await expect(details).toBeVisible();
   await expect.poll(async () => (await details.boundingBox())?.x ?? -1).toBeGreaterThanOrEqual(0);
-  await expect.poll(async () => {
-    const box = await details.boundingBox();
-    return box ? box.x + box.width : Number.POSITIVE_INFINITY;
-  }).toBeLessThanOrEqual(390);
+  await expect
+    .poll(async () => {
+      const box = await details.boundingBox();
+      return box ? box.x + box.width : Number.POSITIVE_INFINITY;
+    })
+    .toBeLessThanOrEqual(390);
   const bounds = await details.boundingBox();
   expect(bounds).not.toBeNull();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
-  await expect(details.getByRole('region', { name: '基本信息' })).toContainText('source-detail.txt');
+  await expect(details.getByRole('region', { name: '基本信息' })).toContainText(
+    'source-detail.txt'
+  );
   await details.getByRole('button', { name: '更多资料操作' }).click();
   await details.getByRole('menuitem', { name: '从资料库删除' }).click();
   await expect(page.getByText('删除资料副本？')).toBeVisible();

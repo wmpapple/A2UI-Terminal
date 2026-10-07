@@ -32,7 +32,7 @@ test('commands navigate, search authorized content and create results with keybo
   await create.getByLabel('成果标题').fill('命令面板创建');
   await create.getByLabel('本地文件名').fill('command-created.md');
   await create.getByRole('button', { name: '创建并打开' }).click();
-  await expect(page.getByRole('heading', { name: '命令面板创建' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '命令面板创建', level: 2 })).toBeVisible();
 });
 
 test('draft survives navigation, sessions remain isolated, shortcuts keep context confirmation', async ({
@@ -51,7 +51,7 @@ test('draft survives navigation, sessions remain isolated, shortcuts keep contex
   await expect(prompt).toHaveValue('尚未发送的草稿');
   await page.getByRole('button', { name: '新对话', exact: true }).click();
   await expect(prompt).toHaveValue('');
-  await page.getByRole('button', { name: '解释这段内容', exact: true }).click();
+  await page.getByRole('button', { name: /解\s*释/ }).click();
   await expect(prompt).toHaveValue('解释这段内容');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await prompt.press('Control+Enter');

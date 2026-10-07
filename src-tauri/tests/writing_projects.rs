@@ -397,8 +397,12 @@ async fn real_transport_sections_summaries_citations_assembly_and_repeat_are_saf
     );
     assert_eq!(app::finalize(&state, &id, 0).unwrap(), result_id);
     let published = repo::get(&state.storage, &id).unwrap();
-    let original = result::read_document(&state.storage, &state.managed_results_dir, &result_id).unwrap();
-    assert_eq!(published.published_result_hash.as_deref(), Some(original.content_hash.as_str()));
+    let original =
+        result::read_document(&state.storage, &state.managed_results_dir, &result_id).unwrap();
+    assert_eq!(
+        published.published_result_hash.as_deref(),
+        Some(original.content_hash.as_str())
+    );
     let updated = app::accept(
         &state,
         AcceptSectionInput {
@@ -409,14 +413,27 @@ async fn real_transport_sections_summaries_citations_assembly_and_repeat_are_saf
             content: format!("{}\n\n补充核对说明。", published.sections[0].content),
             summary: "预算仍为 420 元，审批未完成".into(),
         },
-    ).unwrap();
-    assert_eq!(result::read_document(&state.storage, &state.managed_results_dir, &result_id).unwrap().content_hash, original.content_hash);
+    )
+    .unwrap();
+    assert_eq!(
+        result::read_document(&state.storage, &state.managed_results_dir, &result_id)
+            .unwrap()
+            .content_hash,
+        original.content_hash
+    );
     let updated = accept(&state, &updated, 1, &second, "截止日 2026 年 10 月 15 日");
-    assert_eq!(app::finalize(&state, &id, updated.revision).unwrap(), result_id);
-    let revised = result::read_document(&state.storage, &state.managed_results_dir, &result_id).unwrap();
+    assert_eq!(
+        app::finalize(&state, &id, updated.revision).unwrap(),
+        result_id
+    );
+    let revised =
+        result::read_document(&state.storage, &state.managed_results_dir, &result_id).unwrap();
     assert!(revised.content.contains("补充核对说明"));
     assert_ne!(revised.content_hash, original.content_hash);
-    assert_eq!(repo::get(&state.storage, &id).unwrap().published_revision, Some(updated.revision + 1));
+    assert_eq!(
+        repo::get(&state.storage, &id).unwrap().published_revision,
+        Some(updated.revision + 1)
+    );
     let published = repo::get(&state.storage, &id).unwrap();
     let changed = app::accept(
         &state,
@@ -428,7 +445,8 @@ async fn real_transport_sections_summaries_citations_assembly_and_repeat_are_saf
             content: format!("{}\n\n再次更新。", published.sections[0].content),
             summary: "预算仍为 420 元，审批未完成".into(),
         },
-    ).unwrap();
+    )
+    .unwrap();
     let changed = accept(&state, &changed, 1, &second, "截止日 2026 年 10 月 15 日");
     let independently_edited = result::save_document(
         &state.storage,
@@ -438,9 +456,15 @@ async fn real_transport_sections_summaries_citations_assembly_and_repeat_are_saf
             content: format!("{}\n\n成果独立编辑。", revised.content),
             base_hash: revised.content_hash,
         },
-    ).unwrap();
+    )
+    .unwrap();
     assert!(app::finalize(&state, &id, changed.revision).is_err());
-    assert_eq!(result::read_document(&state.storage, &state.managed_results_dir, &result_id).unwrap().content_hash, independently_edited.content_hash);
+    assert_eq!(
+        result::read_document(&state.storage, &state.managed_results_dir, &result_id)
+            .unwrap()
+            .content_hash,
+        independently_edited.content_hash
+    );
     app::delete(&state, &id).unwrap();
     assert!(result::read_document(&state.storage, &state.managed_results_dir, &result_id).is_ok());
     assert!(repo::runs(&state.storage, &id).unwrap().is_empty());

@@ -1,6 +1,11 @@
 import type { CanvasFlowchart } from '../../shared/types/canvas';
 
-const stripFence = (value: string) => value.trim().replace(/^```(?:json|markdown|md)?\s*\n?/i, '').replace(/\n?```$/, '').trim();
+const stripFence = (value: string) =>
+  value
+    .trim()
+    .replace(/^```(?:json|markdown|md)?\s*\n?/i, '')
+    .replace(/\n?```$/, '')
+    .trim();
 
 export function readableAiContent(raw: string): string {
   const content = stripFence(raw);
@@ -11,7 +16,9 @@ export function readableAiContent(raw: string): string {
     if (record.type === 'document_patch' && Array.isArray(record.changes)) {
       const parts = record.changes
         .map((change) =>
-          change && typeof change === 'object' && typeof (change as { content?: unknown }).content === 'string'
+          change &&
+          typeof change === 'object' &&
+          typeof (change as { content?: unknown }).content === 'string'
             ? (change as { content: string }).content.trim()
             : ''
         )

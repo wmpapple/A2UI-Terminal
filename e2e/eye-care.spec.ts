@@ -15,6 +15,7 @@ test('eye comfort preserves editing, persists and stays scoped to the workbench'
   const editor = page.getByRole('textbox', { name: '成果编辑器' });
   const content = '# 保留内容\n\n切换外观时继续编辑。';
   await editor.fill(content);
+  await page.getByRole('button', { name: '更多成果操作' }).click();
   const toggle = page.getByRole('switch', { name: '护眼模式' });
   await expect(toggle).not.toBeChecked();
   await toggle.click();
@@ -31,10 +32,13 @@ test('eye comfort preserves editing, persists and stays scoped to the workbench'
   await expect(toggle).toHaveCount(0);
   await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(11, 15, 25)');
   await nav.getByRole('button', { name: '工作台', exact: true }).click();
+  await page.getByRole('button', { name: '更多成果操作' }).click();
   await expect(toggle).toBeChecked();
   await page.reload();
+  await page.getByRole('button', { name: '快捷控制' }).click();
   await expect(toggle).toBeChecked();
   await toggle.click();
   await page.reload();
+  await page.getByRole('button', { name: '快捷控制' }).click();
   await expect(toggle).not.toBeChecked();
 });

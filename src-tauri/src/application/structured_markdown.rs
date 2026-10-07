@@ -100,10 +100,8 @@ fn node(source: &str) -> Node {
             for (event, range) in Parser::new_ext(source, Options::ENABLE_TABLES).into_offset_iter()
             {
                 match event {
-                    Event::Start(Tag::Item) => {
-                        if item_start.is_none() {
-                            item_start = Some(range.start);
-                        }
+                    Event::Start(Tag::Item) if item_start.is_none() => {
+                        item_start = Some(range.start);
                     }
                     Event::End(TagEnd::Item) => {
                         if let Some(start) = item_start.take() {

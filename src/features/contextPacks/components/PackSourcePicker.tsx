@@ -64,14 +64,20 @@ export function PackSourcePicker({
 
   const personal = kind === 'personal';
   const label = personal
-    ? zh ? '添加个人资料' : 'Add library sources'
-    : zh ? '添加工作区资料' : 'Add workspace sources';
+    ? zh
+      ? '添加个人资料'
+      : 'Add library sources'
+    : zh
+      ? '添加工作区资料'
+      : 'Add workspace sources';
   const choices = personal
-    ? personalSources.filter((source) => source.status === 'ready').map((source) => ({
-        id: source.id,
-        name: source.title,
-        source,
-      }))
+    ? personalSources
+        .filter((source) => source.status === 'ready')
+        .map((source) => ({
+          id: source.id,
+          name: source.title,
+          source,
+        }))
     : workspaceSources
         .filter((source) => source.name.toLowerCase().includes(query.toLowerCase()))
         .map((source) => ({ id: source.id, name: source.name, source: null }));
@@ -104,14 +110,22 @@ export function PackSourcePicker({
       content={
         <div className={styles.pickerPanel} role="group" aria-label={label}>
           <div className={styles.pickerHeading}>
-            <strong>{personal ? (zh ? '我的资料' : 'My sources') : (zh ? '工作区资料' : 'Workspace sources')}</strong>
+            <strong>
+              {personal
+                ? zh
+                  ? '我的资料'
+                  : 'My sources'
+                : zh
+                  ? '工作区资料'
+                  : 'Workspace sources'}
+            </strong>
             <span>{totalSelected}/20</span>
           </div>
           <Input
             allowClear
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            aria-label={`${zh ? '搜索' : 'Search'}${personal ? (zh ? '个人资料' : ' library sources') : (zh ? '工作区资料' : ' workspace sources')}`}
+            aria-label={`${zh ? '搜索' : 'Search'}${personal ? (zh ? '个人资料' : ' library sources') : zh ? '工作区资料' : ' workspace sources'}`}
             placeholder={zh ? '搜索资料' : 'Search sources'}
           />
           {error && <Alert type="error" title={error} />}
@@ -124,10 +138,13 @@ export function PackSourcePicker({
                   checked={selected}
                   disabled={!selected && totalSelected >= 20}
                   onChange={(event) => {
-                    onChange(event.target.checked
-                      ? [...value, choice.id]
-                      : value.filter((id) => id !== choice.id));
-                    if (event.target.checked && choice.source) onPersonalSourceChosen?.(choice.source);
+                    onChange(
+                      event.target.checked
+                        ? [...value, choice.id]
+                        : value.filter((id) => id !== choice.id)
+                    );
+                    if (event.target.checked && choice.source)
+                      onPersonalSourceChosen?.(choice.source);
                   }}
                 >
                   {choice.name}
@@ -138,8 +155,12 @@ export function PackSourcePicker({
             {!busy && choices.length === 0 && (
               <span className={styles.pickerEmpty}>
                 {personal
-                  ? zh ? '没有匹配的个人资料' : 'No matching library sources'
-                  : zh ? '没有匹配的工作区资料' : 'No matching workspace sources'}
+                  ? zh
+                    ? '没有匹配的个人资料'
+                    : 'No matching library sources'
+                  : zh
+                    ? '没有匹配的工作区资料'
+                    : 'No matching workspace sources'}
               </span>
             )}
           </div>

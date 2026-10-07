@@ -1,6 +1,6 @@
 pub mod adapters;
-pub mod chat;
 pub mod canvas;
+pub mod chat;
 pub mod collaboration;
 pub mod context;
 pub mod context_pack;

@@ -1,5 +1,5 @@
-pub mod chat;
 pub mod canvas;
+pub mod chat;
 pub(crate) mod collaboration;
 pub(crate) mod document;
 pub mod provider;

@@ -34,14 +34,19 @@ export const normalizeCanvas = (canvas: CanvasDocument): CanvasDocument => ({
       rawSource && typeof rawSource === 'object' && !Array.isArray(rawSource)
         ? (rawSource as CanvasBlock['legacySource'])
         : undefined;
-    const readableBody = old.type === 'summary' ? readableAiContent(old.body ?? '') : old.body ?? '';
+    const readableBody =
+      old.type === 'summary' ? readableAiContent(old.body ?? '') : (old.body ?? '');
     return {
       ...old,
       type: old.type,
       title: old.title ?? '组件',
       body: readableBody,
       rawAiResponse: old.rawAiResponse ?? (readableBody !== old.body ? old.body : undefined),
-      surface: old.surface ?? (old.type === 'a2ui' ? surfaceFromLegacyMessage(old.body ?? '', canvas.workspaceId ?? '') : undefined),
+      surface:
+        old.surface ??
+        (old.type === 'a2ui'
+          ? surfaceFromLegacyMessage(old.body ?? '', canvas.workspaceId ?? '')
+          : undefined),
       source:
         typeof rawSource === 'string'
           ? rawSource

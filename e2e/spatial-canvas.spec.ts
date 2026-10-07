@@ -105,8 +105,13 @@ test('edits a note with the top formatting toolbar and keeps rich text after rel
   await note.getByRole('button', { name: '加粗' }).click();
   await note.getByRole('button', { name: '高亮 #ffe38b' }).click();
   await note.getByRole('button', { name: '完成', exact: true }).click();
-  await expect(note.locator('[class*=noteText] strong,[class*=noteText] b')).toContainText('研究结论');
-  await expect(note.locator('[class*=noteText] strong,[class*=noteText] b')).toHaveCSS('background-color', 'rgb(255, 227, 139)');
+  await expect(note.locator('[class*=noteText] strong,[class*=noteText] b')).toContainText(
+    '研究结论'
+  );
+  await expect(note.locator('[class*=noteText] strong,[class*=noteText] b')).toHaveCSS(
+    'background-color',
+    'rgb(255, 227, 139)'
+  );
   await expect
     .poll(async () =>
       page.evaluate(
@@ -122,7 +127,9 @@ test('edits a note with the top formatting toolbar and keeps rich text after rel
     .getByRole('tab', { name: '画布' })
     .click();
   await page.getByRole('button', { name: /README.md · 画布 README.md/ }).click();
-  await expect(workbench.locator('[class*=noteText] strong,[class*=noteText] b')).toContainText('研究结论');
+  await expect(workbench.locator('[class*=noteText] strong,[class*=noteText] b')).toContainText(
+    '研究结论'
+  );
 });
 
 test('persists resized nodes and semantic edges', async ({ page }) => {
@@ -432,14 +439,18 @@ test('persists note highlighting and custom colors', async ({ page }) => {
   await note.getByRole('button', { name: '高亮 #ffe38b' }).click();
   await note.getByRole('button', { name: '笔记底色 #f8dcec' }).click();
   await note.getByRole('button', { name: '完成', exact: true }).click();
-  await expect(note.locator('[class*=noteText] mark,[class*=noteText] span[style*="background"]')).toContainText('重要观点');
+  await expect(
+    note.locator('[class*=noteText] mark,[class*=noteText] span[style*="background"]')
+  ).toContainText('重要观点');
   await expect
     .poll(async () =>
       page.evaluate(() => {
         const saved = JSON.parse(
           localStorage.getItem('a2ui.spatial-canvases.v1.web-mock') ?? '[]'
         )[0];
-        return saved?.blocks?.[0] ? [saved.blocks[0].body.includes('重要观点'), saved.blocks[0].noteStyle.background] : null;
+        return saved?.blocks?.[0]
+          ? [saved.blocks[0].body.includes('重要观点'), saved.blocks[0].noteStyle.background]
+          : null;
       })
     )
     .toEqual([true, '#f8dcec']);

@@ -26,12 +26,20 @@ export function WorkItemHeader({
     <header className={styles.header}>
       <div className={styles.identity}>
         <div className={styles.titleLine}>
-          {icon && <span className={styles.icon} aria-hidden="true">{icon}</span>}
+          {icon && (
+            <span className={styles.icon} aria-hidden="true">
+              {icon}
+            </span>
+          )}
           <h1>{title}</h1>
         </div>
         <div className={styles.metadata}>
           <span>{type}</span>
-          {status && <span className={styles.status} data-tone={tone} role="status">{status}</span>}
+          {status && (
+            <span className={styles.status} data-tone={tone} role="status">
+              {status}
+            </span>
+          )}
           {details}
         </div>
         {progress && <div className={styles.progress}>{progress}</div>}

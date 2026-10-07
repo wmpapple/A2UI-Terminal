@@ -6,6 +6,10 @@ test('the global writing profile appears in the reviewed send manifest', async (
     localStorage.setItem('a2ui.experience-mode.v1', 'professional');
   });
   await page.goto('/#/settings');
+  await page
+    .getByRole('navigation', { name: '设置分类' })
+    .getByRole('button', { name: '写作偏好' })
+    .click();
 
   const profile = page.getByRole('region', { name: '写作方式设置' });
   await expect(profile).toBeVisible();
@@ -16,7 +20,8 @@ test('the global writing profile appears in the reviewed send manifest', async (
   await profile.getByRole('textbox', { name: '推荐写法' }).fill('人工智能');
   await profile.getByRole('combobox', { name: '禁用词' }).fill('赋能');
   await profile.getByRole('combobox', { name: '禁用词' }).press('Enter');
-  await expect(profile.getByText('保存后规则预览')).toBeVisible();
+  await expect(profile.getByText('当前生效规则')).toBeVisible();
+  await profile.getByRole('button', { name: '查看最终规则' }).click();
   await expect(profile.getByText('未保存', { exact: true })).toBeVisible();
   await expect(profile.getByText('0 tokens', { exact: true })).toHaveCount(0);
   await expect(profile.getByText(/全局偏好：/)).toBeVisible();

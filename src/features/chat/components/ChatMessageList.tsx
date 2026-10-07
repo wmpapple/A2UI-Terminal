@@ -4,6 +4,7 @@ import { RedoOutlined } from '@ant-design/icons';
 import { Alert, Button } from 'antd';
 import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
+import { useAppStore } from '../../../stores/useAppStore';
 import { renderSafeMarkdown } from '../../../shared/markdown/renderSafeMarkdown';
 import type { ChatMessage } from '../../../shared/types/domain';
 import { AssistantMark } from './AssistantMark';
@@ -132,6 +133,7 @@ export function ChatMessageList({
   onRetry,
 }: ChatMessageListProps) {
   const { t } = useI18n();
+  const linkedSurfaces = useAppStore((state) => state.a2uiSurfaces);
   const scrollRef = useRef<HTMLDivElement>(null);
   const following = useRef(true);
   const [paused, setPaused] = useState(false);
@@ -219,7 +221,9 @@ export function ChatMessageList({
           const patchFailureReason = validationFailureReason(chatMessage.protocolError);
           const emptyFileReviewRequired = patchFailureReason?.startsWith('目标文件为空');
           const a2uiFailed = chatMessage.errorCode === 'A2UI_VALIDATION_FAILED';
-          const a2uiReady = chatMessage.errorCode === 'A2UI_READY';
+          const a2uiReady =
+            chatMessage.errorCode === 'A2UI_READY' ||
+            linkedSurfaces.some((surface) => surface.messageId === chatMessage.id);
           const a2uiResponse = containsA2uiProtocol || a2uiReady || a2uiFailed;
           const unverifiedCompletionClaim =
             chatMessage.errorCode === 'UNVERIFIED_FILE_COMPLETION_CLAIM' ||

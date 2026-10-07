@@ -17,8 +17,12 @@
   display: block;
   margin-top: 0;
 }
-.chapterTabs :global(.ant-tabs-nav) { display: none; }
-.chapterTabs :global(.ant-tabs-content-holder) { padding-top: 20px; }
+.chapterTabs :global(.ant-tabs-nav) {
+  display: none;
+}
+.chapterTabs :global(.ant-tabs-content-holder) {
+  padding-top: 20px;
+}
 .modelLine {
   display: flex;
   align-items: center;
@@ -26,12 +30,27 @@
   gap: 10px;
   margin-bottom: 12px;
 }
-.modelLine :global(.ant-tag) { margin: 0; }
-.modelLine details { position: relative; color: var(--text-muted); font-size: 12px; }
-.modelLine summary { cursor: pointer; }
-.modelLine :global(.ant-select) { display: block; margin-top: 8px; }
-.modelNotice { margin-bottom: 12px; }
-.outlineActions { margin-bottom: 4px; }
+.modelLine :global(.ant-tag) {
+  margin: 0;
+}
+.modelLine details {
+  position: relative;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.modelLine summary {
+  cursor: pointer;
+}
+.modelLine :global(.ant-select) {
+  display: block;
+  margin-top: 8px;
+}
+.modelNotice {
+  margin-bottom: 12px;
+}
+.outlineActions {
+  margin-bottom: 4px;
+}
 .overview {
   max-width: 900px;
   padding: 8px 0 24px;
@@ -122,7 +141,9 @@
   padding: 14px 0;
   border-bottom: 1px solid var(--border-color, #dce4ee);
 }
-.outlineRow[data-dragging='true'] { opacity: .5; }
+.outlineRow[data-dragging='true'] {
+  opacity: 0.5;
+}
 .dragHandle {
   border: 0;
   background: transparent;
@@ -130,23 +151,70 @@
   cursor: grab;
   padding: 7px 0;
 }
-.dragHandle:active { cursor: grabbing; }
-.outlineRowMeta { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
-.outlineRowMeta strong { color: var(--text-muted); font-size: 12px; }
-.outlineRowMeta :global(.ant-tag) { margin: 0; }
-.fieldLabel { color: var(--text-muted); font-size: 12px; }
+.dragHandle:active {
+  cursor: grabbing;
+}
+.outlineRowMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.outlineRowMeta strong {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.outlineRowMeta :global(.ant-tag) {
+  margin: 0;
+}
+.fieldLabel {
+  color: var(--text-muted);
+  font-size: 12px;
+}
 .outlineRow textarea {
   margin-top: 6px;
 }
-.sendSummary { display: grid; gap: 12px; }
-.sendSummary section { padding-bottom: 10px; border-bottom: 1px solid var(--border-color, #dce4ee); }
-.sendSummary h3 { margin: 0 0 8px; font-size: 14px; }
-.sendSummary p { margin: 5px 0; overflow-wrap: anywhere; }
-.sendSummary p :global(.anticon) { margin-right: 7px; color: var(--accent, #b94b19); }
-.sendMuted { color: var(--text-muted); }
-.sendMeta { display: flex; gap: 20px; flex-wrap: wrap; color: var(--text-muted); font-size: 13px; }
-.sendDetails summary { cursor: pointer; color: var(--text-muted); font-size: 12px; }
-.sendDetails pre { white-space: pre-wrap; max-height: 220px; overflow: auto; font-size: 12px; }
+.sendSummary {
+  display: grid;
+  gap: 12px;
+}
+.sendSummary section {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color, #dce4ee);
+}
+.sendSummary h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.sendSummary p {
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+.sendSummary p :global(.anticon) {
+  margin-right: 7px;
+  color: var(--accent, #b94b19);
+}
+.sendMuted {
+  color: var(--text-muted);
+}
+.sendMeta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.sendDetails summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.sendDetails pre {
+  white-space: pre-wrap;
+  max-height: 220px;
+  overflow: auto;
+  font-size: 12px;
+}
 .final {
   display: flex;
   flex-direction: column;
@@ -156,8 +224,13 @@
   padding-top: 16px;
 }
 @media (max-width: 760px) {
-  .outlineRow { grid-template-columns: 20px minmax(0, 1fr); }
-  .outlineRow > :last-child { grid-column: 2; flex-direction: row; }
+  .outlineRow {
+    grid-template-columns: 20px minmax(0, 1fr);
+  }
+  .outlineRow > :last-child {
+    grid-column: 2;
+    flex-direction: row;
+  }
   .overviewSummary {
     grid-template-columns: 1fr;
     gap: 10px;

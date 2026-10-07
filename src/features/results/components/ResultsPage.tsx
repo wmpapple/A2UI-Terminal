@@ -80,7 +80,8 @@ export function ResultsPage({ onOpenResult }: Props) {
   const zh = locale === 'zh-CN';
   const filteredResults = results.filter(
     (result) =>
-      result.title.toLocaleLowerCase(locale)
+      result.title
+        .toLocaleLowerCase(locale)
         .includes(resultQuery.trim().toLocaleLowerCase(locale)) &&
       (resultFilter === 'all' || resultFilter === 'recent' || result.type === resultFilter)
   );

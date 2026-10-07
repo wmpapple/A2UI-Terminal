@@ -1,14 +1,36 @@
 import { expect, test, type Page } from '@playwright/test';
 
+async function enableMockProvider(page: Page) {
+  await page.evaluate(async () => {
+    const { useAppStore } = await import('/src/stores/useAppStore.ts');
+    useAppStore.setState({
+      activeProviderId: 'siliconflow',
+      providerConfigs: [
+        {
+          id: 'siliconflow',
+          kind: 'silicon_flow',
+          endpoint: 'https://example.invalid/v1',
+          model: 'web-mock',
+          temperature: 0.2,
+          proxyUrl: null,
+          configured: true,
+          active: true,
+        },
+      ],
+    });
+  });
+}
+
 async function createDocument(page: Page) {
   await page.addInitScript(() => localStorage.setItem('a2ui.onboarding-complete.v1', 'true'));
   await page.goto('/');
+  await enableMockProvider(page);
   await page.getByRole('button', { name: '新建成果' }).click();
   const dialog = page.getByRole('dialog', { name: '新建成果' });
   await dialog.getByLabel('成果标题').fill('AI 验收');
   await dialog.getByLabel('本地文件名').fill('ai-review.md');
   await dialog.getByRole('button', { name: '创建并打开' }).click();
-  await expect(page.getByRole('heading', { name: 'AI 验收' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'AI 验收', level: 2 })).toBeVisible();
 }
 async function generate(page: Page, confirmScope = true) {
   await page.getByRole('button', { name: '发送', exact: true }).click();
@@ -148,6 +170,7 @@ test('home task can generate a reviewed AI result while retaining offline scaffo
 }) => {
   await page.addInitScript(() => localStorage.setItem('a2ui.onboarding-complete.v1', 'true'));
   await page.goto('/');
+  await enableMockProvider(page);
   await page.getByRole('button', { name: /整理一组资料/ }).click();
   const task = page.getByRole('dialog', { name: '创建任务成果' });
   await task.getByRole('button', { name: /会议纪要/ }).click();

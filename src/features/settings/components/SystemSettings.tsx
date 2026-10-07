@@ -89,7 +89,9 @@ export function SystemSettings({ view = 'all', professional = true }: Props) {
             ) : (
               <>
                 {!updateSourceMissing && update.error && (
-                  <p className={styles.muted} role="status">{update.error}</p>
+                  <p className={styles.muted} role="status">
+                    {update.error}
+                  </p>
                 )}
                 {update.notes && <p className={styles.notes}>{update.notes}</p>}
                 {update.phase === 'downloading' && (

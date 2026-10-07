@@ -7,7 +7,13 @@ describe('canvas AI content', () => {
       version: '1.0',
       type: 'document_patch',
       workspaceId: 'workspace-1',
-      changes: [{ operation: 'replace', path: 'test.txt', content: '# 结构化摘要\n\n## 核心贡献\n- 已验证结论' }],
+      changes: [
+        {
+          operation: 'replace',
+          path: 'test.txt',
+          content: '# 结构化摘要\n\n## 核心贡献\n- 已验证结论',
+        },
+      ],
     });
     expect(readableAiContent(raw)).toBe('# 结构化摘要\n\n## 核心贡献\n- 已验证结论');
   });

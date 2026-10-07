@@ -2,7 +2,8 @@ use crate::{domain::writing_project::*, error::AppError, storage::Storage};
 use rusqlite::{params, OptionalExtension};
 
 fn decode(json: &str, updated_at: String) -> Result<WritingProject, AppError> {
-    let mut project: WritingProject = serde_json::from_str(json).map_err(|_| AppError::StateUnavailable)?;
+    let mut project: WritingProject =
+        serde_json::from_str(json).map_err(|_| AppError::StateUnavailable)?;
     project.updated_at = Some(updated_at);
     Ok(project)
 }
@@ -26,7 +27,9 @@ pub fn list(storage: &Storage, workspace: &str) -> Result<Vec<WritingProject>, A
         let rows=s.query_map([workspace],|r|Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?)))?.collect::<Result<Vec<_>,_>>()?;
         Ok(rows)
     })?;
-    rows.into_iter().map(|(json, updated_at)| decode(&json, updated_at)).collect()
+    rows.into_iter()
+        .map(|(json, updated_at)| decode(&json, updated_at))
+        .collect()
 }
 pub fn create(storage: &Storage, project: &WritingProject) -> Result<(), AppError> {
     let json = serde_json::to_string(project).map_err(|_| AppError::StateUnavailable)?;

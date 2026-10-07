@@ -96,8 +96,22 @@ const newBlock = (
     body: item?.body ?? '',
     x: position.x,
     y: position.y,
-    width: type === 'frame' ? 440 : type === 'flowchart' ? 430 : type === 'result' || type === 'tool' || type === 'a2ui' ? 380 : 280,
-    height: type === 'frame' ? 300 : type === 'flowchart' ? 300 : type === 'result' || type === 'tool' || type === 'a2ui' ? 270 : 190,
+    width:
+      type === 'frame'
+        ? 440
+        : type === 'flowchart'
+          ? 430
+          : type === 'result' || type === 'tool' || type === 'a2ui'
+            ? 380
+            : 280,
+    height:
+      type === 'frame'
+        ? 300
+        : type === 'flowchart'
+          ? 300
+          : type === 'result' || type === 'tool' || type === 'a2ui'
+            ? 270
+            : 190,
     zIndex: type === 'frame' ? -1 : 1,
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -140,9 +154,13 @@ function SpatialEditor({
   const [title, setTitle] = useState('');
   const [binding, setBinding] = useState<CanvasBinding>({ type: 'none' });
   const folderFiles = useMemo(
-    () => binding.type === 'folder'
-      ? entries.map((entry) => entry.path).filter((path) => path.startsWith(`${binding.path}/`)).sort()
-      : [],
+    () =>
+      binding.type === 'folder'
+        ? entries
+            .map((entry) => entry.path)
+            .filter((path) => path.startsWith(`${binding.path}/`))
+            .sort()
+        : [],
     [binding, entries]
   );
   const [status, setStatus] = useState<'loading' | 'saved' | 'dirty' | 'saving' | 'error'>(
@@ -263,7 +281,9 @@ function SpatialEditor({
           if (node.data.block.type === 'a2ui' && typeof patch.body === 'string') {
             try {
               const parsed = JSON.parse(patch.body);
-              surface = isCanvasSurface(parsed) ? parsed : surfaceFromLegacyMessage(patch.body, workspaceId);
+              surface = isCanvasSurface(parsed)
+                ? parsed
+                : surfaceFromLegacyMessage(patch.body, workspaceId);
             } catch {
               surface = undefined;
             }
@@ -321,35 +341,39 @@ function SpatialEditor({
     else if (block.type === 'tool' && block.refId) openSourceRef.current.onOpenTool(block.refId);
     else if (block.refId) openSourceRef.current.onOpenResult(block.refId);
   }, []);
-  const onRefresh = useCallback(async (block: CanvasBlock) => {
-    if (!block.refId) return;
-    try {
-      if (block.type === 'tool' && getRuntimeMode() === 'desktop') {
-        const view = await sceneToolController.read(block.refId);
+  const onRefresh = useCallback(
+    async (block: CanvasBlock) => {
+      if (!block.refId) return;
+      try {
+        if (block.type === 'tool' && getRuntimeMode() === 'desktop') {
+          const view = await sceneToolController.read(block.refId);
+          onPatch(block.id, {
+            surface: view.surface,
+            contentHash: view.stateHash,
+            body: '',
+            importError: undefined,
+          });
+          void messageApi.success('工具内容已刷新');
+          return;
+        }
+        const document = await resultController.open(block.refId);
+        if (document.result.type === 'document') throw new Error('文档不是可视化成果');
+        if (document.content.length > 200_000)
+          throw new Error('成果内容超过画布单组件 20 万字符限制');
         onPatch(block.id, {
-          surface: view.surface,
-          contentHash: view.stateHash,
-          body: '',
+          resultType: document.result.type,
+          body: document.content,
+          contentHash: document.contentHash,
           importError: undefined,
         });
-        void messageApi.success('工具内容已刷新');
-        return;
+        void messageApi.success('成果内容已刷新');
+      } catch (cause) {
+        onPatch(block.id, { importError: String(cause) });
+        void messageApi.error(`刷新失败，已保留原快照：${String(cause)}`);
       }
-      const document = await resultController.open(block.refId);
-      if (document.result.type === 'document') throw new Error('文档不是可视化成果');
-      if (document.content.length > 200_000) throw new Error('成果内容超过画布单组件 20 万字符限制');
-      onPatch(block.id, {
-        resultType: document.result.type,
-        body: document.content,
-        contentHash: document.contentHash,
-        importError: undefined,
-      });
-      void messageApi.success('成果内容已刷新');
-    } catch (cause) {
-      onPatch(block.id, { importError: String(cause) });
-      void messageApi.error(`刷新失败，已保留原快照：${String(cause)}`);
-    }
-  }, [messageApi, onPatch]);
+    },
+    [messageApi, onPatch]
+  );
   const makeNode = useCallback(
     (block: CanvasBlock): CanvasFlowNode => ({
       id: block.id,
@@ -399,7 +423,9 @@ function SpatialEditor({
         onRefresh: (block: CanvasBlock) => void onRefresh(block),
         onEditFlowchart: (block: CanvasBlock) => {
           setFlowTargetBlockId(block.id);
-          setFlowInitial(block.flowchart ?? flowchartFromOutline(block.body) ?? { nodes: [], edges: [] });
+          setFlowInitial(
+            block.flowchart ?? flowchartFromOutline(block.body) ?? { nodes: [], edges: [] }
+          );
           setFlowPlacement(undefined);
           setFlowEditorOpen(true);
         },
@@ -504,11 +530,14 @@ function SpatialEditor({
       }
       if (type === 'result' || type === 'tool') {
         const results = await resultController.list();
-        const candidates = type === 'tool'
-          ? getRuntimeMode() === 'desktop'
-            ? await sceneToolController.list()
-            : results.filter((item) => item.type === 'tool')
-          : results.filter((item) => ['spreadsheet', 'checklist', 'form', 'tool'].includes(item.type));
+        const candidates =
+          type === 'tool'
+            ? getRuntimeMode() === 'desktop'
+              ? await sceneToolController.list()
+              : results.filter((item) => item.type === 'tool')
+            : results.filter((item) =>
+                ['spreadsheet', 'checklist', 'form', 'tool'].includes(item.type)
+              );
         const options = candidates.map((item) => ({
           value: item.id,
           label: `${item.type === 'spreadsheet' ? '表格' : item.type === 'checklist' ? '清单' : item.type === 'form' ? '表单' : '工具'} · ${item.title}`,
@@ -516,7 +545,9 @@ function SpatialEditor({
         }));
         if (!options.length) {
           void messageApi.info(
-            type === 'tool' ? '我的工具中暂无可导入的场景工具' : '当前没有可视化成果（支持 CSV、清单、表单和工具）'
+            type === 'tool'
+              ? '我的工具中暂无可导入的场景工具'
+              : '当前没有可视化成果（支持 CSV、清单、表单和工具）'
           );
           return;
         }
@@ -544,12 +575,26 @@ function SpatialEditor({
               const selected = options.find((item) => item.value === id);
               if (type === 'tool' && getRuntimeMode() === 'desktop') {
                 const view = await sceneToolController.read(id);
-                addBlock('tool', at, { refId: id, title: selected?.title ?? view.result.title, body: '', surface: view.surface, contentHash: view.stateHash });
+                addBlock('tool', at, {
+                  refId: id,
+                  title: selected?.title ?? view.result.title,
+                  body: '',
+                  surface: view.surface,
+                  contentHash: view.stateHash,
+                });
               } else {
                 const document = await resultController.open(id);
-                if (document.result.type === 'document') throw new Error('普通文档不支持作为可视化组件');
-                if (document.content.length > 200_000) throw new Error('成果内容超过画布单组件 20 万字符限制');
-                addBlock(type, at, { refId: id, title: selected?.title ?? document.result.title, body: document.content, resultType: document.result.type, contentHash: document.contentHash });
+                if (document.result.type === 'document')
+                  throw new Error('普通文档不支持作为可视化组件');
+                if (document.content.length > 200_000)
+                  throw new Error('成果内容超过画布单组件 20 万字符限制');
+                addBlock(type, at, {
+                  refId: id,
+                  title: selected?.title ?? document.result.title,
+                  body: document.content,
+                  resultType: document.result.type,
+                  contentHash: document.contentHash,
+                });
               }
             } catch (cause) {
               void messageApi.error(`导入失败：${String(cause)}`);
@@ -589,7 +634,11 @@ function SpatialEditor({
         });
         return;
       }
-      addBlock(type, at, type === 'action' ? { action: { status: 'todo', priority: 'normal' } } : undefined);
+      addBlock(
+        type,
+        at,
+        type === 'action' ? { action: { status: 'todo', priority: 'normal' } } : undefined
+      );
     },
     [addBlock, messageApi, modal, surfaces]
   );
@@ -773,7 +822,9 @@ function SpatialEditor({
       event.preventDefault();
       try {
         const parsed = JSON.parse(value) as Record<string, unknown>;
-        const surface = isCanvasSurface(parsed) ? parsed : surfaceFromLegacyMessage(value, workspaceId);
+        const surface = isCanvasSurface(parsed)
+          ? parsed
+          : surfaceFromLegacyMessage(value, workspaceId);
         if (surface) {
           addBlock('a2ui', undefined, {
             title: '粘贴的 A2UI 组件',
@@ -1258,7 +1309,15 @@ function SpatialEditor({
           deleteKeyCode={['Backspace', 'Delete']}
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
-          <MiniMap position="bottom-right" pannable zoomable className={styles.minimap} bgColor="var(--panel)" nodeColor="var(--accent)" maskColor="rgba(0, 0, 0, 0.16)" />
+          <MiniMap
+            position="bottom-right"
+            pannable
+            zoomable
+            className={styles.minimap}
+            bgColor="var(--panel)"
+            nodeColor="var(--accent)"
+            maskColor="rgba(0, 0, 0, 0.16)"
+          />
           <Controls showInteractive={false} position="bottom-left" />
         </ReactFlow>
         {!nodes.length && (
@@ -1312,18 +1371,21 @@ function SpatialEditor({
       </div>
       {modalHolder}
       {messageHolder}
-      {flowEditorOpen && <FlowchartEditor
-        open={flowEditorOpen}
-        value={flowInitial}
-        onClose={() => setFlowEditorOpen(false)}
-        onSave={(chart) => {
-          if (flowTargetBlockId) onPatch(flowTargetBlockId, { type: 'flowchart', flowchart: chart });
-          else addBlock('flowchart', flowPlacement, { title: '流程图', flowchart: chart });
-          setFlowEditorOpen(false);
-          setFlowTargetBlockId(null);
-          setFlowPlacement(undefined);
-        }}
-      />}
+      {flowEditorOpen && (
+        <FlowchartEditor
+          open={flowEditorOpen}
+          value={flowInitial}
+          onClose={() => setFlowEditorOpen(false)}
+          onSave={(chart) => {
+            if (flowTargetBlockId)
+              onPatch(flowTargetBlockId, { type: 'flowchart', flowchart: chart });
+            else addBlock('flowchart', flowPlacement, { title: '流程图', flowchart: chart });
+            setFlowEditorOpen(false);
+            setFlowTargetBlockId(null);
+            setFlowPlacement(undefined);
+          }}
+        />
+      )}
       <Modal
         title={aiTargetBlockId ? '重新生成组件' : 'AI 生成到画布'}
         open={aiOpen}
@@ -1384,7 +1446,10 @@ function SpatialEditor({
         okText="添加到画布"
         width={700}
       >
-        <div className={styles.aiPreview} dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(aiPreview) }} />
+        <div
+          className={styles.aiPreview}
+          dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(aiPreview) }}
+        />
         <div className={styles.aiPreviewLabel}>编辑生成内容</div>
         <Input.TextArea
           aria-label="AI 生成预览"

@@ -8,9 +8,7 @@ fn decode(raw: &str) -> Result<Value, AppError> {
     serde_json::from_str(raw).map_err(|e| AppError::InvalidInput(format!("画布数据无效: {e}")))
 }
 
-fn read_row(
-    row: &rusqlite::Row<'_>,
-) -> rusqlite::Result<(
+type CanvasRow = (
     String,
     Option<String>,
     String,
@@ -21,7 +19,9 @@ fn read_row(
     String,
     String,
     String,
-)> {
+);
+
+fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<CanvasRow> {
     Ok((
         row.get(0)?,
         row.get(1)?,
@@ -36,20 +36,7 @@ fn read_row(
     ))
 }
 
-fn map(
-    row: (
-        String,
-        Option<String>,
-        String,
-        String,
-        i64,
-        String,
-        String,
-        String,
-        String,
-        String,
-    ),
-) -> Result<Canvas, AppError> {
+fn map(row: CanvasRow) -> Result<Canvas, AppError> {
     let (
         id,
         workspace_id,

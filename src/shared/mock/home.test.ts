@@ -12,9 +12,7 @@ describe('Web Mock home gateway', () => {
       format: 'markdown',
     });
     expect(created.result.title).toBe('2');
-    expect((await webMockHomeGateway.readResultDocument(created.result.id)).result.title).toBe(
-      '2'
-    );
+    expect((await webMockHomeGateway.readResultDocument(created.result.id)).result.title).toBe('2');
   });
 
   it('keeps pin metadata across reads and saves and restores recency order when unpinned', async () => {

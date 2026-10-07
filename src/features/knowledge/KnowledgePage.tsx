@@ -69,21 +69,30 @@ const indexStatus = (status: KnowledgeSource['status'], zh: boolean) =>
 
 const sourceIcon = (format: string) => {
   switch (format.toLowerCase()) {
-    case 'pdf': return <FilePdfOutlined aria-hidden="true" />;
-    case 'docx': return <FileWordOutlined aria-hidden="true" />;
-    case 'md': return <FileMarkdownOutlined aria-hidden="true" />;
+    case 'pdf':
+      return <FilePdfOutlined aria-hidden="true" />;
+    case 'docx':
+      return <FileWordOutlined aria-hidden="true" />;
+    case 'md':
+      return <FileMarkdownOutlined aria-hidden="true" />;
     case 'xlsx':
-    case 'csv': return <FileExcelOutlined aria-hidden="true" />;
-    default: return <FileTextOutlined aria-hidden="true" />;
+    case 'csv':
+      return <FileExcelOutlined aria-hidden="true" />;
+    default:
+      return <FileTextOutlined aria-hidden="true" />;
   }
 };
 
 const formatLabel = (format: string) => {
   switch (format.toLowerCase()) {
-    case 'md': return 'Markdown';
-    case 'docx': return 'Word';
-    case 'xlsx': return 'Excel';
-    default: return format.toUpperCase();
+    case 'md':
+      return 'Markdown';
+    case 'docx':
+      return 'Word';
+    case 'xlsx':
+      return 'Excel';
+    default:
+      return format.toUpperCase();
   }
 };
 
@@ -102,9 +111,7 @@ export function KnowledgePage() {
     <section className={styles.page} aria-label={zh ? '资料库' : 'Library'}>
       <h1>{zh ? '资料库' : 'Library'}</h1>
       <p className={styles.pageSubtitle}>
-        {zh
-          ? '保存并复用你的长期资料'
-          : 'Keep and reuse your long-term sources'}
+        {zh ? '保存并复用你的长期资料' : 'Keep and reuse your long-term sources'}
       </p>
       <LocatorUpgrade />
       <Tabs
@@ -266,22 +273,24 @@ function KnowledgeSources() {
     };
     state.setSessionContext(state.activeSessionId, {
       ...current,
-      personalKnowledgeIds: [
-        ...new Set([...(current.personalKnowledgeIds ?? []), sourceId]),
-      ],
+      personalKnowledgeIds: [...new Set([...(current.personalKnowledgeIds ?? []), sourceId])],
     });
     state.setSessionContextReviewKey(state.activeSessionId, 'library-selection-needs-review');
     window.location.hash = '/workbench';
   };
 
   const showFormatFilters = items.length >= 10 || formatFilter !== 'all';
-  const visibleItems = formatFilter === 'all'
-    ? items
-    : items.filter((item) => formatFilter === 'spreadsheet'
-      ? ['csv', 'xlsx'].includes(item.format.toLowerCase())
-      : item.format.toLowerCase() === formatFilter);
-  const previewLinkedSource = authorizedSources.find((source) =>
-    source.workspaceId === currentWorkspace?.id && source.contentHash === preview?.source.rawHash
+  const visibleItems =
+    formatFilter === 'all'
+      ? items
+      : items.filter((item) =>
+          formatFilter === 'spreadsheet'
+            ? ['csv', 'xlsx'].includes(item.format.toLowerCase())
+            : item.format.toLowerCase() === formatFilter
+        );
+  const previewLinkedSource = authorizedSources.find(
+    (source) =>
+      source.workspaceId === currentWorkspace?.id && source.contentHash === preview?.source.rawHash
   );
 
   const toolbar = (
@@ -318,12 +327,26 @@ function KnowledgeSources() {
           />
         </label>
       ) : (
-        <Button type="primary" icon={<PlusOutlined />} aria-label={zh ? '导入资料' : 'Import sources'} disabled={busy} onClick={chooseSources}>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          aria-label={zh ? '导入资料' : 'Import sources'}
+          disabled={busy}
+          onClick={chooseSources}
+        >
           {zh ? '导入资料' : 'Import sources'}
         </Button>
       )}
       <Tooltip title={zh ? '刷新资料列表' : 'Refresh sources'}>
-        <Button aria-label={zh ? '刷新资料列表' : 'Refresh sources'} icon={<ReloadOutlined />} className={styles.refreshButton} size="small" type="text" disabled={busy} onClick={() => setRefresh((n) => n + 1)} />
+        <Button
+          aria-label={zh ? '刷新资料列表' : 'Refresh sources'}
+          icon={<ReloadOutlined />}
+          className={styles.refreshButton}
+          size="small"
+          type="text"
+          disabled={busy}
+          onClick={() => setRefresh((n) => n + 1)}
+        />
       </Tooltip>
     </div>
   );
@@ -359,9 +382,7 @@ function KnowledgeSources() {
       {busy && <Spin />}
       {!busy && items.length === 0 && (
         <div className={styles.emptySources} data-testid="knowledge-empty">
-          <Empty
-            description={zh ? '还没有资料' : 'No sources yet'}
-          />
+          <Empty description={zh ? '还没有资料' : 'No sources yet'} />
           <p>
             {zh
               ? '导入后可以跨工作区复用，使用前仍会由你确认发送范围。'
@@ -370,7 +391,11 @@ function KnowledgeSources() {
         </div>
       )}
       {showFormatFilters && (
-        <div className={styles.formatFilters} role="group" aria-label={zh ? '资料类型' : 'Source type'}>
+        <div
+          className={styles.formatFilters}
+          role="group"
+          aria-label={zh ? '资料类型' : 'Source type'}
+        >
           {[
             ['all', zh ? '全部' : 'All'],
             ['pdf', 'PDF'],
@@ -378,70 +403,141 @@ function KnowledgeSources() {
             ['md', 'Markdown'],
             ['spreadsheet', zh ? '表格' : 'Spreadsheet'],
           ].map(([key, label]) => (
-            <button key={key} type="button" className={formatFilter === key ? styles.filterActive : undefined} aria-pressed={formatFilter === key} onClick={() => setFormatFilter(key)}>{label}</button>
+            <button
+              key={key}
+              type="button"
+              className={formatFilter === key ? styles.filterActive : undefined}
+              aria-pressed={formatFilter === key}
+              onClick={() => setFormatFilter(key)}
+            >
+              {label}
+            </button>
           ))}
         </div>
       )}
       {items.length > 0 && visibleItems.length === 0 && (
-        <div className={styles.filterEmpty}>{zh ? '这一类型暂无资料' : 'No sources of this type'}</div>
+        <div className={styles.filterEmpty}>
+          {zh ? '这一类型暂无资料' : 'No sources of this type'}
+        </div>
       )}
       <ul className={styles.list}>
         {visibleItems.map((item) => {
-          const linkedSource = authorizedSources.find((source) => source.workspaceId === currentWorkspace?.id && source.contentHash === item.rawHash);
+          const linkedSource = authorizedSources.find(
+            (source) =>
+              source.workspaceId === currentWorkspace?.id && source.contentHash === item.rawHash
+          );
           return (
-          <li key={item.id} className={styles.sourceRow} onClick={(event) => {
-            if (item.status === 'ready' && event.currentTarget.contains(event.target as Node) && !(event.target as Element).closest('button')) void open(item.id);
-          }}>
-            <div className={styles.sourceIdentity}>
-              <span className={`${styles.sourceIcon} ${styles[`format_${item.format.toLowerCase()}`] ?? ''}`}>{sourceIcon(item.format)}</span>
-              <div>
-                <Button type="link" disabled={item.status !== 'ready'} onClick={() => void open(item.id)}>
-                  {item.title}
-                </Button>
-                {item.title !== item.originalName && <span className={styles.sourceOriginal}>{item.originalName}</span>}
-                <span className={styles.sourceMeta}>
-                  <span className={styles.typeBadge}>{formatLabel(item.format)}</span>
-                  <span>{sourceDate(item.updatedAt, locale)}</span>
-                  <span>{sourceStatus(item.status, zh)}</span>
-                  {item.tags.length > 0 && <span className={styles.sourceTags}>{item.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}</span>}
+            <li
+              key={item.id}
+              className={styles.sourceRow}
+              onClick={(event) => {
+                if (
+                  item.status === 'ready' &&
+                  event.currentTarget.contains(event.target as Node) &&
+                  !(event.target as Element).closest('button')
+                )
+                  void open(item.id);
+              }}
+            >
+              <div className={styles.sourceIdentity}>
+                <span
+                  className={`${styles.sourceIcon} ${styles[`format_${item.format.toLowerCase()}`] ?? ''}`}
+                >
+                  {sourceIcon(item.format)}
                 </span>
+                <div>
+                  <Button
+                    type="link"
+                    disabled={item.status !== 'ready'}
+                    onClick={() => void open(item.id)}
+                  >
+                    {item.title}
+                  </Button>
+                  {item.title !== item.originalName && (
+                    <span className={styles.sourceOriginal}>{item.originalName}</span>
+                  )}
+                  <span className={styles.sourceMeta}>
+                    <span className={styles.typeBadge}>{formatLabel(item.format)}</span>
+                    <span>{sourceDate(item.updatedAt, locale)}</span>
+                    <span>{sourceStatus(item.status, zh)}</span>
+                    {item.tags.length > 0 && (
+                      <span className={styles.sourceTags}>
+                        {item.tags.map((tag) => (
+                          <Tag key={tag}>{tag}</Tag>
+                        ))}
+                      </span>
+                    )}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className={styles.sourceActions}>
-              <Dropdown
-                trigger={['click']}
-                onOpenChange={(openMenu) => {
-                  if (openMenu && currentWorkspace?.id) void loadAuthorizedSources(currentWorkspace.id);
-                }}
-                menu={{
-                  items: [
-                    { key: 'details', label: zh ? '查看详情' : 'View details', disabled: item.status !== 'ready' },
-                    { key: 'preview', label: zh ? '预览' : 'Preview', disabled: item.status !== 'ready' },
-                    { key: 'rename', label: zh ? '重命名' : 'Rename', disabled: item.status !== 'ready' },
-                    { key: 'tags', label: zh ? '管理标签' : 'Manage tags', disabled: item.status !== 'ready' },
-                    { key: 'use', label: zh ? '用于当前任务' : 'Use in current task', disabled: item.status !== 'ready' || !currentWorkspace || !activeSessionId },
-                    ...(linkedSource ? [{ key: 'revoke', label: zh ? '从当前工作区移除' : 'Remove from workspace' }] : []),
-                    { type: 'divider' },
-                    { key: 'delete', label: zh ? '从资料库删除' : 'Delete from library', danger: true },
-                  ],
-                  onClick: ({ key }) => {
-                    if (key === 'delete') setDeleting(item);
-                    else if (key === 'revoke' && linkedSource) setRevokeTarget(linkedSource);
-                    else if (key === 'use') addSourceToCurrentTask(item.id);
-                    else void open(item.id, key === 'preview').then((loaded) => {
-                      if (loaded && (key === 'rename' || key === 'tags')) setEditing(true);
-                    });
-                  },
-                }}
-              >
-                <Button
-                  aria-label={`${zh ? '资料操作' : 'Source actions'}：${item.title}`}
-                  icon={<MoreOutlined />}
-                  disabled={busy}
-                />
-              </Dropdown>
-            </div>
-          </li>
+              <div className={styles.sourceActions}>
+                <Dropdown
+                  trigger={['click']}
+                  onOpenChange={(openMenu) => {
+                    if (openMenu && currentWorkspace?.id)
+                      void loadAuthorizedSources(currentWorkspace.id);
+                  }}
+                  menu={{
+                    items: [
+                      {
+                        key: 'details',
+                        label: zh ? '查看详情' : 'View details',
+                        disabled: item.status !== 'ready',
+                      },
+                      {
+                        key: 'preview',
+                        label: zh ? '预览' : 'Preview',
+                        disabled: item.status !== 'ready',
+                      },
+                      {
+                        key: 'rename',
+                        label: zh ? '重命名' : 'Rename',
+                        disabled: item.status !== 'ready',
+                      },
+                      {
+                        key: 'tags',
+                        label: zh ? '管理标签' : 'Manage tags',
+                        disabled: item.status !== 'ready',
+                      },
+                      {
+                        key: 'use',
+                        label: zh ? '用于当前任务' : 'Use in current task',
+                        disabled: item.status !== 'ready' || !currentWorkspace || !activeSessionId,
+                      },
+                      ...(linkedSource
+                        ? [
+                            {
+                              key: 'revoke',
+                              label: zh ? '从当前工作区移除' : 'Remove from workspace',
+                            },
+                          ]
+                        : []),
+                      { type: 'divider' },
+                      {
+                        key: 'delete',
+                        label: zh ? '从资料库删除' : 'Delete from library',
+                        danger: true,
+                      },
+                    ],
+                    onClick: ({ key }) => {
+                      if (key === 'delete') setDeleting(item);
+                      else if (key === 'revoke' && linkedSource) setRevokeTarget(linkedSource);
+                      else if (key === 'use') addSourceToCurrentTask(item.id);
+                      else
+                        void open(item.id, key === 'preview').then((loaded) => {
+                          if (loaded && (key === 'rename' || key === 'tags')) setEditing(true);
+                        });
+                    },
+                  }}
+                >
+                  <Button
+                    aria-label={`${zh ? '资料操作' : 'Source actions'}：${item.title}`}
+                    icon={<MoreOutlined />}
+                    disabled={busy}
+                  />
+                </Dropdown>
+              </div>
+            </li>
           );
         })}
       </ul>
@@ -549,14 +645,18 @@ function KnowledgeSources() {
         {preview && (
           <div className={styles.details}>
             <div className={styles.detailIdentity}>
-              <span className={`${styles.sourceIcon} ${styles[`format_${preview.source.format.toLowerCase()}`] ?? ''}`}>
+              <span
+                className={`${styles.sourceIcon} ${styles[`format_${preview.source.format.toLowerCase()}`] ?? ''}`}
+              >
                 {sourceIcon(preview.source.format)}
               </span>
               <div>
                 <strong>{preview.source.title}</strong>
                 <span className={styles.detailIdentityMeta}>
                   {formatLabel(preview.source.format)} · {zh ? '个人资料库' : 'Personal library'} ·
-                  <span className={`${styles.indexBadge} ${preview.source.status === 'ready' ? styles.indexReady : ''}`}>
+                  <span
+                    className={`${styles.indexBadge} ${preview.source.status === 'ready' ? styles.indexReady : ''}`}
+                  >
                     <span aria-hidden="true" className={styles.statusDot} />
                     {indexStatus(preview.source.status, zh)}
                   </span>
@@ -564,16 +664,30 @@ function KnowledgeSources() {
               </div>
             </div>
             <div className={styles.detailActions}>
-              <Tooltip title={!currentWorkspace || !activeSessionId ? (zh ? '请先打开工作区会话' : 'Open a workspace conversation first') : undefined}>
-                <Button type="primary" disabled={!currentWorkspace || !activeSessionId} onClick={() => addSourceToCurrentTask(preview.source.id)}>
+              <Tooltip
+                title={
+                  !currentWorkspace || !activeSessionId
+                    ? zh
+                      ? '请先打开工作区会话'
+                      : 'Open a workspace conversation first'
+                    : undefined
+                }
+              >
+                <Button
+                  type="primary"
+                  disabled={!currentWorkspace || !activeSessionId}
+                  onClick={() => addSourceToCurrentTask(preview.source.id)}
+                >
                   {zh ? '用于当前任务' : 'Use in current task'}
                 </Button>
               </Tooltip>
               <Button
-                aria-label={previewExpanded ? (zh ? '收起预览' : 'Hide preview') : (zh ? '预览' : 'Preview')}
+                aria-label={
+                  previewExpanded ? (zh ? '收起预览' : 'Hide preview') : zh ? '预览' : 'Preview'
+                }
                 onClick={() => setPreviewExpanded((value) => !value)}
               >
-                {previewExpanded ? (zh ? '收起预览' : 'Hide preview') : (zh ? '预览' : 'Preview')}
+                {previewExpanded ? (zh ? '收起预览' : 'Hide preview') : zh ? '预览' : 'Preview'}
               </Button>
               <Button type="text" onClick={() => setEditing((value) => !value)}>
                 {zh ? '编辑信息' : 'Edit info'}
@@ -582,14 +696,26 @@ function KnowledgeSources() {
                 trigger={['click']}
                 getPopupContainer={(trigger) => trigger.parentElement ?? document.body}
                 onOpenChange={(openMenu) => {
-                  if (openMenu && currentWorkspace?.id) void loadAuthorizedSources(currentWorkspace.id);
+                  if (openMenu && currentWorkspace?.id)
+                    void loadAuthorizedSources(currentWorkspace.id);
                 }}
                 menu={{
                   items: [
                     { key: 'rename', label: zh ? '重命名' : 'Rename' },
-                    ...(previewLinkedSource ? [{ key: 'revoke', label: zh ? '从当前工作区移除' : 'Remove from workspace' }] : []),
+                    ...(previewLinkedSource
+                      ? [
+                          {
+                            key: 'revoke',
+                            label: zh ? '从当前工作区移除' : 'Remove from workspace',
+                          },
+                        ]
+                      : []),
                     { type: 'divider' },
-                    { key: 'delete', label: zh ? '从资料库删除' : 'Delete from library', danger: true },
+                    {
+                      key: 'delete',
+                      label: zh ? '从资料库删除' : 'Delete from library',
+                      danger: true,
+                    },
                   ],
                   onClick: ({ key }) => {
                     if (key === 'rename') setEditing(true);
@@ -603,31 +729,69 @@ function KnowledgeSources() {
                   },
                 }}
               >
-                <Button type="text" icon={<MoreOutlined />} aria-label={zh ? '更多资料操作' : 'More source actions'} title={zh ? '更多资料操作' : 'More source actions'} />
+                <Button
+                  type="text"
+                  icon={<MoreOutlined />}
+                  aria-label={zh ? '更多资料操作' : 'More source actions'}
+                  title={zh ? '更多资料操作' : 'More source actions'}
+                />
               </Dropdown>
             </div>
-            <section className={styles.detailGroup} aria-label={zh ? '基本信息' : 'Basic information'}>
+            <section
+              className={styles.detailGroup}
+              aria-label={zh ? '基本信息' : 'Basic information'}
+            >
               <h3>{zh ? '基本信息' : 'Basic information'}</h3>
               <dl className={styles.detailFacts}>
-                <dt>{zh ? '类型' : 'Type'}</dt><dd>{formatLabel(preview.source.format)}</dd>
-                <dt>{zh ? '来源' : 'Source'}</dt><dd>{zh ? '个人资料库' : 'Personal library'}</dd>
-                <dt>{zh ? '原文件' : 'Original file'}</dt><dd>{preview.source.originalName}</dd>
+                <dt>{zh ? '类型' : 'Type'}</dt>
+                <dd>{formatLabel(preview.source.format)}</dd>
+                <dt>{zh ? '来源' : 'Source'}</dt>
+                <dd>{zh ? '个人资料库' : 'Personal library'}</dd>
+                <dt>{zh ? '原文件' : 'Original file'}</dt>
+                <dd>{preview.source.originalName}</dd>
               </dl>
             </section>
-            <section className={styles.detailGroup} aria-label={zh ? '状态信息' : 'Status information'}>
+            <section
+              className={styles.detailGroup}
+              aria-label={zh ? '状态信息' : 'Status information'}
+            >
               <h3>{zh ? '状态' : 'Status'}</h3>
               <dl className={styles.detailFacts}>
                 <dt>{zh ? '索引状态' : 'Index status'}</dt>
-                <dd><span className={`${styles.indexBadge} ${preview.source.status === 'ready' ? styles.indexReady : ''}`}><span aria-hidden="true" className={styles.statusDot} />{indexStatus(preview.source.status, zh)}</span></dd>
-                <dt>{zh ? '导入时间' : 'Imported'}</dt><dd>{sourceDate(preview.source.createdAt, locale)}</dd>
-                <dt>{zh ? '更新时间' : 'Updated'}</dt><dd>{sourceDate(preview.source.updatedAt, locale)}</dd>
+                <dd>
+                  <span
+                    className={`${styles.indexBadge} ${preview.source.status === 'ready' ? styles.indexReady : ''}`}
+                  >
+                    <span aria-hidden="true" className={styles.statusDot} />
+                    {indexStatus(preview.source.status, zh)}
+                  </span>
+                </dd>
+                <dt>{zh ? '导入时间' : 'Imported'}</dt>
+                <dd>{sourceDate(preview.source.createdAt, locale)}</dd>
+                <dt>{zh ? '更新时间' : 'Updated'}</dt>
+                <dd>{sourceDate(preview.source.updatedAt, locale)}</dd>
               </dl>
             </section>
-            <section className={styles.detailGroup} aria-label={zh ? '标签信息' : 'Tags information'}>
+            <section
+              className={styles.detailGroup}
+              aria-label={zh ? '标签信息' : 'Tags information'}
+            >
               <h3>{zh ? '标签' : 'Tags'}</h3>
               <div className={styles.detailTags}>
-                {preview.source.tags.length ? preview.source.tags.map((tag) => <Tag key={tag}>{tag}</Tag>) : <span className={styles.noTags}>{zh ? '暂无标签' : 'No tags'}</span>}
-                <Button type="link" size="small" icon={<PlusOutlined />} aria-label={zh ? '添加标签' : 'Add tag'} onClick={() => setEditing(true)}>{zh ? '添加标签' : 'Add tag'}</Button>
+                {preview.source.tags.length ? (
+                  preview.source.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)
+                ) : (
+                  <span className={styles.noTags}>{zh ? '暂无标签' : 'No tags'}</span>
+                )}
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  aria-label={zh ? '添加标签' : 'Add tag'}
+                  onClick={() => setEditing(true)}
+                >
+                  {zh ? '添加标签' : 'Add tag'}
+                </Button>
               </div>
             </section>
             {editing && (
@@ -664,8 +828,14 @@ function KnowledgeSources() {
             {previewExpanded && (
               <div className={styles.previewSection}>
                 <h3>{zh ? '提取正文预览' : 'Extracted text preview'}</h3>
-                <p>{zh ? '预览仅显示本地提取内容，不会发送给 AI。' : 'This local preview is not sent to AI.'}</p>
-                <pre className={styles.preview}>{preview.parsed.blocks.map((b) => b.text).join('\n')}</pre>
+                <p>
+                  {zh
+                    ? '预览仅显示本地提取内容，不会发送给 AI。'
+                    : 'This local preview is not sent to AI.'}
+                </p>
+                <pre className={styles.preview}>
+                  {preview.parsed.blocks.map((b) => b.text).join('\n')}
+                </pre>
               </div>
             )}
           </div>
@@ -673,7 +843,11 @@ function KnowledgeSources() {
       </Drawer>
       <Modal
         open={Boolean(revokeTarget)}
-        title={revokeTarget ? `${zh ? '从当前工作区移除' : 'Remove from workspace'}：${revokeTarget.name}` : ''}
+        title={
+          revokeTarget
+            ? `${zh ? '从当前工作区移除' : 'Remove from workspace'}：${revokeTarget.name}`
+            : ''
+        }
         okText={zh ? '从工作区移除' : 'Remove from workspace'}
         cancelText={zh ? '取消' : 'Cancel'}
         okButtonProps={{ danger: true, loading: Boolean(revokingSourceId) }}
@@ -686,7 +860,11 @@ function KnowledgeSources() {
           }
         }}
       >
-        <p>{zh ? '只取消当前工作区的授权；个人资料库中的副本和原文件不会删除。' : 'Only workspace authorization is removed. The library copy and original file are preserved.'}</p>
+        <p>
+          {zh
+            ? '只取消当前工作区的授权；个人资料库中的副本和原文件不会删除。'
+            : 'Only workspace authorization is removed. The library copy and original file are preserved.'}
+        </p>
       </Modal>
       <Modal
         open={Boolean(deleting)}

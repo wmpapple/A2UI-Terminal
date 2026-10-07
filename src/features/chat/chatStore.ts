@@ -248,6 +248,8 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
       if (get().chatRequestId !== requestId) return;
       if (/\b(a2ui|surface|form|dashboard)\b|界面|表单|仪表盘/i.test(prompt)) {
         const mock = createMockA2ui();
+        const surface = { ...mock.surface, sessionId: session.id, messageId: assistantMessageId };
+        const inspection = { ...mock.inspection, messageId: assistantMessageId };
         get().updateMessage(
           session.id,
           assistantMessageId,
@@ -256,13 +258,13 @@ export const createChatStore = (set: AppSet, get: AppGet): ChatActions => ({
         );
         set((current) => ({
           chatRequestId: null,
-          a2uiSurfaces: upsertA2uiSurface(current.a2uiSurfaces, mock.surface),
+          a2uiSurfaces: upsertA2uiSurface(current.a2uiSurfaces, surface),
           a2uiInspections: [
-            mock.inspection,
-            ...current.a2uiInspections.filter((item) => item.id !== mock.inspection.id),
+            inspection,
+            ...current.a2uiInspections.filter((item) => item.id !== inspection.id),
           ],
-          activeSurfaceId: mock.surface.surfaceId,
-          activeInspectionId: mock.inspection.id,
+          activeSurfaceId: surface.surfaceId,
+          activeInspectionId: inspection.id,
           centerView: 'surface',
           a2uiNotice: null,
         }));
