@@ -2,6 +2,7 @@ import { InfoNotice } from '../../../shared/components/InfoNotice';
 import { userFacingError } from '../../../shared/errors/userFacingError';
 import {
   HistoryOutlined,
+  LayoutOutlined,
   FileOutlined,
   MoreOutlined,
   PaperClipOutlined,
@@ -63,6 +64,7 @@ interface EditorPaneProps {
   showSimpleFileActions?: boolean;
   onOpenResult?: (resultId: string) => void;
   onOpenTool?: (id: string) => void;
+  onOpenCanvas?: (path: string) => void;
   onEditorPort?: (port: SourceEditorPort | null) => void;
 }
 
@@ -73,6 +75,7 @@ export function EditorPane({
   showSimpleFileActions = false,
   onOpenResult,
   onOpenTool,
+  onOpenCanvas,
   onEditorPort,
 }: EditorPaneProps) {
   const dark = useSystemTheme();
@@ -383,48 +386,99 @@ export function EditorPane({
       <WorkItemHeader
         icon={<FileOutlined />}
         title={activeFile?.name || activePath.split('/').at(-1) || t('editor')}
-        type={`${locale === 'zh-CN' ? '文件' : 'File'} · ${isMarkdown ? 'Markdown' : activeFile?.language?.toUpperCase() ?? ''}`}
+        type={`${locale === 'zh-CN' ? '文件' : 'File'} · ${isMarkdown ? 'Markdown' : (activeFile?.language?.toUpperCase() ?? '')}`}
         status={activeFile ? (isExtractedDocument ? t('readOnlyDocument') : saveLabel) : undefined}
         tone={saveColor === 'green' ? 'success' : saveColor === 'red' ? 'danger' : 'warning'}
-        details={activeFile ? t(chatRequestId ? 'aiGenerating' : pendingDiff ? 'aiPendingReview' : 'aiIdle') : undefined}
+        details={
+          activeFile
+            ? t(chatRequestId ? 'aiGenerating' : pendingDiff ? 'aiPendingReview' : 'aiIdle')
+            : undefined
+        }
         actions={<WorkspacePanelControls leftLabels={leftPanelLabels} />}
       />
-      <WorkItemNavigation actions={
-        <div className={styles.toolbarActions}>
-          <Popover trigger="click" placement="bottomRight" content={<WorkbenchAppearanceControl />}>
-            <Tooltip title={t('quickControls')}>
+      <WorkItemNavigation
+        actions={
+          <div className={styles.toolbarActions}>
+            {activePath && onOpenCanvas && (
               <Button
-                type="text"
                 size="small"
-                aria-label={t('quickControls')}
-                icon={<MoreOutlined />}
-              />
-            </Tooltip>
-          </Popover>
-          {showSimpleFileActions ? (
-            <Button size="small" type="primary" icon={<PaperClipOutlined />} loading={workspaceLoading} onClick={() => void selectContextFiles()}>
-              {t('chooseFiles')}
-            </Button>
-          ) : null}
-          {lastPatchApplication || lastReviewApplication ? (
-            <Button size="small" icon={<UndoOutlined />} loading={patchApplying} onClick={() => void undoLastPatch()}>{t('undoPatch')}</Button>
-          ) : null}
-          {activeFile && dirtyPaths.includes(activeFile.path) ? (
-            <Button size="small" icon={<SaveOutlined />} loading={activeSaveStatus === 'saving'} onClick={() => void saveFileToDisk(activeFile.path)}>{t('saveNow')}</Button>
-          ) : null}
-          {runtimeMode === 'desktop' && activeFile && !isExtractedDocument ? (
-            <Button size="small" icon={<HistoryOutlined />} aria-label={t('versionHistory')} onClick={() => setVersionHistoryOpen(true)}>{t('versionHistory')}</Button>
-          ) : null}
-        </div>
-      }>
+                icon={<LayoutOutlined />}
+                onClick={() => onOpenCanvas(activePath)}
+              >
+                打开画布
+              </Button>
+            )}
+            <Popover
+              trigger="click"
+              placement="bottomRight"
+              content={<WorkbenchAppearanceControl />}
+            >
+              <Tooltip title={t('quickControls')}>
+                <Button
+                  type="text"
+                  size="small"
+                  aria-label={t('quickControls')}
+                  icon={<MoreOutlined />}
+                />
+              </Tooltip>
+            </Popover>
+            {showSimpleFileActions ? (
+              <Button
+                size="small"
+                type="primary"
+                icon={<PaperClipOutlined />}
+                loading={workspaceLoading}
+                onClick={() => void selectContextFiles()}
+              >
+                {t('chooseFiles')}
+              </Button>
+            ) : null}
+            {lastPatchApplication || lastReviewApplication ? (
+              <Button
+                size="small"
+                icon={<UndoOutlined />}
+                loading={patchApplying}
+                onClick={() => void undoLastPatch()}
+              >
+                {t('undoPatch')}
+              </Button>
+            ) : null}
+            {activeFile && dirtyPaths.includes(activeFile.path) ? (
+              <Button
+                size="small"
+                icon={<SaveOutlined />}
+                loading={activeSaveStatus === 'saving'}
+                onClick={() => void saveFileToDisk(activeFile.path)}
+              >
+                {t('saveNow')}
+              </Button>
+            ) : null}
+            {runtimeMode === 'desktop' && activeFile && !isExtractedDocument ? (
+              <Button
+                size="small"
+                icon={<HistoryOutlined />}
+                aria-label={t('versionHistory')}
+                onClick={() => setVersionHistoryOpen(true)}
+              >
+                {t('versionHistory')}
+              </Button>
+            ) : null}
+          </div>
+        }
+      >
         <Segmented
           data-testid="workspace-mode"
           value={centerView}
           onChange={(value) => setCenterView(value as CenterView)}
           options={[
-            { label: isExtractedDocument ? (locale === 'zh-CN' ? '阅读' : 'Read') : t('editMode'), value: 'editor' },
+            {
+              label: isExtractedDocument ? (locale === 'zh-CN' ? '阅读' : 'Read') : t('editMode'),
+              value: 'editor',
+            },
             { label: t('reviewMode'), value: 'diff' },
-            ...(showInspector ? [{ label: locale === 'zh-CN' ? '交互视图' : 'Interactive view', value: 'surface' }] : []),
+            ...(showInspector
+              ? [{ label: locale === 'zh-CN' ? '交互视图' : 'Interactive view', value: 'surface' }]
+              : []),
           ]}
         />
       </WorkItemNavigation>

@@ -6,6 +6,8 @@ import {
   PaperClipOutlined,
   SearchOutlined,
   InfoCircleOutlined,
+  LayoutOutlined,
+  FolderOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Dropdown, Input, Popconfirm, Select, Spin, Tag, Tooltip } from 'antd';
 import { useMemo, useState } from 'react';
@@ -22,6 +24,7 @@ interface Props {
   currentResultTitle?: string;
   onActivateWorkspace?: () => void;
   onBeforeOpenFile?: (path: string, name: string) => boolean | Promise<boolean>;
+  onOpenCanvas?: (path: string, kind: 'file' | 'folder') => void;
 }
 
 export function WorkspaceSidebar({
@@ -29,6 +32,7 @@ export function WorkspaceSidebar({
   currentResultTitle,
   onActivateWorkspace,
   onBeforeOpenFile,
+  onOpenCanvas,
 }: Props) {
   const { t, locale } = useI18n();
   const runtimeMode = useAppStore((state) => state.runtimeMode);
@@ -52,6 +56,20 @@ export function WorkspaceSidebar({
   const [query, setQuery] = useState('');
   const visibleFiles = useMemo(
     () => workspaceEntries.filter((file) => file.path.toLowerCase().includes(query.toLowerCase())),
+    [workspaceEntries, query]
+  );
+  const folders = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          workspaceEntries.flatMap((file) => {
+            const parts = file.path.split('/');
+            return parts.slice(0, -1).map((_, index) => parts.slice(0, index + 1).join('/'));
+          })
+        )
+      )
+        .filter((path) => path.toLowerCase().includes(query.toLowerCase()))
+        .sort(),
     [workspaceEntries, query]
   );
   const isDesktop = runtimeMode === 'desktop';
@@ -191,13 +209,42 @@ export function WorkspaceSidebar({
       />
       <Spin spinning={workspaceLoading} classNames={{ root: styles.treeSpinner }}>
         <div className={styles.tree} role="tree">
+          {folders.map((folder) => (
+            <Dropdown
+              key={`folder:${folder}`}
+              trigger={['contextMenu']}
+              menu={{
+                items: [{ key: 'canvas', label: '打开画布', icon: <LayoutOutlined /> }],
+                onClick: () => onOpenCanvas?.(folder, 'folder'),
+              }}
+            >
+              <button
+                type="button"
+                role="treeitem"
+                aria-label={`文件夹 ${folder}`}
+                className={styles.file}
+                onClick={() => onOpenCanvas?.(folder, 'folder')}
+              >
+                <FolderOutlined />
+                <span>{folder}</span>
+                <LayoutOutlined aria-hidden="true" />
+              </button>
+            </Dropdown>
+          ))}
           {visibleFiles.map((file) => (
             <Dropdown
               key={file.path}
               trigger={['contextMenu']}
               menu={{
-                items: [{ key: 'add', label: t('addToConversation') }],
-                onClick: async () => {
+                items: [
+                  { key: 'add', label: t('addToConversation') },
+                  { key: 'canvas', label: '打开画布', icon: <LayoutOutlined /> },
+                ],
+                onClick: async ({ key }) => {
+                  if (key === 'canvas') {
+                    onOpenCanvas?.(file.path, 'file');
+                    return;
+                  }
                   await openFile(file.path);
                   addFileToContext(activeSessionId, file.path);
                 },

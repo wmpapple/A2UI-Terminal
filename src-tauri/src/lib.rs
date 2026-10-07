@@ -135,6 +135,11 @@ pub fn run() {
             });
         })
         .invoke_handler(tauri::generate_handler![
+            commands::list_canvases,
+            commands::read_canvas,
+            commands::create_canvas,
+            commands::save_canvas,
+            commands::delete_canvas,
             commands::get_bootstrap_status,
             commands::get_writing_profiles,
             commands::save_writing_profile,

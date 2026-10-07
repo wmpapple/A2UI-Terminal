@@ -8,7 +8,18 @@ import {
   SettingOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, ConfigProvider, Dropdown, Empty, message, Modal, Tag, theme } from 'antd';
+import {
+  Alert,
+  Button,
+  ConfigProvider,
+  Dropdown,
+  Empty,
+  message,
+  Modal,
+  Select,
+  Tag,
+  theme,
+} from 'antd';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { HomePage } from '../features/home/components/HomePage';
@@ -46,6 +57,8 @@ import { useResultStore } from '../features/results/resultStore';
 import type { WorkItem } from '../shared/types/workItem';
 import type { WritingProject } from '../shared/types/writingProject';
 import { ProjectSidebar } from '../features/writingProjects/ProjectSidebar';
+import type { CanvasBinding, CanvasDocument } from '../shared/types/canvas';
+import { canvasRepository } from '../features/canvas/canvasRepository';
 import { WorkbenchAppearance } from './WorkbenchAppearance';
 
 import { lazyFeature } from './lazyFeature';
@@ -105,6 +118,14 @@ const WorkspaceSidebar = lazyFeature(async () => {
   const module = await import('../features/workspace/components/WorkspaceSidebar');
   return { default: module.WorkspaceSidebar };
 });
+const CanvasSidebar = lazyFeature(async () => {
+  const module = await import('../features/canvas/CanvasSidebar');
+  return { default: module.CanvasSidebar };
+});
+const CanvasPage = lazyFeature(async () => {
+  const module = await import('../features/canvas/CanvasPage');
+  return { default: module.CanvasPage };
+});
 const SettingsPage = lazyFeature(async () => {
   const module = await import('./SettingsPage');
   return { default: module.SettingsPage };
@@ -134,14 +155,17 @@ export function AppShell() {
       : routeFromHash(window.location.hash)
   );
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
-  const [resourceView, setResourceView] = useState<'files' | 'tools' | 'projects'>(() =>
+  const [resourceView, setResourceView] = useState<'files' | 'tools' | 'projects' | 'canvas'>(() =>
     routeFromHash(window.location.hash) === 'projects' ? 'projects' : 'files'
   );
   const [activeWorkItemType, setActiveWorkItemType] = useState<
-    'document' | 'tool' | 'project' | 'project-section' | 'result'
+    'document' | 'tool' | 'project' | 'project-section' | 'result' | 'canvas'
   >(routeFromHash(window.location.hash) === 'projects' ? 'project' : 'document');
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
   const [openedToolIds, setOpenedToolIds] = useState<string[]>([]);
+  const [canvases, setCanvases] = useState<CanvasDocument[]>([]);
+  const [activeCanvasId, setActiveCanvasId] = useState<string | null>(null);
+  const [openedCanvasIds, setOpenedCanvasIds] = useState<string[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [openedProjectIds, setOpenedProjectIds] = useState<string[]>([]);
   const [openedSections, setOpenedSections] = useState<
@@ -169,7 +193,13 @@ export function AppShell() {
   const toolEntries = useSceneToolStore((state) => state.entries);
   const files = useAppStore((state) => state.files);
   const workspace = useAppStore((state) => state.workspace);
+  const workspaceEntries = useAppStore((state) => state.workspaceEntries);
   const runtimeMode = useAppStore((state) => state.runtimeMode);
+  const canvasWorkspaceId = workspace?.id ?? (runtimeMode === 'web-mock' ? 'web-mock' : null);
+  const visibleCanvases = canvases.filter(
+    (canvas) =>
+      canvasWorkspaceId && (canvas.workspaceId === canvasWorkspaceId || canvas.workspaceId === null)
+  );
   const projectWorkspaceId =
     workspace?.id ?? (runtimeMode === 'web-mock' ? 'web-mock-workspace' : null);
   const openPaths = useAppStore((state) => state.openPaths);
@@ -201,6 +231,21 @@ export function AppShell() {
   }, [initializeProviders, initializeWorkspace]);
 
   useEffect(() => scheduleAutomaticUpdateCheck(), []);
+  useEffect(() => {
+    if (!canvasWorkspaceId) return;
+    let active = true;
+    void canvasRepository
+      .list(canvasWorkspaceId)
+      .then((items) => {
+        if (active) setCanvases(items);
+      })
+      .catch((error) => {
+        if (active) void messageApi.error(String(error));
+      });
+    return () => {
+      active = false;
+    };
+  }, [canvasWorkspaceId, messageApi]);
   useEffect(() => {
     if (!projectWorkspaceId || (route !== 'workbench' && route !== 'home')) return;
     let current = true;
@@ -288,6 +333,85 @@ export function AppShell() {
     openRoute('workbench');
   };
 
+  const openCanvas = (id: string) => {
+    setActiveCanvasId(id);
+    setOpenedCanvasIds((current) => (current.includes(id) ? current : [...current, id]));
+    setActiveWorkItemType('canvas');
+    openRoute('workbench');
+  };
+  const createCanvas = async (title: string, binding: CanvasBinding) => {
+    if (!canvasWorkspaceId) throw new Error('请先打开工作区');
+    const prepared: CanvasBinding =
+      binding.type === 'folder'
+        ? {
+            ...binding,
+            snapshot: workspaceEntries
+              .filter((entry) => entry.path.startsWith(`${binding.path}/`))
+              .map((entry) => entry.path)
+              .sort(),
+          }
+        : binding;
+    const created = await canvasRepository.create(canvasWorkspaceId, title, prepared);
+    setCanvases((current) => [created, ...current]);
+    openCanvas(created.id);
+  };
+  const openAssociatedCanvas = async (binding: CanvasBinding) => {
+    if (!canvasWorkspaceId) {
+      void messageApi.warning('请先打开工作区');
+      return;
+    }
+    const current = await canvasRepository.list(canvasWorkspaceId);
+    setCanvases(current);
+    const matches = current.filter(
+      (item) =>
+        item.binding.type === binding.type &&
+        (binding.type === 'file' || binding.type === 'folder'
+          ? 'path' in item.binding && item.binding.path === binding.path
+          : binding.type === 'result'
+            ? item.binding.type === 'result' && item.binding.resultId === binding.resultId
+            : true)
+    );
+    if (matches.length > 1) {
+      let chosen = matches[0].id;
+      const accepted = await modalApi.confirm({
+        title: '打开关联画布',
+        content: (
+          <Select
+            defaultValue={chosen}
+            style={{ width: '100%' }}
+            options={matches.map((item) => ({ value: item.id, label: item.title }))}
+            onChange={(value) => {
+              chosen = value;
+            }}
+          />
+        ),
+        okText: '打开',
+        cancelText: '取消',
+      });
+      if (accepted) openCanvas(chosen);
+      return;
+    }
+    if (matches.length === 1) {
+      openCanvas(matches[0].id);
+      return;
+    }
+    const name =
+      binding.type === 'file' || binding.type === 'folder'
+        ? (binding.path.split('/').at(-1) ?? '文件')
+        : '画布';
+    await createCanvas(`${name} · 画布`, binding);
+  };
+  const deleteCanvas = async (id: string) => {
+    if (!canvasWorkspaceId) return;
+    await canvasRepository.delete(canvasWorkspaceId, id);
+    setCanvases((items) => items.filter((item) => item.id !== id));
+    setOpenedCanvasIds((items) => items.filter((item) => item !== id));
+    if (activeCanvasId === id) {
+      setActiveCanvasId(null);
+      setActiveWorkItemType('document');
+    }
+  };
+
   const openProject = (id: string, browseProjects = false) => {
     if (browseProjects) setResourceView('projects');
     setProjectInitialTab('overview');
@@ -366,6 +490,14 @@ export function AppShell() {
       status: dirtyPaths.includes(path) ? 'dirty' : 'saved',
     })),
     ...toolItems,
+    ...openedCanvasIds
+      .filter((id) => visibleCanvases.some((canvas) => canvas.id === id))
+      .map((id): WorkItem => ({
+        id,
+        type: 'canvas',
+        title: visibleCanvases.find((canvas) => canvas.id === id)?.title ?? '画布',
+        status: 'saved',
+      })),
     ...openedProjectIds.map((id): WorkItem => ({
       id,
       type: 'project',
@@ -415,13 +547,15 @@ export function AppShell() {
   const activeWorkItemId =
     activeWorkItemType === 'tool'
       ? activeToolId
-      : activeWorkItemType === 'project'
-        ? (activeProjectId ?? (creatingProject ? 'new-project' : null))
-        : activeWorkItemType === 'project-section' && activeProjectId && activeSectionId
-          ? `${activeProjectId}:${activeSectionId}`
-          : activeWorkItemType === 'result'
-            ? activeResultId
-            : activePath;
+      : activeWorkItemType === 'canvas'
+        ? activeCanvasId
+        : activeWorkItemType === 'project'
+          ? (activeProjectId ?? (creatingProject ? 'new-project' : null))
+          : activeWorkItemType === 'project-section' && activeProjectId && activeSectionId
+            ? `${activeProjectId}:${activeSectionId}`
+            : activeWorkItemType === 'result'
+              ? activeResultId
+              : activePath;
 
   const openResult = (resultId: string) => {
     startPerformanceMeasurement('requestFeedback');
@@ -466,6 +600,14 @@ export function AppShell() {
   };
 
   const closeWorkItem = async (item: WorkItem) => {
+    if (item.type === 'canvas') {
+      setOpenedCanvasIds((items) => items.filter((id) => id !== item.id));
+      if (activeCanvasId === item.id) {
+        setActiveCanvasId(null);
+        setActiveWorkItemType('document');
+      }
+      return;
+    }
     if (item.type === 'project-section') {
       const section = openedSections.find(
         (entry) => `${entry.projectId}:${entry.sectionId}` === item.id
@@ -562,6 +704,7 @@ export function AppShell() {
       activeId={activeWorkItemId}
       onSelect={(item) => {
         if (item.type === 'tool') openTool(item.id);
+        else if (item.type === 'canvas') openCanvas(item.id);
         else if (item.type === 'project') {
           if (item.id === 'new-project') startProject();
           else openProject(item.id);
@@ -644,7 +787,7 @@ export function AppShell() {
                 role="tablist"
                 aria-label={locale === 'zh-CN' ? '左侧资源视图' : 'Sidebar resources'}
               >
-                {(['files', 'tools', 'projects'] as const).map((tab) => (
+                {(['files', 'tools', 'projects', 'canvas'] as const).map((tab) => (
                   <Button
                     key={tab}
                     role="tab"
@@ -660,14 +803,27 @@ export function AppShell() {
                         ? locale === 'zh-CN'
                           ? '我的工具'
                           : 'My Tools'
-                        : locale === 'zh-CN'
-                          ? '项目'
-                          : 'Projects'}
+                        : tab === 'projects'
+                          ? locale === 'zh-CN'
+                            ? '项目'
+                            : 'Projects'
+                          : locale === 'zh-CN'
+                            ? '画布'
+                            : 'Canvas'}
                   </Button>
                 ))}
               </div>
               <div className={styles.resourceContent}>
-                {resourceView === 'projects' ? (
+                {resourceView === 'canvas' ? (
+                  <CanvasSidebar
+                    canvases={visibleCanvases}
+                    activeId={activeWorkItemType === 'canvas' ? activeCanvasId : null}
+                    filePaths={workspaceEntries.map((entry) => entry.path)}
+                    onCreate={createCanvas}
+                    onOpen={openCanvas}
+                    onDelete={deleteCanvas}
+                  />
+                ) : resourceView === 'projects' ? (
                   <ProjectSidebar
                     projects={projectItems}
                     activeId={
@@ -708,13 +864,40 @@ export function AppShell() {
                     }
                     onBeforeOpenFile={confirmWorkspaceFileOpen}
                     onActivateWorkspace={() => setActiveWorkItemType('document')}
+                    onOpenCanvas={(path, kind) => void openAssociatedCanvas({ type: kind, path })}
                   />
                 )}
               </div>
             </div>
           }
           center={
-            activeWorkItemType === 'project' || activeWorkItemType === 'project-section' ? (
+            activeWorkItemType === 'canvas' &&
+            activeCanvasId &&
+            canvasWorkspaceId &&
+            visibleCanvases.some((canvas) => canvas.id === activeCanvasId) ? (
+              <div className={styles.toolContent}>
+                <div className={styles.workItemBar}>
+                  {workItemTabs}
+                  <WorkspacePanelControls leftLabels={leftPanelLabels} />
+                </div>
+                <CanvasPage
+                  key={activeCanvasId}
+                  workspaceId={canvasWorkspaceId}
+                  canvasId={activeCanvasId}
+                  onUpdated={(updated) =>
+                    setCanvases((items) =>
+                      items.map((item) => (item.id === updated.id ? updated : item))
+                    )
+                  }
+                  onOpenFile={(path) => {
+                    setActiveWorkItemType('document');
+                    void openFile(path);
+                  }}
+                  onOpenResult={openResult}
+                  onOpenTool={openTool}
+                />
+              </div>
+            ) : activeWorkItemType === 'project' || activeWorkItemType === 'project-section' ? (
               <div className={styles.toolContent}>
                 <div className={styles.workItemBar}>
                   {workItemTabs}
@@ -818,6 +1001,7 @@ export function AppShell() {
                 showSimpleFileActions={!professional}
                 onOpenResult={openResult}
                 onOpenTool={openTool}
+                onOpenCanvas={(path) => void openAssociatedCanvas({ type: 'file', path })}
               />
             )
           }

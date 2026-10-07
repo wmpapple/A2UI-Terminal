@@ -11,7 +11,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-const SCHEMA_VERSION: i64 = 33;
+const SCHEMA_VERSION: i64 = 35;
 const MIGRATION_V1: &str = include_str!("../../migrations/0001_initial.sql");
 const MIGRATION_V2: &str = include_str!("../../migrations/0002_workspace_drafts.sql");
 const MIGRATION_V3: &str = include_str!("../../migrations/0003_providers_and_chat.sql");
@@ -98,6 +98,8 @@ const MIGRATIONS: &[(i64, &str)] = &[
         33,
         include_str!("../../migrations/0033_collaboration_inbox_handled.sql"),
     ),
+    (34, include_str!("../../migrations/0034_legacy_canvases.sql")),
+    (35, include_str!("../../migrations/0035_spatial_canvases.sql")),
 ];
 
 fn sha256(bytes: &[u8]) -> String {
@@ -4276,6 +4278,30 @@ impl Storage {
     }
 
     fn migrate(connection: &mut Connection) -> Result<(), AppError> {
+        // Canvas preview builds used versions 33/34 before collaboration claimed 33.
+        // Bring those databases forward without recreating or losing their canvases.
+        let version: i64 = connection.query_row("PRAGMA user_version", [], |row| row.get(0))?;
+        if (33..=34).contains(&version) {
+            let has_canvas: bool = connection.query_row(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='canvases')",
+                [],
+                |row| row.get(0),
+            )?;
+            let handled_at: bool = connection.query_row(
+                "SELECT EXISTS(SELECT 1 FROM pragma_table_info('collaboration_inbox') WHERE name='handled_at')",
+                [],
+                |row| row.get(0),
+            )?;
+            if has_canvas && !handled_at {
+                let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+                tx.execute_batch(include_str!("../../migrations/0033_collaboration_inbox_handled.sql"))?;
+                if version == 33 {
+                    tx.execute_batch(include_str!("../../migrations/0035_spatial_canvases.sql"))?;
+                }
+                tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+                tx.commit()?;
+            }
+        }
         Self::migrate_to(connection, SCHEMA_VERSION, MIGRATIONS)
     }
 
@@ -4533,6 +4559,33 @@ mod tests {
                     .unwrap()
                     .is_some());
             }
+        }
+    }
+
+    #[test]
+    fn upgrades_canvas_preview_databases_without_losing_canvases() {
+        for old_version in [33, 34] {
+            let directory = tempfile::tempdir().unwrap();
+            let path = directory.path().join(format!("preview-{old_version}.sqlite3"));
+            let mut connection = Connection::open(&path).unwrap();
+            Storage::configure(&connection).unwrap();
+            Storage::migrate_to(&mut connection, 32, MIGRATIONS).unwrap();
+            connection.execute_batch(include_str!("../../migrations/0034_legacy_canvases.sql")).unwrap();
+            if old_version == 34 {
+                connection.execute_batch(include_str!("../../migrations/0035_spatial_canvases.sql")).unwrap();
+            }
+            connection.execute_batch("INSERT INTO workspaces(id,name,root_path) VALUES ('workspace-canvas','Canvas','C:\\canvas'); INSERT INTO canvases(id,title,binding_json,blocks_json) VALUES ('canvas-old','Old canvas','{\"type\":\"none\"}','[]');").unwrap();
+            connection.pragma_update(None, "user_version", old_version).unwrap();
+            drop(connection);
+
+            let storage = Storage::open(&path).unwrap();
+            assert_eq!(storage.schema_version().unwrap(), SCHEMA_VERSION);
+            assert!(storage.table_exists("canvases").unwrap());
+            let connection = storage.connection.lock().unwrap();
+            let title: String = connection.query_row("SELECT title FROM canvases WHERE id='canvas-old'", [], |row| row.get(0)).unwrap();
+            let handled_at: i64 = connection.query_row("SELECT COUNT(*) FROM pragma_table_info('collaboration_inbox') WHERE name='handled_at'", [], |row| row.get(0)).unwrap();
+            assert_eq!(title, "Old canvas");
+            assert_eq!(handled_at, 1);
         }
     }
 

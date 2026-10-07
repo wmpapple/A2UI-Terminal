@@ -315,6 +315,12 @@
           "markdownDescription": "Enables the confirm_tool_binding command without any pre-configured scope."
         },
         {
+          "description": "Enables the create_canvas command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-canvas",
+          "markdownDescription": "Enables the create_canvas command without any pre-configured scope."
+        },
+        {
           "description": "Enables the create_chat_session command without any pre-configured scope.",
           "type": "string",
           "const": "allow-create-chat-session",
@@ -379,6 +385,12 @@
           "type": "string",
           "const": "allow-delete-a2ui-template",
           "markdownDescription": "Enables the delete_a2ui_template command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_canvas command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-canvas",
+          "markdownDescription": "Enables the delete_canvas command without any pre-configured scope."
         },
         {
           "description": "Enables the delete_chat_session command without any pre-configured scope.",
@@ -615,6 +627,12 @@
           "markdownDescription": "Enables the list_bound_tools command without any pre-configured scope."
         },
         {
+          "description": "Enables the list_canvases command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-canvases",
+          "markdownDescription": "Enables the list_canvases command without any pre-configured scope."
+        },
+        {
           "description": "Enables the list_chat_sessions command without any pre-configured scope.",
           "type": "string",
           "const": "allow-list-chat-sessions",
@@ -813,6 +831,12 @@
           "markdownDescription": "Enables the publish_scene_tool command without any pre-configured scope."
         },
         {
+          "description": "Enables the read_canvas command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-read-canvas",
+          "markdownDescription": "Enables the read_canvas command without any pre-configured scope."
+        },
+        {
           "description": "Enables the read_document_source command without any pre-configured scope.",
           "type": "string",
           "const": "allow-read-document-source",
@@ -925,6 +949,12 @@
           "type": "string",
           "const": "allow-save-a2ui-template",
           "markdownDescription": "Enables the save_a2ui_template command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_canvas command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-canvas",
+          "markdownDescription": "Enables the save_canvas command without any pre-configured scope."
         },
         {
           "description": "Enables the save_context_file command without any pre-configured scope.",
@@ -1263,6 +1293,12 @@
           "markdownDescription": "Denies the confirm_tool_binding command without any pre-configured scope."
         },
         {
+          "description": "Denies the create_canvas command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-canvas",
+          "markdownDescription": "Denies the create_canvas command without any pre-configured scope."
+        },
+        {
           "description": "Denies the create_chat_session command without any pre-configured scope.",
           "type": "string",
           "const": "deny-create-chat-session",
@@ -1327,6 +1363,12 @@
           "type": "string",
           "const": "deny-delete-a2ui-template",
           "markdownDescription": "Denies the delete_a2ui_template command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_canvas command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-canvas",
+          "markdownDescription": "Denies the delete_canvas command without any pre-configured scope."
         },
         {
           "description": "Denies the delete_chat_session command without any pre-configured scope.",
@@ -1563,6 +1605,12 @@
           "markdownDescription": "Denies the list_bound_tools command without any pre-configured scope."
         },
         {
+          "description": "Denies the list_canvases command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-canvases",
+          "markdownDescription": "Denies the list_canvases command without any pre-configured scope."
+        },
+        {
           "description": "Denies the list_chat_sessions command without any pre-configured scope.",
           "type": "string",
           "const": "deny-list-chat-sessions",
@@ -1761,6 +1809,12 @@
           "markdownDescription": "Denies the publish_scene_tool command without any pre-configured scope."
         },
         {
+          "description": "Denies the read_canvas command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-read-canvas",
+          "markdownDescription": "Denies the read_canvas command without any pre-configured scope."
+        },
+        {
           "description": "Denies the read_document_source command without any pre-configured scope.",
           "type": "string",
           "const": "deny-read-document-source",
@@ -1873,6 +1927,12 @@
           "type": "string",
           "const": "deny-save-a2ui-template",
           "markdownDescription": "Denies the save_a2ui_template command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_canvas command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-canvas",
+          "markdownDescription": "Denies the save_canvas command without any pre-configured scope."
         },
         {
           "description": "Denies the save_context_file command without any pre-configured scope.",

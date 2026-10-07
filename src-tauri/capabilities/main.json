@@ -5,6 +5,11 @@
   "windows": ["main"],
   "platforms": ["windows"],
   "permissions": [
+    "allow-list-canvases",
+    "allow-read-canvas",
+    "allow-create-canvas",
+    "allow-save-canvas",
+    "allow-delete-canvas",
     "allow-collaboration-overview",
     "allow-collaboration-rename",
     "allow-collaboration-share",

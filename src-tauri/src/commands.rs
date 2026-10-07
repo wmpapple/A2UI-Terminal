@@ -12,7 +12,7 @@ pub use crate::application::provider::{
     LocalProviderProbe, ProcessingOptions, ProviderConnectionResult, SecretStatus,
 };
 use crate::application::{
-    adapters, chat, context, context_pack, export as export_service, import as import_service,
+    adapters, canvas, chat, context, context_pack, export as export_service, import as import_service,
     provider, review, revision, search as search_service, telemetry,
     workspace as workspace_service, writing_profile,
 };
@@ -53,6 +53,31 @@ use uuid::Uuid;
 
 const CLEAR_CONFIRMATION: &str = "DELETE_ALL_LOCAL_DATA";
 const BUILT_IN_PROVIDERS: &[&str] = &["siliconflow", "deepseek", "openai"];
+
+#[tauri::command]
+pub fn list_canvases(state: State<'_, AppState>, workspace_id: String) -> Result<Vec<canvas::Canvas>, AppError> {
+    canvas::list(&state.storage, &workspace_id)
+}
+
+#[tauri::command]
+pub fn read_canvas(state: State<'_, AppState>, workspace_id: String, id: String) -> Result<canvas::Canvas, AppError> {
+    canvas::read(&state.storage, &workspace_id, &id)
+}
+
+#[tauri::command]
+pub fn create_canvas(state: State<'_, AppState>, input: canvas::CreateCanvasInput) -> Result<canvas::Canvas, AppError> {
+    canvas::create(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn save_canvas(state: State<'_, AppState>, input: canvas::SaveCanvasInput) -> Result<canvas::Canvas, AppError> {
+    canvas::save(&state.storage, input)
+}
+
+#[tauri::command]
+pub fn delete_canvas(state: State<'_, AppState>, workspace_id: String, id: String) -> Result<bool, AppError> {
+    canvas::delete(&state.storage, &workspace_id, &id)
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

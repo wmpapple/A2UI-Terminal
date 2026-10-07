@@ -1,5 +1,10 @@
 fn main() {
     let app_manifest = tauri_build::AppManifest::new().commands(&[
+        "list_canvases",
+        "read_canvas",
+        "create_canvas",
+        "save_canvas",
+        "delete_canvas",
         "get_bootstrap_status",
         "get_writing_profiles",
         "save_writing_profile",
