@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { DocumentVersionSummary } from '../../../shared/types/domain';
 import { useAppStore } from '../../../stores/useAppStore';
+import { displayWorkspacePath } from '../../../shared/workspacePath';
 import styles from './VersionHistoryDrawer.module.css';
 
 interface VersionHistoryDrawerProps {
@@ -45,7 +46,7 @@ export function VersionHistoryDrawer({ open, path, onClose }: VersionHistoryDraw
   return (
     <>
       <Drawer title={t('versionHistory')} open={open} size="large" onClose={onClose}>
-        <p className={styles.path}>{path}</p>
+        <p className={styles.path}>{displayWorkspacePath(path)}</p>
         <p className={styles.hint}>{t('versionHistoryHint')}</p>
         {error ? <Alert type="error" showIcon title={error} className={styles.alert} /> : null}
         {loading && versions.length === 0 ? (

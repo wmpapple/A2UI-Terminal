@@ -40,6 +40,12 @@ import {
   type DragEvent,
 } from 'react';
 import { useAppStore } from '../../stores/useAppStore';
+import {
+  displayCanvasBindingPath,
+  displayCanvasTitle,
+  displayWorkspacePath,
+  workspaceFolderPaths,
+} from '../../shared/workspacePath';
 import { resultController } from '../results/resultController';
 import { sceneToolController } from '../sceneTools/sceneToolController';
 import { getRuntimeMode } from '../../shared/platform/runtime';
@@ -961,14 +967,7 @@ function SpatialEditor({
     let kind: 'none' | 'file' | 'folder' =
       binding.type === 'file' || binding.type === 'folder' ? binding.type : 'none';
     let path = binding.type === 'file' || binding.type === 'folder' ? binding.path : '';
-    const folderPaths = Array.from(
-      new Set(
-        entries.flatMap((entry) => {
-          const parts = entry.path.split('/');
-          return parts.slice(0, -1).map((_, index) => parts.slice(0, index + 1).join('/'));
-        })
-      )
-    );
+    const folderPaths = workspaceFolderPaths(entries.map((entry) => entry.path));
     modal.confirm({
       title: '关联画布',
       content: (
@@ -991,8 +990,14 @@ function SpatialEditor({
             defaultValue={path || undefined}
             placeholder="选择文件或文件夹（独立画布可留空）"
             options={[
-              ...entries.map((entry) => ({ value: entry.path, label: `文件 · ${entry.path}` })),
-              ...folderPaths.map((value) => ({ value, label: `文件夹 · ${value}` })),
+              ...entries.map((entry) => ({
+                value: entry.path,
+                label: `文件 · ${displayWorkspacePath(entry.path)}`,
+              })),
+              ...folderPaths.map((value) => ({
+                value,
+                label: `文件夹 · ${displayWorkspacePath(value)}`,
+              })),
             ]}
             onChange={(value) => {
               path = value;
@@ -1041,7 +1046,11 @@ function SpatialEditor({
         <div className={styles.identity}>
           <Input
             aria-label="画布名称"
-            value={title}
+            value={displayCanvasTitle(
+              title,
+              binding.type === 'folder' ? binding.path : null,
+              entries.map((entry) => entry.path)
+            )}
             maxLength={120}
             onChange={(event) => {
               setTitle(event.target.value);
@@ -1054,7 +1063,10 @@ function SpatialEditor({
               ? '独立画布'
               : binding.type === 'result'
                 ? '关联成果'
-                : `${binding.type === 'file' ? '文件' : '文件夹'} · ${binding.path}`}
+                : `${binding.type === 'file' ? '文件' : '文件夹'} · ${displayCanvasBindingPath(
+                    binding.path,
+                    entries.map((entry) => entry.path)
+                  )}`}
           </span>
           <Button size="small" type="link" onClick={editBinding}>
             关联设置
@@ -1083,12 +1095,15 @@ function SpatialEditor({
       {binding.type === 'file' &&
         entries.length > 0 &&
         !entries.some((entry) => entry.path === binding.path) && (
-          <Alert type="warning" title={`关联文件不可用：${binding.path}`} />
+          <Alert type="warning" title={`关联文件不可用：${displayWorkspacePath(binding.path)}`} />
         )}
       {binding.type === 'folder' &&
         (binding.snapshot?.length ?? 0) > 0 &&
         folderFiles.length === 0 && (
-          <Alert type="warning" title={`关联文件夹不可用或已清空：${binding.path}`} />
+          <Alert
+            type="warning"
+            title={`关联文件夹不可用或已清空：${displayWorkspacePath(binding.path)}`}
+          />
         )}
       {binding.type === 'folder' && (folderAdded.length > 0 || folderRemoved.length > 0) && (
         <Alert
@@ -1411,7 +1426,7 @@ function SpatialEditor({
                 : []),
               ...entries
                 .filter((entry) => entry.readable)
-                .map((entry) => ({ value: entry.path, label: entry.path })),
+                .map((entry) => ({ value: entry.path, label: displayWorkspacePath(entry.path) })),
             ]}
             onChange={setAiSource}
           />

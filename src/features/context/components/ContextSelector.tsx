@@ -9,6 +9,7 @@ import type {
   ProcessingLocation,
 } from '../../../shared/types/domain';
 import { useAppStore } from '../../../stores/useAppStore';
+import { displayWorkspacePath } from '../../../shared/workspacePath';
 import { useImportStore } from '../../imports/importStore';
 import { useContextPackStore } from '../../contextPacks/contextPackStore';
 import {
@@ -198,7 +199,8 @@ export function ContextSelector({
             disabled={!activePath || isSensitivePath(activePath)}
             onChange={(event) => setFlag('currentFile', event.target.checked)}
           >
-            {t('currentFile')} {activePath && <Tag color="blue">{activePath}</Tag>}
+            {t('currentFile')}{' '}
+            {activePath && <Tag color="blue">{displayWorkspacePath(activePath)}</Tag>}
           </Checkbox>
           <Checkbox
             checked={selection.recentMessages}
@@ -228,7 +230,7 @@ export function ContextSelector({
             .filter((file) => file.path !== activePath && !isSensitivePath(file.path))
             .map((file) => (
               <Checkbox value={file.path} key={file.path}>
-                {file.path}
+                {displayWorkspacePath(file.path)}
               </Checkbox>
             ))}
         </Checkbox.Group>

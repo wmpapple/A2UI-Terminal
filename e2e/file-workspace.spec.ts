@@ -72,7 +72,8 @@ test('keeps edit, split and preview views consistent after switching files', asy
   await editor.getByText('预览', { exact: true }).click();
   await expect(source).toBeHidden();
   await expect(preview).toBeVisible();
-  await page.getByText('src/experiment.ts', { exact: true }).click();
+  await page.getByRole('treeitem', { name: '文件夹 src' }).click();
+  await page.getByRole('treeitem', { name: /experiment\.ts/ }).click();
   await expect(page.getByRole('textbox', { name: 'src/experiment.ts' })).toBeVisible();
   await editor.getByRole('tab', { name: 'README.md', exact: true }).click();
   await expect(editor.getByRole('radio', { name: '预览', exact: true })).toBeChecked();

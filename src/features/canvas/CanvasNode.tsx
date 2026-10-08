@@ -14,6 +14,7 @@ import { Button, Dropdown, Input, Select, Tooltip } from 'antd';
 import { memo, useEffect, useState, type CSSProperties } from 'react';
 import type { CanvasBlock } from '../../shared/types/canvas';
 import { useAppStore } from '../../stores/useAppStore';
+import { displayWorkspacePath } from '../../shared/workspacePath';
 import { CanvasVisualContent } from './CanvasVisualContent';
 import { FlowchartPreview } from './FlowchartPreview';
 import { RichNoteEditor } from './RichNoteEditor';
@@ -393,7 +394,7 @@ function CanvasNodeComponent({ id, data, selected }: NodeProps<CanvasFlowNode>) 
           onClick={() => data.onOpenSource(block)}
         >
           {block.sourcePath
-            ? `${block.sourcePath}${block.sourcePage ? ` · P${block.sourcePage}` : ''}`
+            ? `${displayWorkspacePath(block.sourcePath)}${block.sourcePage ? ` · P${block.sourcePage}` : ''}`
             : '打开关联对象'}
         </Button>
       )}

@@ -209,7 +209,7 @@ describe('ContextSelector', () => {
       </I18nProvider>
     );
 
-    expect(screen.getAllByText('long.md')).toHaveLength(2);
+    expect(screen.getAllByText('long.md')).toHaveLength(3);
   });
 
   it('selects a remembered pack and previews each concrete source reference', () => {

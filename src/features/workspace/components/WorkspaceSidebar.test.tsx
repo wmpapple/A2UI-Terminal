@@ -202,4 +202,47 @@ describe('WorkspaceSidebar', () => {
     expect(screen.getByText('发现 1 个崩溃恢复草稿')).toBeVisible();
     expect(screen.getAllByRole('button', { name: 'notes.md' })).not.toHaveLength(0);
   });
+
+  it('keeps imported files at the root and opens a real folder canvas only on request', () => {
+    const onOpenCanvas = vi.fn();
+    useAppStore.setState({
+      runtimeMode: 'web-mock',
+      workspaceEntries: [
+        {
+          path: 'selected/6e3a49c1-0d72-4cda-8f2a-37a91284e071/README.md',
+          name: 'README.md',
+          language: 'markdown',
+          sizeBytes: 8,
+          readable: true,
+          editable: true,
+          extracted: false,
+          sourceId: 'source-1',
+        },
+        {
+          path: 'papers/study.md',
+          name: 'study.md',
+          language: 'markdown',
+          sizeBytes: 8,
+          readable: true,
+          editable: true,
+          extracted: false,
+        },
+      ],
+      recoveryDraftSummaries: [],
+    });
+    render(
+      <I18nProvider>
+        <WorkspaceSidebar onOpenCanvas={onOpenCanvas} />
+      </I18nProvider>
+    );
+
+    expect(screen.getByRole('treeitem', { name: /README\.md/ })).toBeVisible();
+    expect(screen.queryByRole('treeitem', { name: /selected|6e3a49c1/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('treeitem', { name: /study\.md/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('treeitem', { name: '文件夹 papers' }));
+    expect(screen.getByRole('treeitem', { name: /study\.md/ })).toBeVisible();
+    expect(onOpenCanvas).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '打开文件夹 papers 的画布' }));
+    expect(onOpenCanvas).toHaveBeenCalledWith('papers', 'folder');
+  });
 });

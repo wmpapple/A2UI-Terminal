@@ -103,6 +103,19 @@
   cursor: pointer;
   text-align: left;
 }
+.folderRow {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.folderRow .file {
+  flex: 1;
+  min-width: 0;
+}
+.folderRow :global(.ant-btn) {
+  flex: none;
+  color: var(--text-muted);
+}
 .file > span:not(.recoveryDot) {
   overflow: hidden;
   text-overflow: ellipsis;

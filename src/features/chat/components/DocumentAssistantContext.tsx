@@ -2,6 +2,7 @@ import { FileTextOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Checkbox } from 'antd';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { ContextSelection } from '../../../shared/types/domain';
+import { displayWorkspacePath } from '../../../shared/workspacePath';
 import styles from './ChatPanel.module.css';
 
 export function DocumentAssistantContext({
@@ -21,7 +22,7 @@ export function DocumentAssistantContext({
   return (
     <section className={styles.documentContext} aria-label={t('currentDocument')}>
       <h2>{t('currentDocument')}</h2>
-      <div className={styles.contextDocument} title={activePath}>
+      <div className={styles.contextDocument} title={displayWorkspacePath(activePath)}>
         <FileTextOutlined />
         <strong>{activePath.split('/').at(-1) || t('noContextSelected')}</strong>
       </div>

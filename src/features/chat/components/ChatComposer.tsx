@@ -2,6 +2,7 @@ import { AppstoreOutlined, PaperClipOutlined, SendOutlined, StopOutlined } from 
 import { Button, Input, Tag, Tooltip } from 'antd';
 import { useRef, useState, type ReactNode } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
+import { displayWorkspacePath } from '../../../shared/workspacePath';
 import type { ProcessingLocation } from '../../../shared/types/domain';
 import styles from './ChatPanel.module.css';
 
@@ -205,10 +206,12 @@ export function ChatComposer({
             >
               {t(hasReviewedContext ? 'modifySendList' : 'context')}
             </Button>
-            {activePath && <Tag title={activePath}>{activePath}</Tag>}
+            {activePath && (
+              <Tag title={displayWorkspacePath(activePath)}>{displayWorkspacePath(activePath)}</Tag>
+            )}
             {projectFiles.map((path) => (
-              <Tag key={path} title={path}>
-                {path}
+              <Tag key={path} title={displayWorkspacePath(path)}>
+                {displayWorkspacePath(path)}
               </Tag>
             ))}
             <Tag>

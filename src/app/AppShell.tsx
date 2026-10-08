@@ -58,6 +58,7 @@ import type { WorkItem } from '../shared/types/workItem';
 import type { WritingProject } from '../shared/types/writingProject';
 import { ProjectSidebar } from '../features/writingProjects/ProjectSidebar';
 import type { CanvasBinding, CanvasDocument } from '../shared/types/canvas';
+import { displayCanvasTitle, displayWorkspacePath } from '../shared/workspacePath';
 import { canvasRepository } from '../features/canvas/canvasRepository';
 import { WorkbenchAppearance } from './WorkbenchAppearance';
 
@@ -334,6 +335,7 @@ export function AppShell() {
   };
 
   const openCanvas = (id: string) => {
+    setResourceView('canvas');
     setActiveCanvasId(id);
     setOpenedCanvasIds((current) => (current.includes(id) ? current : [...current, id]));
     setActiveWorkItemType('canvas');
@@ -397,7 +399,7 @@ export function AppShell() {
     }
     const pathName =
       binding.type === 'file' || binding.type === 'folder'
-        ? (binding.path.split(/[\\/]/).filter(Boolean).at(-1) ?? '')
+        ? (displayWorkspacePath(binding.path).split(/[\\/]/).filter(Boolean).at(-1) ?? '')
         : '';
     const opaqueName = /^(?:\d{10,}|[0-9a-f]{8}-[0-9a-f-]{27,})(?:\.[^.]+)?$/i.test(pathName);
     const name =
@@ -505,7 +507,16 @@ export function AppShell() {
       .map((id): WorkItem => ({
         id,
         type: 'canvas',
-        title: visibleCanvases.find((canvas) => canvas.id === id)?.title ?? '画布',
+        title: (() => {
+          const canvas = visibleCanvases.find((item) => item.id === id);
+          return canvas
+            ? displayCanvasTitle(
+                canvas.title,
+                canvas.binding.type === 'folder' ? canvas.binding.path : null,
+                workspaceEntries.map((entry) => entry.path)
+              )
+            : '画布';
+        })(),
         status: 'saved',
       })),
     ...openedProjectIds.map((id): WorkItem => ({

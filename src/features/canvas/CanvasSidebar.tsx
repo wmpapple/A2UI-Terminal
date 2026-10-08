@@ -8,6 +8,12 @@ import {
 import { Button, Empty, Input, Modal, Select, Tooltip, message } from 'antd';
 import { useMemo, useState } from 'react';
 import type { CanvasBinding, CanvasDocument } from '../../shared/types/canvas';
+import {
+  displayCanvasBindingPath,
+  displayCanvasTitle,
+  displayWorkspacePath,
+  workspaceFolderPaths,
+} from '../../shared/workspacePath';
 import styles from './CanvasSidebar.module.css';
 
 interface Props {
@@ -33,18 +39,7 @@ export function CanvasSidebar({
   const [path, setPath] = useState('');
   const [busy, setBusy] = useState(false);
   const [messageApi, messageHolder] = message.useMessage();
-  const folders = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          filePaths.flatMap((file) => {
-            const parts = file.split('/');
-            return parts.slice(0, -1).map((_, index) => parts.slice(0, index + 1).join('/'));
-          })
-        )
-      ).sort(),
-    [filePaths]
-  );
+  const folders = useMemo(() => workspaceFolderPaths(filePaths), [filePaths]);
   const groups = [
     {
       title: '关联文件与文件夹',
@@ -95,13 +90,19 @@ export function CanvasSidebar({
                     <LayoutOutlined />
                   )}
                   <span>
-                    <strong>{canvas.title}</strong>
+                    <strong>
+                      {displayCanvasTitle(
+                        canvas.title,
+                        canvas.binding.type === 'folder' ? canvas.binding.path : null,
+                        filePaths
+                      )}
+                    </strong>
                     <small>
                       {canvas.binding.type === 'none'
                         ? '独立'
                         : canvas.binding.type === 'result'
                           ? '关联成果'
-                          : canvas.binding.path}
+                          : displayCanvasBindingPath(canvas.binding.path, filePaths)}
                     </small>
                     <small>
                       {new Date(canvas.updatedAt).toLocaleString('zh-CN', {
@@ -201,7 +202,7 @@ export function CanvasSidebar({
                 value={path || undefined}
                 placeholder="选择路径"
                 options={(kind === 'file' ? filePaths : folders).map((value) => ({
-                  label: value,
+                  label: displayWorkspacePath(value),
                   value,
                 }))}
                 onChange={setPath}

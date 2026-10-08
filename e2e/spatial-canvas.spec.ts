@@ -61,6 +61,31 @@ test('opens a file canvas inside the workbench and preserves spatial edits', asy
   );
 });
 
+test('keeps folder canvases in the canvas resource view until the folder is opened', async ({
+  page,
+}) => {
+  const workbench = page.getByTestId('workspace-layout');
+  const resources = workbench.getByRole('tablist', { name: '左侧资源视图' });
+  await expect(resources.getByRole('tab', { name: '文件' })).toHaveAttribute(
+    'aria-selected',
+    'true'
+  );
+  const folder = workbench.getByRole('treeitem', { name: '文件夹 src' });
+  await expect(folder).toHaveAttribute('aria-expanded', 'false');
+  await expect(workbench.getByRole('button', { name: '打开文件夹 src 的画布' })).toHaveCount(0);
+  await folder.click();
+  await expect(folder).toHaveAttribute('aria-expanded', 'true');
+  await workbench.getByRole('button', { name: '打开文件夹 src 的画布' }).click();
+  await expect(resources.getByRole('tab', { name: '画布' })).toHaveAttribute(
+    'aria-selected',
+    'true'
+  );
+  await expect(workbench.getByRole('tab', { name: 'src · 画布' })).toBeVisible();
+  await resources.getByRole('tab', { name: '文件' }).click();
+  await expect(workbench.getByRole('treeitem', { name: '文件夹 src' })).toBeVisible();
+  await expect(workbench.getByRole('treeitem', { name: 'src · 画布' })).toHaveCount(0);
+});
+
 test('creates independent and folder canvases in the canvas resource panel', async ({ page }) => {
   const workbench = page.getByTestId('workspace-layout');
   await workbench

@@ -9,6 +9,10 @@ test('quick controls, empty-state navigation and live system theme work at compa
   await page.goto('/');
   const navigation = page.getByRole('navigation', { name: '主导航' });
   await expect(page.getByRole('heading', { name: '今天想完成什么？' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '今天想完成什么？' })).toHaveCSS(
+    'animation-name',
+    'none'
+  );
   await page.screenshot({ path: info.outputPath('home-light.png') });
   await page.getByRole('button', { name: '使用模式', exact: true }).click();
   await page.getByRole('menuitem', { name: '专业模式' }).click();
@@ -40,4 +44,15 @@ test('quick controls, empty-state navigation and live system theme work at compa
     });
   expect(headerFits).toBe(true);
   await page.screenshot({ path: info.outputPath('home-dark-english.png') });
+});
+
+test('the home heading keeps a moving gradient when motion is enabled', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.addInitScript(() => localStorage.setItem('a2ui.onboarding-complete.v1', 'true'));
+  await page.goto('/');
+  const title = page.getByRole('heading', { name: '今天想完成什么？' });
+  await expect(title).toBeVisible();
+  await expect
+    .poll(() => title.evaluate((element) => getComputedStyle(element).animationName))
+    .toContain('heroGradientDrift');
 });

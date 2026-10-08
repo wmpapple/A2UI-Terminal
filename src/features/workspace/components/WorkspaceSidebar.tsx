@@ -1,5 +1,6 @@
 import {
   DeleteOutlined,
+  DownOutlined,
   FileMarkdownOutlined,
   FileTextOutlined,
   FolderOpenOutlined,
@@ -8,12 +9,18 @@ import {
   InfoCircleOutlined,
   LayoutOutlined,
   FolderOutlined,
+  RightOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Dropdown, Input, Popconfirm, Select, Spin, Tag, Tooltip } from 'antd';
 import { useMemo, useState } from 'react';
 import { useI18n } from '../../../app/i18n/useI18n';
 import { useAppStore } from '../../../stores/useAppStore';
 import { useImportStore } from '../../imports/importStore';
+import {
+  displayWorkspacePath,
+  workspaceFolderPaths,
+  workspaceParentFolder,
+} from '../../../shared/workspacePath';
 import styles from './WorkspaceSidebar.module.css';
 
 const iconFor = (path: string) =>
@@ -54,24 +61,52 @@ export function WorkspaceSidebar({
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const addFileToContext = useAppStore((state) => state.addFileToContext);
   const [query, setQuery] = useState('');
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const visibleFiles = useMemo(
-    () => workspaceEntries.filter((file) => file.path.toLowerCase().includes(query.toLowerCase())),
+    () =>
+      workspaceEntries.filter((file) =>
+        displayWorkspacePath(file.path).toLowerCase().includes(query.toLowerCase())
+      ),
     [workspaceEntries, query]
   );
   const folders = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          workspaceEntries.flatMap((file) => {
-            const parts = file.path.split('/');
-            return parts.slice(0, -1).map((_, index) => parts.slice(0, index + 1).join('/'));
-          })
-        )
-      )
-        .filter((path) => path.toLowerCase().includes(query.toLowerCase()))
-        .sort(),
-    [workspaceEntries, query]
+    () => workspaceFolderPaths(workspaceEntries.map((file) => file.path)),
+    [workspaceEntries]
   );
+  const treeRows = useMemo(() => {
+    const rows: Array<
+      | { type: 'folder'; path: string; depth: number }
+      | { type: 'file'; file: (typeof workspaceEntries)[number]; depth: number }
+    > = [];
+    const normalizedQuery = query.toLocaleLowerCase();
+    const addChildren = (parent: string, depth: number) => {
+      for (const folder of folders.filter((path) => workspaceParentFolder(path) === parent)) {
+        const matches =
+          !normalizedQuery ||
+          folder.toLocaleLowerCase().includes(normalizedQuery) ||
+          visibleFiles.some((file) => file.path.startsWith(`${folder}/`));
+        if (!matches) continue;
+        rows.push({ type: 'folder', path: folder, depth });
+        if (normalizedQuery || expandedFolders.has(folder)) addChildren(folder, depth + 1);
+      }
+      for (const file of visibleFiles
+        .filter((entry) => workspaceParentFolder(entry.path) === parent)
+        .sort((a, b) =>
+          displayWorkspacePath(a.path).localeCompare(displayWorkspacePath(b.path), 'zh-CN')
+        )) {
+        rows.push({ type: 'file', file, depth });
+      }
+    };
+    addChildren('', 0);
+    return rows;
+  }, [expandedFolders, folders, query, visibleFiles]);
+  const toggleFolder = (folder: string) =>
+    setExpandedFolders((current) => {
+      const next = new Set(current);
+      if (next.has(folder)) next.delete(folder);
+      else next.add(folder);
+      return next;
+    });
   const isDesktop = runtimeMode === 'desktop';
   const activateWorkspaceFile = async (path: string, name: string) => {
     if (onBeforeOpenFile && !(await onBeforeOpenFile(path, name))) return;
@@ -177,7 +212,7 @@ export function WorkspaceSidebar({
                       void activateWorkspaceFile(draft.relativePath, draft.relativePath)
                     }
                   >
-                    {draft.relativePath}
+                    {displayWorkspacePath(draft.relativePath)}
                   </Button>
                   {!draft.available ? <span>{t('recoveryFileUnavailable')}</span> : null}
                   <Popconfirm
@@ -209,75 +244,98 @@ export function WorkspaceSidebar({
       />
       <Spin spinning={workspaceLoading} classNames={{ root: styles.treeSpinner }}>
         <div className={styles.tree} role="tree">
-          {folders.map((folder) => (
-            <Dropdown
-              key={`folder:${folder}`}
-              trigger={['contextMenu']}
-              menu={{
-                items: [{ key: 'canvas', label: '打开画布', icon: <LayoutOutlined /> }],
-                onClick: () => onOpenCanvas?.(folder, 'folder'),
-              }}
-            >
-              <button
-                type="button"
-                role="treeitem"
-                aria-label={`文件夹 ${folder}`}
-                className={styles.file}
-                onClick={() => onOpenCanvas?.(folder, 'folder')}
-              >
-                <FolderOutlined />
-                <span>{folder}</span>
-                <LayoutOutlined aria-hidden="true" />
-              </button>
-            </Dropdown>
-          ))}
-          {visibleFiles.map((file) => (
-            <Dropdown
-              key={file.path}
-              trigger={['contextMenu']}
-              menu={{
-                items: [
-                  { key: 'add', label: t('addToConversation') },
-                  { key: 'canvas', label: '打开画布', icon: <LayoutOutlined /> },
-                ],
-                onClick: async ({ key }) => {
-                  if (key === 'canvas') {
-                    onOpenCanvas?.(file.path, 'file');
-                    return;
-                  }
-                  await openFile(file.path);
-                  addFileToContext(activeSessionId, file.path);
-                },
-              }}
-            >
-              <Tooltip
-                title={
-                  file.readable
-                    ? file.extracted
-                      ? t('readOnlyDocument')
-                      : file.path
-                    : t('fileCannotOpen')
-                }
-                placement="right"
-              >
-                <button
-                  type="button"
-                  role="treeitem"
-                  aria-selected={highlightActiveFile && activePath === file.path}
-                  aria-disabled={!file.readable}
-                  disabled={!file.readable}
-                  className={`${styles.file} ${highlightActiveFile && activePath === file.path ? styles.active : ''}`}
-                  onClick={() => void activateWorkspaceFile(file.path, file.name)}
+          {treeRows.map((row) => {
+            if (row.type === 'folder')
+              return (
+                <Dropdown
+                  key={`folder:${row.path}`}
+                  trigger={['contextMenu']}
+                  menu={{
+                    items: [{ key: 'canvas', label: '打开画布', icon: <LayoutOutlined /> }],
+                    onClick: () => onOpenCanvas?.(row.path, 'folder'),
+                  }}
                 >
-                  {iconFor(file.path)}
-                  <span>{file.sourceId ? file.name : file.path}</span>
-                  {recoveryDraftSummaries.some((draft) => draft.relativePath === file.path) ? (
-                    <span className={styles.recoveryDot} aria-label={t('pendingDraftTitle')} />
-                  ) : null}
-                </button>
-              </Tooltip>
-            </Dropdown>
-          ))}
+                  <div className={styles.folderRow} style={{ paddingLeft: row.depth * 14 }}>
+                    <button
+                      type="button"
+                      role="treeitem"
+                      aria-expanded={query ? true : expandedFolders.has(row.path)}
+                      aria-label={`文件夹 ${row.path}`}
+                      className={styles.file}
+                      onClick={() => toggleFolder(row.path)}
+                    >
+                      {query || expandedFolders.has(row.path) ? (
+                        <DownOutlined />
+                      ) : (
+                        <RightOutlined />
+                      )}
+                      <FolderOutlined />
+                      <span>{row.path.split('/').at(-1)}</span>
+                    </button>
+                    {expandedFolders.has(row.path) && (
+                      <Tooltip title={`打开「${row.path}」的画布`}>
+                        <Button
+                          type="text"
+                          size="small"
+                          aria-label={`打开文件夹 ${row.path} 的画布`}
+                          icon={<LayoutOutlined />}
+                          onClick={() => onOpenCanvas?.(row.path, 'folder')}
+                        />
+                      </Tooltip>
+                    )}
+                  </div>
+                </Dropdown>
+              );
+            const file = row.file;
+            return (
+              <Dropdown
+                key={file.path}
+                trigger={['contextMenu']}
+                menu={{
+                  items: [
+                    { key: 'add', label: t('addToConversation') },
+                    { key: 'canvas', label: '打开画布', icon: <LayoutOutlined /> },
+                  ],
+                  onClick: async ({ key }) => {
+                    if (key === 'canvas') {
+                      onOpenCanvas?.(file.path, 'file');
+                      return;
+                    }
+                    await openFile(file.path);
+                    addFileToContext(activeSessionId, file.path);
+                  },
+                }}
+              >
+                <Tooltip
+                  title={
+                    file.readable
+                      ? file.extracted
+                        ? t('readOnlyDocument')
+                        : displayWorkspacePath(file.path)
+                      : t('fileCannotOpen')
+                  }
+                  placement="right"
+                >
+                  <button
+                    type="button"
+                    role="treeitem"
+                    aria-selected={highlightActiveFile && activePath === file.path}
+                    aria-disabled={!file.readable}
+                    disabled={!file.readable}
+                    className={`${styles.file} ${highlightActiveFile && activePath === file.path ? styles.active : ''}`}
+                    style={{ paddingLeft: 10 + row.depth * 14 }}
+                    onClick={() => void activateWorkspaceFile(file.path, file.name)}
+                  >
+                    {iconFor(file.path)}
+                    <span>{row.depth ? file.name : displayWorkspacePath(file.path)}</span>
+                    {recoveryDraftSummaries.some((draft) => draft.relativePath === file.path) ? (
+                      <span className={styles.recoveryDot} aria-label={t('pendingDraftTitle')} />
+                    ) : null}
+                  </button>
+                </Tooltip>
+              </Dropdown>
+            );
+          })}
         </div>
       </Spin>
       <div className={styles.footer}>
