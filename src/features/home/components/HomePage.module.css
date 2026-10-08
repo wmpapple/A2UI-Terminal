@@ -5,12 +5,14 @@
   --cta-background: linear-gradient(135deg, #bf4b16, #a93f13);
   --cta-text: #fff;
   --cta-shadow: 0 3px 10px #b94b191a;
-  --hero-text-gradient: linear-gradient(110deg, #52525b 0%, #18181b 55%, #000 100%);
+  --hero-text-gradient: linear-gradient(108deg, #28343b 0%, #17242d 55%, #a44623 100%);
   flex: 1;
   min-height: 0;
   padding: 30px clamp(20px, 4vw, 56px) 48px;
   overflow: auto;
-  background: var(--canvas);
+  background:
+    radial-gradient(ellipse 52% 30% at 88% 0%, var(--ambient-cool), transparent),
+    radial-gradient(ellipse 55% 33% at 0% 20%, var(--ambient-warm), transparent), var(--canvas);
 }
 
 .content {
@@ -19,11 +21,44 @@
 }
 
 .hero {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  padding: 28px 30px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, var(--border));
+  border-radius: 24px;
+  background:
+    radial-gradient(
+      circle at 81% 12%,
+      color-mix(in srgb, var(--accent) 10%, transparent),
+      transparent 28%
+    ),
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--panel) 94%, var(--accent-soft)),
+      var(--panel) 67%
+    );
+  box-shadow: var(--card-shadow);
+}
+.hero::after {
+  position: absolute;
+  right: -68px;
+  bottom: -138px;
+  width: 340px;
+  height: 340px;
+  border: 1px solid color-mix(in srgb, var(--accent) 11%, transparent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 46px color-mix(in srgb, var(--accent) 3%, transparent);
+  content: '';
+  pointer-events: none;
+}
+.hero > * {
+  position: relative;
+  z-index: 1;
 }
 
 .eyebrow {
@@ -49,6 +84,7 @@
   font-size: clamp(28px, 4vw, 40px);
   letter-spacing: -0.04em;
   line-height: 1.25;
+  font-family: var(--font-display);
 }
 
 @supports (background-clip: text) or (-webkit-background-clip: text) {
@@ -85,6 +121,14 @@
   border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
+  box-shadow: 0 3px 10px rgb(50 38 27 / 5%);
+  transition:
+    transform 180ms var(--motion-ease),
+    box-shadow 180ms ease;
+}
+.heroActions :global(.ant-btn):not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow);
 }
 .recentProject {
   display: flex;
@@ -207,6 +251,8 @@
   margin: 0;
   color: var(--text-strong);
   font-size: 18px;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 
 .sectionHeader span {
@@ -279,19 +325,39 @@
 }
 
 .actionCard {
+  --card-accent: #b94b19;
   height: 100%;
   cursor: pointer;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--card-accent) 16%, var(--border));
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 94% 0%,
+      color-mix(in srgb, var(--card-accent) 10%, transparent),
+      transparent 39%
+    ),
+    var(--panel);
+  box-shadow: 0 3px 12px rgb(58 40 22 / 3%);
   transition:
     border-color 200ms ease,
     box-shadow 200ms ease,
     transform 200ms ease;
 }
+.actionCard:nth-child(2),
+.actionCard:nth-child(5) {
+  --card-accent: #347b8a;
+}
+.actionCard:nth-child(3),
+.actionCard:nth-child(6) {
+  --card-accent: #8b6aaf;
+}
 
 .actionCard:hover,
 .actionCard:focus-within {
-  border-color: color-mix(in srgb, var(--accent) 25%, var(--border));
-  box-shadow: 0 10px 28px rgb(64 42 25 / 8%);
-  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--card-accent) 40%, var(--border));
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-4px);
 }
 
 .actionButton {
@@ -317,11 +383,16 @@
   width: 46px;
   height: 46px;
   flex: none;
-  color: var(--text-strong);
-  background: color-mix(in srgb, var(--accent-soft) 60%, var(--panel));
-  border-radius: 11px;
+  color: var(--card-accent);
+  background: color-mix(in srgb, var(--card-accent) 12%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--card-accent) 16%, transparent);
+  border-radius: 14px;
   font-size: 18px;
   place-items: center;
+  transition: transform 220ms var(--motion-ease);
+}
+.actionCard:hover .actionIcon {
+  transform: rotate(-5deg) scale(1.06);
 }
 
 .actionText strong,
@@ -375,7 +446,11 @@
   gap: 12px;
   padding: 18px 16px;
   border: 1px solid var(--border);
-  background: var(--panel);
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--accent) 3%, var(--panel)),
+    var(--panel)
+  );
   border-radius: 12px;
 }
 .resultItem::before {
@@ -550,7 +625,7 @@
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 6px 24px #3020140a;
+  box-shadow: var(--card-shadow);
   transition: box-shadow 0.2s;
 }
 .searchBar:focus-within {
@@ -628,13 +703,23 @@
 }
 @media (prefers-color-scheme: dark) {
   .page {
-    --canvas: #17191d;
-    --panel: #22252b;
     --accent: #dba47e;
     --accent-soft: #362a24;
     --focus-ring: #dba47e;
     --cta-background: linear-gradient(135deg, #984422, #873d24);
-    --hero-text-gradient: linear-gradient(110deg, #b8bcc5 0%, #e8eaee 55%, #fff 100%);
+    --hero-text-gradient: linear-gradient(110deg, #e7e9e5 0%, #f4f0e8 55%, #e5ad8c 100%);
+  }
+  .actionCard:nth-child(1),
+  .actionCard:nth-child(4) {
+    --card-accent: #dba47e;
+  }
+  .actionCard:nth-child(2),
+  .actionCard:nth-child(5) {
+    --card-accent: #8dc3cb;
+  }
+  .actionCard:nth-child(3),
+  .actionCard:nth-child(6) {
+    --card-accent: #bca5d4;
   }
 }
 @media (forced-colors: active) {
@@ -659,6 +744,10 @@
   .page .actionCard:focus-within,
   .page .resultItem:hover,
   .page .searchItem:hover {
+    transform: none;
+  }
+  .page .actionCard:hover .actionIcon,
+  .page .heroActions :global(.ant-btn):hover {
     transform: none;
   }
 }

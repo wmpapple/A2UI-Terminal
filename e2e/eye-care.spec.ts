@@ -30,7 +30,7 @@ test('eye comfort preserves editing, persists and stays scoped to the workbench'
   const nav = page.getByRole('navigation', { name: '主导航' });
   await nav.getByRole('button', { name: '首页', exact: true }).click();
   await expect(toggle).toHaveCount(0);
-  await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(11, 15, 25)');
+  await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(20, 25, 29)');
   await nav.getByRole('button', { name: '工作台', exact: true }).click();
   await page.getByRole('button', { name: '更多成果操作' }).click();
   await expect(toggle).toBeChecked();

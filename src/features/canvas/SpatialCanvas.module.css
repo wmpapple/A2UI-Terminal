@@ -461,6 +461,29 @@
   background: var(--panel);
   border-color: var(--border);
 }
+.header {
+  background:
+    radial-gradient(circle at 86% 0%, var(--ambient-cool), transparent 28%),
+    linear-gradient(110deg, color-mix(in srgb, var(--accent) 5%, var(--panel)), var(--panel) 62%);
+}
+.toolbar {
+  background: linear-gradient(
+    180deg,
+    var(--panel),
+    color-mix(in srgb, var(--panel) 80%, var(--canvas))
+  );
+  box-shadow: 0 4px 12px rgb(36 32 28 / 4%);
+}
+.toolbar :global(.ant-btn) {
+  border-radius: 9px;
+  transition:
+    transform 180ms var(--motion-ease),
+    box-shadow 180ms ease;
+}
+.toolbar :global(.ant-btn):not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--card-shadow);
+}
 .identity > span,
 .saveState,
 .zoom {
@@ -471,7 +494,9 @@
   color: var(--text-strong);
 }
 .flowArea {
-  background: var(--canvas);
+  background:
+    radial-gradient(ellipse 52% 44% at 6% 4%, var(--ambient-warm), transparent),
+    radial-gradient(ellipse 42% 42% at 95% 92%, var(--ambient-cool), transparent), var(--canvas);
   color: var(--text-strong);
 }
 .flowArea :global(.react-flow__controls button) {
@@ -504,16 +529,21 @@
   background: var(--panel);
   color: var(--text-strong);
   border-color: var(--border);
-  box-shadow: 0 15px 50px #0004;
+  box-shadow: var(--shadow-hover);
 }
 .paletteItems button {
   background: var(--surface-subtle);
   border-color: var(--border);
   color: var(--text-strong);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 .paletteItems button:hover {
   background: var(--accent-soft);
   border-color: var(--accent);
+  box-shadow: var(--card-shadow);
 }
 .paletteItems small {
   color: var(--text-muted);
@@ -525,7 +555,13 @@
   border: 1px solid color-mix(in srgb, var(--node-accent) 50%, var(--border));
   border-top: 4px solid var(--node-accent);
   border-radius: 13px;
-  box-shadow: 0 5px 18px #0002;
+  box-shadow: var(--card-shadow);
+  transition:
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+.node:hover {
+  box-shadow: var(--shadow-hover);
 }
 .node[data-kind='note'] {
   --node-accent: #c89537;

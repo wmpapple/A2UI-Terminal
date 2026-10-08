@@ -6,12 +6,27 @@
   width: min(100%, 1180px);
   margin: 0 auto;
   min-width: 0;
+  position: relative;
+  isolation: isolate;
+}
+.page::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 -28px auto;
+  height: 240px;
+  background:
+    radial-gradient(ellipse at 90% 0%, var(--ambient-cool), transparent 57%),
+    radial-gradient(ellipse at 5% 0%, var(--ambient-warm), transparent 52%);
+  content: '';
+  pointer-events: none;
 }
 .page h1 {
   margin: 0;
   color: var(--text-strong);
   font-size: 28px;
   line-height: 1.25;
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
 }
 .pageSubtitle {
   margin: 0 0 6px;
@@ -43,7 +58,9 @@
   background: var(--panel);
 }
 .sourceSearch :global(.ant-input-affix-wrapper) {
-  box-shadow: 0 2px 12px #1823340a;
+  min-height: 38px;
+  border-radius: 10px 0 0 10px;
+  box-shadow: var(--card-shadow);
 }
 .refreshButton:global(.ant-btn) {
   width: 24px;
@@ -58,8 +75,8 @@
   flex: none;
   min-height: 32px;
   padding: 4px 12px;
-  border-radius: 6px;
-  background: var(--accent);
+  border-radius: 10px;
+  background: var(--cta-background);
   color: #fff;
   cursor: pointer;
 }
@@ -84,12 +101,19 @@
 .emptySources {
   display: grid;
   align-content: center;
-  min-height: 170px;
+  min-height: 190px;
   padding: 16px;
   text-align: center;
-  border-radius: 8px;
-  background: var(--panel);
-  box-shadow: 0 3px 18px #18233409;
+  border: 1px solid color-mix(in srgb, var(--accent) 9%, var(--border));
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      color-mix(in srgb, var(--accent) 7%, transparent),
+      transparent 43%
+    ),
+    var(--panel);
+  box-shadow: var(--card-shadow);
 }
 .emptySources :global(.ant-empty) {
   margin-block: 2px 8px;
@@ -107,10 +131,11 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
   overflow: hidden;
   background: var(--panel);
-  box-shadow: 0 2px 12px #1823340a;
+  box-shadow: var(--card-shadow);
 }
 .sourceRow {
   display: grid;
@@ -127,10 +152,14 @@
 .sourceRow {
   min-height: 80px;
   cursor: pointer;
-  transition: background 150ms ease;
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease;
 }
-.sourceRow:hover {
-  background: color-mix(in srgb, var(--surface-subtle) 45%, var(--panel));
+.sourceRow:hover,
+.sourceRow:focus-within {
+  background: color-mix(in srgb, var(--accent) 4%, var(--panel));
+  box-shadow: inset 3px 0 var(--accent);
 }
 .sourceIcon {
   flex: none;
@@ -138,18 +167,18 @@
   place-items: center;
   width: 38px;
   height: 38px;
-  border-radius: 6px;
+  border-radius: 11px;
   background: var(--surface-subtle);
   color: var(--text-muted);
   font-size: 20px;
 }
 .format_pdf {
-  background: #fff0ee;
-  color: #c6534a;
+  background: color-mix(in srgb, #c6534a 13%, var(--panel));
+  color: color-mix(in srgb, #c6534a 76%, var(--text-strong));
 }
 .format_docx {
-  background: #e9f3fb;
-  color: #3878a9;
+  background: color-mix(in srgb, #3878a9 13%, var(--panel));
+  color: color-mix(in srgb, #3878a9 76%, var(--text-strong));
 }
 .format_md {
   background: var(--accent-soft);
@@ -157,8 +186,8 @@
 }
 .format_xlsx,
 .format_csv {
-  background: #e9f5ec;
-  color: #408554;
+  background: color-mix(in srgb, #408554 13%, var(--panel));
+  color: color-mix(in srgb, #408554 76%, var(--text-strong));
 }
 .sourceIdentity {
   display: flex;
@@ -230,7 +259,7 @@
 }
 .formatFilters button {
   border: 0;
-  border-radius: 4px;
+  border-radius: 9px;
   padding: 6px 11px;
   color: var(--text-muted);
   background: transparent;
@@ -304,8 +333,8 @@
   white-space: nowrap;
 }
 .indexReady {
-  background: #eaf5ee;
-  color: #3b8155;
+  background: var(--success-soft);
+  color: var(--success);
 }
 .statusDot {
   width: 6px;

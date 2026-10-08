@@ -1094,13 +1094,15 @@ export function AppShell() {
         token: {
           motion: !reducedMotion,
           colorPrimary: dark ? '#dba47e' : '#b94b19',
-          colorBgLayout: dark ? '#0b0f19' : '#f8fafc',
-          colorBgContainer: dark ? '#1e293b' : '#ffffff',
-          colorText: dark ? '#e2e8f0' : '#0f172a',
-          colorTextSecondary: dark ? '#a8b6cb' : '#64748b',
+          colorBgLayout: dark ? '#14191d' : '#f8f7f4',
+          colorBgContainer: dark ? '#222a30' : '#ffffff',
+          colorText: dark ? '#f1f5f9' : '#18232d',
+          colorTextSecondary: dark ? '#a8b6cb' : '#626f7e',
+          colorBorder: dark ? '#3a4147' : '#e6e1da',
           colorTextLightSolid: dark ? '#0b0f19' : '#ffffff',
           borderRadius: 10,
-          fontFamily: 'Inter, "Segoe UI", sans-serif',
+          fontFamily:
+            '"Segoe UI Variable Text", "Segoe UI", "PingFang SC", "Microsoft YaHei UI", "Noto Sans SC", sans-serif',
         },
       }}
     >

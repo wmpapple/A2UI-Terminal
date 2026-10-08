@@ -5,23 +5,33 @@
   --cta-background: linear-gradient(135deg, #bf4b16, #a93f13);
   --cta-text: #fff;
   --cta-shadow: 0 3px 10px #b94b191a;
-  --border: #e2e8f0;
-  --canvas: #f8fafc;
+  --border: #e6e1da;
+  --canvas: #f8f7f4;
   --danger-soft: #fff2f0;
   --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   --panel: #ffffff;
   --success: #22a06b;
   --success-soft: #f0fff7;
   --surface-hover: #fff6ee;
-  --surface-subtle: #f1f5f9;
-  --text: #475569;
-  --text-muted: #64748b;
-  --text-strong: #0f172a;
-  --card-shadow: 0 10px 25px -5px rgb(15 23 42 / 8%);
+  --surface-subtle: #f2f0eb;
+  --text: #4a5665;
+  --text-muted: #626f7e;
+  --text-strong: #18232d;
+  --font-ui:
+    'Segoe UI Variable Text', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', 'Noto Sans SC',
+    sans-serif;
+  --font-display:
+    'Segoe UI Variable Display', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', 'Noto Sans SC',
+    sans-serif;
+  --card-shadow: 0 12px 32px rgb(58 40 22 / 7%), 0 2px 6px rgb(58 40 22 / 3%);
+  --shadow-hover: 0 20px 40px rgb(58 40 22 / 12%), 0 4px 12px rgb(58 40 22 / 5%);
+  --ambient-warm: rgb(216 139 88 / 13%);
+  --ambient-cool: rgb(85 149 164 / 8%);
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --focus-ring: #b94b19;
   color: var(--text);
   background: var(--canvas);
-  font-family: Inter, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: var(--font-ui);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -41,7 +51,8 @@ body {
 }
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 button:focus-visible,
@@ -59,11 +70,11 @@ a:focus-visible,
     --accent: #dba47e;
     --accent-soft: #362a24;
     --cta-background: linear-gradient(135deg, #984422, #873d24);
-    --border: #334155;
-    --canvas: #0b0f19;
-    --panel: #1e293b;
+    --border: #3a4147;
+    --canvas: #14191d;
+    --panel: #222a30;
     --surface-hover: #29364c;
-    --surface-subtle: #151e2d;
+    --surface-subtle: #1b2329;
     --text: #cbd5e1;
     --text-muted: #a8b6cb;
     --text-strong: #f1f5f9;
@@ -71,7 +82,10 @@ a:focus-visible,
     --success-soft: #11352d;
     --danger-soft: #3a202b;
     --focus-ring: #dba47e;
-    --card-shadow: 0 10px 25px -5px rgb(0 0 0 / 24%);
+    --card-shadow: 0 12px 32px rgb(0 0 0 / 20%), 0 2px 6px rgb(0 0 0 / 12%);
+    --shadow-hover: 0 20px 44px rgb(0 0 0 / 34%), 0 4px 12px rgb(0 0 0 / 18%);
+    --ambient-warm: rgb(180 100 54 / 10%);
+    --ambient-cool: rgb(67 130 148 / 8%);
   }
 }
 .ant-btn-primary:not(:disabled):active {

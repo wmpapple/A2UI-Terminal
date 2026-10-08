@@ -18,12 +18,19 @@
   gap: 4px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
-  background: var(--surface-subtle);
+  background: linear-gradient(180deg, var(--panel), var(--surface-subtle));
 }
 .workbenchTabs :global(.ant-btn) {
   flex: 1;
   min-width: 0;
   padding-inline: 4px;
+  border-radius: 9px;
+  transition:
+    background-color 180ms ease,
+    transform 180ms var(--motion-ease);
+}
+.workbenchTabs :global(.ant-btn):not(:disabled):hover {
+  transform: translateY(-1px);
 }
 .resourceContent {
   flex: 1;
@@ -52,7 +59,7 @@
   align-items: center;
   min-width: 0;
   border-bottom: 1px solid var(--border);
-  background: var(--surface-subtle);
+  background: linear-gradient(180deg, var(--panel), var(--surface-subtle));
 }
 .workItemBar > :first-child {
   flex: 1;
@@ -101,8 +108,11 @@
   min-height: 68px;
   gap: 20px;
   padding: 10px 24px;
-  background: var(--panel);
+  background:
+    radial-gradient(circle at 7% -30%, var(--ambient-warm), transparent 29%),
+    linear-gradient(180deg, var(--panel), color-mix(in srgb, var(--panel) 94%, var(--canvas)));
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 14px rgb(35 34 32 / 4%);
   box-sizing: border-box;
   user-select: none;
 }
@@ -124,10 +134,20 @@
 }
 .navigation :global(.ant-btn) {
   padding-inline: 11px;
+  border-radius: 10px;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms var(--motion-ease);
+}
+.navigation :global(.ant-btn):not(:disabled):hover {
+  transform: translateY(-1px);
 }
 .brand strong {
   color: var(--text-strong);
   font-size: 13px;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 .logo {
   display: grid;
@@ -135,9 +155,10 @@
   height: 32px;
   color: white;
   background: var(--brand-gradient);
-  border-radius: 7px;
+  border-radius: 10px;
   font-size: 17px;
   font-weight: 800;
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--brand-accent) 25%, transparent);
   place-items: center;
 }
 .versionTag.versionTag {
@@ -208,6 +229,7 @@
   color: var(--brand-accent);
   background: var(--brand-soft);
   font-weight: 600;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-accent) 9%, transparent);
 }
 .titleActions {
   flex: none;
@@ -241,14 +263,16 @@
   }
 }
 .mainContent > * {
-  animation: pageEnter 240ms ease-out;
+  animation: pageEnter 280ms var(--motion-ease);
 }
 @keyframes pageEnter {
   from {
     opacity: 0;
+    transform: translateY(5px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 @media (max-width: 1100px) {
