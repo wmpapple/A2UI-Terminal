@@ -395,10 +395,20 @@ export function AppShell() {
       openCanvas(matches[0].id);
       return;
     }
-    const name =
+    const pathName =
       binding.type === 'file' || binding.type === 'folder'
-        ? (binding.path.split('/').at(-1) ?? '文件')
-        : '画布';
+        ? (binding.path.split(/[\\/]/).filter(Boolean).at(-1) ?? '')
+        : '';
+    const opaqueName = /^(?:\d{10,}|[0-9a-f]{8}-[0-9a-f-]{27,})(?:\.[^.]+)?$/i.test(pathName);
+    const name =
+      pathName && !opaqueName
+        ? pathName
+        : binding.type === 'folder'
+          ? '文件夹'
+          : binding.type === 'result'
+            ? (resultDocument?.result.id === binding.resultId && resultDocument.result.title) ||
+              '成果'
+            : '文件';
     await createCanvas(`${name} · 画布`, binding);
   };
   const deleteCanvas = async (id: string) => {
@@ -793,6 +803,7 @@ export function AppShell() {
                     role="tab"
                     aria-selected={resourceView === tab}
                     type={resourceView === tab ? 'primary' : 'text'}
+                    autoInsertSpace={false}
                     onClick={() => setResourceView(tab)}
                   >
                     {tab === 'files'
@@ -801,8 +812,8 @@ export function AppShell() {
                         : 'Files'
                       : tab === 'tools'
                         ? locale === 'zh-CN'
-                          ? '我的工具'
-                          : 'My Tools'
+                          ? '工具'
+                          : 'Tools'
                         : tab === 'projects'
                           ? locale === 'zh-CN'
                             ? '项目'
@@ -1102,7 +1113,7 @@ export function AppShell() {
           colorTextLightSolid: dark ? '#0b0f19' : '#ffffff',
           borderRadius: 10,
           fontFamily:
-            '"Segoe UI Variable Text", "Segoe UI", "PingFang SC", "Microsoft YaHei UI", "Noto Sans SC", sans-serif',
+            '"Noto Sans SC", "Microsoft YaHei UI", "PingFang SC", "Segoe UI Variable Text", "Segoe UI", sans-serif',
         },
       }}
     >

@@ -138,9 +138,9 @@ export function MySceneTools({
 
   if (mode !== 'desktop') return null;
   return (
-    <section className={styles.myToolsPanel} aria-label={zh ? '我的工具' : 'My Tools'}>
+    <section className={styles.myToolsPanel} aria-label={zh ? '工具' : 'Tools'}>
       <h2>
-        {zh ? '我的工具' : 'My Tools'}
+        {zh ? '工具' : 'Tools'}
         <span className={styles.toolCount}>{items?.length ?? 0}</span>
       </h2>
       {onCreate ? (

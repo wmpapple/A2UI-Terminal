@@ -52,11 +52,27 @@ export function CanvasSidebar({
     },
     { title: '独立画布', items: canvases.filter((canvas) => canvas.binding.type === 'none') },
   ];
+  const nextUntitledName = () => {
+    const used = new Set(canvases.map((canvas) => canvas.title));
+    if (!used.has('未命名画布')) return '未命名画布';
+    let number = 2;
+    while (used.has(`未命名画布 ${number}`)) number += 1;
+    return `未命名画布 ${number}`;
+  };
   return (
     <aside className={styles.sidebar} aria-label="画布列表">
       <header>
         <strong>画布</strong>
-        <Button icon={<PlusOutlined />} size="small" onClick={() => setCreateOpen(true)}>
+        <Button
+          icon={<PlusOutlined />}
+          size="small"
+          onClick={() => {
+            setTitle(nextUntitledName());
+            setKind('none');
+            setPath('');
+            setCreateOpen(true);
+          }}
+        >
           新建
         </Button>
       </header>

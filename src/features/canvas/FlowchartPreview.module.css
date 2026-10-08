@@ -21,53 +21,30 @@
 .shape rect,
 .shape ellipse,
 .shape path {
-  fill: #eaf3ff;
-  stroke: #6395d0;
+  fill: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  stroke: color-mix(in srgb, var(--accent) 52%, var(--border));
   stroke-width: 2;
 }
 .shape text {
-  fill: #173459;
+  fill: var(--text-strong);
   font-size: 13px;
   font-weight: 600;
 }
 .shape[data-shape='rounded'] rect {
-  fill: #e9f8ee;
-  stroke: #6fac82;
+  fill: color-mix(in srgb, var(--accent) 6%, var(--panel));
+  stroke: color-mix(in srgb, var(--accent) 38%, var(--border));
 }
 .shape[data-shape='diamond'] path {
-  fill: #fff3d8;
-  stroke: #c99a48;
+  fill: color-mix(in srgb, var(--accent) 15%, var(--panel));
+  stroke: color-mix(in srgb, var(--accent) 65%, var(--border));
 }
 .shape[data-shape='ellipse'] ellipse {
-  fill: #f2eaff;
-  stroke: #9f80c7;
+  fill: color-mix(in srgb, var(--accent) 8%, var(--panel));
+  stroke: color-mix(in srgb, var(--accent) 46%, var(--border));
 }
 .empty {
   display: grid;
   place-items: center;
   height: 100%;
   color: var(--text-muted);
-}
-@media (prefers-color-scheme: dark) {
-  .shape rect,
-  .shape ellipse,
-  .shape path {
-    fill: #233955;
-    stroke: #6d9bcf;
-  }
-  .shape text {
-    fill: #f4f8ff;
-  }
-  .shape[data-shape='rounded'] rect {
-    fill: #214936;
-    stroke: #75b58e;
-  }
-  .shape[data-shape='diamond'] path {
-    fill: #574324;
-    stroke: #d4a85f;
-  }
-  .shape[data-shape='ellipse'] ellipse {
-    fill: #44355b;
-    stroke: #b89add;
-  }
 }

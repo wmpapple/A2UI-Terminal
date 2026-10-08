@@ -46,7 +46,7 @@ it('shows searchable two-line identities and filters tools', async () => {
   expect(await screen.findByText(/PRD.md · 成果 Rev 1 · 今天/)).toBeVisible();
   expect(screen.getByText(/未关联 · 今天/)).toBeVisible();
   expect(container.querySelector('[data-active="true"]')).toBeTruthy();
-  expect(screen.getByRole('heading', { name: /我的工具/ })).toHaveTextContent('我的工具2');
+  expect(screen.getByRole('heading', { name: /工具/ })).toHaveTextContent('工具2');
   expect(screen.getByRole('button', { name: '全部' })).toHaveTextContent('全部2');
   expect(screen.getByRole('button', { name: '已关联' })).toHaveTextContent('已关联1');
   expect(screen.getByRole('button', { name: '未关联' })).toHaveTextContent('未关联1');

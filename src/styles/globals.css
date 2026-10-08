@@ -18,21 +18,23 @@
   --text-muted: #626f7e;
   --text-strong: #18232d;
   --font-ui:
-    'Segoe UI Variable Text', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', 'Noto Sans SC',
+    'Noto Sans SC', 'Microsoft YaHei UI', 'PingFang SC', 'Segoe UI Variable Text', 'Segoe UI',
     sans-serif;
   --font-display:
-    'Segoe UI Variable Display', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', 'Noto Sans SC',
+    'Noto Sans SC', 'Microsoft YaHei UI', 'PingFang SC', 'Segoe UI Variable Display', 'Segoe UI',
     sans-serif;
   --card-shadow: 0 12px 32px rgb(58 40 22 / 7%), 0 2px 6px rgb(58 40 22 / 3%);
   --shadow-hover: 0 20px 40px rgb(58 40 22 / 12%), 0 4px 12px rgb(58 40 22 / 5%);
-  --ambient-warm: rgb(216 139 88 / 13%);
-  --ambient-cool: rgb(85 149 164 / 8%);
+  --ambient-warm: rgb(185 75 25 / 11%);
+  --ambient-soft: rgb(152 103 68 / 7%);
   --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --focus-ring: #b94b19;
   color: var(--text);
   background: var(--canvas);
   font-family: var(--font-ui);
   font-synthesis: none;
+  font-optical-sizing: auto;
+  font-feature-settings: 'kern' 1;
   text-rendering: optimizeLegibility;
 }
 * {
@@ -73,7 +75,7 @@ a:focus-visible,
     --border: #3a4147;
     --canvas: #14191d;
     --panel: #222a30;
-    --surface-hover: #29364c;
+    --surface-hover: #352b29;
     --surface-subtle: #1b2329;
     --text: #cbd5e1;
     --text-muted: #a8b6cb;
@@ -85,7 +87,7 @@ a:focus-visible,
     --card-shadow: 0 12px 32px rgb(0 0 0 / 20%), 0 2px 6px rgb(0 0 0 / 12%);
     --shadow-hover: 0 20px 44px rgb(0 0 0 / 34%), 0 4px 12px rgb(0 0 0 / 18%);
     --ambient-warm: rgb(180 100 54 / 10%);
-    --ambient-cool: rgb(67 130 148 / 8%);
+    --ambient-soft: rgb(152 103 68 / 7%);
   }
 }
 .ant-btn-primary:not(:disabled):active {

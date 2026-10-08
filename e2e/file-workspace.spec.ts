@@ -88,7 +88,7 @@ test('keeps the same three-column workbench when switching to tools', async ({ p
   const resources = workbench.getByRole('tablist', { name: '左侧资源视图' });
   await expect(resources).toBeVisible();
   await expect(workbench.getByRole('tab', { name: 'README.md' })).toBeVisible();
-  await resources.getByRole('tab', { name: '我的工具' }).click();
+  await resources.getByRole('tab', { name: '工具' }).click();
   await expect(workbench.getByRole('tab', { name: 'README.md' })).toBeVisible();
   await expect(workbench.getByRole('region', { name: '当前文档' })).toBeVisible();
   await expect(workbench.getByRole('complementary', { name: 'AI 助手' })).toBeVisible();

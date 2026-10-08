@@ -26,8 +26,8 @@ export function ResultAssistantPanel({
           title={
             document.result.a2uiSurfaceId?.startsWith('scene-snapshot-')
               ? locale === 'zh-CN'
-                ? '这是手动保存的成果快照。继续填写请到“工作台 → 我的工具”；填写后需手动更新成果。'
-                : 'This is a manually saved snapshot. Continue under Workbench → My Tools, then explicitly update the result.'
+                ? '这是手动保存的成果快照。继续填写请到“工作台 → 工具”；填写后需手动更新成果。'
+                : 'This is a manually saved snapshot. Continue under Workbench → Tools, then explicitly update the result.'
               : document.result.a2uiSurfaceId
                 ? locale === 'zh-CN'
                   ? '此工具在本机填写并自动保存，无需调用 AI。填写完成后，可导出或存为个人模板。'

@@ -7,7 +7,7 @@
   padding: 24px;
   overflow-y: auto;
   background:
-    radial-gradient(ellipse 48% 27% at 96% 0%, var(--ambient-cool), transparent), var(--canvas);
+    radial-gradient(ellipse 48% 27% at 96% 0%, var(--ambient-soft), transparent), var(--canvas);
 }
 .embedded {
   flex: 1;

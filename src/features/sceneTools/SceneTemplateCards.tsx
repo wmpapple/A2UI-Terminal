@@ -250,7 +250,7 @@ export function SceneTemplateCards({
         </label>
         <p>
           {zh
-            ? `每行一项，最多 ${selected?.maxItems ?? 5} 项，每项最多 24 字。自定义只影响本次创建；需要长期复用时，可在“我的工具”中保存为个人模板。`
+            ? `每行一项，最多 ${selected?.maxItems ?? 5} 项，每项最多 24 字。自定义只影响本次创建；需要长期复用时，可在“工具”中保存为个人模板。`
             : `One item per line, up to ${selected?.maxItems ?? 5} items and 24 characters each. Customization applies to this tool only; save it as a personal template later if needed.`}
         </p>
         {error ? <Alert type="error" showIcon title={error} /> : null}

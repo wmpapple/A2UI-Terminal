@@ -64,7 +64,7 @@ describe('PersonalSurfaceTemplates', () => {
     expect(await screen.findByText('联系人表单')).toBeInTheDocument();
     expect(screen.queryByText(/每次打开都会重新检查安全性/)).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '我的模板' })).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: '我的工具' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: '工具' })).not.toBeInTheDocument();
     expect(screen.getByText('可在本机修改界面字段')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /安全打开/ }));
 

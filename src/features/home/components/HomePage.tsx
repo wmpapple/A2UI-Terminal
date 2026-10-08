@@ -8,6 +8,7 @@ import {
 import { Alert, Button, Card, Empty, Form, Input, Modal, Select, Skeleton } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { HomeTaskIcon } from './HomeTaskIcon';
+import { HomeFlowVisual } from './HomeFlowVisual';
 import { RecentResultsList } from './RecentResultsList';
 import { useI18n } from '../../../app/i18n/useI18n';
 import type { MessageKey } from '../../../app/i18n/messages';
@@ -207,24 +208,25 @@ export function HomePage({
     <main className={styles.page} aria-labelledby="home-page-title" aria-busy={loading}>
       <div className={styles.content}>
         <div className={styles.hero}>
-          <div>
+          <div className={styles.heroContent}>
             <span className={styles.eyebrow}>{t('homeEyebrow')}</span>
             <h1 id="home-page-title">{t('homeQuestion')}</h1>
             <p>{t('homeIntroduction')}</p>
+            <div className={styles.heroActions}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setCreatePreset({ initialType: 'document' })}
+              >
+                {t('createResult')}
+              </Button>
+              <Button onClick={onOpenGuide}>{t('replayOnboarding')}</Button>
+              <Button onClick={onStartProject}>
+                {locale === 'zh-CN' ? '开始长文项目' : 'Start writing project'}
+              </Button>
+            </div>
           </div>
-          <div className={styles.heroActions}>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setCreatePreset({ initialType: 'document' })}
-            >
-              {t('createResult')}
-            </Button>
-            <Button onClick={onOpenGuide}>{t('replayOnboarding')}</Button>
-            <Button onClick={onStartProject}>
-              {locale === 'zh-CN' ? '开始长文项目' : 'Start writing project'}
-            </Button>
-          </div>
+          <HomeFlowVisual locale={locale} />
         </div>
 
         {recentProject && (

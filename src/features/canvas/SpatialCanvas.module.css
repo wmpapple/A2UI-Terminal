@@ -463,7 +463,7 @@
 }
 .header {
   background:
-    radial-gradient(circle at 86% 0%, var(--ambient-cool), transparent 28%),
+    radial-gradient(circle at 86% 0%, var(--ambient-soft), transparent 28%),
     linear-gradient(110deg, color-mix(in srgb, var(--accent) 5%, var(--panel)), var(--panel) 62%);
 }
 .toolbar {
@@ -493,10 +493,19 @@
   background: transparent;
   color: var(--text-strong);
 }
+.titleInput:focus {
+  border-bottom-color: var(--accent);
+}
+.page :global(.ant-btn-link) {
+  color: var(--accent);
+}
+.page :global(.ant-btn-link):not(:disabled):hover {
+  color: color-mix(in srgb, var(--accent) 82%, var(--text-strong));
+}
 .flowArea {
   background:
     radial-gradient(ellipse 52% 44% at 6% 4%, var(--ambient-warm), transparent),
-    radial-gradient(ellipse 42% 42% at 95% 92%, var(--ambient-cool), transparent), var(--canvas);
+    radial-gradient(ellipse 42% 42% at 95% 92%, var(--ambient-soft), transparent), var(--canvas);
   color: var(--text-strong);
 }
 .flowArea :global(.react-flow__controls button) {
@@ -514,6 +523,9 @@
 .flowArea :global(.react-flow__edge-path) {
   stroke: var(--text-muted);
 }
+.flowArea :global(.react-flow__edge.selected .react-flow__edge-path) {
+  stroke: var(--accent);
+}
 .flowArea :global(.react-flow__handle) {
   background: var(--accent);
   border-color: var(--panel);
@@ -521,6 +533,9 @@
 .minimap {
   background: var(--panel);
   border-color: var(--border);
+}
+.floatingAdd {
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 32%, transparent);
 }
 .emptyHint {
   color: var(--text-muted);
@@ -549,8 +564,10 @@
   color: var(--text-muted);
 }
 .node {
-  --node-accent: #6d89b8;
-  background: color-mix(in srgb, var(--panel) 82%, var(--node-accent));
+  --node-accent: var(--accent);
+  --node-panel-share: 88%;
+  --xy-resize-background-color: var(--accent);
+  background: color-mix(in srgb, var(--panel) var(--node-panel-share), var(--node-accent));
   color: var(--text-strong);
   border: 1px solid color-mix(in srgb, var(--node-accent) 50%, var(--border));
   border-top: 4px solid var(--node-accent);
@@ -564,40 +581,40 @@
   box-shadow: var(--shadow-hover);
 }
 .node[data-kind='note'] {
-  --node-accent: #c89537;
-  background: var(--note-bg, color-mix(in srgb, var(--panel) 78%, #f2cf80));
+  --node-panel-share: 78%;
+  background: var(--note-bg, color-mix(in srgb, var(--panel) 82%, var(--accent)));
   color: var(--note-text, var(--text-strong));
 }
 .node[data-kind='checklist'] {
-  --node-accent: #539477;
+  --node-panel-share: 90%;
 }
 .node[data-kind='summary'] {
-  --node-accent: #9671bf;
+  --node-panel-share: 82%;
 }
 .node[data-kind='diagram'],
 .node[data-kind='flowchart'] {
-  --node-accent: #5187bf;
+  --node-panel-share: 91%;
 }
 .node[data-kind='result'] {
-  --node-accent: #4b9fa8;
+  --node-panel-share: 86%;
 }
 .node[data-kind='tool'] {
-  --node-accent: #4d80a6;
+  --node-panel-share: 89%;
 }
 .node[data-kind='a2ui'] {
-  --node-accent: #ad77ac;
+  --node-panel-share: 83%;
 }
 .node[data-kind='action'] {
-  --node-accent: #d08054;
+  --node-panel-share: 84%;
 }
 .node[data-kind='frame'] {
-  --node-accent: #7283a6;
+  --node-panel-share: 94%;
 }
 .node[data-kind='quote'] {
-  --node-accent: #8a72ab;
+  --node-panel-share: 80%;
 }
 .node[data-kind='file'] {
-  --node-accent: #6c90a4;
+  --node-panel-share: 92%;
 }
 .selectedNode {
   border-color: var(--accent);

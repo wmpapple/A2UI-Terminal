@@ -15,7 +15,7 @@
   inset: 0 -28px auto;
   height: 240px;
   background:
-    radial-gradient(ellipse at 90% 0%, var(--ambient-cool), transparent 57%),
+    radial-gradient(ellipse at 90% 0%, var(--ambient-soft), transparent 57%),
     radial-gradient(ellipse at 5% 0%, var(--ambient-warm), transparent 52%);
   content: '';
   pointer-events: none;
@@ -173,12 +173,12 @@
   font-size: 20px;
 }
 .format_pdf {
-  background: color-mix(in srgb, #c6534a 13%, var(--panel));
-  color: color-mix(in srgb, #c6534a 76%, var(--text-strong));
+  background: color-mix(in srgb, var(--accent) 13%, var(--panel));
+  color: var(--accent);
 }
 .format_docx {
-  background: color-mix(in srgb, #3878a9 13%, var(--panel));
-  color: color-mix(in srgb, #3878a9 76%, var(--text-strong));
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+  color: var(--accent);
 }
 .format_md {
   background: var(--accent-soft);
@@ -186,8 +186,8 @@
 }
 .format_xlsx,
 .format_csv {
-  background: color-mix(in srgb, #408554 13%, var(--panel));
-  color: color-mix(in srgb, #408554 76%, var(--text-strong));
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  color: var(--accent);
 }
 .sourceIdentity {
   display: flex;

@@ -66,7 +66,7 @@ export function SavedSceneTemplates({
   };
 
   return (
-    <section aria-label={zh ? '我的工具模板' : 'My Tool Templates'}>
+    <section aria-label={zh ? '工具模板' : 'Tool Templates'}>
       <h3>{zh ? '工具模板' : 'Tool templates'}</h3>
       {error ? (
         <Alert type="error" showIcon title={error} closable onClose={() => setError(null)} />
@@ -79,11 +79,11 @@ export function SavedSceneTemplates({
           <h3>{zh ? '还没有个人模板' : 'No personal templates yet'}</h3>
           <p>
             {zh
-              ? '在“我的工具”中选择“保存为个人模板”后，会显示在这里。'
-              : 'Choose “Save as personal template” in My Tools and it will appear here.'}
+              ? '在“工具”中选择“保存为个人模板”后，会显示在这里。'
+              : 'Choose “Save as personal template” in Tools and it will appear here.'}
           </p>
           <Button type="primary" onClick={onOpenMyTools}>
-            {zh ? '前往我的工具' : 'Go to My Tools'}
+            {zh ? '前往工具' : 'Go to Tools'}
           </Button>
         </div>
       ) : (

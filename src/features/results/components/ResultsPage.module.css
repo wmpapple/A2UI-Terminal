@@ -5,7 +5,7 @@
   overflow: auto;
   background:
     radial-gradient(ellipse 55% 34% at 92% 0%, var(--ambient-warm), transparent),
-    radial-gradient(ellipse 44% 30% at 0% 55%, var(--ambient-cool), transparent), var(--canvas);
+    radial-gradient(ellipse 44% 30% at 0% 55%, var(--ambient-soft), transparent), var(--canvas);
 }
 
 .content {

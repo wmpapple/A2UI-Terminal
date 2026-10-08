@@ -106,13 +106,13 @@
   background: color-mix(in srgb, var(--accent-soft) 40%, var(--panel));
 }
 .surface[data-layout='form'] {
-  background: color-mix(in srgb, #b9d9ef 16%, var(--panel));
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel));
 }
 .surface[data-layout='checklist'] {
-  background: color-mix(in srgb, #c4e6cc 18%, var(--panel));
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
 }
 .surface[data-layout='status'] {
-  background: color-mix(in srgb, #f8d9ba 18%, var(--panel));
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
 }
 .surface :global(.ant-card) {
   background: color-mix(in srgb, var(--panel) 82%, var(--accent-soft));
@@ -124,8 +124,8 @@
   border-color: var(--border);
 }
 .surface :global([class*='resultSummary']) {
-  background: color-mix(in srgb, var(--panel) 78%, #a8d680);
-  border-color: color-mix(in srgb, var(--border) 60%, #7caa53);
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
   color: var(--text-strong);
 }
 .surface :global([class*='dateInput']) {
@@ -194,11 +194,11 @@
   border-radius: 12px;
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--panel) 80%, #c9b6f2),
-    color-mix(in srgb, var(--panel) 90%, #9cdbd5)
+    color-mix(in srgb, var(--accent) 12%, var(--panel)),
+    color-mix(in srgb, var(--accent) 4%, var(--panel))
   );
   color: var(--summary-ink);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #9d81cf 25%, var(--border));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, var(--border));
   overflow: auto;
 }
 .summaryVisual:before {
@@ -206,7 +206,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: 4px;
-  background: linear-gradient(#9b70c4, #4b9fa8);
+  background: var(--cta-background);
   border-radius: 12px 0 0 12px;
 }
 .summaryMasthead {
@@ -215,7 +215,7 @@
   gap: 9px;
   padding-bottom: 11px;
   margin-bottom: 10px;
-  border-bottom: 1px solid color-mix(in srgb, #8d76ae 25%, var(--border));
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
 }
 .summaryEmblem {
   display: grid;
@@ -224,10 +224,10 @@
   width: 31px;
   height: 31px;
   border-radius: 10px;
-  background: linear-gradient(140deg, #7258a8, #ba82b9);
-  color: #fff;
+  background: var(--cta-background);
+  color: var(--cta-text);
   font-size: 18px;
-  box-shadow: 0 3px 9px #493a7430;
+  box-shadow: var(--cta-shadow);
 }
 .summaryMasthead > div {
   display: flex;
@@ -242,7 +242,7 @@
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.15em;
-  color: color-mix(in srgb, var(--text-strong) 70%, #6d4caa);
+  color: var(--accent);
 }
 .summaryIndex {
   margin-left: auto;
@@ -273,7 +273,7 @@
   width: 5px;
   height: 14px;
   border-radius: 4px;
-  background: #8e66ba;
+  background: var(--accent);
   flex: none;
 }
 .summaryBody h3 {
@@ -289,7 +289,7 @@
   line-height: 1.72;
 }
 .summaryBody strong {
-  color: color-mix(in srgb, var(--text-strong) 72%, #7547a5);
+  color: var(--text-strong);
 }
 .summaryBody ul,
 .summaryBody ol {
@@ -301,7 +301,7 @@
   position: relative;
   margin: 5px 0;
   padding: 7px 9px 7px 27px;
-  border: 1px solid color-mix(in srgb, #8d76ae 19%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--accent) 19%, var(--border));
   border-radius: 8px;
   background: color-mix(in srgb, var(--panel) 72%, transparent);
   line-height: 1.5;
@@ -311,7 +311,7 @@
   position: absolute;
   left: 9px;
   top: 8px;
-  color: #8d69b7;
+  color: var(--accent);
   font-size: 11px;
 }
 .summaryBody ol li {
@@ -324,9 +324,9 @@
 .summaryBody blockquote {
   margin: 10px 0;
   padding: 8px 11px;
-  border-left: 3px solid #5caaa4;
+  border-left: 3px solid var(--accent);
   border-radius: 0 8px 8px 0;
-  background: color-mix(in srgb, var(--panel) 69%, #91d4cc);
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
   color: var(--text-strong);
   font-style: italic;
 }
@@ -336,14 +336,14 @@
   overflow: auto;
 }
 .summaryBody code {
-  background: color-mix(in srgb, var(--panel) 70%, #b3a2d3);
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
   padding: 1px 3px;
   border-radius: 4px;
 }
 .summarySource {
   margin-top: 12px;
   padding-top: 8px;
-  border-top: 1px solid color-mix(in srgb, #8d76ae 20%, var(--border));
+  border-top: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
   font-size: 10px;
   color: var(--text-muted);
   overflow: hidden;

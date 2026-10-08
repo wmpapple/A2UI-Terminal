@@ -68,7 +68,7 @@ const palette: { type: CanvasBlockType; label: string; group: string; body: stri
   { type: 'summary', label: 'AI 摘要', group: 'AI', body: '' },
   { type: 'a2ui', label: 'A2UI 组件', group: 'AI', body: '' },
   { type: 'result', label: '成果', group: '关联', body: '' },
-  { type: 'tool', label: '我的工具', group: '关联', body: '' },
+  { type: 'tool', label: '工具', group: '关联', body: '' },
   { type: 'action', label: '行动', group: '行动', body: '' },
   { type: 'frame', label: '分组 Frame', group: '布局', body: '' },
 ];
@@ -546,14 +546,14 @@ function SpatialEditor({
         if (!options.length) {
           void messageApi.info(
             type === 'tool'
-              ? '我的工具中暂无可导入的场景工具'
+              ? '工具中暂无可导入的场景工具'
               : '当前没有可视化成果（支持 CSV、清单、表单和工具）'
           );
           return;
         }
         let id = '';
         modal.confirm({
-          title: type === 'tool' ? '导入我的工具' : '导入可视化成果',
+          title: type === 'tool' ? '导入工具' : '导入可视化成果',
           content: (
             <Select
               showSearch

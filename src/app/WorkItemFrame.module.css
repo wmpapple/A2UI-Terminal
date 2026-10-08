@@ -7,7 +7,7 @@
   padding: 16px 24px;
   box-sizing: border-box;
   background:
-    radial-gradient(circle at 88% 0%, var(--ambient-cool), transparent 35%),
+    radial-gradient(circle at 88% 0%, var(--ambient-soft), transparent 35%),
     linear-gradient(115deg, color-mix(in srgb, var(--accent) 5%, var(--panel)), var(--canvas) 70%);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
 }

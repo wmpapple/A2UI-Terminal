@@ -36,8 +36,8 @@ describe('SavedSceneTemplates', () => {
       </I18nProvider>
     );
     expect(await screen.findByText('还没有个人模板')).toBeVisible();
-    expect(screen.getByText('在“我的工具”中选择“保存为个人模板”后，会显示在这里。')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: '前往我的工具' }));
+    expect(screen.getByText('在“工具”中选择“保存为个人模板”后，会显示在这里。')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: '前往工具' }));
     expect(openTools).toHaveBeenCalledOnce();
   });
 

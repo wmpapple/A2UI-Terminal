@@ -72,7 +72,7 @@ export function assistantTargetLabel(
     (project !== undefined
       ? fallback
       : toolMode
-        ? toolTitle || 'My Tools'
+        ? toolTitle || 'Tools'
         : activePath || workspaceName)
   );
 }

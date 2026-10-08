@@ -124,12 +124,12 @@ test('defaults to the simple navigation shell and persists professional mode', a
   await navigation.getByRole('button', { name: /模板$/ }).click();
   await expect(page.getByRole('heading', { name: '模板', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '我的模板', exact: true })).toBeVisible();
-  await expect(page.getByRole('region', { name: '我的工具', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: '工具', exact: true })).toHaveCount(0);
 
   await navigation.getByRole('button', { name: /工作台$/ }).click();
-  await page.getByRole('tab', { name: '我的工具', exact: true }).click();
+  await page.getByRole('tab', { name: '工具', exact: true }).click();
   await expect(page.getByTestId('workspace-layout')).toBeVisible();
-  await expect(page.getByRole('tab', { name: '我的工具', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('tab', { name: '工具', exact: true })).toHaveAttribute(
     'aria-selected',
     'true'
   );

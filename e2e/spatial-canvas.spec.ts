@@ -90,6 +90,26 @@ test('creates independent and folder canvases in the canvas resource panel', asy
   ]);
 });
 
+test('uses readable default names for independent canvases and a short tools tab', async ({
+  page,
+}) => {
+  const workbench = page.getByTestId('workspace-layout');
+  const resourceTabs = workbench.getByRole('tablist', { name: '左侧资源视图' });
+  await expect(resourceTabs.getByRole('tab', { name: '工具', exact: true })).toBeVisible();
+  await resourceTabs.getByRole('tab', { name: '画布' }).click();
+
+  await workbench.getByRole('button', { name: '新建' }).click();
+  const dialog = page.getByRole('dialog', { name: '新建画布' });
+  await expect(dialog.getByRole('textbox')).toHaveValue('未命名画布');
+  await dialog.getByRole('button', { name: '创建并打开' }).click();
+  await expect(workbench.getByRole('tab', { name: '未命名画布' })).toBeVisible();
+
+  await workbench.getByRole('button', { name: '新建' }).click();
+  await expect(dialog.getByRole('textbox')).toHaveValue('未命名画布 2');
+  await dialog.getByRole('button', { name: '创建并打开' }).click();
+  await expect(workbench.getByRole('tab', { name: '未命名画布 2' })).toBeVisible();
+});
+
 test('edits a note with the top formatting toolbar and keeps rich text after reload', async ({
   page,
 }) => {

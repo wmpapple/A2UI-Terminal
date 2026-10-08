@@ -4,7 +4,7 @@
   overflow: auto;
   padding: 28px 32px;
   background:
-    radial-gradient(ellipse 48% 35% at 97% 0%, var(--ambient-cool), transparent),
+    radial-gradient(ellipse 48% 35% at 97% 0%, var(--ambient-soft), transparent),
     radial-gradient(ellipse 44% 36% at 0% 18%, var(--ambient-warm), transparent), var(--canvas);
 }
 
