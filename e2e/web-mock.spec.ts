@@ -271,7 +271,10 @@ test('keeps file changes behind review before applying the Web Mock patch', asyn
 
 test('routes selection edits through review with inline accept and undo', async ({ page }) => {
   await openProfessionalWorkbench(page);
-  await page.getByText('src/experiment.ts', { exact: true }).click();
+  await page
+    .getByRole('tablist', { name: 'Open work items' })
+    .getByRole('tab', { name: 'experiment.ts', exact: true })
+    .click();
   const editor = page.getByRole('textbox', { name: 'src/experiment.ts' });
   const original = await editor.textContent();
   await selectEditorText(editor, 'context-window');
